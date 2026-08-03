@@ -50,9 +50,63 @@ const config: HardhatUserConfig = {
         },
       },
       {
+        version: "0.8.26",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+          evmVersion: "cancun",
+        },
+      },
+      {
         version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+          evmVersion: "cancun",
+        },
       },
     ],
+    overrides: {
+      "@openzeppelin/uniswap-hooks/src/general/LimitOrderHook.sol": {
+        version: "0.8.26",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+          viaIR: true,
+          evmVersion: "cancun",
+        },
+      },
+      "@openzeppelin/uniswap-hooks/src/base/BaseHook.sol": {
+        version: "0.8.26",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+          viaIR: true,
+          evmVersion: "cancun",
+        },
+      },
+      "@openzeppelin/uniswap-hooks/src/utils/CurrencySettler.sol": {
+        version: "0.8.26",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+          },
+          viaIR: true,
+          evmVersion: "cancun",
+        },
+      },
+    },
   },
   networks: {
     hardhat: {
@@ -81,7 +135,7 @@ const config: HardhatUserConfig = {
     },
     ethereum: {
       chainId: 1,
-      url: "https://eth.llamarpc.com",
+      url: process.env.ETHEREUM_RPC || "https://ethereum.publicnode.com",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
     },

@@ -20,9 +20,11 @@ import { Position } from "@uniswap/v4-sdk";
 import { describe, expect, it } from "vitest";
 
 describe("order-book", () => {
-  it("chainSupportsOrderBook only on Base", () => {
+  it("chainSupportsOrderBook on Ethereum, Optimism, and Base", () => {
+    expect(chainSupportsOrderBook(1)).toBe(true);
+    expect(chainSupportsOrderBook(10)).toBe(true);
     expect(chainSupportsOrderBook(8453)).toBe(true);
-    expect(chainSupportsOrderBook(10)).toBe(false);
+    expect(chainSupportsOrderBook(100)).toBe(false);
   });
 
   it("clampProbability bounds values", () => {

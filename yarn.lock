@@ -6775,6 +6775,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@openzeppelin/contracts@npm:^5.5.0":
+  version: 5.7.0
+  resolution: "@openzeppelin/contracts@npm:5.7.0"
+  checksum: 10c0/8d3d3efb387dd134548137250fcd566ac52b0131a7e59c1d2cba726c73cc8eeccf0cf220619121548ac52d6e07cb779ad5c4976feda5be1f25f292f9b25dde60
+  languageName: node
+  linkType: hard
+
 "@openzeppelin/merkle-tree@npm:^1.0.5":
   version: 1.0.8
   resolution: "@openzeppelin/merkle-tree@npm:1.0.8"
@@ -6782,6 +6789,17 @@ __metadata:
     "@metamask/abi-utils": "npm:^2.0.4"
     ethereum-cryptography: "npm:^3.0.0"
   checksum: 10c0/380a4437cc49cd675f81642bdf4c340744f5181de4fa407478bb02e2a186d90f80fcbadf09c7d956be902bcb06f9d435d99c1f0a2f189ef917810a0612a34984
+  languageName: node
+  linkType: hard
+
+"@openzeppelin/uniswap-hooks@npm:1.1.1":
+  version: 1.1.1
+  resolution: "@openzeppelin/uniswap-hooks@npm:1.1.1"
+  dependencies:
+    "@openzeppelin/contracts": "npm:^5.5.0"
+    "@uniswap/v4-core": "npm:^1.0.2"
+    "@uniswap/v4-periphery": "npm:^1.0.3"
+  checksum: 10c0/41cf443d8a0d26fa209c9fc6ad62d526692362db8da82bd9b0e28de6e4f0c30937f6b90d78ff68624b67149008122cdd6573a82c7bbfd91e28fa52a4523c355f
   languageName: node
   linkType: hard
 
@@ -8449,6 +8467,7 @@ __metadata:
     "@nomicfoundation/hardhat-verify": "npm:^2.0.3"
     "@nomicfoundation/hardhat-viem": "npm:^1.0.0"
     "@openzeppelin/contracts": "npm:^5.0.1"
+    "@openzeppelin/uniswap-hooks": "npm:1.1.1"
     "@typechain/ethers-v6": "npm:^0.5.1"
     "@typechain/hardhat": "npm:^9.1.0"
     "@types/chai": "npm:^4.2.0"
@@ -10936,6 +10955,20 @@ __metadata:
     "@uniswap/v3-core": "npm:1.0.0"
     "@uniswap/v3-periphery": "npm:^1.0.1"
   checksum: 10c0/6f6cd79fbd8c87cd3e13b80c88199fc515077a8fe5b633cbd40d4a02dde8337f2f49b2214afbcacb0cd34f92820149381ed73342c0129c48ae28998773ca89b6
+  languageName: node
+  linkType: hard
+
+"@uniswap/v4-core@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "@uniswap/v4-core@npm:1.0.2"
+  checksum: 10c0/a0f97e6a73e6d6395191d1f95d0e8914f338dab83144092105b12dd7bebf7cab8bd8f2ceeab048061f54c0e499e83d3dcde9443062949f6f7c227c2ee4d54f2c
+  languageName: node
+  linkType: hard
+
+"@uniswap/v4-periphery@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "@uniswap/v4-periphery@npm:1.0.3"
+  checksum: 10c0/5cfcb9390870901949350b3aa614aa99896d440b1fc79d4c5582690bbb9c483c0707ae6817a115d12c40cfbb46087b220f61b57c068290a3329f5eb0884fea0c
   languageName: node
   linkType: hard
 

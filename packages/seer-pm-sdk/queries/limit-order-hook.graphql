@@ -1,16 +1,17 @@
 query GetUserOrders(
-  $skip: Int = 0
-  $first: Int = 100
-  $where: UserOrder_filter
-  $orderBy: UserOrder_orderBy = placedAtBlock
-  $orderDirection: OrderDirection = desc
+  $where: UserOrder_bool_exp
+  $offset: Int = 0
+  $limit: Int = 100
+  $orderBy: [UserOrder_order_by!]
 ) {
-  userOrders(skip: $skip, first: $first, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+  UserOrder(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
     id
+    chainId
     orderId
     owner
     pool {
       id
+      poolId
       currency0
       currency1
       fee
@@ -28,16 +29,17 @@ query GetUserOrders(
 }
 
 query GetOrderLevels(
-  $skip: Int = 0
-  $first: Int = 1000
-  $where: OrderLevel_filter
-  $orderBy: OrderLevel_orderBy = updatedAtBlock
-  $orderDirection: OrderDirection = desc
+  $where: OrderLevel_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+  $orderBy: [OrderLevel_order_by!]
 ) {
-  orderLevels(skip: $skip, first: $first, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+  OrderLevel(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
     id
+    chainId
     pool {
       id
+      poolId
     }
     orderId
     tickLower
@@ -52,14 +54,14 @@ query GetOrderLevels(
 }
 
 query GetOrderEvents(
-  $skip: Int = 0
-  $first: Int = 100
-  $where: OrderEvent_filter
-  $orderBy: OrderEvent_orderBy = blockNumber
-  $orderDirection: OrderDirection = desc
+  $where: OrderEvent_bool_exp
+  $offset: Int = 0
+  $limit: Int = 100
+  $orderBy: [OrderEvent_order_by!]
 ) {
-  orderEvents(skip: $skip, first: $first, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+  OrderEvent(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
     id
+    chainId
     type
     blockNumber
     timestamp
@@ -68,10 +70,10 @@ query GetOrderEvents(
     orderId
     pool {
       id
+      poolId
     }
     tickLower
     zeroForOne
     liquidity
   }
 }
-

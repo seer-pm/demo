@@ -1,5 +1,5 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { base, gnosis, mainnet } from "viem/chains";
+import { gnosis, mainnet } from "viem/chains";
 import { SUBGRAPHS } from "./src/subgraph/subgraph-endpoints";
 
 const schemasAndDocuments = [
@@ -30,7 +30,7 @@ const schemasAndDocuments = [
   },
   {
     type: "limit-order-hook",
-    schema: SUBGRAPHS.orderBook[base.id],
+    schema: SUBGRAPHS.seer,
     documents: "./queries/limit-order-hook.graphql",
   },
 ];
@@ -51,10 +51,13 @@ const generates = schemasAndDocuments.reduce(
           Timestamp: "string",
           jsonb: "unknown",
           numeric: "string",
+          bigint: "string",
           markettype: "string",
           ruling: "string",
           status: "string",
           timestamptz: "string",
+          userorderstatus: "string",
+          ordereventtype: "string",
         },
       },
     };

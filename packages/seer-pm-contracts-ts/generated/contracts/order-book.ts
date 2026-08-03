@@ -17,7 +17,9 @@ import {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const limitOrderHookAbi = [
   {
@@ -35,8 +37,10 @@ export const limitOrderHookAbi = [
   { type: 'error', inputs: [], name: 'Filled' },
   { type: 'error', inputs: [], name: 'HookNotImplemented' },
   { type: 'error', inputs: [], name: 'InRange' },
+  { type: 'error', inputs: [], name: 'InvalidPool' },
   { type: 'error', inputs: [], name: 'NotFilled' },
   { type: 'error', inputs: [], name: 'NotPoolManager' },
+  { type: 'error', inputs: [], name: 'NotSelf' },
   {
     type: 'error',
     inputs: [{ name: 'token', internalType: 'address', type: 'address' }],
@@ -613,26 +617,6 @@ export const limitOrderHookAbi = [
         internalType: 'OrderIdLibrary.OrderId',
         type: 'uint232',
       },
-    ],
-    name: 'getOrderInfo',
-    outputs: [
-      { name: 'filled', internalType: 'bool', type: 'bool' },
-      { name: 'currency0', internalType: 'Currency', type: 'address' },
-      { name: 'currency1', internalType: 'Currency', type: 'address' },
-      { name: 'currency0Total', internalType: 'uint256', type: 'uint256' },
-      { name: 'currency1Total', internalType: 'uint256', type: 'uint256' },
-      { name: 'liquidityTotal', internalType: 'uint128', type: 'uint128' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      {
-        name: 'orderId',
-        internalType: 'OrderIdLibrary.OrderId',
-        type: 'uint232',
-      },
       { name: 'owner', internalType: 'address', type: 'address' },
     ],
     name: 'getOrderLiquidity',
@@ -644,6 +628,26 @@ export const limitOrderHookAbi = [
     inputs: [{ name: 'poolId', internalType: 'PoolId', type: 'bytes32' }],
     name: 'getTickLowerLast',
     outputs: [{ name: '', internalType: 'int24', type: 'int24' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      {
+        name: 'orderId',
+        internalType: 'OrderIdLibrary.OrderId',
+        type: 'uint232',
+      },
+    ],
+    name: 'orderInfos',
+    outputs: [
+      { name: 'filled', internalType: 'bool', type: 'bool' },
+      { name: 'currency0', internalType: 'Currency', type: 'address' },
+      { name: 'currency1', internalType: 'Currency', type: 'address' },
+      { name: 'currency0Total', internalType: 'uint256', type: 'uint256' },
+      { name: 'currency1Total', internalType: 'uint256', type: 'uint256' },
+      { name: 'liquidityTotal', internalType: 'uint128', type: 'uint128' },
+    ],
     stateMutability: 'view',
   },
   {
@@ -705,126 +709,24 @@ export const limitOrderHookAbi = [
 ] as const
 
 /**
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const limitOrderHookAddress = {
-  8453: '0x8D34ff3de81395859E14267f2678a3044344D040',
+  1: '0xE10A429d18E90fbD44be3678d2AE1ef3c1691040',
+  10: '0x1f78E79C20d1E77526aC21E3651FABFc22035040',
+  8453: '0x19E8B37E9f4d69927Da1e13e989a2f955ee39040',
 } as const
 
 /**
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const limitOrderHookConfig = {
   address: limitOrderHookAddress,
   abi: limitOrderHookAbi,
-} as const
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SeerUniV4PoolInitializer
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const seerUniV4PoolInitializerAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: '_poolManager', internalType: 'address', type: 'address' },
-    ],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [],
-    name: 'POOL_MANAGER',
-    outputs: [
-      { name: '', internalType: 'contract IPoolManager', type: 'address' },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'tokenA', internalType: 'address', type: 'address' },
-      { name: 'tokenB', internalType: 'address', type: 'address' },
-      { name: 'hooks', internalType: 'address', type: 'address' },
-      { name: 'poolFee', internalType: 'uint24', type: 'uint24' },
-      { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
-    ],
-    name: 'getPoolKey',
-    outputs: [
-      {
-        name: '',
-        internalType: 'struct PoolKey',
-        type: 'tuple',
-        components: [
-          { name: 'currency0', internalType: 'Currency', type: 'address' },
-          { name: 'currency1', internalType: 'Currency', type: 'address' },
-          { name: 'fee', internalType: 'uint24', type: 'uint24' },
-          { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
-          { name: 'hooks', internalType: 'contract IHooks', type: 'address' },
-        ],
-      },
-    ],
-    stateMutability: 'pure',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'tokenA', internalType: 'address', type: 'address' },
-      { name: 'tokenB', internalType: 'address', type: 'address' },
-      { name: 'hooks', internalType: 'address', type: 'address' },
-      { name: 'poolFee', internalType: 'uint24', type: 'uint24' },
-      { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
-      { name: 'sqrtPriceX96', internalType: 'uint160', type: 'uint160' },
-    ],
-    name: 'initializePool',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'market', internalType: 'address', type: 'address' },
-      { name: 'collateralToken', internalType: 'address', type: 'address' },
-      { name: 'hooks', internalType: 'address', type: 'address' },
-      { name: 'poolFee', internalType: 'uint24', type: 'uint24' },
-      { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
-      { name: 'initialPrices', internalType: 'uint160[]', type: 'uint160[]' },
-    ],
-    name: 'initializePools',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'tokenA', internalType: 'address', type: 'address' },
-      { name: 'tokenB', internalType: 'address', type: 'address' },
-      { name: 'hooks', internalType: 'address', type: 'address' },
-      { name: 'poolFee', internalType: 'uint24', type: 'uint24' },
-      { name: 'tickSpacing', internalType: 'int24', type: 'int24' },
-    ],
-    name: 'isPoolInitialized',
-    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
-    stateMutability: 'view',
-  },
-] as const
-
-/**
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const seerUniV4PoolInitializerAddress = {
-  8453: '0xae300296486a63621f7f31E1B94aD22d32347deA',
-} as const
-
-/**
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const seerUniV4PoolInitializerConfig = {
-  address: seerUniV4PoolInitializerAddress,
-  abi: seerUniV4PoolInitializerAbi,
 } as const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -834,7 +736,9 @@ export const seerUniV4PoolInitializerConfig = {
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useReadLimitOrderHook = /*#__PURE__*/ createUseReadContract({
   abi: limitOrderHookAbi,
@@ -844,7 +748,9 @@ export const useReadLimitOrderHook = /*#__PURE__*/ createUseReadContract({
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getHookPermissions"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useReadLimitOrderHookGetHookPermissions =
   /*#__PURE__*/ createUseReadContract({
@@ -856,7 +762,9 @@ export const useReadLimitOrderHookGetHookPermissions =
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getOrderId"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useReadLimitOrderHookGetOrderId =
   /*#__PURE__*/ createUseReadContract({
@@ -866,21 +774,11 @@ export const useReadLimitOrderHookGetOrderId =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getOrderInfo"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
- */
-export const useReadLimitOrderHookGetOrderInfo =
-  /*#__PURE__*/ createUseReadContract({
-    abi: limitOrderHookAbi,
-    address: limitOrderHookAddress,
-    functionName: 'getOrderInfo',
-  })
-
-/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getOrderLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useReadLimitOrderHookGetOrderLiquidity =
   /*#__PURE__*/ createUseReadContract({
@@ -892,7 +790,9 @@ export const useReadLimitOrderHookGetOrderLiquidity =
 /**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getTickLowerLast"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useReadLimitOrderHookGetTickLowerLast =
   /*#__PURE__*/ createUseReadContract({
@@ -902,9 +802,25 @@ export const useReadLimitOrderHookGetTickLowerLast =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"orderInfos"`
+ *
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
+ */
+export const useReadLimitOrderHookOrderInfos =
+  /*#__PURE__*/ createUseReadContract({
+    abi: limitOrderHookAbi,
+    address: limitOrderHookAddress,
+    functionName: 'orderInfos',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"poolManager"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useReadLimitOrderHookPoolManager =
   /*#__PURE__*/ createUseReadContract({
@@ -916,7 +832,9 @@ export const useReadLimitOrderHookPoolManager =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHook = /*#__PURE__*/ createUseWriteContract({
   abi: limitOrderHookAbi,
@@ -926,7 +844,9 @@ export const useWriteLimitOrderHook = /*#__PURE__*/ createUseWriteContract({
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookAfterAddLiquidity =
   /*#__PURE__*/ createUseWriteContract({
@@ -938,7 +858,9 @@ export const useWriteLimitOrderHookAfterAddLiquidity =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookAfterDonate =
   /*#__PURE__*/ createUseWriteContract({
@@ -950,7 +872,9 @@ export const useWriteLimitOrderHookAfterDonate =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookAfterInitialize =
   /*#__PURE__*/ createUseWriteContract({
@@ -962,7 +886,9 @@ export const useWriteLimitOrderHookAfterInitialize =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookAfterRemoveLiquidity =
   /*#__PURE__*/ createUseWriteContract({
@@ -974,7 +900,9 @@ export const useWriteLimitOrderHookAfterRemoveLiquidity =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookAfterSwap =
   /*#__PURE__*/ createUseWriteContract({
@@ -986,7 +914,9 @@ export const useWriteLimitOrderHookAfterSwap =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookBeforeAddLiquidity =
   /*#__PURE__*/ createUseWriteContract({
@@ -998,7 +928,9 @@ export const useWriteLimitOrderHookBeforeAddLiquidity =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookBeforeDonate =
   /*#__PURE__*/ createUseWriteContract({
@@ -1010,7 +942,9 @@ export const useWriteLimitOrderHookBeforeDonate =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookBeforeInitialize =
   /*#__PURE__*/ createUseWriteContract({
@@ -1022,7 +956,9 @@ export const useWriteLimitOrderHookBeforeInitialize =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookBeforeRemoveLiquidity =
   /*#__PURE__*/ createUseWriteContract({
@@ -1034,7 +970,9 @@ export const useWriteLimitOrderHookBeforeRemoveLiquidity =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookBeforeSwap =
   /*#__PURE__*/ createUseWriteContract({
@@ -1046,7 +984,9 @@ export const useWriteLimitOrderHookBeforeSwap =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"cancelOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookCancelOrder =
   /*#__PURE__*/ createUseWriteContract({
@@ -1058,7 +998,9 @@ export const useWriteLimitOrderHookCancelOrder =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"placeOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookPlaceOrder =
   /*#__PURE__*/ createUseWriteContract({
@@ -1070,7 +1012,9 @@ export const useWriteLimitOrderHookPlaceOrder =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"unlockCallback"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookUnlockCallback =
   /*#__PURE__*/ createUseWriteContract({
@@ -1082,7 +1026,9 @@ export const useWriteLimitOrderHookUnlockCallback =
 /**
  * Wraps __{@link useWriteContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"withdraw"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWriteLimitOrderHookWithdraw =
   /*#__PURE__*/ createUseWriteContract({
@@ -1094,7 +1040,9 @@ export const useWriteLimitOrderHookWithdraw =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHook =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1105,7 +1053,9 @@ export const useSimulateLimitOrderHook =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookAfterAddLiquidity =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1117,7 +1067,9 @@ export const useSimulateLimitOrderHookAfterAddLiquidity =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookAfterDonate =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1129,7 +1081,9 @@ export const useSimulateLimitOrderHookAfterDonate =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookAfterInitialize =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1141,7 +1095,9 @@ export const useSimulateLimitOrderHookAfterInitialize =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookAfterRemoveLiquidity =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1153,7 +1109,9 @@ export const useSimulateLimitOrderHookAfterRemoveLiquidity =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookAfterSwap =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1165,7 +1123,9 @@ export const useSimulateLimitOrderHookAfterSwap =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookBeforeAddLiquidity =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1177,7 +1137,9 @@ export const useSimulateLimitOrderHookBeforeAddLiquidity =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookBeforeDonate =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1189,7 +1151,9 @@ export const useSimulateLimitOrderHookBeforeDonate =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookBeforeInitialize =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1201,7 +1165,9 @@ export const useSimulateLimitOrderHookBeforeInitialize =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookBeforeRemoveLiquidity =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1213,7 +1179,9 @@ export const useSimulateLimitOrderHookBeforeRemoveLiquidity =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookBeforeSwap =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1225,7 +1193,9 @@ export const useSimulateLimitOrderHookBeforeSwap =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"cancelOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookCancelOrder =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1237,7 +1207,9 @@ export const useSimulateLimitOrderHookCancelOrder =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"placeOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookPlaceOrder =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1249,7 +1221,9 @@ export const useSimulateLimitOrderHookPlaceOrder =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"unlockCallback"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookUnlockCallback =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1261,7 +1235,9 @@ export const useSimulateLimitOrderHookUnlockCallback =
 /**
  * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"withdraw"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useSimulateLimitOrderHookWithdraw =
   /*#__PURE__*/ createUseSimulateContract({
@@ -1273,7 +1249,9 @@ export const useSimulateLimitOrderHookWithdraw =
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWatchLimitOrderHookEvent =
   /*#__PURE__*/ createUseWatchContractEvent({
@@ -1284,7 +1262,9 @@ export const useWatchLimitOrderHookEvent =
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Cancel"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWatchLimitOrderHookCancelEvent =
   /*#__PURE__*/ createUseWatchContractEvent({
@@ -1296,7 +1276,9 @@ export const useWatchLimitOrderHookCancelEvent =
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Fill"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWatchLimitOrderHookFillEvent =
   /*#__PURE__*/ createUseWatchContractEvent({
@@ -1308,7 +1290,9 @@ export const useWatchLimitOrderHookFillEvent =
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Place"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWatchLimitOrderHookPlaceEvent =
   /*#__PURE__*/ createUseWatchContractEvent({
@@ -1320,130 +1304,15 @@ export const useWatchLimitOrderHookPlaceEvent =
 /**
  * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Withdraw"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const useWatchLimitOrderHookWithdrawEvent =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: limitOrderHookAbi,
     address: limitOrderHookAddress,
     eventName: 'Withdraw',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useReadSeerUniV4PoolInitializer =
-  /*#__PURE__*/ createUseReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"POOL_MANAGER"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useReadSeerUniV4PoolInitializerPoolManager =
-  /*#__PURE__*/ createUseReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'POOL_MANAGER',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"getPoolKey"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useReadSeerUniV4PoolInitializerGetPoolKey =
-  /*#__PURE__*/ createUseReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'getPoolKey',
-  })
-
-/**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"isPoolInitialized"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useReadSeerUniV4PoolInitializerIsPoolInitialized =
-  /*#__PURE__*/ createUseReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'isPoolInitialized',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useWriteSeerUniV4PoolInitializer =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePool"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useWriteSeerUniV4PoolInitializerInitializePool =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePool',
-  })
-
-/**
- * Wraps __{@link useWriteContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePools"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useWriteSeerUniV4PoolInitializerInitializePools =
-  /*#__PURE__*/ createUseWriteContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePools',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useSimulateSeerUniV4PoolInitializer =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePool"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useSimulateSeerUniV4PoolInitializerInitializePool =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePool',
-  })
-
-/**
- * Wraps __{@link useSimulateContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePools"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const useSimulateSeerUniV4PoolInitializerInitializePools =
-  /*#__PURE__*/ createUseSimulateContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePools',
   })
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1453,7 +1322,9 @@ export const useSimulateSeerUniV4PoolInitializerInitializePools =
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const readLimitOrderHook = /*#__PURE__*/ createReadContract({
   abi: limitOrderHookAbi,
@@ -1463,7 +1334,9 @@ export const readLimitOrderHook = /*#__PURE__*/ createReadContract({
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getHookPermissions"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const readLimitOrderHookGetHookPermissions =
   /*#__PURE__*/ createReadContract({
@@ -1475,7 +1348,9 @@ export const readLimitOrderHookGetHookPermissions =
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getOrderId"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const readLimitOrderHookGetOrderId = /*#__PURE__*/ createReadContract({
   abi: limitOrderHookAbi,
@@ -1484,20 +1359,11 @@ export const readLimitOrderHookGetOrderId = /*#__PURE__*/ createReadContract({
 })
 
 /**
- * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getOrderInfo"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
- */
-export const readLimitOrderHookGetOrderInfo = /*#__PURE__*/ createReadContract({
-  abi: limitOrderHookAbi,
-  address: limitOrderHookAddress,
-  functionName: 'getOrderInfo',
-})
-
-/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getOrderLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const readLimitOrderHookGetOrderLiquidity =
   /*#__PURE__*/ createReadContract({
@@ -1509,7 +1375,9 @@ export const readLimitOrderHookGetOrderLiquidity =
 /**
  * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"getTickLowerLast"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const readLimitOrderHookGetTickLowerLast =
   /*#__PURE__*/ createReadContract({
@@ -1519,9 +1387,24 @@ export const readLimitOrderHookGetTickLowerLast =
   })
 
 /**
+ * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"orderInfos"`
+ *
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
+ */
+export const readLimitOrderHookOrderInfos = /*#__PURE__*/ createReadContract({
+  abi: limitOrderHookAbi,
+  address: limitOrderHookAddress,
+  functionName: 'orderInfos',
+})
+
+/**
  * Wraps __{@link readContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"poolManager"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const readLimitOrderHookPoolManager = /*#__PURE__*/ createReadContract({
   abi: limitOrderHookAbi,
@@ -1532,7 +1415,9 @@ export const readLimitOrderHookPoolManager = /*#__PURE__*/ createReadContract({
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHook = /*#__PURE__*/ createWriteContract({
   abi: limitOrderHookAbi,
@@ -1542,7 +1427,9 @@ export const writeLimitOrderHook = /*#__PURE__*/ createWriteContract({
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookAfterAddLiquidity =
   /*#__PURE__*/ createWriteContract({
@@ -1554,7 +1441,9 @@ export const writeLimitOrderHookAfterAddLiquidity =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookAfterDonate = /*#__PURE__*/ createWriteContract(
   {
@@ -1567,7 +1456,9 @@ export const writeLimitOrderHookAfterDonate = /*#__PURE__*/ createWriteContract(
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookAfterInitialize =
   /*#__PURE__*/ createWriteContract({
@@ -1579,7 +1470,9 @@ export const writeLimitOrderHookAfterInitialize =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookAfterRemoveLiquidity =
   /*#__PURE__*/ createWriteContract({
@@ -1591,7 +1484,9 @@ export const writeLimitOrderHookAfterRemoveLiquidity =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookAfterSwap = /*#__PURE__*/ createWriteContract({
   abi: limitOrderHookAbi,
@@ -1602,7 +1497,9 @@ export const writeLimitOrderHookAfterSwap = /*#__PURE__*/ createWriteContract({
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookBeforeAddLiquidity =
   /*#__PURE__*/ createWriteContract({
@@ -1614,7 +1511,9 @@ export const writeLimitOrderHookBeforeAddLiquidity =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookBeforeDonate =
   /*#__PURE__*/ createWriteContract({
@@ -1626,7 +1525,9 @@ export const writeLimitOrderHookBeforeDonate =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookBeforeInitialize =
   /*#__PURE__*/ createWriteContract({
@@ -1638,7 +1539,9 @@ export const writeLimitOrderHookBeforeInitialize =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookBeforeRemoveLiquidity =
   /*#__PURE__*/ createWriteContract({
@@ -1650,7 +1553,9 @@ export const writeLimitOrderHookBeforeRemoveLiquidity =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookBeforeSwap = /*#__PURE__*/ createWriteContract({
   abi: limitOrderHookAbi,
@@ -1661,7 +1566,9 @@ export const writeLimitOrderHookBeforeSwap = /*#__PURE__*/ createWriteContract({
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"cancelOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookCancelOrder = /*#__PURE__*/ createWriteContract(
   {
@@ -1674,7 +1581,9 @@ export const writeLimitOrderHookCancelOrder = /*#__PURE__*/ createWriteContract(
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"placeOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookPlaceOrder = /*#__PURE__*/ createWriteContract({
   abi: limitOrderHookAbi,
@@ -1685,7 +1594,9 @@ export const writeLimitOrderHookPlaceOrder = /*#__PURE__*/ createWriteContract({
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"unlockCallback"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookUnlockCallback =
   /*#__PURE__*/ createWriteContract({
@@ -1697,7 +1608,9 @@ export const writeLimitOrderHookUnlockCallback =
 /**
  * Wraps __{@link writeContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"withdraw"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const writeLimitOrderHookWithdraw = /*#__PURE__*/ createWriteContract({
   abi: limitOrderHookAbi,
@@ -1708,7 +1621,9 @@ export const writeLimitOrderHookWithdraw = /*#__PURE__*/ createWriteContract({
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHook = /*#__PURE__*/ createSimulateContract({
   abi: limitOrderHookAbi,
@@ -1718,7 +1633,9 @@ export const simulateLimitOrderHook = /*#__PURE__*/ createSimulateContract({
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookAfterAddLiquidity =
   /*#__PURE__*/ createSimulateContract({
@@ -1730,7 +1647,9 @@ export const simulateLimitOrderHookAfterAddLiquidity =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookAfterDonate =
   /*#__PURE__*/ createSimulateContract({
@@ -1742,7 +1661,9 @@ export const simulateLimitOrderHookAfterDonate =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookAfterInitialize =
   /*#__PURE__*/ createSimulateContract({
@@ -1754,7 +1675,9 @@ export const simulateLimitOrderHookAfterInitialize =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookAfterRemoveLiquidity =
   /*#__PURE__*/ createSimulateContract({
@@ -1766,7 +1689,9 @@ export const simulateLimitOrderHookAfterRemoveLiquidity =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"afterSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookAfterSwap =
   /*#__PURE__*/ createSimulateContract({
@@ -1778,7 +1703,9 @@ export const simulateLimitOrderHookAfterSwap =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeAddLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookBeforeAddLiquidity =
   /*#__PURE__*/ createSimulateContract({
@@ -1790,7 +1717,9 @@ export const simulateLimitOrderHookBeforeAddLiquidity =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeDonate"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookBeforeDonate =
   /*#__PURE__*/ createSimulateContract({
@@ -1802,7 +1731,9 @@ export const simulateLimitOrderHookBeforeDonate =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeInitialize"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookBeforeInitialize =
   /*#__PURE__*/ createSimulateContract({
@@ -1814,7 +1745,9 @@ export const simulateLimitOrderHookBeforeInitialize =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeRemoveLiquidity"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookBeforeRemoveLiquidity =
   /*#__PURE__*/ createSimulateContract({
@@ -1826,7 +1759,9 @@ export const simulateLimitOrderHookBeforeRemoveLiquidity =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"beforeSwap"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookBeforeSwap =
   /*#__PURE__*/ createSimulateContract({
@@ -1838,7 +1773,9 @@ export const simulateLimitOrderHookBeforeSwap =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"cancelOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookCancelOrder =
   /*#__PURE__*/ createSimulateContract({
@@ -1850,7 +1787,9 @@ export const simulateLimitOrderHookCancelOrder =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"placeOrder"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookPlaceOrder =
   /*#__PURE__*/ createSimulateContract({
@@ -1862,7 +1801,9 @@ export const simulateLimitOrderHookPlaceOrder =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"unlockCallback"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookUnlockCallback =
   /*#__PURE__*/ createSimulateContract({
@@ -1874,7 +1815,9 @@ export const simulateLimitOrderHookUnlockCallback =
 /**
  * Wraps __{@link simulateContract}__ with `abi` set to __{@link limitOrderHookAbi}__ and `functionName` set to `"withdraw"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const simulateLimitOrderHookWithdraw =
   /*#__PURE__*/ createSimulateContract({
@@ -1886,7 +1829,9 @@ export const simulateLimitOrderHookWithdraw =
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const watchLimitOrderHookEvent = /*#__PURE__*/ createWatchContractEvent({
   abi: limitOrderHookAbi,
@@ -1896,7 +1841,9 @@ export const watchLimitOrderHookEvent = /*#__PURE__*/ createWatchContractEvent({
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Cancel"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const watchLimitOrderHookCancelEvent =
   /*#__PURE__*/ createWatchContractEvent({
@@ -1908,7 +1855,9 @@ export const watchLimitOrderHookCancelEvent =
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Fill"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const watchLimitOrderHookFillEvent =
   /*#__PURE__*/ createWatchContractEvent({
@@ -1920,7 +1869,9 @@ export const watchLimitOrderHookFillEvent =
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Place"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const watchLimitOrderHookPlaceEvent =
   /*#__PURE__*/ createWatchContractEvent({
@@ -1932,126 +1883,13 @@ export const watchLimitOrderHookPlaceEvent =
 /**
  * Wraps __{@link watchContractEvent}__ with `abi` set to __{@link limitOrderHookAbi}__ and `eventName` set to `"Withdraw"`
  *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0x8D34ff3de81395859E14267f2678a3044344D040)
+ * - [__View Contract on Ethereum Etherscan__](https://etherscan.io/address/0xE10A429d18E90fbD44be3678d2AE1ef3c1691040)
+ * - [__View Contract on Op Mainnet Optimism Explorer__](https://optimistic.etherscan.io/address/0x1f78E79C20d1E77526aC21E3651FABFc22035040)
+ * - [__View Contract on Base Basescan__](https://basescan.org/address/0x19E8B37E9f4d69927Da1e13e989a2f955ee39040)
  */
 export const watchLimitOrderHookWithdrawEvent =
   /*#__PURE__*/ createWatchContractEvent({
     abi: limitOrderHookAbi,
     address: limitOrderHookAddress,
     eventName: 'Withdraw',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const readSeerUniV4PoolInitializer = /*#__PURE__*/ createReadContract({
-  abi: seerUniV4PoolInitializerAbi,
-  address: seerUniV4PoolInitializerAddress,
-})
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"POOL_MANAGER"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const readSeerUniV4PoolInitializerPoolManager =
-  /*#__PURE__*/ createReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'POOL_MANAGER',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"getPoolKey"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const readSeerUniV4PoolInitializerGetPoolKey =
-  /*#__PURE__*/ createReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'getPoolKey',
-  })
-
-/**
- * Wraps __{@link readContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"isPoolInitialized"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const readSeerUniV4PoolInitializerIsPoolInitialized =
-  /*#__PURE__*/ createReadContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'isPoolInitialized',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const writeSeerUniV4PoolInitializer = /*#__PURE__*/ createWriteContract({
-  abi: seerUniV4PoolInitializerAbi,
-  address: seerUniV4PoolInitializerAddress,
-})
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePool"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const writeSeerUniV4PoolInitializerInitializePool =
-  /*#__PURE__*/ createWriteContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePool',
-  })
-
-/**
- * Wraps __{@link writeContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePools"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const writeSeerUniV4PoolInitializerInitializePools =
-  /*#__PURE__*/ createWriteContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePools',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const simulateSeerUniV4PoolInitializer =
-  /*#__PURE__*/ createSimulateContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePool"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const simulateSeerUniV4PoolInitializerInitializePool =
-  /*#__PURE__*/ createSimulateContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePool',
-  })
-
-/**
- * Wraps __{@link simulateContract}__ with `abi` set to __{@link seerUniV4PoolInitializerAbi}__ and `functionName` set to `"initializePools"`
- *
- * [__View Contract on Base Basescan__](https://basescan.org/address/0xae300296486a63621f7f31E1B94aD22d32347deA)
- */
-export const simulateSeerUniV4PoolInitializerInitializePools =
-  /*#__PURE__*/ createSimulateContract({
-    abi: seerUniV4PoolInitializerAbi,
-    address: seerUniV4PoolInitializerAddress,
-    functionName: 'initializePools',
   })
