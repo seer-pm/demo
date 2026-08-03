@@ -95,6 +95,7 @@ export const paths = {
   futarchy: () => "https://futarchy.fi/companies",
   deepfund: () => "https://deep.seer.pm/",
   foresight: () => "https://foresight.kleros.io/",
+  "opportunity-markets": () => "https://opportunity.seer.pm",
   chainImage: (chainId: number) => {
     const chainImages: Record<number, string> = {
       100: "https://assets.coingecko.com/asset_platforms/images/11062/small/Aatar_green_white.png", // Gnosis
@@ -112,6 +113,7 @@ export const paths = {
         futarchy: "https://cdn.kleros.link/ipfs/QmdUY8h6JPphoCERMzrS4zFymkNnmGLrFV2YNb531s95v7",
         deepfund: "https://cdn.kleros.link/ipfs/QmXJKtDUHARincj3LaDT2f58wzs2Jp5bKNMQSLcVNHV4Hw",
         foresight: "https://cdn.kleros.link/ipfs/QmVRkKuqo1vSMzcDJc9Mdyv9FimaYYZqwETQ9fJ7F8834D",
+        "opportunity-markets": "https://cdn.kleros.link/ipfs/QmYtB9P8pZWJP2X2NRavoSvezHiAeFvmXrs2By9VyVgnsm",
       }[site] ?? ""
     );
   },

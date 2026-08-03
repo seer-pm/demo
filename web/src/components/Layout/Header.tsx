@@ -332,6 +332,7 @@ export default function Header() {
               appLink("futarchy", "futarchy", "Futarchy.fi", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
               appLink("foresight", "foresight", "Foresight", isMobile),
+              appLink("opportunity-markets", "opportunity-markets", "Opportunity Markets", isMobile),
             ],
           },
         ],
