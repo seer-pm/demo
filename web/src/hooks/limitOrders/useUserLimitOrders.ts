@@ -7,7 +7,7 @@ import {
   getActivePrimaryCollateral,
   orderBookGraphQLClient,
 } from "@seer-pm/sdk";
-import { UserOrderStatus, getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 
@@ -83,37 +83,41 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
       if (!client) throw new Error("Limit order subgraph not available");
 
       const sdk = getLimitOrderSdk(client);
-      const owner = account.toLowerCase() as Address;
+      const owner = account.toLowerCase();
+      const chainIdFilter = { _eq: String(chainId) };
 
       const [openRes, filledRes] = await Promise.all([
         sdk.GetUserOrders({
-          first: 500,
+          limit: 500,
           where: {
-            owner,
-            status_in: [UserOrderStatus.Open],
+            chainId: chainIdFilter,
+            owner: { _eq: owner },
+            status: { _eq: "OPEN" },
           },
         }),
         sdk.GetUserOrders({
-          first: 500,
+          limit: 500,
           where: {
-            owner,
-            status_in: [UserOrderStatus.Filled],
+            chainId: chainIdFilter,
+            owner: { _eq: owner },
+            status: { _eq: "FILLED" },
           },
         }),
       ]);
 
-      const allRaw = [...openRes.userOrders, ...filledRes.userOrders];
+      const allRaw = [...openRes.UserOrder, ...filledRes.UserOrder];
       const poolsById = new Map<string, SubgraphPool>();
       for (const o of allRaw) {
-        const id = o.pool.id.toLowerCase();
+        if (!o.pool) continue;
+        const id = o.pool.poolId.toLowerCase();
         if (!poolsById.has(id)) {
           poolsById.set(id, {
-            id: o.pool.id,
-            currency0: o.pool.currency0,
-            currency1: o.pool.currency1,
+            id: o.pool.poolId as Address,
+            currency0: o.pool.currency0 as Address,
+            currency1: o.pool.currency1 as Address,
             fee: o.pool.fee,
             tickSpacing: o.pool.tickSpacing,
-            hooks: o.pool.hooks,
+            hooks: o.pool.hooks as Address,
           });
         }
       }
@@ -152,15 +156,17 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
         }
       }
 
-      const mapOrder = (o: (typeof openRes)["userOrders"][number]): UiUserOrder | null => {
-        const pool = poolById.get(o.pool.id.toLowerCase());
+      const mapOrder = (o: (typeof openRes)["UserOrder"][number]): UiUserOrder | null => {
+        if (!o.pool) return null;
+        const poolId = o.pool.poolId.toLowerCase() as Address;
+        const pool = poolById.get(poolId);
         if (!pool) return null;
 
         return {
           id: o.id,
           orderId: o.orderId,
-          owner: o.owner,
-          poolId: o.pool.id,
+          owner: o.owner as Address,
+          poolId,
           outcomeIndex: pool.outcomeIndex,
           outcomeIsToken0: pool.outcomeIsToken0,
           tickLower: o.tickLower,
@@ -173,8 +179,8 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
       };
 
       return {
-        open: openRes.userOrders.map(mapOrder).filter(Boolean) as UiUserOrder[],
-        filled: filledRes.userOrders.map(mapOrder).filter(Boolean) as UiUserOrder[],
+        open: openRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[],
+        filled: filledRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[],
         poolById,
       };
     },

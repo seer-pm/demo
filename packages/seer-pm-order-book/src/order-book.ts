@@ -1,10 +1,9 @@
 import {
   limitOrderHookAddress,
-  readLimitOrderHookGetOrderInfo,
   readLimitOrderHookGetOrderLiquidity,
+  readLimitOrderHookOrderInfos,
   simulateLimitOrderHookWithdraw,
   writeLimitOrderHookPlaceOrder,
-  writeSeerUniV4PoolInitializerInitializePool,
 } from "@seer-pm/contracts-ts/order-book";
 import type { Market } from "@seer-pm/sdk";
 import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
@@ -14,7 +13,6 @@ import type { Config } from "@wagmi/core";
 import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import type { Address, Hex } from "viem";
 import { formatUnits, maxUint256 } from "viem";
-import { base } from "viem/chains";
 import {
   type OrderBookPoolKey,
   PERMIT2_ADDRESS,
@@ -22,7 +20,9 @@ import {
   chainSupportsOrderBook,
   clampProbability,
   getOrderBookPoolParams,
+  getV4PoolManagerAddress,
   permit2Abi,
+  poolManagerAbi,
   positionManagerAbi,
 } from "./order-book-config";
 import { getTickAtSqrtRatio, nearestUsableTick } from "./tick-helpers";
@@ -365,11 +365,18 @@ export async function initializeOrderBookPool(
     sqrtPriceX96: bigint;
   },
 ): Promise<Hex> {
-  const { poolKey, token0, token1 } = getOrderBookPoolParams(market, outcomeIndex);
+  const { poolKey } = getOrderBookPoolParams(market, outcomeIndex);
+  const poolManager = getV4PoolManagerAddress(market.chainId);
+  if (!poolManager) {
+    throw new Error("V4 PoolManager not configured for chain");
+  }
 
-  return writeSeerUniV4PoolInitializerInitializePool(config, {
-    args: [token0, token1, poolKey.hooks, poolKey.fee, poolKey.tickSpacing, sqrtPriceX96],
-    chainId: base.id,
+  return writeContract(config, {
+    address: poolManager,
+    abi: poolManagerAbi,
+    functionName: "initialize",
+    args: [poolKey, sqrtPriceX96],
+    chainId: market.chainId,
   });
 }
 
@@ -690,9 +697,9 @@ export async function getLimitOrderWithdrawAmounts(
     return null;
   }
 
-  const [filled, currency0, currency1, , , liquidityTotal] = await readLimitOrderHookGetOrderInfo(config, {
+  const [filled, currency0, currency1, , , liquidityTotal] = await readLimitOrderHookOrderInfos(config, {
     args: [orderId],
-    chainId: base.id,
+    chainId,
   });
 
   if (!filled || liquidityTotal === 0n) {
@@ -701,7 +708,7 @@ export async function getLimitOrderWithdrawAmounts(
 
   const userLiquidity = await readLimitOrderHookGetOrderLiquidity(config, {
     args: [orderId, owner],
-    chainId: base.id,
+    chainId,
   });
 
   if (userLiquidity === 0n) {
@@ -711,7 +718,7 @@ export async function getLimitOrderWithdrawAmounts(
   const { result } = await simulateLimitOrderHookWithdraw(config, {
     args: [orderId, owner],
     account: owner,
-    chainId: base.id,
+    chainId,
   });
 
   return {
@@ -760,7 +767,7 @@ export async function placeLimitOrder(
       zeroForOne,
       liquidity,
     ],
-    chainId: base.id,
+    chainId,
   });
 }
 
