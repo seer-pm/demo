@@ -10,14 +10,38 @@ import {
   marketSupportsOrderBook,
 } from "./order-book-config";
 
+function getUniswapChainSlug(chainId: number): string | undefined {
+  switch (chainId) {
+    case mainnet.id:
+      return "ethereum";
+    case optimism.id:
+      return "optimism";
+    case base.id:
+      return "base";
+    default:
+      return undefined;
+  }
+}
+
+function getV4PoolExplorerUrl(chainId: number, poolId: string): string {
+  const chainName = getUniswapChainSlug(chainId);
+  if (!chainName) {
+    return "#";
+  }
+  return `https://app.uniswap.org/explore/pools/${chainName}/${poolId}`;
+}
+
 /** Liquidity UI base URLs per chain (add liquidity / create pool). */
 function getLiquidityUrlUniswapV3(chainId: number, token0: string, token1: string): string {
-  const chainName = chainId === optimism.id ? "optimism" : "base";
+  const chainName = getUniswapChainSlug(chainId) ?? "base";
   return `https://app.uniswap.org/positions/create/v3?step=0&currencyA=${token0}&currencyB=${token1}&chain=${chainName}&hook=undefined&priceRangeState={%22priceInverted%22:false,%22fullRange%22:true,%22minPrice%22:%22%22,%22maxPrice%22:%22%22,%22initialPrice%22:%22%22}&depositState={%22exactField%22:%22TOKEN0%22,%22exactAmounts%22:{}}&fee={%22feeAmount%22:100,%22tickSpacing%22:1,%22isDynamic%22:false}`;
 }
 
 function getLiquidityUrlUniswapV4(chainId: number, token0: string, token1: string, hook: Address): string {
-  const chainName = chainId === optimism.id ? "optimism" : "base";
+  const chainName = getUniswapChainSlug(chainId);
+  if (!chainName) {
+    return "#";
+  }
   const params = new URLSearchParams({
     currencyA: token0,
     currencyB: token1,
@@ -50,7 +74,7 @@ export function getLiquidityUrl(market: Market, outcomeIndex: number, options?: 
   if (useOrderBookV4) {
     if (options?.isPoolInitialized) {
       const { poolKey } = getOrderBookPoolParams(market, outcomeIndex);
-      return getPoolExplorerUrl(market.chainId, getV4PoolId(poolKey));
+      return getV4PoolExplorerUrl(market.chainId, getV4PoolId(poolKey));
     }
 
     const hook = getV4HooksAddress(market.chainId);

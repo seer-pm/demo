@@ -1,7 +1,6 @@
 import { displayBalance, displayNumber } from "@/lib/utils";
 import { type LimitOrderWithdrawAmounts, type OrderBookPoolKey, createV4PoolInstance } from "@seer-pm/order-book/v4";
 import { type Market, getActivePrimaryCollateral } from "@seer-pm/sdk";
-import type { UserOrderStatus } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { Position } from "@uniswap/v4-sdk";
 import type { Address } from "viem";
@@ -15,7 +14,7 @@ export type UiUserOrder = {
   outcomeIsToken0: boolean;
   tickLower: number;
   zeroForOne: boolean;
-  status: UserOrderStatus;
+  status: string;
   liquidity: string;
   placedAtBlock: string;
   updatedAtBlock: string;

@@ -14,7 +14,7 @@ describe("getLiquidityUrl", () => {
   it("links to Uniswap V4 with LimitOrderHook for order-book markets", () => {
     const url = getLiquidityUrl(orderBookMarket, 0);
     expect(url).toContain("app.uniswap.org/positions/create/v4");
-    expect(url).toContain("hook=0x8D34ff3de81395859E14267f2678a3044344D040");
+    expect(url).toContain("hook=0x19E8B37E9f4d69927Da1e13e989a2f955ee39040");
     expect(url).toContain("chain=base");
     expect(url).toContain("feeTier=3000");
   });

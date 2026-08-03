@@ -11,7 +11,7 @@ import {
 } from "@seer-pm/order-book/v4";
 import { useCancelV4LimitOrders, useWithdrawV4LimitOrders } from "@seer-pm/react/hooks/useManageV4LimitOrders";
 import { type Market, orderBookGraphQLClient } from "@seer-pm/sdk";
-import { UserOrderStatus, getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Address } from "viem";
@@ -56,34 +56,40 @@ export default function OpenOrders({ market }: { market: Market }) {
 
       const owner = address.toLowerCase() as Address;
 
+      const chainIdFilter = { _eq: String(market.chainId) };
+
       const [openRes, filledRes] = await Promise.all([
         sdk.GetUserOrders({
-          first: 500,
+          limit: 500,
           where: {
-            owner,
-            pool_in: poolIds,
-            status_in: [UserOrderStatus.Open],
+            chainId: chainIdFilter,
+            owner: { _eq: owner },
+            pool: { poolId: { _in: poolIds } },
+            status: { _eq: "OPEN" },
           },
         }),
         sdk.GetUserOrders({
-          first: 500,
+          limit: 500,
           where: {
-            owner,
-            pool_in: poolIds,
-            status_in: [UserOrderStatus.Filled],
+            chainId: chainIdFilter,
+            owner: { _eq: owner },
+            pool: { poolId: { _in: poolIds } },
+            status: { _eq: "FILLED" },
           },
         }),
       ]);
 
-      const mapOrder = (o: (typeof openRes)["userOrders"][number]): UiUserOrder | null => {
-        const pool = poolById.get(o.pool.id.toLowerCase());
+      const mapOrder = (o: (typeof openRes)["UserOrder"][number]): UiUserOrder | null => {
+        if (!o.pool) return null;
+        const poolId = o.pool.poolId.toLowerCase() as Address;
+        const pool = poolById.get(poolId);
         if (!pool) return null;
 
         return {
           id: o.id,
           orderId: o.orderId,
-          owner: o.owner,
-          poolId: o.pool.id,
+          owner: o.owner as Address,
+          poolId,
           outcomeIndex: pool.outcomeIndex,
           outcomeIsToken0: pool.outcomeIsToken0,
           tickLower: o.tickLower,
@@ -96,8 +102,8 @@ export default function OpenOrders({ market }: { market: Market }) {
       };
 
       return {
-        open: openRes.userOrders.map(mapOrder).filter(Boolean) as UiUserOrder[],
-        filled: filledRes.userOrders.map(mapOrder).filter(Boolean) as UiUserOrder[],
+        open: openRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[],
+        filled: filledRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[],
       };
     },
   });
