@@ -1,5 +1,6 @@
-import type { NotifierFn, SignInProps, SignInResult } from "@seer-pm/sdk";
-import { signIn } from "@seer-pm/sdk";
+import type { NotifierFn } from "@seer-pm/sdk";
+import type { SignInProps, SignInResult } from "@seer-pm/sdk/sign-in";
+import { signIn } from "@seer-pm/sdk/sign-in";
 import { useMutation } from "@tanstack/react-query";
 import { useConfig } from "wagmi";
 

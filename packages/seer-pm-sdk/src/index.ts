@@ -290,10 +290,6 @@ export type {
 } from "./fill-to-estimate-trade";
 export { isSeerCredits } from "./seer-credits";
 
-// SIWE sign-in
-export { createSiweSignInMessage, signIn } from "./sign-in";
-export type { SignInProps, SignInResult } from "./sign-in";
-
 // Curate / TCR
 export { CURATE_STATUS, type CurateStatus, isCurateStatus } from "./curate-status";
 

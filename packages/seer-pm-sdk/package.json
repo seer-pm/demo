@@ -78,6 +78,11 @@
       "import": "./dist/chains.mjs",
       "require": "./dist/chains.js"
     },
+    "./sign-in": {
+      "types": "./dist/sign-in.d.ts",
+      "import": "./dist/sign-in.mjs",
+      "require": "./dist/sign-in.js"
+    },
     "./contracts/curate": {
       "types": "./generated/contracts/curate.ts",
       "import": "./dist/generated/contracts/curate.mjs",
@@ -166,8 +171,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
-    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts --format cjs,esm --dts --watch",
+    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/sign-in.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/sign-in.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:gql && yarn generate:hooks",
     "generate:hooks": "wagmi generate",
