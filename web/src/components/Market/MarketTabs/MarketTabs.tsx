@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/Spinner";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { Market } from "@seer-pm/sdk";
 import { useState } from "react";
@@ -7,6 +8,14 @@ import { RelatedMarkets } from "./RelatedMarkets";
 import TopHolders from "./TopHolders";
 
 const Comments = clientOnly(() => import("./Comments"));
+
+function CommentsFallback() {
+  return (
+    <output className="flex w-full justify-center p-8" aria-busy="true" aria-label="Loading comments">
+      <Spinner />
+    </output>
+  );
+}
 
 export default function MarketTabs({ market }: { market: Market }) {
   // Prefetch holders + activity data while user is on other tabs to avoid Netlify cold start on first request
@@ -50,7 +59,7 @@ export default function MarketTabs({ market }: { market: Market }) {
           Activity
         </button>
       </div>
-      {activeTab === "comments" && <Comments market={market} />}
+      {activeTab === "comments" && <Comments market={market} fallback={<CommentsFallback />} />}
       {activeTab === "conditionalMarkets" && (
         <RelatedMarkets market={market} setRelatedMarketsCount={(count: number) => setRelatedMarketsCount(count)} />
       )}

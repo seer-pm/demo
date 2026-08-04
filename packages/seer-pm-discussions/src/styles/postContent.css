@@ -1,0 +1,34 @@
+/* Plain-text post bodies with optional auto-linked URLs. */
+.sd-post-content {
+  overflow-wrap: break-word;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--sd-color-main);
+  white-space: pre-wrap;
+}
+
+.sd-post-content a {
+  color: var(--sd-color-active);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sd-post-content a:hover {
+  opacity: 0.85;
+}
+
+@container (max-width: 600px) {
+  .sd-post-content {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .sd-hide-mobile {
+    display: none;
+  }
+
+  .sd-timestamp-mobile {
+    margin-right: 0;
+  }
+}

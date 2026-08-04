@@ -1,8 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  presets: [require("../packages/seer-pm-discussions/tailwind-preset.cjs")],
   content: [
     "./index.html",
     "./src/**/*.{html,tsx,ts}",
+    "../packages/seer-pm-discussions/src/**/*.{ts,tsx}",
   ],
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {

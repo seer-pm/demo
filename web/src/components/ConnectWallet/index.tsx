@@ -1,8 +1,7 @@
 import Button from "@/components/Form/Button";
-import { Orbis } from "@orbisclub/orbis-sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
-import { useAccount, useAccountEffect } from "wagmi";
+import { useAccount } from "wagmi";
 import AccountDisplay from "./AccountDisplay";
 import ChainDropdown from "./ChainDropdown";
 
@@ -37,13 +36,6 @@ type ConnectWallerProps = ConnectButtonProps & {
 
 const ConnectWallet = ({ isMobile = false, ...props }: ConnectWallerProps) => {
   const { isConnected, chain } = useAccount();
-
-  useAccountEffect({
-    onDisconnect() {
-      const orbis = new Orbis();
-      orbis.logout();
-    },
-  });
 
   if (isConnected) {
     if (!chain) {

@@ -1,39 +1,48 @@
 import { createClient } from "@supabase/supabase-js";
 import * as postmark from "postmark";
 import { verifyToken } from "./utils/auth";
-import { FROM_EMAIL } from "./utils/common";
+import { CORS_HEADERS, FROM_EMAIL } from "./utils/common";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 const postmarkClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN!);
 
+const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
+
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   // Handle GET request
   if (req.method === "GET") {
     const userId = verifyToken(req.headers.get("Authorization") || "");
     if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
     }
 
     const { data: user, error } = await supabase.from("users").select().eq("id", userId).single();
 
     if (error) {
-      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
+      return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ user }), { status: 200 });
+    return new Response(JSON.stringify({ user }), { status: 200, headers: jsonHeaders });
   }
 
   // Handle POST request
   if (req.method === "POST") {
     const userId = verifyToken(req.headers.get("Authorization") || "");
     if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
     }
 
     try {
       const { email } = await req.json();
       if (!email) {
-        return new Response(JSON.stringify({ error: "Email is required" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Email is required" }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
       }
 
       const verificationToken = crypto.randomUUID();
@@ -46,7 +55,10 @@ export default async (req: Request) => {
         .single();
 
       if (updateError) {
-        return new Response(JSON.stringify({ error: "Failed to update email" }), { status: 500 });
+        return new Response(JSON.stringify({ error: "Failed to update email" }), {
+          status: 500,
+          headers: jsonHeaders,
+        });
       }
 
       await postmarkClient.sendEmailWithTemplate({
@@ -58,11 +70,14 @@ export default async (req: Request) => {
         },
       });
 
-      return new Response(JSON.stringify({ user }), { status: 200 });
+      return new Response(JSON.stringify({ user }), { status: 200, headers: jsonHeaders });
     } catch (error) {
-      return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
+      return new Response(JSON.stringify({ error: "Internal server error" }), {
+        status: 500,
+        headers: jsonHeaders,
+      });
     }
   }
 
-  return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+  return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: jsonHeaders });
 };

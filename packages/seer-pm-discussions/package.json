@@ -1,13 +1,13 @@
 {
-  "name": "@seer-pm/react",
-  "version": "0.0.15",
-  "description": "React hooks for the Seer prediction market protocol",
+  "name": "@seer-pm/discussions",
+  "version": "0.0.2",
+  "description": "Market discussion UI for Seer",
   "license": "MIT",
   "author": "Seer",
   "repository": {
     "type": "git",
     "url": "https://github.com/seer-pm/seer-pm.git",
-    "directory": "packages/seer-pm-react"
+    "directory": "packages/seer-pm-discussions"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -17,31 +17,40 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./style.css": "./dist/index.css",
+    "./tailwind": "./tailwind-preset.cjs"
   },
   "files": [
     "dist",
+    "tailwind-preset.cjs",
     "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "prepublishOnly": "yarn build"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "yarn build",
+    "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@seer-pm/sdk": "~0.0.1",
-    "@tanstack/react-query": ">=5.0.0",
-    "@wagmi/core": ">=2.0.0",
     "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
     "viem": ">=2.0.0",
     "wagmi": ">=2.0.0"
   },
   "devDependencies": {
+    "@types/react": "^18.2.22",
+    "@types/react-dom": "^18.2.7",
     "tsup": "^8.0.2",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "viem": "2.38.3",
+    "wagmi": "2.17.5"
   },
   "engines": {
     "node": ">=18"
