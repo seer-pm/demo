@@ -1,0 +1,42 @@
+/* Public theming contract: override --sd-* on .sd-root (or a parent). */
+.sd-root {
+  /* Surfaces: soft purple-tinted neutrals (Seer purple-medium family) */
+  --sd-bg-main: #ffffff;
+  --sd-bg-secondary: #fbf8ff;
+  --sd-bg-tertiary: #f3eefc;
+
+  /* Text: contrast-safe on light surfaces (≥4.5:1 body / secondary) */
+  --sd-color-main: #0d1e33;
+  --sd-color-secondary: #5c6570;
+  --sd-color-tertiary: #9aa3ad;
+
+  /* Action / focus: Seer purple-primary */
+  --sd-color-active: #9747ff;
+  --sd-focus-border: #9747ff;
+
+  --sd-color-danger: #a02323;
+  --sd-color-success: #15803d;
+
+  --sd-border-main: #e8e4f0;
+  --sd-border-secondary: #efeaf8;
+  --sd-badge-bg: #efeaf8;
+  --sd-badge-color: #4a3b66;
+
+  /* Placeholder on secondary bg needs ≥4.5:1 */
+  --sd-input-placeholder: #5c6570;
+
+  font-family: inherit;
+  color: var(--sd-color-main);
+  box-sizing: border-box;
+}
+
+.sd-root *,
+.sd-root *::before,
+.sd-root *::after {
+  box-sizing: border-box;
+}
+
+.sd-root [data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--sd-input-placeholder);
+}

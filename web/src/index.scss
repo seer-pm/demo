@@ -89,6 +89,23 @@ body {
   border-color: var(--separator-100);
 }
 
+/* Map Seer theme tokens onto @seer-pm/discussions */
+.sd-root {
+  --sd-bg-main: oklch(var(--b1) / var(--tw-bg-opacity, 1));
+  --sd-bg-secondary: oklch(var(--purple-medium));
+  --sd-bg-tertiary: oklch(var(--b3) / 1);
+  --sd-color-main: oklch(var(--bc) / 1);
+  --sd-color-secondary: oklch(var(--bc) / 0.65);
+  --sd-color-tertiary: oklch(var(--bc) / 0.4);
+  --sd-color-active: oklch(var(--purple-primary));
+  --sd-border-main: var(--separator-100);
+  --sd-border-secondary: var(--separator-100);
+  --sd-badge-bg: var(--separator-100);
+  --sd-badge-color: oklch(var(--bc) / 1);
+  --sd-input-placeholder: oklch(var(--bc) / 0.55);
+  --sd-focus-border: oklch(var(--purple-primary));
+}
+
 /* Card background utility class */
 .bg-card {
   background-color: var(--card-bg);
@@ -519,29 +536,6 @@ body {
 /* Handle on hover */
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-/* Orbis comment */
-._3k7Bt {
-  display: none;
-}
-
-:root[data-theme="dark"] ._1LQjG svg rect[fill="#f3f4f6"] {
-  fill: oklch(var(--b2));
-}
-
-._lajK0 {
-  --tw-prose-links: oklch(var(--bc)) !important;
-}
-
-._MBDTd {
-  & ._1be8d,
-  & ._WjB9N > button,
-  & ._I1aJ0 > button,
-  & ._1jNTa {
-    @apply bg-purple-primary #{!important};
-    color: white !important;
-  }
 }
 
 .outlined-thumb::-webkit-slider-thumb {

@@ -25,3 +25,4 @@ export * from "./hooks/useWinningPositions";
 export * from "./hooks/usePortfolioValue";
 export * from "./hooks/usePortfolioPnL";
 export * from "./hooks/usePortfolioPositions";
+export * from "./hooks/useSignIn";

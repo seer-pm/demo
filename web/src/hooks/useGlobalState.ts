@@ -1,7 +1,6 @@
 import { isSeerCreditsDisabled } from "@/lib/seer-credits";
 import type { SupportedChain, Token } from "@seer-pm/sdk";
 import { isSeerCredits } from "@seer-pm/sdk";
-import { Address } from "viem";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -9,10 +8,6 @@ type LiquidityChartLayout = "horizontal" | "vertical";
 
 type State = {
   accessToken: string;
-  // Deprecated. We are now storing the favorites on supabase
-  favorites: {
-    [address: string]: Address[];
-  };
   maxSlippage: string;
   useSmartAccount: boolean;
   liquidityChartLayout: LiquidityChartLayout;
@@ -23,7 +18,6 @@ type State = {
 
 type Action = {
   setAccessToken: (accessToken: string) => void;
-  migrateDeprecatedFavorites: (address: Address) => void;
   setMaxSlippage: (value: string) => void;
   setUseSmartAccount: (value: boolean) => void;
   setLiquidityChartLayout: (layout: LiquidityChartLayout) => void;
@@ -35,7 +29,6 @@ const useGlobalState = create<State & Action>()(
   persist(
     (set) => ({
       accessToken: "",
-      favorites: {},
       maxSlippage: "1",
       useSmartAccount: true,
       liquidityChartLayout: "vertical",
@@ -44,15 +37,6 @@ const useGlobalState = create<State & Action>()(
         set(() => ({
           accessToken,
         })),
-      migrateDeprecatedFavorites: (address: Address) =>
-        set((state) => {
-          if (!address) {
-            return state;
-          }
-          const favorites = structuredClone(state.favorites);
-          delete favorites[address];
-          return { favorites };
-        }),
       setMaxSlippage: (maxSlippage: string) =>
         set(() => ({
           maxSlippage,
