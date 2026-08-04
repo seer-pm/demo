@@ -79,10 +79,12 @@ export async function signIn(props: SignInProps, config: Config): Promise<SignIn
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ message, signature }),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!tokenRes.ok) {
-    throw new Error(`Failed to sign in: ${tokenRes.statusText}`);
+    const detail = await tokenRes.text().catch(() => "");
+    throw new Error(`Failed to sign in (${tokenRes.status}): ${detail || tokenRes.statusText}`);
   }
 
   return (await tokenRes.json()) as SignInResult;

@@ -37,7 +37,7 @@ export default function Postbox({
   ascending = false,
 }: PostboxProps) {
   const { user, client, components } = useDiscussions();
-  const { comments, setComments } = useContext(CommentsContext);
+  const { setComments } = useContext(CommentsContext);
   const [sharing, setSharing] = useState(false);
   const [body, setBody] = useState(defaultComment?.body ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +65,11 @@ export default function Postbox({
       textareaRef.current?.focus();
       return;
     }
+    if (trimmed.length > 5000) {
+      setError("Comments are limited to 5000 characters.");
+      textareaRef.current?.focus();
+      return;
+    }
 
     setError(null);
     setSharing(true);
@@ -86,7 +91,7 @@ export default function Postbox({
           likeCount: 0,
           likedByMe: false,
         };
-        setComments(ascending ? [...comments, optimistic] : [optimistic, ...comments]);
+        setComments((prev) => (ascending ? [...prev, optimistic] : [optimistic, ...prev]));
         callback?.();
       }
 

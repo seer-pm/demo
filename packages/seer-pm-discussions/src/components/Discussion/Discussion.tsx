@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { SD_ROOT_CLASS } from "../../constants";
 import { CommentsContext } from "../../contexts/DiscussionsContext";
 import { useDiscussions } from "../../hooks/useDiscussions";
@@ -57,6 +57,7 @@ function CommentsContent({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const loadGenRef = useRef(0);
   const Button = components.Button;
 
   useEffect(() => {
@@ -66,17 +67,23 @@ function CommentsContent({
 
   async function loadComments() {
     if (!client) return;
+    const gen = ++loadGenRef.current;
     setLoading(true);
     setLoadError(null);
     try {
       const data = await client.listComments();
-      setComments(data);
+      if (gen !== loadGenRef.current) return;
+      setComments((prev) => {
+        const serverIds = new Set(data.map((c) => c.id));
+        const localOnly = prev.filter((c) => !serverIds.has(c.id));
+        return localOnly.length === 0 ? data : [...localOnly, ...data];
+      });
     } catch (error) {
+      if (gen !== loadGenRef.current) return;
       console.error("Failed to load comments:", error);
-      setComments([]);
       setLoadError("Couldn't load comments. Check your connection and try again.");
     } finally {
-      setLoading(false);
+      if (gen === loadGenRef.current) setLoading(false);
     }
   }
 
@@ -129,11 +136,27 @@ function isTopLevel(comment: Comment) {
 }
 
 function LoopComments({ comments, characterLimit }: { comments: Comment[]; characterLimit: number | null }) {
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    for (const comment of comments) {
+      if (!comment.parentId) continue;
+      const siblings = map.get(comment.parentId);
+      if (siblings) siblings.push(comment);
+      else map.set(comment.parentId, [comment]);
+    }
+    return map;
+  }, [comments]);
+
   return (
     <>
       {comments.map((comment) =>
         isTopLevel(comment) ? (
-          <CommentNode key={comment.id} comments={comments} comment={comment} characterLimit={characterLimit} />
+          <CommentNode
+            key={comment.id}
+            childrenByParent={childrenByParent}
+            comment={comment}
+            characterLimit={characterLimit}
+          />
         ) : null,
       )}
     </>
@@ -141,14 +164,16 @@ function LoopComments({ comments, characterLimit }: { comments: Comment[]; chara
 }
 
 function CommentNode({
-  comments,
+  childrenByParent,
   comment,
   characterLimit,
 }: {
-  comments: Comment[];
+  childrenByParent: Map<string, Comment[]>;
   comment: Comment;
   characterLimit: number | null;
 }) {
+  const children = childrenByParent.get(comment.id) ?? [];
+
   return (
     <div className="relative">
       {comment.parentId != null && (
@@ -159,11 +184,14 @@ function CommentNode({
       )}
       <Post post={comment} characterLimit={characterLimit} />
       <div className="ml-10 mt-7 max-[600px]:ml-6">
-        {comments
-          .filter((c) => c.parentId === comment.id)
-          .map((child) => (
-            <CommentNode key={child.id} comments={comments} comment={child} characterLimit={characterLimit} />
-          ))}
+        {children.map((child) => (
+          <CommentNode
+            key={child.id}
+            childrenByParent={childrenByParent}
+            comment={child}
+            characterLimit={characterLimit}
+          />
+        ))}
       </div>
     </div>
   );

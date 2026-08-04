@@ -47,10 +47,11 @@ async function getLikeStats(commentIds: string[], viewer: string | null) {
     return { counts: new Map<string, number>(), liked: new Set<string>() };
   }
 
-  const { data: likes } = await supabase
+  const { data: likes, error } = await supabase
     .from("market_comment_likes")
     .select("comment_id, author")
     .in("comment_id", commentIds);
+  if (error) throw error;
 
   const counts = new Map<string, number>();
   const liked = new Set<string>();
@@ -187,11 +188,29 @@ export default async (req: Request) => {
       }
 
       if (type === "unlike") {
-        await supabase.from("market_comment_likes").delete().eq("comment_id", id).eq("author", viewer);
+        const { error } = await supabase
+          .from("market_comment_likes")
+          .delete()
+          .eq("comment_id", id)
+          .eq("author", viewer);
+        if (error) {
+          console.error("Unlike comment error:", error);
+          return new Response(JSON.stringify({ error: "Failed to update like" }), {
+            status: 500,
+            headers: jsonHeaders,
+          });
+        }
       } else {
-        await supabase
+        const { error } = await supabase
           .from("market_comment_likes")
           .upsert({ comment_id: id, author: viewer }, { onConflict: "comment_id,author" });
+        if (error) {
+          console.error("Like comment error:", error);
+          return new Response(JSON.stringify({ error: "Failed to update like" }), {
+            status: 500,
+            headers: jsonHeaders,
+          });
+        }
       }
 
       return new Response(JSON.stringify({ status: 200, type }), { status: 200, headers: jsonHeaders });

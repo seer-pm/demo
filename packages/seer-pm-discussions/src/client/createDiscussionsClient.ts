@@ -57,15 +57,15 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
       if (!res.ok) {
         throw new Error(await readError(res));
       }
-      const json = (await res.json()) as { id?: string; doc?: string };
-      const id = json.id ?? json.doc;
+      const json = (await res.json()) as { id?: string };
+      const id = json.id;
       if (!id) throw new Error("Missing comment id in response");
       return { id };
     },
 
     async editComment(id: string, body: string) {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}/${id}`, {
+      const res = await fetch(`${endpoint}/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: authHeaders(token),
         body: JSON.stringify({ body }),
@@ -77,7 +77,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
 
     async deleteComment(id: string) {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}/${id}`, {
+      const res = await fetch(`${endpoint}/${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: authHeaders(token),
       });
@@ -88,7 +88,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
 
     async setLike(id: string, liked: boolean) {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}/${id}/like`, {
+      const res = await fetch(`${endpoint}/${encodeURIComponent(id)}/like`, {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ type: liked ? "like" : "unlike" }),

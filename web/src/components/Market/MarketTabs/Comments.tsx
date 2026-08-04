@@ -66,7 +66,8 @@ function Comments({ market }: { market: Market }) {
       await open({ view: "Connect" });
       return;
     }
-    await signIn.mutateAsync({ address, chainId });
+    // toastify already reports the failure; swallow so onRequestConnect never rejects
+    await signIn.mutateAsync({ address, chainId }).catch(() => undefined);
   };
 
   return (

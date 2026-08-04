@@ -36,10 +36,15 @@ export default function Post({ post, showPfp = true, showCta = true, characterLi
   const [actionError, setActionError] = useState<string | null>(null);
   const [body, setBody] = useState(post.body);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushDeleteRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     return () => {
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = null;
+        flushDeleteRef.current?.();
+      }
     };
   }, []);
 
@@ -71,22 +76,34 @@ export default function Post({ post, showPfp = true, showCta = true, characterLi
     }
   }
 
+  function runDelete() {
+    if (!client) return;
+    flushDeleteRef.current = null;
+    void (async () => {
+      try {
+        await client.deleteComment(post.id);
+        setIsDeleted(true);
+      } catch (error) {
+        console.error("Failed to delete comment:", error);
+        setPendingDelete(false);
+        setActionError("Couldn't delete comment. Try again.");
+      }
+    })();
+  }
+
   function scheduleDelete() {
     if (!client || pendingDelete) return;
     setPostMenuVis(false);
     setPendingDelete(true);
     setActionError(null);
+    flushDeleteRef.current = () => {
+      void client.deleteComment(post.id).catch((error) => {
+        console.error("Failed to delete comment:", error);
+      });
+    };
     undoTimerRef.current = setTimeout(() => {
-      void (async () => {
-        try {
-          await client.deleteComment(post.id);
-          setIsDeleted(true);
-        } catch (error) {
-          console.error("Failed to delete comment:", error);
-          setPendingDelete(false);
-          setActionError("Couldn't delete comment. Try again.");
-        }
-      })();
+      undoTimerRef.current = null;
+      runDelete();
     }, UNDO_MS);
   }
 
@@ -95,6 +112,7 @@ export default function Post({ post, showPfp = true, showCta = true, characterLi
       clearTimeout(undoTimerRef.current);
       undoTimerRef.current = null;
     }
+    flushDeleteRef.current = null;
     setPendingDelete(false);
   }
 
