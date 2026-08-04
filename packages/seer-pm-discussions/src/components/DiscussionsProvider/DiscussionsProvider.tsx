@@ -4,7 +4,6 @@ import type { DiscussionComponents, DiscussionUser, DiscussionsClient } from "..
 import DefaultButton from "../DefaultButton";
 
 type DiscussionsProviderProps = {
-  context: string;
   children: ReactNode;
   client: DiscussionsClient;
   user?: DiscussionUser | null;
@@ -13,7 +12,6 @@ type DiscussionsProviderProps = {
 };
 
 export default function DiscussionsProvider({
-  context,
   children,
   client,
   user: userProp = null,
@@ -43,7 +41,6 @@ export default function DiscussionsProvider({
         connecting,
         setConnecting,
         client,
-        context,
         onRequestConnect: onRequestConnect ?? null,
         components,
       }}

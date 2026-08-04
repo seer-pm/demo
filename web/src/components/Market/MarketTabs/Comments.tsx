@@ -73,7 +73,6 @@ function Comments({ market }: { market: Market }) {
   return (
     <ErrorBoundary fallback={<p>Something went wrong.</p>}>
       <Discussion
-        context={market.id.toLowerCase()}
         client={client}
         user={user}
         onRequestConnect={requestConnect}

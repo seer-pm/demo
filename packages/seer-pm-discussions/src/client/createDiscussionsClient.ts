@@ -31,6 +31,8 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   const marketId = options.marketId.toLowerCase();
 
   return {
+    marketId,
+
     async listComments() {
       const token = options.getAccessToken();
       const res = await fetch(`${endpoint}?market_id=${encodeURIComponent(marketId)}`, {

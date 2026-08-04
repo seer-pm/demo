@@ -6,7 +6,6 @@ export type DiscussionsContextValue = {
   client: DiscussionsClient | null;
   user: DiscussionUser | null;
   setUser: ((user: DiscussionUser | null) => void) | null;
-  context: string | null;
   connecting: boolean;
   setConnecting: ((v: boolean) => void) | null;
   onRequestConnect: (() => Promise<void>) | null;
@@ -17,7 +16,6 @@ export const DiscussionsContext = createContext<DiscussionsContextValue>({
   client: null,
   user: null,
   setUser: null,
-  context: null,
   connecting: false,
   setConnecting: null,
   onRequestConnect: null,

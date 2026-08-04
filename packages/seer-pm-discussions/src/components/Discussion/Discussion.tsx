@@ -11,7 +11,6 @@ import Postbox from "../Postbox/Postbox";
 import "../../styles/tokens.css";
 
 export type DiscussionProps = {
-  context: string;
   client: DiscussionsClient;
   user?: DiscussionUser | null;
   onRequestConnect?: () => Promise<void>;
@@ -22,7 +21,6 @@ export type DiscussionProps = {
 };
 
 export default function Discussion({
-  context,
   client,
   user = null,
   onRequestConnect,
@@ -32,13 +30,7 @@ export default function Discussion({
   style,
 }: DiscussionProps) {
   return (
-    <DiscussionsProvider
-      context={context}
-      client={client}
-      user={user}
-      onRequestConnect={onRequestConnect}
-      components={components}
-    >
+    <DiscussionsProvider client={client} user={user} onRequestConnect={onRequestConnect} components={components}>
       <CommentsContent characterLimit={characterLimit} className={className} style={style} />
     </DiscussionsProvider>
   );
@@ -53,7 +45,7 @@ function CommentsContent({
   className?: string;
   style?: CSSProperties;
 }) {
-  const { client, context, components } = useDiscussions();
+  const { client, components } = useDiscussions();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -63,7 +55,7 @@ function CommentsContent({
   useEffect(() => {
     void loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, client]);
+  }, [client?.marketId]);
 
   async function loadComments() {
     if (!client) return;

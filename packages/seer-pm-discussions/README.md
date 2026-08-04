@@ -34,7 +34,6 @@ function DiscussionButton({
 }
 
 <Discussion
-  context={marketId}
   client={client}
   user={address ? userFromAddress(address) : null}
   onRequestConnect={signIn}
@@ -89,7 +88,7 @@ You can also pass `className` / `style` on `<Discussion />` (including CSS varia
 ## Public API
 
 - `Discussion` — thread UI (`components.Button` / `components.ConnectButton`)
-- `createDiscussionsClient` — HTTP client (`listComments`, `createComment`, `editComment`, `deleteComment`, `setLike`)
+- `createDiscussionsClient` — HTTP client (`marketId`, `listComments`, `createComment`, `editComment`, `deleteComment`, `setLike`)
 - `useDiscussions` — context hook
 - `userFromAddress` — build `DiscussionUser` from a wallet
 - `SD_ROOT_CLASS` — root class name for theming (`"sd-root"`)

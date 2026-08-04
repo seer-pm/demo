@@ -46,6 +46,7 @@ export type CreateCommentInput = {
 };
 
 export type DiscussionsClient = {
+  marketId: string;
   listComments: () => Promise<Comment[]>;
   createComment: (input: CreateCommentInput) => Promise<{ id: string }>;
   editComment: (id: string, body: string) => Promise<void>;
