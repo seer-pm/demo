@@ -7,6 +7,11 @@ import { MarketTypes, SimpleMarket, SupportedChain } from "./utils/types.ts";
 
 const INVALID_RESULT_OUTCOME_TEXT = "Invalid";
 
+// Align with batch-odds cadence (~5 min); override og_edge's 1-year immutable default.
+const OG_CACHE_HEADERS = {
+  "cache-control": "public, max-age=300, s-maxage=300",
+};
+
 async function fetchMarket(baseUrl: string, chainId: SupportedChain, id: Address): Promise<SimpleMarket> {
   const params: Record<string, string | string[]> = { chainId: chainId.toString() };
   if (!isAddress(id, { strict: false })) {
@@ -50,7 +55,7 @@ export default async (request: Request, context: Context) => {
             src="https://cdn.kleros.link/ipfs/Qmbxw66xbRG9hLt7jh5hERqULkQmeiEYT3sJx7wriapGwA/seer-twitter-card-v2.jpg"
           />
         </div>,
-        { width: 2400, height: 1350, debug: false },
+        { width: 2400, height: 1350, debug: false, headers: OG_CACHE_HEADERS },
       );
     }
 
@@ -183,7 +188,7 @@ export default async (request: Request, context: Context) => {
           </div>
         </div>
       </div>,
-      { debug: false },
+      { debug: false, headers: OG_CACHE_HEADERS },
     );
   } catch (e) {
     console.log(e);
@@ -203,7 +208,7 @@ export default async (request: Request, context: Context) => {
           src="https://cdn.kleros.link/ipfs/Qmbxw66xbRG9hLt7jh5hERqULkQmeiEYT3sJx7wriapGwA/seer-twitter-card-v2.jpg"
         />
       </div>,
-      { width: 2400, height: 1350, debug: false },
+      { width: 2400, height: 1350, debug: false, headers: OG_CACHE_HEADERS },
     );
   }
 };

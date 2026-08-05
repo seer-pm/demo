@@ -19,6 +19,27 @@ export function isOdd(odd: number | undefined | null) {
   return typeof odd === "number" && !Number.isNaN(odd) && !isUndefined(odd);
 }
 
+export function rescaleOdds(odds: (number | null)[]): number[] {
+  if (!odds.length) {
+    return [];
+  }
+
+  const numericOdds = odds.map((odd) => (odd === null ? 0 : odd));
+
+  const oddsSum = numericOdds.reduce((acc, curr) => {
+    if (Number.isNaN(curr)) {
+      return Number(acc);
+    }
+    return Number(acc) + Number(curr);
+  }, 0);
+
+  if (oddsSum > 100) {
+    return numericOdds.map((odd) => Number(((odd / oddsSum) * 100).toFixed(1)));
+  }
+
+  return numericOdds;
+}
+
 function isScalarBoundInWei(bound: bigint) {
   // NOTE: This is a backwards compatibility check.
   // Going forward, all scalar bounds will be in wei (1e18) format.
@@ -45,7 +66,10 @@ export function getMarketEstimate(odds: (number | null)[], market: SimpleMarket,
   if (!isOdd(odds[0]) || !isOdd(odds[1])) {
     return "NA";
   }
-  const estimate = (odds[0]! * displayScalarBound(lowerBound) + odds[1]! * displayScalarBound(upperBound)) / 100;
+  const scaledOdds = rescaleOdds(odds);
+  const estimate =
+    (scaledOdds[0] * displayScalarBound(BigInt(lowerBound)) + scaledOdds[1] * displayScalarBound(BigInt(upperBound))) /
+    100;
   if (!convertToString) {
     return estimate;
   }
