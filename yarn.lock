@@ -6377,6 +6377,7 @@ __metadata:
     "@types/react-dom": "npm:^18.2.7"
     tsup: "npm:^8.0.2"
     typescript: "npm:^5.2.2"
+    unique-names-generator: "npm:^4.7.1"
     viem: "npm:2.38.3"
     wagmi: "npm:2.17.5"
   peerDependencies:
@@ -21261,6 +21262,13 @@ __metadata:
     trough: "npm:^2.0.0"
     vfile: "npm:^6.0.0"
   checksum: 10c0/53c8e685f56d11d9d458a43e0e74328a4d6386af51c8ac37a3dcabec74ce5026da21250590d4aff6733ccd7dc203116aae2b0769abc18cdf9639a54ae528dfc9
+  languageName: node
+  linkType: hard
+
+"unique-names-generator@npm:^4.7.1":
+  version: 4.7.1
+  resolution: "unique-names-generator@npm:4.7.1"
+  checksum: 10c0/db07b9a0fee6eac4a21cf567c9744ee97895aa744d51ec913557205173a65c1a7a4d12470295796acb7247e6646e7975c340bb634c7adf41e5d950fa5cf94375
   languageName: node
   linkType: hard
 

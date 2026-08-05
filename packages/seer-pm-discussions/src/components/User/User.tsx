@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import useAddressDisplay from "../../hooks/useAddressDisplay";
 import type { DiscussionUser } from "../../types";
 import { addressAccent } from "../../utils/linkify";
@@ -25,15 +26,71 @@ export function UserPfp({ details, height = 44 }: { details?: DiscussionUser | n
   );
 }
 
-export function Username({ details }: { details?: DiscussionUser | null }) {
-  const { displayName } = useAddressDisplay(details?.address);
-  return <>{displayName ?? "-"}</>;
+function CopyableAddress({ address, shortAddress }: { address: string; shortAddress: string }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const id = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(id);
+  }, [copied]);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+    } catch (error) {
+      console.error("Failed to copy address:", error);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="shrink-0 rounded-sm font-normal text-sd-color-secondary underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sd-color-active"
+      title={copied ? "Copied" : address}
+      aria-label={copied ? "Address copied" : `Copy address ${address}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        void handleCopy();
+      }}
+    >
+      {copied ? "Copied" : shortAddress}
+    </button>
+  );
 }
 
-export function UserBadge({ details }: { details?: DiscussionUser | null }) {
-  const { displayName } = useAddressDisplay(details?.address);
-  if (!displayName) return null;
+function AddressLabel({
+  displayName,
+  shortAddress,
+  address,
+}: {
+  displayName: string;
+  shortAddress: string | null;
+  address: string | null;
+}) {
   return (
-    <div className="rounded-lg bg-sd-badge-bg px-2 py-1 text-[12px] font-medium text-sd-badge-color">{displayName}</div>
+    <>
+      <span className="truncate">{displayName}</span>
+      {shortAddress && address && (
+        <>
+          <span className="mx-1.5 shrink-0 text-sd-color-secondary" aria-hidden="true">
+            ·
+          </span>
+          <CopyableAddress address={address} shortAddress={shortAddress} />
+        </>
+      )}
+    </>
+  );
+}
+
+export function Username({ details }: { details?: DiscussionUser | null }) {
+  const { displayName, shortAddress, address } = useAddressDisplay(details?.address);
+  if (!displayName) return <>-</>;
+
+  return (
+    <span className="inline-flex min-w-0 max-w-full items-center">
+      <AddressLabel displayName={displayName} shortAddress={shortAddress} address={address} />
+    </span>
   );
 }

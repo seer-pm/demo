@@ -1,12 +1,15 @@
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { useEnsName } from "wagmi";
-import { shortAddress } from "../utils/address";
+import { shortAddress as formatShortAddress } from "../utils/address";
+import { addressUsername } from "../utils/addressUsername";
 
-/** Resolve ENS (mainnet) for display; falls back to a shortened address. */
+/** Resolve ENS (mainnet) for display; falls back to a generated nickname. */
 export function useAddressDisplay(address?: string | null): {
   address: string | null;
   ensName: string | null;
+  generatedName: string | null;
+  shortAddress: string | null;
   displayName: string | null;
 } {
   const normalized = address && isAddress(address) ? (address.toLowerCase() as Address) : null;
@@ -18,13 +21,24 @@ export function useAddressDisplay(address?: string | null): {
   });
 
   if (!normalized) {
-    return { address: null, ensName: null, displayName: null };
+    return {
+      address: null,
+      ensName: null,
+      generatedName: null,
+      shortAddress: null,
+      displayName: null,
+    };
   }
+
+  const generatedName = addressUsername(normalized);
+  const short = formatShortAddress(normalized);
 
   return {
     address: normalized,
     ensName: ensName ?? null,
-    displayName: ensName ?? shortAddress(normalized),
+    generatedName,
+    shortAddress: short,
+    displayName: ensName ?? generatedName,
   };
 }
 
