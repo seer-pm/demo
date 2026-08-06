@@ -57,7 +57,7 @@ function PositionBadge({ positions }: { positions: OutcomePosition[] }) {
   if (positions.length === 0) return null;
 
   const pillClassName =
-    "max-w-40 shrink truncate rounded-full border border-sd-border-main bg-sd-bg-secondary px-2 py-0.5 text-[11px] font-medium leading-4 text-sd-color-secondary";
+    "max-w-40 shrink truncate rounded-full border border-sd-color-active bg-sd-color-active px-2 py-0.5 text-[11px] font-medium leading-4 text-white";
   const formatPositionLabel = ({ outcome, balance }: OutcomePosition) =>
     `${outcome}: ${displayBalance(balance, 18, true)} shares`;
 
