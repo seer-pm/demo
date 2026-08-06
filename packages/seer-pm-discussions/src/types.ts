@@ -19,14 +19,20 @@ export type DiscussionConnectButtonProps = {
   isLoading?: boolean;
 };
 
+export type DiscussionUserPositionBadgeProps = {
+  user: DiscussionUser;
+};
+
 export type DiscussionComponents = {
   Button?: ComponentType<DiscussionButtonProps>;
   ConnectButton?: ComponentType<DiscussionConnectButtonProps>;
+  UserPositionBadge?: ComponentType<DiscussionUserPositionBadgeProps>;
 };
 
 export type ResolvedDiscussionComponents = {
   Button: ComponentType<DiscussionButtonProps>;
   ConnectButton?: ComponentType<DiscussionConnectButtonProps>;
+  UserPositionBadge?: ComponentType<DiscussionUserPositionBadgeProps>;
 };
 
 export type Comment = {

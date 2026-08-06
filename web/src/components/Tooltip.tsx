@@ -56,7 +56,14 @@ export default function Tooltip({ trigger, content }: TooltipProps) {
 
   return (
     <>
-      <div ref={triggerRef} className="inline-block" onMouseEnter={show} onMouseLeave={hide}>
+      <div
+        ref={triggerRef}
+        className="inline-block"
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+      >
         {trigger}
       </div>
 
@@ -64,6 +71,7 @@ export default function Tooltip({ trigger, content }: TooltipProps) {
         ReactDOM.createPortal(
           <div
             ref={tooltipRef}
+            role="tooltip"
             onMouseEnter={show}
             onMouseLeave={hide}
             style={{
