@@ -53,11 +53,13 @@ function DiscussionButton({
   );
 }
 
+/** Displays one outcome position or a tooltip summarizing multiple positions. */
 function PositionBadge({ positions }: { positions: OutcomePosition[] }) {
   if (positions.length === 0) return null;
 
   const pillClassName =
     "max-w-40 shrink truncate rounded-full border border-sd-color-active bg-sd-color-active px-2 py-0.5 text-[11px] font-medium leading-4 text-white";
+  /** Formats a position for tooltip and accessibility labels. */
   const formatPositionLabel = ({ outcome, balance }: OutcomePosition) =>
     `${outcome}: ${displayBalance(balance, 18, true)} shares`;
 
@@ -143,13 +145,13 @@ function Comments({ market }: { market: Market }) {
     return positionsByAddress;
   }, [marketHolders?.topHolders, market.outcomes, market.wrappedTokens]);
 
-  const UserPositionBadge = useMemo(
-    () =>
-      function UserPositionBadge({ user }: DiscussionUserPositionBadgeProps) {
-        return <PositionBadge positions={positionsByUserAddress.get(user.address.toLowerCase()) ?? []} />;
-      },
-    [positionsByUserAddress],
-  );
+  const UserPositionBadge = useMemo(() => {
+    /** Displays the current market positions held by a discussion user. */
+    function UserPositionBadge({ user }: DiscussionUserPositionBadgeProps) {
+      return <PositionBadge positions={positionsByUserAddress.get(user.address.toLowerCase()) ?? []} />;
+    }
+    return UserPositionBadge;
+  }, [positionsByUserAddress]);
 
   const discussionComponents = useMemo(() => ({ Button: DiscussionButton, UserPositionBadge }), [UserPositionBadge]);
 
