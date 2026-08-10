@@ -29,8 +29,9 @@ export default function DiscussionsProvider({
     () => ({
       Button: componentsProp?.Button ?? DefaultButton,
       ConnectButton: componentsProp?.ConnectButton,
+      UserPositionBadge: componentsProp?.UserPositionBadge,
     }),
-    [componentsProp?.Button, componentsProp?.ConnectButton],
+    [componentsProp?.Button, componentsProp?.ConnectButton, componentsProp?.UserPositionBadge],
   );
 
   return (

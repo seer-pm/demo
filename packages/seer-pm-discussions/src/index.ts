@@ -14,6 +14,7 @@ export type {
   CreateCommentInput,
   DiscussionButtonProps,
   DiscussionConnectButtonProps,
+  DiscussionUserPositionBadgeProps,
   DiscussionComponents,
 } from "./types";
 

@@ -1,14 +1,28 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
+import Tooltip from "@/components/Tooltip";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
+import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { useSignIn } from "@/hooks/useSignIn";
-import { getAppUrl, isAccessTokenExpired } from "@/lib/utils";
-import { Discussion, type DiscussionButtonProps, createDiscussionsClient, userFromAddress } from "@seer-pm/discussions";
-import { Market } from "@seer-pm/sdk";
+import { displayBalance, getAppUrl, isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
+import {
+  Discussion,
+  type DiscussionButtonProps,
+  type DiscussionUserPositionBadgeProps,
+  createDiscussionsClient,
+  userFromAddress,
+} from "@seer-pm/discussions";
+import type { Market } from "@seer-pm/sdk";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { Children, type ReactNode, useMemo } from "react";
 import { useAccount } from "wagmi";
+
+type OutcomePosition = {
+  tokenId: string;
+  outcome: string;
+  balance: bigint;
+};
 
 function buttonLabel(children: ReactNode): string {
   const text = Children.toArray(children)
@@ -39,12 +53,60 @@ function DiscussionButton({
   );
 }
 
+/** Displays one outcome position or a tooltip summarizing multiple positions. */
+function PositionBadge({ positions }: { positions: OutcomePosition[] }) {
+  if (positions.length === 0) return null;
+
+  const pillClassName =
+    "max-w-40 shrink truncate rounded-full border border-sd-color-active bg-sd-color-active px-2 py-0.5 text-[11px] font-medium leading-4 text-white";
+  /** Formats a position for tooltip and accessibility labels. */
+  const formatPositionLabel = ({ outcome, balance }: OutcomePosition) =>
+    `${outcome}: ${displayBalance(balance, 18, true)} shares`;
+
+  if (positions.length === 1) {
+    const [position] = positions;
+    return (
+      <span className={pillClassName} title={formatPositionLabel(position)}>
+        {position.outcome} {displayBalance(position.balance, 18, true)}
+      </span>
+    );
+  }
+
+  return (
+    <Tooltip
+      trigger={
+        <button
+          type="button"
+          className={`${pillClassName} cursor-help`}
+          aria-label={`Multiple positions: ${positions.map(formatPositionLabel).join(", ")}`}
+        >
+          Multiple Positions
+        </button>
+      }
+      content={
+        <div className="min-w-40">
+          <p className="m-0 mb-1.5 text-xs font-semibold">Positions held</p>
+          <ul className="m-0 list-none space-y-1 p-0">
+            {positions.map(({ tokenId, outcome, balance }) => (
+              <li key={tokenId} className="flex items-center justify-between gap-4 font-normal">
+                <span>{outcome}</span>
+                <span className="tabular-nums">{displayBalance(balance, 18, true)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      }
+    />
+  );
+}
+
 function Comments({ market }: { market: Market }) {
   const { address, chainId } = useAccount();
   const isConnected = useIsAccountConnected();
   const isSignedIn = useIsConnectedAndSignedIn();
   const signIn = useSignIn();
   const { open } = useWeb3Modal();
+  const { data: marketHolders } = useMarketHolders(market);
 
   const client = useMemo(
     () =>
@@ -61,6 +123,38 @@ function Comments({ market }: { market: Market }) {
 
   const user = isSignedIn && address ? userFromAddress(address) : null;
 
+  const positionsByUserAddress = useMemo(() => {
+    const positionsByAddress = new Map<string, OutcomePosition[]>();
+
+    for (const [tokenId, holders] of Object.entries(marketHolders?.topHolders ?? {})) {
+      const outcomeIndex = market.wrappedTokens.findIndex((wrappedToken) => isTwoStringsEqual(wrappedToken, tokenId));
+      const outcome = market.outcomes[outcomeIndex];
+      if (!outcome) continue;
+
+      for (const holder of holders) {
+        const balance = BigInt(holder.balance);
+        if (balance <= 0n) continue;
+
+        const userAddress = holder.address.toLowerCase();
+        const userPositions = positionsByAddress.get(userAddress) ?? [];
+        userPositions.push({ tokenId, outcome, balance });
+        positionsByAddress.set(userAddress, userPositions);
+      }
+    }
+
+    return positionsByAddress;
+  }, [marketHolders?.topHolders, market.outcomes, market.wrappedTokens]);
+
+  const UserPositionBadge = useMemo(() => {
+    /** Displays the current market positions held by a discussion user. */
+    function UserPositionBadge({ user }: DiscussionUserPositionBadgeProps) {
+      return <PositionBadge positions={positionsByUserAddress.get(user.address.toLowerCase()) ?? []} />;
+    }
+    return UserPositionBadge;
+  }, [positionsByUserAddress]);
+
+  const discussionComponents = useMemo(() => ({ Button: DiscussionButton, UserPositionBadge }), [UserPositionBadge]);
+
   const requestConnect = async () => {
     if (!isConnected || !address || !chainId) {
       await open({ view: "Connect" });
@@ -72,12 +166,7 @@ function Comments({ market }: { market: Market }) {
 
   return (
     <ErrorBoundary fallback={<p>Something went wrong.</p>}>
-      <Discussion
-        client={client}
-        user={user}
-        onRequestConnect={requestConnect}
-        components={{ Button: DiscussionButton }}
-      />
+      <Discussion client={client} user={user} onRequestConnect={requestConnect} components={discussionComponents} />
     </ErrorBoundary>
   );
 }
