@@ -1089,3 +1089,90 @@ export const MoonIcon = ({
     />
   </svg>
 );
+
+export const ArrowUpRightIcon = ({
+  width = 14,
+  height = 14,
+  stroke = "currentColor",
+}: { width?: number; height?: number; stroke?: string }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={stroke}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M7 17L17 7" />
+    <path d="M8 7h9v9" />
+  </svg>
+);
+
+export const DropletIcon = ({
+  width = 14,
+  height = 14,
+  stroke = "currentColor",
+}: { width?: number; height?: number; stroke?: string }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={stroke}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M12 3.2 6.6 9.2a7.2 7.2 0 1 0 10.8 0L12 3.2z" />
+  </svg>
+);
+
+export const LayersIcon = ({
+  width = 14,
+  height = 14,
+  stroke = "currentColor",
+}: { width?: number; height?: number; stroke?: string }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={stroke}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M12 3 2 8l10 5 10-5-10-5z" />
+    <path d="M2 17l10 5 10-5" />
+    <path d="M2 12.5l10 5 10-5" />
+  </svg>
+);
+
+export const BranchIcon = ({
+  width = 14,
+  height = 14,
+  stroke = "currentColor",
+}: { width?: number; height?: number; stroke?: string }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={stroke}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="6" cy="4" r="2" />
+    <circle cx="6" cy="20" r="2" />
+    <circle cx="18" cy="8" r="2" />
+    <path d="M6 6v12" />
+    <path d="M18 10a6 6 0 0 1-6 6H8" />
+  </svg>
+);

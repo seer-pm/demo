@@ -5,7 +5,15 @@ import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { getFarmingUrl, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
-import { CheckCircleIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import {
+  ArrowUpRightIcon,
+  BranchIcon,
+  CheckCircleIcon,
+  DropletIcon,
+  LayersIcon,
+  QuestionIcon,
+  RightArrow,
+} from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import {
@@ -222,12 +230,45 @@ function AddLiquidityLinks({
   outcomeIndex,
   pools,
   openLiquidityModal,
+  iconOnly = false,
 }: {
   market: Market;
   outcomeIndex: number;
   pools: PoolInfo[][];
   openLiquidityModal?: () => void;
+  iconOnly?: boolean;
 }) {
+  if (iconOnly) {
+    const commonProps = {
+      "aria-label": "Add Liquidity",
+      className: "outcome-action-icon",
+    };
+    return (
+      <span className="tooltip">
+        <span className="tooltiptext">Add Liquidity</span>
+        {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
+          <button
+            type="button"
+            onClick={() => {
+              openLiquidityModal();
+            }}
+            {...commonProps}
+          >
+            <DropletIcon />
+          </button>
+        ) : (
+          <a
+            href={getLiquidityUrlByMarket(market, outcomeIndex)}
+            target="_blank"
+            rel="noopener noreferrer"
+            {...commonProps}
+          >
+            <DropletIcon />
+          </a>
+        )}
+      </span>
+    );
+  }
   return (
     <>
       {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
@@ -381,15 +422,19 @@ function OutcomeDetails({
             </span>
           )}
         </div>
-        <div className="text-[12px] flex items-center gap-x-4 gap-y-2 flex-wrap flex-row justify-start">
-          <a
-            href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink-4 hover:text-blue transition-colors"
-          >
-            View on {SUPPORTED_CHAINS?.[market.chainId]?.name} ↗
-          </a>
+        <div className="outcome-actions text-[12px] flex items-center gap-x-2 gap-y-1.5 flex-wrap flex-row justify-start">
+          <span className="tooltip">
+            <span className="tooltiptext">View on {SUPPORTED_CHAINS?.[market.chainId]?.name}</span>
+            <a
+              href={blockExplorerUrl && `${blockExplorerUrl}/token/${wrappedAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`View on ${SUPPORTED_CHAINS?.[market.chainId]?.name}`}
+              className="outcome-action-icon"
+            >
+              <ArrowUpRightIcon />
+            </a>
+          </span>
 
           {market.type === "Generic" && (
             <AddLiquidityLinks
@@ -397,31 +442,41 @@ function OutcomeDetails({
               outcomeIndex={outcomeIndex}
               pools={pools}
               openLiquidityModal={openModal}
+              iconOnly
             />
           )}
 
           {market.type === "Generic" && onTogglePoolDetails && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePoolDetails();
-              }}
-              className="text-blue hover:text-blue-hover transition-colors font-medium"
-            >
-              {isPoolDetailsOpen ? "Hide pool details" : "View pool details"}
-            </button>
+            <span className="tooltip">
+              <span className="tooltiptext">{isPoolDetailsOpen ? "Hide pool details" : "View pool details"}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePoolDetails();
+                }}
+                aria-label={isPoolDetailsOpen ? "Hide pool details" : "View pool details"}
+                aria-pressed={isPoolDetailsOpen}
+                className={clsx("outcome-action-icon", isPoolDetailsOpen && "is-active")}
+              >
+                <LayersIcon />
+              </button>
+            </span>
           )}
 
           {market.type === "Generic" && (
-            <Link
-              to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
-                market.outcomes[outcomeIndex],
-              )}`}
-              className="text-blue hover:text-blue-hover transition-colors font-medium"
-            >
-              New conditional market
-            </Link>
+            <span className="tooltip">
+              <span className="tooltiptext">New conditional market</span>
+              <Link
+                to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(
+                  market.outcomes[outcomeIndex],
+                )}`}
+                aria-label="New conditional market"
+                className="outcome-action-icon"
+              >
+                <BranchIcon />
+              </Link>
+            </span>
           )}
         </div>
         <div className="text-[12px] flex items-center gap-4 flex-wrap"></div>

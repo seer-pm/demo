@@ -190,6 +190,50 @@ body {
   /* Sample uses a 3px soft blue halo on selected outcomes. */
   box-shadow: 0 0 0 3px rgba(45, 107, 247, 0.12);
 }
+
+/* Icon-only action buttons under each outcome row (View on explorer,
+   Add Liquidity, Pool Details, New Conditional Market). Kept subtle so
+   the outcome name and odds remain the visual anchor. */
+.outcome-actions {
+  gap: 8px 10px;
+}
+.outcome-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-4);
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+.outcome-action-icon:hover,
+.outcome-action-icon:focus-visible {
+  color: var(--blue);
+  border-color: color-mix(in oklch, var(--blue) 45%, var(--border-2));
+  background: color-mix(in oklch, var(--blue) 8%, transparent);
+  transform: translateY(-1px);
+  outline: none;
+}
+.outcome-action-icon.is-active {
+  color: var(--blue);
+  border-color: color-mix(in oklch, var(--blue) 55%, var(--border-2));
+  background: color-mix(in oklch, var(--blue) 12%, transparent);
+}
+.outcome-actions .tooltip > .tooltiptext {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
 html[data-theme="dark"] .card-active {
   box-shadow: 0 0 0 3px rgba(123, 43, 255, 0.20);
 }
@@ -1366,6 +1410,37 @@ html[data-theme="dark"] .io-swap:focus-visible {
 }
 .event-actions button:hover {
   text-decoration: underline;
+}
+
+/* Wide variant — used when the events card is placed in the main column
+   (below Outcomes) instead of the narrow sidebar. Lays events out as a
+   responsive grid so the card doesn't turn into a tall vertical strip. */
+.events-card--wide .events-list {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px 22px;
+}
+.events-card--wide .event {
+  grid-template-columns: 12px 1fr;
+  gap: 10px;
+  padding: 12px 14px 12px 12px;
+  border-bottom: 0;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: var(--bg-1, transparent);
+  transition:
+    opacity 200ms ease,
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+.events-card--wide .event:hover {
+  border-color: var(--border);
+  transform: translateY(-1px);
+}
+.events-card--wide .event.is-next {
+  border-color: color-mix(in oklch, var(--beacon, #ff6b1a) 45%, var(--border-2));
+}
+.events-card--wide .event-marker {
+  margin-top: 5px;
 }
 
 /* =====================================================================

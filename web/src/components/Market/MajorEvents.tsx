@@ -103,7 +103,10 @@ function eventClassName(event: DisplayMarketEvent, index: number, active: boolea
   );
 }
 
-export default function MajorEvents({ market }: { market: Market }) {
+export default function MajorEvents({
+  market,
+  variant = "narrow",
+}: { market: Market; variant?: "narrow" | "wide" }) {
   const { data: dbEvents = [], isLoading: isEventsLoading } = useMarketEvents(market);
   const isSignedIn = useIsConnectedAndSignedIn();
   const { data: isAdmin } = useIsAdmin();
@@ -249,7 +252,7 @@ export default function MajorEvents({ market }: { market: Market }) {
           />
         }
       />
-      <section className="card-box events-card">
+      <section className={clsx("card-box events-card", variant === "wide" && "events-card--wide")}>
         <div className="section-h">
           <h3>
             Major Events
