@@ -13,9 +13,9 @@ import type { Execution } from "./execution";
 import type { FillToEstimateLeg, FillToEstimatePlan } from "./fill-to-estimate-plan";
 import type { Market } from "./market-types";
 import { getRouterAddress } from "./router-addresses";
-import { isSeerCredits } from "./seer-credits";
 import { getSplitExecution } from "./split-position";
 import { getMaximumAmountIn } from "./trade-utils";
+import { isTradingCredits } from "./trading-credits";
 
 export interface FillToEstimateLegTrade {
   kind: "sell" | "buy";
@@ -50,14 +50,14 @@ async function getSwapExecution(
   collateralToken: Address,
   chainId: number,
 ): Promise<Execution> {
-  const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken);
-  return buildAmmTradeExecution(trade, account, isSeerCreditsCollateral);
+  const isTradingCreditsCollateral = isTradingCredits(chainId, collateralToken);
+  return buildAmmTradeExecution(trade, account, isTradingCreditsCollateral);
 }
 
 export async function buildFillToEstimateCalls7702(params: FillToEstimateTradeParams): Promise<Execution[]> {
   const { plan, market, account, collateralToken, legTrades } = params;
 
-  if (isSeerCredits(market.chainId, collateralToken)) {
+  if (isTradingCredits(market.chainId, collateralToken)) {
     throw new Error("Fill-to-estimate is not supported with Seer Credits");
   }
 
@@ -158,7 +158,7 @@ export async function executeFillToEstimate(
   const { plan, market, account, collateralToken, legTrades } = params;
   const { onLegStatusChange } = options ?? {};
 
-  if (isSeerCredits(market.chainId, collateralToken)) {
+  if (isTradingCredits(market.chainId, collateralToken)) {
     throw new Error("Fill-to-estimate is not supported with Seer Credits");
   }
 

@@ -65,7 +65,7 @@ async function tradeTokens7702(
 function useTradeLegacy(
   account: Address | undefined,
   trade: AmmTrade | undefined,
-  isSeerCredits: boolean,
+  isTradingCredits: boolean,
   psm3Leg: Psm3Leg | undefined,
   completeSetLeg: CompleteSetLeg | undefined,
   market: Market,
@@ -82,7 +82,7 @@ function useTradeLegacy(
   const approvals = useMissingTradeApproval(account, trade, psm3Leg, completeSetLeg);
 
   return {
-    approvals: isSeerCredits ? EMPTY_APPROVALS : approvals,
+    approvals: isTradingCredits ? EMPTY_APPROVALS : approvals,
     tradeTokens: useMutation({
       mutationFn: async (props: TradeTokensProps) => {
         if (!walletClient) {
@@ -131,7 +131,7 @@ function useTrade7702(trade: AmmTrade | undefined, market: Market, onSuccess: ()
 export const useTrade = (
   account: Address | undefined,
   trade: AmmTrade | undefined,
-  isSeerCredits: boolean,
+  isTradingCredits: boolean,
   onSuccess: () => unknown,
   supports7702: boolean,
   txNotifier: TxNotifierFn,
@@ -143,7 +143,7 @@ export const useTrade = (
   const tradeLegacy = useTradeLegacy(
     account,
     trade,
-    isSeerCredits,
+    isTradingCredits,
     psm3Leg,
     completeSetLeg,
     market,

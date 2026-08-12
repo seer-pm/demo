@@ -6,7 +6,7 @@ import {
   EMPTY_TOKEN,
   getActivePrimaryCollateral,
   TradeType,
-  isSeerCredits,
+  isTradingCredits,
   getMaximumAmountIn,
   WRAPPED_OUTCOME_TOKEN_DECIMALS,
 } from "@seer-pm/sdk";
@@ -152,7 +152,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
   const insufficientBalance =
     !isCollateralLoading && !!quoteData?.trade && requiredAmount > 0n && balance < requiredAmount;
 
-  const isSeerCreditsCollateral = selectedCollateral ? isSeerCredits(market.chainId, selectedCollateral.address) : false;
+  const isTradingCreditsCollateral = selectedCollateral ? isTradingCredits(market.chainId, selectedCollateral.address) : false;
 
   const approveTokensMutation = useApproveTokens(toastifyTx);
 
@@ -162,7 +162,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
   } = useTrade(
     account,
     quoteData?.trade,
-    isSeerCreditsCollateral,
+    isTradingCreditsCollateral,
     () => {
       setAmount("");
     },
@@ -173,7 +173,7 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
   );
 
   const needsTokenApproval =
-    !isCollateralLoading && !isSeerCreditsCollateral && missingApprovals.length > 0;
+    !isCollateralLoading && !isTradingCreditsCollateral && missingApprovals.length > 0;
 
   const executeTrade = tradeTokens.mutateAsync;
   const isTradePending = tradeTokens.isPending;
@@ -325,13 +325,13 @@ export function SwapWidget({ market }: SwapWidgetProps): React.ReactElement {
         await executeTrade({
           trade: quoteData.trade,
           account,
-          isSeerCredits: isSeerCreditsCollateral,
+          isTradingCredits: isTradingCreditsCollateral,
         });
       } catch (err) {
         console.error("Trade failed:", err);
       }
     },
-    [account, quoteData?.trade, insufficientBalance, isTradePending, executeTrade, isSeerCreditsCollateral],
+    [account, quoteData?.trade, insufficientBalance, isTradePending, executeTrade, isTradingCreditsCollateral],
   );
 
   return (

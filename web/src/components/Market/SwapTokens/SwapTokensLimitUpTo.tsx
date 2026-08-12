@@ -10,7 +10,7 @@ import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
-import { isSeerCredits } from "@seer-pm/sdk";
+import { isTradingCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import { decimalToFraction } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare } from "@seer-pm/sdk";
@@ -143,7 +143,7 @@ export function SwapTokensLimitUpto({
     tradeType === TradeType.EXACT_INPUT ? Number(amountOut) : Number(amount),
   );
 
-  const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
+  const isTradingCreditsCollateral = isTradingCredits(market.chainId, selectedCollateral.address);
 
   const {
     data: quoteData,
@@ -166,7 +166,7 @@ export function SwapTokensLimitUpto({
   } = useTrade(
     account,
     quoteData?.trade,
-    isSeerCreditsCollateral,
+    isTradingCreditsCollateral,
     async () => {
       reset();
       closeConfirmSwapModal();
@@ -179,7 +179,7 @@ export function SwapTokensLimitUpto({
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
-      isSeerCredits: isSeerCreditsCollateral,
+      isTradingCredits: isTradingCreditsCollateral,
       psm3Leg: quoteData?.psm3Leg,
     });
   };
@@ -332,7 +332,7 @@ export function SwapTokensLimitUpto({
             onSubmit={onSubmit}
             collateral={selectedCollateral}
             originalAmount={amount}
-            isSeerCredits={isSeerCreditsCollateral}
+            isTradingCredits={isTradingCreditsCollateral}
             outcomeToken={outcomeToken}
           />
         }

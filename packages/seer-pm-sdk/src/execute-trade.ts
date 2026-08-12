@@ -5,7 +5,7 @@
 import type { Address, Client, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 import { sendTransaction } from "viem/actions";
-import { creditsManagerAbi, creditsManagerAddress } from "../generated/contracts/trading-credits";
+import { creditsManagerAbi } from "../generated/contracts/trading-credits";
 import type { AmmTrade } from "./amm-trade";
 import { NATIVE_TOKEN } from "./collateral";
 import { ERC20_APPROVE_ABI } from "./execute-trade-abis";
@@ -13,6 +13,7 @@ import type { Execution } from "./execution";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { TradeTokensProps } from "./trade-utils";
 import { getMaximumAmountIn } from "./trade-utils";
+import { getActiveCreditsManagerAddress } from "./trading-credits";
 
 export type { TradeTokensProps } from "./trade-utils";
 
@@ -72,16 +73,16 @@ export async function getAmmTradeExecution(trade: AmmTrade, account: Address): P
 }
 
 /**
- * Wrap trade execution for Seer Credits (routes through CreditsManager).
+ * Wrap trade execution for trading credits (routes through the active CreditsManager).
  */
-export function getWrappedSeerCreditsExecution(
-  isSeerCredits: boolean,
+export function getWrappedCreditsExecution(
+  isTradingCredits: boolean,
   trade: AmmTrade,
   tradeExecution: Execution,
 ): Execution {
-  if (!isSeerCredits) return tradeExecution;
+  if (!isTradingCredits) return tradeExecution;
 
-  const creditsAddr = creditsManagerAddress[trade.chainId as keyof typeof creditsManagerAddress];
+  const creditsAddr = getActiveCreditsManagerAddress(trade.chainId);
   if (!creditsAddr) {
     throw new Error(`No credits manager for chain ${trade.chainId}`);
   }
@@ -93,7 +94,7 @@ export function getWrappedSeerCreditsExecution(
   });
 
   return {
-    to: creditsAddr as Address,
+    to: creditsAddr,
     data: executeData,
     value: 0n,
     chainId: trade.chainId,
@@ -106,10 +107,10 @@ export function getWrappedSeerCreditsExecution(
 export async function buildAmmTradeExecution(
   trade: AmmTrade,
   account: Address,
-  isSeerCredits: boolean,
+  isTradingCredits: boolean,
 ): Promise<Execution> {
   const swapExecution = await getAmmTradeExecution(trade, account);
-  return getWrappedSeerCreditsExecution(isSeerCredits, trade, swapExecution);
+  return getWrappedCreditsExecution(isTradingCredits, trade, swapExecution);
 }
 
 /**
@@ -119,9 +120,9 @@ export async function executeAmmTrade(
   client: Client,
   trade: AmmTrade,
   account: Address,
-  isSeerCredits: boolean,
+  isTradingCredits: boolean,
 ): Promise<`0x${string}`> {
-  const exec = await buildAmmTradeExecution(trade, account, isSeerCredits);
+  const exec = await buildAmmTradeExecution(trade, account, isTradingCredits);
   return sendTransaction(client, { ...exec, account, chain: client.chain });
 }
 
@@ -130,12 +131,12 @@ export async function executeAmmTrade(
  * Returns tx hash. Wrap with toastifyTx in the app.
  */
 export async function tradeTokens(props: TradeTokensProps, adapters: { client: Client }): Promise<string> {
-  const { trade, account, isSeerCredits } = props;
+  const { trade, account, isTradingCredits } = props;
   const { client } = adapters;
 
   if (props.completeSetLeg) {
-    if (isSeerCredits) {
-      throw new Error("Complete-set trades are not supported with Seer Credits");
+    if (isTradingCredits) {
+      throw new Error("Complete-set trades are not supported with trading credits");
     }
     const { executeCompleteSetTrade } = await import("./complete-set-trade");
     return executeCompleteSetTrade(client, props);
@@ -145,7 +146,7 @@ export async function tradeTokens(props: TradeTokensProps, adapters: { client: C
     return executePsm3CompositeTradeWrapper(client, props);
   }
 
-  return executeAmmTrade(client, trade, account, isSeerCredits);
+  return executeAmmTrade(client, trade, account, isTradingCredits);
 }
 
 async function executePsm3CompositeTradeWrapper(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
@@ -157,11 +158,11 @@ async function executePsm3CompositeTradeWrapper(client: Client, props: TradeToke
  * Build calls for 7702 batch (approvals + swap).
  */
 export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
-  const { trade, account, isSeerCredits, psm3Leg } = props;
+  const { trade, account, isTradingCredits, psm3Leg } = props;
 
   if (props.completeSetLeg) {
-    if (isSeerCredits) {
-      throw new Error("Complete-set trades are not supported with Seer Credits");
+    if (isTradingCredits) {
+      throw new Error("Complete-set trades are not supported with trading credits");
     }
     const { buildCompleteSetTradeCalls7702 } = await import("./complete-set-trade");
     return buildCompleteSetTradeCalls7702(props);
@@ -174,7 +175,7 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
 
   const swapExecution = await getAmmTradeExecution(trade, account);
 
-  const calls: Execution[] = isSeerCredits
+  const calls: Execution[] = isTradingCredits
     ? []
     : getTradeApprovals7702({
         tokensAddresses: [trade.tokenIn.address as Address],
@@ -184,7 +185,7 @@ export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Exec
         chainId: trade.chainId,
       });
 
-  calls.push(getWrappedSeerCreditsExecution(isSeerCredits, trade, swapExecution));
+  calls.push(getWrappedCreditsExecution(isTradingCredits, trade, swapExecution));
 
   return calls;
 }

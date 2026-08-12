@@ -94,7 +94,7 @@ export function useMissingTradeApproval(
       ? getCompleteSetApprovalTokens({
           trade,
           account,
-          isSeerCredits: false,
+          isTradingCredits: false,
           completeSetLeg,
         })
       : null;
@@ -104,7 +104,7 @@ export function useMissingTradeApproval(
       ? getPsm3CompositeApprovalTokens({
           trade,
           account,
-          isSeerCredits: false,
+          isTradingCredits: false,
           psm3Leg,
         })
       : null;

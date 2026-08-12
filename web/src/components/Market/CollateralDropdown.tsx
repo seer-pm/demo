@@ -1,13 +1,12 @@
 import { ArrowDropDown } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { isSeerCreditsDisabled } from "@/lib/seer-credits";
+import { isTradingCreditsDisabled } from "@/lib/trading-credits";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { GetTokenResult } from "@seer-pm/react";
 import { useTokensInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { getActiveCollateralProfile } from "@seer-pm/sdk";
-import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
+import { getActiveCollateralProfile, getActiveCreditsTokenAddress } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
 import { Address, zeroAddress } from "viem";
@@ -43,8 +42,11 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
     options.push(profile.secondary.wrapped.address);
   }
 
-  if (type === "sell" && !isSeerCreditsDisabled() && market.chainId in seerCreditsAddress) {
-    options.push(seerCreditsAddress[market.chainId as keyof typeof seerCreditsAddress]);
+  if (type === "sell" && !isTradingCreditsDisabled()) {
+    const creditsToken = getActiveCreditsTokenAddress(market.chainId);
+    if (creditsToken) {
+      options.push(creditsToken);
+    }
   }
 
   // TODO: allow to swap using multple alternative tokens

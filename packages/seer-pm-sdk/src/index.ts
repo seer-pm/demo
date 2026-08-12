@@ -167,7 +167,7 @@ export {
   getMaximumAmountIn,
   getTradeApprovals7702,
   getAmmTradeExecution,
-  getWrappedSeerCreditsExecution,
+  getWrappedCreditsExecution,
 } from "./execute-trade";
 export type {
   TradeTokensProps,
@@ -288,7 +288,17 @@ export type {
   FillToEstimateLegTrade,
   FillToEstimateTradeParams,
 } from "./fill-to-estimate-trade";
-export { isSeerCredits } from "./seer-credits";
+export {
+  configureCredits,
+  DEFAULT_CREDITS_PROFILE,
+  getActiveCreditsManagerAddress,
+  getActiveCreditsProfileName,
+  getActiveCreditsSymbol,
+  getActiveCreditsTokenAddress,
+  hasTradingCredits,
+  isTradingCredits,
+} from "./trading-credits";
+export type { CreditsProfileName } from "./trading-credits";
 
 // Curate / TCR
 export { CURATE_STATUS, type CurateStatus, isCurateStatus } from "./curate-status";

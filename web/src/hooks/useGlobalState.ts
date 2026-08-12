@@ -1,6 +1,6 @@
-import { isSeerCreditsDisabled } from "@/lib/seer-credits";
+import { isTradingCreditsDisabled } from "@/lib/trading-credits";
 import type { SupportedChain, Token } from "@seer-pm/sdk";
-import { isSeerCredits } from "@seer-pm/sdk";
+import { isTradingCredits } from "@seer-pm/sdk";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -61,18 +61,18 @@ const useGlobalState = create<State & Action>()(
 
         if (
           preferredCollateral &&
-          isSeerCreditsDisabled() &&
-          isSeerCredits(chainId as SupportedChain, preferredCollateral.address)
+          isTradingCreditsDisabled() &&
+          isTradingCredits(chainId as SupportedChain, preferredCollateral.address)
         ) {
           return undefined;
         }
 
         if (
           preferredCollateral &&
-          isSeerCredits(chainId as SupportedChain, preferredCollateral.address) &&
+          isTradingCredits(chainId as SupportedChain, preferredCollateral.address) &&
           swapType === "sell"
         ) {
-          // SEER_CREDITS can only be used as a sell token in market orders, not as a buy token or in limit orders
+          // Trading credits can only be used as a sell token in market orders, not as a buy token or in limit orders
           return undefined;
         }
 

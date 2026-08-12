@@ -18,7 +18,7 @@ import {
   getMarketUnit,
   isFillToEstimateEnabled,
   isPsm3SwapToken,
-  isSeerCredits,
+  isTradingCredits,
 } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { TradeType } from "@seer-pm/sdk";
@@ -166,7 +166,7 @@ export function SwapTokensFillToEstimate({
   });
   const { legExecutionStatuses } = fillToEstimateTrade;
 
-  const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
+  const isTradingCreditsCollateral = isTradingCredits(market.chainId, selectedCollateral.address);
   const isPsm3Collateral = isPsm3SwapToken(market.chainId, selectedCollateral.address);
 
   const quoteLegTrades = async (): Promise<FillToEstimateLegTrade[]> => {
@@ -258,7 +258,7 @@ export function SwapTokensFillToEstimate({
     return <Alert type="info">Fill-to-estimate is available only for Generic scalar markets.</Alert>;
   }
 
-  if (isSeerCreditsCollateral) {
+  if (isTradingCreditsCollateral) {
     return <Alert type="info">Fill-to-estimate is not supported with Seer Credits collateral.</Alert>;
   }
 

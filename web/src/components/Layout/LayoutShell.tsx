@@ -12,12 +12,13 @@ import { config } from "../../wagmi.ts";
 
 import "react-toastify/dist/ReactToastify.css";
 import "../../index.scss";
-import { configureCollateral } from "@seer-pm/sdk";
+import { configureCollateral, configureCredits } from "@seer-pm/sdk";
 import { AuthUpdater } from "../AuthUpdater.tsx";
 
 globalThis.Buffer = Buffer;
 
 configureCollateral(import.meta.env.VITE_COLLATERAL_PROFILE || "default");
+configureCredits(import.meta.env.VITE_CREDITS_PROFILE || "SEER_CREDITS");
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pageContext = usePageContext();

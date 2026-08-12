@@ -1,5 +1,5 @@
 import { TOKENS_BY_CHAIN } from "@seer-pm/sdk";
-import { isSeerCredits } from "@seer-pm/sdk";
+import { isTradingCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
@@ -79,7 +79,7 @@ export const paths = {
       }
     }
 
-    if (isSeerCredits(chainId as SupportedChain, address as Address)) {
+    if (isTradingCredits(chainId as SupportedChain, address as Address)) {
       return "/assets/android-icon-192x192.png";
     }
 

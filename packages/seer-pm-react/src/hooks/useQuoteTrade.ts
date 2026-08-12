@@ -18,7 +18,7 @@ import {
   getCompleteSetRoutingDisabledReasons,
   isCompleteSetRoutingEnabled,
   isPsm3SwapToken,
-  isSeerCredits,
+  isTradingCredits,
 } from "@seer-pm/sdk";
 
 const QUOTE_REFETCH_INTERVAL = 30_000;
@@ -151,10 +151,10 @@ export function useQuoteTrade(
   outcomeIndex?: number,
 ) {
   const config = useConfig();
-  const isSeerCreditsCollateral = isSeerCredits(chainId, collateralToken.address);
+  const isTradingCreditsCollateral = isTradingCredits(chainId, collateralToken.address);
   const isPsm3Collateral = isPsm3SwapToken(chainId, collateralToken.address);
 
-  const realCollateralToken: Token = isSeerCreditsCollateral ? getActivePrimaryCollateral(chainId) : collateralToken;
+  const realCollateralToken: Token = isTradingCreditsCollateral ? getActivePrimaryCollateral(chainId) : collateralToken;
 
   const ammResult = useAmmQuote(
     chainId,

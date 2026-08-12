@@ -7,7 +7,7 @@ import { TradeType } from "./trade-type";
 export interface TradeTokensProps {
   trade: AmmTrade;
   account: Address;
-  isSeerCredits: boolean;
+  isTradingCredits: boolean;
   psm3Leg?: Psm3Leg;
   completeSetLeg?: CompleteSetLeg;
 }

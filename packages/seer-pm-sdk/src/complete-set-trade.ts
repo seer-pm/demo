@@ -73,13 +73,13 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
 async function getSecondarySwapExecution(
   trade: AmmTrade,
   account: Address,
-  isSeerCredits: boolean,
+  isTradingCredits: boolean,
 ): Promise<Execution> {
-  return buildAmmTradeExecution(trade, account, isSeerCredits);
+  return buildAmmTradeExecution(trade, account, isTradingCredits);
 }
 
 export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
-  const { account, isSeerCredits } = props;
+  const { account, isTradingCredits } = props;
   const validated = validateCompleteSetTradeProps(props);
   const { completeSetLeg, trade, swapSpender } = validated;
 
@@ -116,7 +116,7 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
         chainId,
       }),
     );
-    calls.push(await getSecondarySwapExecution(trade, account, isSeerCredits));
+    calls.push(await getSecondarySwapExecution(trade, account, isTradingCredits));
     return calls;
   }
 
@@ -131,7 +131,7 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
       chainId,
     }),
   );
-  calls.push(await getSecondarySwapExecution(trade, account, isSeerCredits));
+  calls.push(await getSecondarySwapExecution(trade, account, isTradingCredits));
   const mergeOutcomeTokens = [
     completeSetLeg.targetOutcomeToken.address,
     completeSetLeg.oppositeOutcomeToken.address,
@@ -165,7 +165,7 @@ async function sendApprovalCalls(client: Client, account: Address, calls: Execut
 }
 
 export async function executeCompleteSetTrade(client: Client, props: TradeTokensProps): Promise<`0x${string}`> {
-  const { account, isSeerCredits } = props;
+  const { account, isTradingCredits } = props;
   const validated = validateCompleteSetTradeProps(props);
   const { completeSetLeg, trade, swapSpender } = validated;
 
@@ -224,7 +224,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
     }
 
     return sendTransaction(client, {
-      ...(await getSecondarySwapExecution(trade, account, isSeerCredits)),
+      ...(await getSecondarySwapExecution(trade, account, isTradingCredits)),
       account,
       chain: client.chain,
     });
@@ -249,7 +249,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
   }
 
   await sendTransaction(client, {
-    ...(await getSecondarySwapExecution(trade, account, isSeerCredits)),
+    ...(await getSecondarySwapExecution(trade, account, isTradingCredits)),
     account,
     chain: client.chain,
   });

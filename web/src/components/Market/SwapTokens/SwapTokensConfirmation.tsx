@@ -3,7 +3,7 @@ import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
-import { getActiveCollateralProfile } from "@seer-pm/sdk";
+import { getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
 import { type AmmTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
@@ -20,7 +20,7 @@ interface SwapTokensConfirmationProps {
   onSubmit: (trade: AmmTrade) => Promise<void>;
   collateral: Token;
   originalAmount: string;
-  isSeerCredits: boolean;
+  isTradingCredits: boolean;
   outcomeToken: Token;
 }
 
@@ -204,12 +204,12 @@ function ShowCompleteSetSummary({
 function ShowSwapSummary({
   trade,
   collateral,
-  isSeerCredits,
+  isTradingCredits,
   outcomeToken,
 }: {
   trade: AmmTrade;
   collateral: Token;
-  isSeerCredits: boolean;
+  isTradingCredits: boolean;
   outcomeToken: Token;
 }) {
   const [isInvertedPrice, toggleInvertedPrice] = useState(false);
@@ -248,7 +248,7 @@ function ShowSwapSummary({
       <div className="min-w-[400px] min-h-[150px]">
         <div className="flex items-center justify-between mb-5 gap-2">
           <p className="text-2xl break-words">
-            {inputAmount} {isSeerCredits ? "SEER_CREDITS" : inputToken}
+            {inputAmount} {isTradingCredits ? getActiveCreditsSymbol() : inputToken}
           </p>
           <RightArrow />
           <p className="text-2xl break-words">
@@ -311,7 +311,7 @@ export function SwapTokensConfirmation({
   isLoading,
   onSubmit,
   collateral,
-  isSeerCredits,
+  isTradingCredits,
   outcomeToken,
 }: SwapTokensConfirmationProps) {
   if (!trade) {
@@ -336,7 +336,7 @@ export function SwapTokensConfirmation({
         <ShowSwapSummary
           trade={trade}
           collateral={collateral}
-          isSeerCredits={isSeerCredits}
+          isTradingCredits={isTradingCredits}
           outcomeToken={outcomeToken}
         />
       )}

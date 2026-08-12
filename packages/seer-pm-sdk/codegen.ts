@@ -49,6 +49,7 @@ const generates = schemasAndDocuments.reduce(
           numeric: "string",
           markettype: "string",
           ordereventtype: "string",
+          transferkind: "string",
           ruling: "string",
           status: "string",
           timestamptz: "string",

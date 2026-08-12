@@ -49,7 +49,7 @@ function createProps(completeSetLeg: CompleteSetLeg, trade = createMockAmmTrade(
   return {
     trade,
     account,
-    isSeerCredits: false,
+    isTradingCredits: false,
     completeSetLeg,
   };
 }

@@ -203,7 +203,7 @@ const adapters = { client };
 const props: TradeTokensProps = {
   trade: quote.trade,
   account: "0x...",
-  isSeerCredits: false,
+  isTradingCredits: false,
 };
 
 const result = await tradeTokens(props, adapters); // tx hash
@@ -224,7 +224,7 @@ const hash = await executeAmmTrade(
   client,
   trade, // AmmTrade from fetchAmmQuote
   account,
-  false, // isSeerCredits
+  false, // isTradingCredits
 );
 
 const receipt = await waitForTransactionReceipt(config, { hash });
@@ -242,7 +242,7 @@ import { sendCalls, waitForCallsStatus, waitForTransactionReceipt } from "@wagmi
 const props: TradeTokensProps = {
   trade,
   account: "0x...",
-  isSeerCredits: false,
+  isTradingCredits: false,
 };
 
 const calls = await buildTradeCalls7702(props);

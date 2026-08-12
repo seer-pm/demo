@@ -7,7 +7,7 @@ import { useCheck7702Support } from "../useCheck7702Support";
 export const useTrade = (
   account: Address | undefined,
   trade: AmmTrade | undefined,
-  isSeerCredits: boolean,
+  isTradingCredits: boolean,
   onSuccess: () => unknown,
   market: Market,
   psm3Leg?: Psm3Leg,
@@ -18,7 +18,7 @@ export const useTrade = (
   return useTradeBase(
     account,
     trade,
-    isSeerCredits,
+    isTradingCredits,
     onSuccess,
     supports7702,
     toastifyTx,

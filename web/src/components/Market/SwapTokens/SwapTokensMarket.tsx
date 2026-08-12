@@ -8,7 +8,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
-import { isSeerCredits } from "@seer-pm/sdk";
+import { isTradingCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
@@ -175,7 +175,7 @@ export function SwapTokensMarket({
   const debouncedAmount = useDebounce(amount, 500);
   const debouncedAmountOut = useDebounce(amountOut, 500);
 
-  const isSeerCreditsCollateral = isSeerCredits(market.chainId, selectedCollateral.address);
+  const isTradingCreditsCollateral = isTradingCredits(market.chainId, selectedCollateral.address);
 
   const {
     data: quoteData,
@@ -201,7 +201,7 @@ export function SwapTokensMarket({
   } = useTrade(
     account,
     quoteData?.trade,
-    isSeerCreditsCollateral,
+    isTradingCreditsCollateral,
     async () => {
       reset();
       closeConfirmSwapModal();
@@ -215,7 +215,7 @@ export function SwapTokensMarket({
     await tradeTokens.mutateAsync({
       trade,
       account: account!,
-      isSeerCredits: isSeerCreditsCollateral,
+      isTradingCredits: isTradingCreditsCollateral,
       psm3Leg: quoteData?.psm3Leg,
       completeSetLeg: quoteData?.completeSetLeg,
     });
@@ -335,7 +335,7 @@ export function SwapTokensMarket({
             onSubmit={onSubmit}
             collateral={selectedCollateral}
             originalAmount={amount}
-            isSeerCredits={isSeerCreditsCollateral}
+            isTradingCredits={isTradingCreditsCollateral}
             outcomeToken={outcomeToken}
           />
         }

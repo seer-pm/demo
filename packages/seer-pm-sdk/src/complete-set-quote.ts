@@ -13,10 +13,10 @@ import type { QuoteTradeResult } from "./quote";
 import { fetchAmmQuote } from "./quote";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { MarketLike } from "./router-addresses";
-import { isSeerCredits } from "./seer-credits";
 import { NATIVE_TOKEN, type Token } from "./tokens";
 import { TradeType } from "./trade-type";
 import { getMaximumAmountIn } from "./trade-utils";
+import { isTradingCredits } from "./trading-credits";
 
 export type CompleteSetRoute = "direct" | "mintSell" | "buyMerge";
 
@@ -151,7 +151,7 @@ export function isCompleteSetRoutingEnabled(market: Market, outcomeIndex: number
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
     return false;
   }
-  if (isSeerCredits(market.chainId, collateralToken)) {
+  if (isTradingCredits(market.chainId, collateralToken)) {
     return false;
   }
   if (isPsm3SwapToken(market.chainId, collateralToken)) {
@@ -177,7 +177,7 @@ export function getCompleteSetRoutingDisabledReasons(
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
     reasons.push(`outcome index ${outcomeIndex} is not tradeable (only 0 or 1)`);
   }
-  if (isSeerCredits(market.chainId, collateralToken)) {
+  if (isTradingCredits(market.chainId, collateralToken)) {
     reasons.push("Seer Credits collateral is excluded in v1");
   }
   if (isPsm3SwapToken(market.chainId, collateralToken)) {
