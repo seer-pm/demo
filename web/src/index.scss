@@ -89,11 +89,11 @@ body {
   border-color: var(--separator-100);
 }
 
-/* Map Seer theme tokens onto @seer-pm/discussions */
-.sd-root {
-  --sd-bg-main: oklch(var(--b1) / var(--tw-bg-opacity, 1));
-  --sd-bg-secondary: oklch(var(--purple-medium));
-  --sd-bg-tertiary: oklch(var(--b3) / 1);
+/* Map Seer theme tokens onto @seer-pm/discussions (theme-aware; beats package :where defaults) */
+:root .sd-root {
+  --sd-bg-main: var(--card-bg);
+  --sd-bg-secondary: oklch(var(--b2));
+  --sd-bg-tertiary: oklch(var(--b3));
   --sd-color-main: oklch(var(--bc) / 1);
   --sd-color-secondary: oklch(var(--bc) / 0.65);
   --sd-color-tertiary: oklch(var(--bc) / 0.4);

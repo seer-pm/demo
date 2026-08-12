@@ -1,5 +1,6 @@
-/* Public theming contract: override --sd-* on .sd-root (or a parent). */
-.sd-root {
+/* Public theming contract: override --sd-* on .sd-root (or a parent).
+   Defaults use :where() so host `.sd-root { --sd-*: ... }` wins regardless of CSS load order. */
+:where(.sd-root) {
   /* Surfaces: soft purple-tinted neutrals (Seer purple-medium family) */
   --sd-bg-main: #ffffff;
   --sd-bg-secondary: #fbf8ff;
@@ -24,7 +25,9 @@
 
   /* Placeholder on secondary bg needs ≥4.5:1 */
   --sd-input-placeholder: #5c6570;
+}
 
+.sd-root {
   font-family: inherit;
   color: var(--sd-color-main);
   box-sizing: border-box;
