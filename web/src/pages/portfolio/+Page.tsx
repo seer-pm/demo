@@ -1,18 +1,22 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import { EnsBadge } from "@/components/EnsBadge";
 import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
+import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { filterChain } from "@/lib/chains";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
+import { shortenAddress } from "@/lib/utils";
+import { CopyableAddress } from "@seer-pm/discussions";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { type PortfolioPnLPeriod, type SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
-import { Address } from "viem";
+import { type Address, isAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
-import { useAccount } from "wagmi";
+import { useAccount, useEnsName } from "wagmi";
 
 function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: SupportedChain }) {
   const { data, isLoading, error } = usePortfolioValue(account, chainId);
@@ -101,20 +105,55 @@ function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: 
 
 function PortfolioPage() {
   const { address: connectedAccount, chainId: rawChainId } = useAccount();
+  const [searchParams, setSearchParams] = useSearchParams();
   const chainId: SupportedChain = filterChain(rawChainId);
   const { routeParams } = usePageContext();
-  const account = (routeParams?.id || connectedAccount) as Address | undefined;
-
-  const [searchParams, setSearchParams] = useSearchParams();
+  const routeIdentity = routeParams?.id ? String(routeParams.id) : "";
+  const requestedIdentity = routeIdentity || connectedAccount || "";
+  const isUsernameRoute = requestedIdentity.startsWith("@");
+  const requestedUsername = isUsernameRoute ? requestedIdentity.slice(1).toLowerCase() : "";
+  const addressIsValid = !isUsernameRoute && isAddress(requestedIdentity);
+  const requestedAddress = addressIsValid ? (requestedIdentity.toLowerCase() as Address) : undefined;
+  const userLookup = isUsernameRoute
+    ? { username: requestedUsername }
+    : requestedAddress
+      ? { address: requestedAddress }
+      : null;
+  const { data: publicUser, isLoading, error: userError } = usePublicUser(userLookup);
+  const account = isUsernameRoute ? publicUser?.address : requestedAddress;
+  const username = publicUser?.username;
+  const error = isUsernameRoute
+    ? userError instanceof Error
+      ? userError.message
+      : !isLoading && !publicUser
+        ? "User not found"
+        : undefined
+    : requestedIdentity && !addressIsValid
+      ? "This portfolio address is invalid."
+      : undefined;
+  const { data: ensName } = useEnsName({
+    address: account,
+    chainId: 1,
+    query: { enabled: Boolean(account) },
+  });
 
   const activeTab = searchParams.get("tab") || "positions";
 
-  if (!account) {
+  if (isUsernameRoute && isLoading) {
+    return (
+      <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px]">
+        <Breadcrumb links={[{ title: "Portfolio" }]} />
+        <div className="shimmer-container h-[162px] w-full" />
+      </div>
+    );
+  }
+
+  if (!account || error) {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
         <Breadcrumb links={[{ title: "Portfolio" }]} />
         <Alert type="warning" title="Account not found">
-          Connect your wallet to see your portfolio.
+          {error || "Connect your wallet to see your portfolio."}
         </Alert>
       </div>
     );
@@ -124,11 +163,24 @@ function PortfolioPage() {
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Portfolio" }]} />
       <div className="mt-8 bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex gap-4 items-start justify-between">
-        <div className="flex gap-4">
+        <div className="flex min-w-0 gap-4">
           <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
             <Union />
           </div>
-          <PortfolioValueVariation account={account} chainId={chainId} />
+          <div className="min-w-0">
+            <h1 className="break-all text-xl font-semibold">
+              {username ? `@${username}` : <CopyableAddress address={account} shortAddress={shortenAddress(account)} />}
+            </h1>
+            {username && (
+              <CopyableAddress
+                address={account}
+                shortAddress={shortenAddress(account)}
+                className="mb-4 block text-xs text-base-content/60"
+              />
+            )}
+            {ensName && <EnsBadge name={ensName} className="mb-4" />}
+            <PortfolioValueVariation account={account} chainId={chainId} />
+          </div>
         </div>
 
         <PortfolioPnLHistory account={account} chainId={chainId} />

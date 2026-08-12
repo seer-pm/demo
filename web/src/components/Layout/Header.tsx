@@ -298,6 +298,7 @@ export default function Header() {
           : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[16px] space-x-[24px]",
         children: [
           { id: "market", type: "link", url: "/", title: "Markets" },
+          { id: "users", type: "link", url: paths.users(), title: "Users" },
           { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
           {
             id: "policies-dropdown",

@@ -7,6 +7,8 @@ export type CreateDiscussionsClientOptions = {
   marketId: string;
   /** Returns current Seer JWT, or empty string if signed out */
   getAccessToken: () => string;
+  /** Optional host-owned profile route builder. */
+  getProfileHref?: (user: DiscussionUser) => string;
 };
 
 function authHeaders(token: string): HeadersInit {
@@ -30,6 +32,14 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   const endpoint = `${base}/.netlify/functions/market-comments`;
   const marketId = options.marketId.toLowerCase();
 
+  const withProfileHref = (comment: Comment): Comment => ({
+    ...comment,
+    authorDetails: {
+      ...comment.authorDetails,
+      profileHref: options.getProfileHref?.(comment.authorDetails) ?? null,
+    },
+  });
+
   return {
     marketId,
 
@@ -42,7 +52,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
         throw new Error(await readError(res));
       }
       const json = (await res.json()) as { data: Comment[] };
-      return json.data ?? [];
+      return (json.data ?? []).map(withProfileHref);
     },
 
     async createComment(input: CreateCommentInput) {
@@ -102,8 +112,10 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   };
 }
 
-export function userFromAddress(address: string): DiscussionUser {
+export function userFromAddress(address: string, username: string, profileHref?: string | null): DiscussionUser {
   return {
     address: address.toLowerCase(),
+    username,
+    profileHref: profileHref ?? null,
   };
 }

@@ -148,10 +148,8 @@ export default function Post({ post, showPfp = true, showCta = true, characterLi
         <div className="ml-3 min-w-0 flex-1 flex-col">
           {showPfp && (
             <div className="flex flex-row items-center">
-              <div className="flex min-w-0 flex-1 flex-row items-center gap-2">
-                <span className="truncate text-[15px] font-medium text-sd-color-main">
-                  <Username details={post.authorDetails} />
-                </span>
+              <div className="flex min-w-0 flex-1 flex-row flex-wrap items-center gap-1.5 text-[15px] font-medium text-sd-color-main">
+                <Username details={post.authorDetails} />
                 {UserPositionBadge && <UserPositionBadge user={post.authorDetails} />}
               </div>
               <div className="sd-timestamp-mobile mr-2 flex shrink-0 items-center justify-self-end text-[12px] font-normal text-sd-color-secondary">

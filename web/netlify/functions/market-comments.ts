@@ -26,13 +26,14 @@ function parsePath(url: string) {
   return { id, action };
 }
 
-function toComment(row: CommentRow, likeCount: number, likedByMe: boolean) {
+function toComment(row: CommentRow, likeCount: number, likedByMe: boolean, username?: string) {
   const author = row.author.toLowerCase();
   return {
     id: row.id,
     author,
     authorDetails: {
       address: author,
+      ...(username ? { username } : {}),
     },
     body: row.body,
     parentId: row.parent_id,
@@ -40,6 +41,16 @@ function toComment(row: CommentRow, likeCount: number, likedByMe: boolean) {
     likeCount,
     likedByMe,
   };
+}
+
+async function getUsernames(addresses: string[]) {
+  const normalized = [...new Set(addresses.map((address) => address.toLowerCase()))];
+  if (normalized.length === 0) return new Map<string, string>();
+
+  const { data, error } = await supabase.from("users").select("id, username").in("id", normalized);
+  if (error) throw error;
+
+  return new Map((data ?? []).map((row) => [row.id.toLowerCase(), row.username]));
 }
 
 async function getLikeStats(commentIds: string[], viewer: string | null) {
@@ -99,14 +110,21 @@ export default async (req: Request) => {
       }
 
       const rows = (data || []) as CommentRow[];
-      const { counts, liked } = await getLikeStats(
-        rows.map((r) => r.id),
-        viewer,
-      );
+      const [{ counts, liked }, usernames] = await Promise.all([
+        getLikeStats(
+          rows.map((r) => r.id),
+          viewer,
+        ),
+        getUsernames(rows.map((row) => row.author)),
+      ]);
 
       return new Response(
         JSON.stringify({
-          data: rows.map((row) => toComment(row, counts.get(row.id) || 0, liked.has(row.id))),
+          data: rows.map((row) => {
+            const username = usernames.get(row.author.toLowerCase());
+            if (!username) throw new Error(`Username not found for ${row.author}`);
+            return toComment(row, counts.get(row.id) || 0, liked.has(row.id), username);
+          }),
         }),
         { status: 200, headers: jsonHeaders },
       );

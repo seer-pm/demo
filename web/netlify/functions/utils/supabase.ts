@@ -474,6 +474,7 @@ export type Database = {
           email_verified: boolean;
           id: string;
           last_login_at: string | null;
+          username: string;
           verification_token: string | null;
         };
         Insert: {
@@ -481,6 +482,7 @@ export type Database = {
           email_verified?: boolean;
           id: string;
           last_login_at?: string | null;
+          username: string;
           verification_token?: string | null;
         };
         Update: {
@@ -488,6 +490,7 @@ export type Database = {
           email_verified?: boolean;
           id?: string;
           last_login_at?: string | null;
+          username?: string;
           verification_token?: string | null;
         };
         Relationships: [];

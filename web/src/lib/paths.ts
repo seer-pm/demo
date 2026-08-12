@@ -28,6 +28,8 @@ export const paths = {
   market: marketPath,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile/",
+  users: () => "/users",
+  portfolioUsername: (username: string) => `/portfolio/@${username}`,
   collection: (collectionId: string) => `/collections/${collectionId}`,
   tradeCollateral: () => "/trade-collateral",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>

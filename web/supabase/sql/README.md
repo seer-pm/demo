@@ -20,6 +20,22 @@ multi-statement scripts in one, so run those statements individually.
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
+| `users_username.sql` | Adds the unique wallet-linked username column and validation constraints. |
+| `users_username_not_null.sql` | Makes usernames required after existing users have been backfilled. |
+
+## Deployment order
+
+Before deploying the matching application code:
+
+1. Apply `users_username.sql`.
+2. From `web/`, run `npx tsx scripts/backfill-usernames.ts` with `SUPABASE_PROJECT_URL` and a
+   service-role `SUPABASE_API_KEY` capable of updating every user.
+3. Immediately apply `users_username_not_null.sql`. If an old sign-in creates another user between
+   steps 2 and 3, rerun the backfill and this statement.
+4. Deploy the matching application code. Old sign-ins will fail after step 3, so keep steps 2–4
+   together to minimize the interruption.
+
+The matching functions expect the finalized schema and should only be deployed after the migration completes.
 
 ## Not yet captured
 

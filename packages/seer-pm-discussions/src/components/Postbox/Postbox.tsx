@@ -2,7 +2,6 @@ import { type FormEvent, type KeyboardEvent, useContext, useEffect, useId, useMe
 import { CommentsContext } from "../../contexts/DiscussionsContext";
 import { useDiscussions } from "../../hooks/useDiscussions";
 import type { Comment } from "../../types";
-import { getTimestamp } from "../../utils/address";
 import ConnectButton from "../ConnectButton/ConnectButton";
 import { UserPfp, Username } from "../User/User";
 
@@ -83,7 +82,7 @@ export default function Postbox({
         const { id } = await client.createComment({ body: trimmed, parentId });
         const optimistic: Comment = {
           id,
-          createdAt: Number(getTimestamp()),
+          createdAt: Math.round(Date.now() / 1000),
           authorDetails: user,
           author: user.address,
           body: trimmed,
