@@ -15,7 +15,6 @@ import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
-import { isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
 
 type Period = "1d" | "1w" | "1m" | "all";
@@ -250,7 +249,8 @@ function LeaderboardPage() {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2 items-center">
-          <fieldset className="join" aria-label="Time period">
+          <fieldset className="join">
+            <legend className="sr-only">Time period</legend>
             {(["1d", "1w", "1m", "all"] as const).map((p) => (
               <button
                 key={p}
@@ -272,6 +272,7 @@ function LeaderboardPage() {
             type="button"
             className={clsx("btn btn-sm gap-2 border border-separator-100", filtersOpen ? "btn-primary" : "btn-ghost")}
             aria-expanded={filtersOpen}
+            aria-controls="leaderboard-filters-panel"
             onClick={() => setFiltersOpen((open) => !open)}
           >
             <Filter />
@@ -339,7 +340,10 @@ function LeaderboardPage() {
       {rankStatus === "error" ? <p className="text-sm text-error">Could not look up your rank. Try again.</p> : null}
 
       {filtersOpen ? (
-        <div className="bg-base-100 border border-separator-100 rounded-[1px] p-4 space-y-4">
+        <div
+          id="leaderboard-filters-panel"
+          className="bg-base-100 border border-separator-100 rounded-[1px] p-4 space-y-4"
+        >
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-sm text-black-secondary mr-1">App</span>
             <button
@@ -422,7 +426,7 @@ function LeaderboardPage() {
                 <th className="text-right">Profit/Loss</th>
                 <th className="text-right">Volume</th>
                 <th className="text-right">ROI</th>
-                <th className="text-right">Markets</th>
+                <th className="text-right">Traded Markets</th>
               </tr>
             </thead>
             <tbody>
@@ -453,11 +457,11 @@ function LeaderboardPage() {
                 query.data!.rows.map((row) => {
                   const positive = row.pnl >= 0;
                   const roiPositive = row.roi != null && row.roi >= 0;
-                  const isMe =
-                    !!connectedAddress &&
-                    !!highlightAddress &&
-                    isAddressEqual(row.address as Address, highlightAddress as Address);
-                  const isConnectedRow = !!connectedAddress && isAddressEqual(row.address as Address, connectedAddress);
+                  const rowAddress = row.address.toLowerCase();
+                  const connectedLc = connectedAddress?.toLowerCase();
+                  const highlightLc = highlightAddress?.toLowerCase();
+                  const isMe = !!connectedLc && !!highlightLc && rowAddress === highlightLc;
+                  const isConnectedRow = !!connectedLc && rowAddress === connectedLc;
                   const emphasize = isMe || (isConnectedRow && !highlightAddress);
                   return (
                     <tr

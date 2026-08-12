@@ -36,7 +36,7 @@ function isEnvioRateLimitError(error: unknown): boolean {
 
   const body = err?.response?.body ?? err?.response?.error ?? err?.message ?? "";
   const text = typeof body === "string" ? body : JSON.stringify(body);
-  return /"status"\s*:\s*429|\b429\b|rate.?limit|too many requests/i.test(text);
+  return /"status"\s*:\s*429|rate.?limit|too many requests/i.test(text);
 }
 
 function retryDelayMs(attempt: number): number {

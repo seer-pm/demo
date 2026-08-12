@@ -19,10 +19,22 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * a global time budget aborts cleanly before Netlify's ~15m background limit so the next
  * schedule can continue the rotation.
  */
-export default async () => {
+export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
     console.log("refresh-pnl-leaderboard-background: disabled");
     return;
+  }
+
+  const expectedSecret = process.env.PNL_LEADERBOARD_REFRESH_SECRET;
+  if (expectedSecret) {
+    const provided = req.headers.get("x-pnl-leaderboard-refresh-secret");
+    if (provided !== expectedSecret) {
+      console.error("refresh-pnl-leaderboard-background: rejected (missing or invalid secret)");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
 
   const jobs = listPnlLeaderboardRefreshJobs();

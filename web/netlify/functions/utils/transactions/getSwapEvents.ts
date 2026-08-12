@@ -7,8 +7,7 @@ import {
   type Trade,
 } from "@cowprotocol/cow-sdk";
 import { getStore } from "@netlify/blobs";
-import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
-import type { MarketDataMapping } from "@seer-pm/sdk";
+import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk/collateral";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
@@ -18,6 +17,7 @@ import { type Address, parseUnits } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "../config";
 import { getCollateralFromDexTx } from "../markets";
+import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
 
 const COWSWAP_OWNER_TRADES_STORE = "cowswap-owner-trades";
 /** Permanent historical CoW trades snapshot per chain + owner (Netlify Blobs). Filter by markets on read. */
@@ -37,6 +37,9 @@ const COW_MIN_INTERVAL_MS = 400;
  * invoke doesn't burn the time budget on Retry-After sleeps × N wallets.
  */
 const COW_CIRCUIT_OPEN_MS = 60_000;
+/** Cap total wall-clock spent in the CoW retry loop (including Retry-After waits). */
+const COW_TRADES_WALL_CLOCK_MS = 90_000;
+const BLOCK_TIMESTAMP_CONCURRENCY = 12;
 
 let cowTradesCooldownUntilMs = 0;
 let cowTradesNextSlotMs = 0;
@@ -54,6 +57,19 @@ type CowswapTradesCachePayload = {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) || 0 }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 function getOrderBookApi(chainId: SupportedChainId): OrderBookApi {
@@ -131,8 +147,14 @@ function openCowTradesCircuit(reason: string): void {
 async function getTradesWithRetry(owner: Address, chainId: SupportedChainId): Promise<Trade[]> {
   const api = getOrderBookApi(chainId);
   let lastError: unknown;
+  const startedAt = Date.now();
 
   for (let attempt = 1; attempt <= COW_TRADES_MAX_ATTEMPTS; attempt++) {
+    if (Date.now() - startedAt >= COW_TRADES_WALL_CLOCK_MS) {
+      openCowTradesCircuit("wall-clock budget exceeded");
+      throw lastError instanceof Error ? lastError : new Error("cow-trades: wall-clock budget exceeded");
+    }
+
     await acquireCowTradesSlot();
     try {
       return await api.getTrades({ owner });
@@ -146,6 +168,10 @@ async function getTradesWithRetry(owner: Address, chainId: SupportedChainId): Pr
       console.warn("cow-trades: rate limited", { owner, chainId, retryAfterMs, attempt });
       if (attempt === COW_TRADES_MAX_ATTEMPTS) {
         openCowTradesCircuit("exhausted 429 retries");
+        throw error;
+      }
+      if (Date.now() - startedAt + retryAfterMs >= COW_TRADES_WALL_CLOCK_MS) {
+        openCowTradesCircuit("wall-clock budget exceeded before retry");
         throw error;
       }
       // Slot acquisition on the next attempt honors the extended cooldown.
@@ -197,14 +223,11 @@ async function attachBlockTimestamps(
 ): Promise<TransactionData[]> {
   const uniqueBlocks = [...new Set(cowSwapsPartial.map((s) => s.blockNumber))];
   const client = getPublicClientByChainId(chainId);
-  const timestampByBlock = new Map<number, number>(
-    await Promise.all(
-      uniqueBlocks.map(async (bn) => {
-        const block = await getBlock(client, { blockNumber: BigInt(bn) });
-        return [bn, Number(block.timestamp)] as const;
-      }),
-    ),
-  );
+  const pairs = await mapPool(uniqueBlocks, BLOCK_TIMESTAMP_CONCURRENCY, async (bn) => {
+    const block = await getBlock(client, { blockNumber: BigInt(bn) });
+    return [bn, Number(block.timestamp)] as const;
+  });
+  const timestampByBlock = new Map<number, number>(pairs);
 
   return cowSwapsPartial.map((s) => ({
     ...s,
@@ -276,41 +299,26 @@ async function fetchSwapsFromSubgraph(account: string, chainId: SupportedChain, 
   }
 
   const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-  let totalSwaps: GetSwapsQuery["swaps"] = [];
+  const accountLc = account.toLowerCase() as Address;
 
-  let timestamp: string | undefined = endTime?.toString();
-
-  while (true) {
-    const data = await graphQLSdk(graphQLClient).GetSwaps({
-      first: 1000,
-      // biome-ignore lint/suspicious/noExplicitAny:
-      orderBy: Swap_OrderBy.Timestamp as any,
-      // biome-ignore lint/suspicious/noExplicitAny:
-      orderDirection: OrderDirection.Desc as any,
-      where: {
-        origin: account.toLowerCase() as Address,
-        timestamp_lt: timestamp,
-        ...(startTime && { timestamp_gte: startTime.toString() }),
-      },
-    });
-    const swaps = data.swaps as GetSwapsQuery["swaps"];
-    totalSwaps = totalSwaps.concat(swaps);
-
-    // Stop if no more swaps or same timestamp (no progress)
-    if (swaps.length === 0 || swaps[swaps.length - 1]?.timestamp === timestamp) {
-      break;
-    }
-
-    // Update timestamp for next page
-    timestamp = swaps[swaps.length - 1]?.timestamp;
-
-    // Stop if less than the page size (no more data)
-    if (swaps.length < 1000) {
-      break;
-    }
-  }
-
-  return totalSwaps;
+  // Single stream: origin OR recipient, with (timestamp, id) cursor via shared helper.
+  return paginateByTimestampId<GetSwapsQuery["swaps"][number]>({
+    startTime,
+    endTime,
+    accountFilters: [{ origin: accountLc }, { recipient: accountLc }],
+    fetchPage: async (where, first) => {
+      const data = await graphQLSdk(graphQLClient).GetSwaps({
+        first,
+        // biome-ignore lint/suspicious/noExplicitAny:
+        orderBy: Swap_OrderBy.Timestamp as any,
+        // biome-ignore lint/suspicious/noExplicitAny:
+        orderDirection: OrderDirection.Desc as any,
+        // biome-ignore lint/suspicious/noExplicitAny:
+        where: where as any,
+      });
+      return data.swaps as GetSwapsQuery["swaps"];
+    },
+  });
 }
 
 export async function getSwapEvents(

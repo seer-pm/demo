@@ -432,6 +432,7 @@ export type Database = {
           app_id: string;
           chain_id: number;
           collateral_price_usd: number;
+          lp_collateral_net_out: number;
           market_count: number;
           period: string;
           pnl: number;
@@ -449,6 +450,7 @@ export type Database = {
           app_id: string;
           chain_id: number;
           collateral_price_usd?: number;
+          lp_collateral_net_out?: number;
           market_count?: number;
           period: string;
           pnl?: number;
@@ -466,6 +468,7 @@ export type Database = {
           app_id?: string;
           chain_id?: number;
           collateral_price_usd?: number;
+          lp_collateral_net_out?: number;
           market_count?: number;
           period?: string;
           pnl?: number;

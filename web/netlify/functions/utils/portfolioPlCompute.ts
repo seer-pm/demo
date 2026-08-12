@@ -34,7 +34,8 @@ export type PortfolioPlPeriodSnapshot = {
   chainId: number;
   period: PortfolioPlPeriod;
   marketIds?: string[];
-  startTime: number;
+  /** EOD window start; null for global `period=all` leaderboard reads (no fabricated earliest). */
+  startTime: number | null;
   endTime: number;
   valueStart: number;
   valueEnd: number;
@@ -252,6 +253,8 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   byPeriod: Record<PortfolioPlPeriod, PortfolioPlPeriodSnapshot>;
   debugPayload?: Record<string, unknown>;
   markets: Market[];
+  swapFlowFailed: boolean;
+  lpFlowFailed: boolean;
 } | null> {
   const {
     supabase,
@@ -310,6 +313,7 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   const swapNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapVolumeByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapMarketCountByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
+  let swapFlowFailed = false;
   try {
     const flow = await computeNetPrimaryCollateralSwapFlowForPeriods(
       account,
@@ -328,7 +332,8 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
     }
   } catch (err) {
     // CoW rate-limit / circuit skips are handled inside getCowswapSwapsCached (returns []).
-    // This catch covers subgraph or unexpected failures — swap legs stay at 0 for this wallet.
+    // This catch covers subgraph or unexpected failures — swap legs stay at 0 for shaping.
+    swapFlowFailed = true;
     console.error("portfolio-pl: failed to compute primary collateral swap net flow; using zero swap cashflow", {
       account: account.toLowerCase(),
       chainId: chainIdNum,
@@ -337,6 +342,7 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   }
 
   const lpNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
+  let lpFlowFailed = false;
   try {
     const lpFlow = await computeLpPrimaryCollateralNetOutForPeriods(
       account,
@@ -350,6 +356,7 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
       lpNetByPeriod[p] = lpFlow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
     }
   } catch (err) {
+    lpFlowFailed = true;
     console.error("portfolio-pl: failed to compute LP primary collateral net flow; using zero LP cashflow", {
       account: account.toLowerCase(),
       chainId: chainIdNum,
@@ -432,11 +439,14 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
 
   let debugPayload: Record<string, unknown> | undefined;
   if (debugPeriod) {
+    const snap = byPeriod[debugPeriod];
     const st = startTimeByPeriod[debugPeriod];
     const positionsAtStart = positionsAtStartByPeriod[debugPeriod];
     const hp = historyPrices[debugPeriod];
-    const tradingCollateralNetOut = swapNetByPeriod[debugPeriod];
-    const lpCollateralNetOut = lpNetByPeriod[debugPeriod];
+    const tradingCollateralNetOut = snap.tradingCollateralNetOut;
+    const lpCollateralNetOut = snap.lpCollateralNetOut;
+    const deltaV = snap.valueEnd - snap.valueStart;
+    const pnl = snap.pnl;
 
     const collateralValues = isMarketScoped
       ? { valueStart: 0, valueEnd: 0 }
@@ -444,14 +454,6 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
           valueStart: collateral.valueStartByStartTime.get(st) ?? 0,
           valueEnd: collateral.valueEnd,
         };
-
-    const valueEnd = isMarketScoped ? sumPortfolioValueCurrent(positions) : valueEndGlobal;
-    const valueStart = sumPortfolioValueAtReference(positionsAtStart, hp, st) + collateralValues.valueStart;
-    const deltaV = valueEnd - valueStart;
-    const routerWin = isMarketScoped ? reconstructedByPeriod![debugPeriod].routerPrimaryCollateralNetInWindow : 0;
-    const pnl = isMarketScoped
-      ? deltaV + routerWin - tradingCollateralNetOut - lpCollateralNetOut
-      : deltaV - tradingCollateralNetOut - lpCollateralNetOut;
 
     const tokensStartOnly = sumPortfolioValueAtReference(positionsAtStart, hp, st);
 
@@ -532,7 +534,7 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
         deltaV,
         tradingCollateralNetOut,
         lpCollateralNetOut,
-        volume: swapVolumeByPeriod[debugPeriod],
+        volume: snap.volume,
         pnl,
       },
       primaryCollateralSwaps: swapFlowDebug ?? { error: "swap debug missing (unexpected)" },
@@ -541,5 +543,5 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
     };
   }
 
-  return { startTimeByPeriod, byPeriod, debugPayload, markets };
+  return { startTimeByPeriod, byPeriod, debugPayload, markets, swapFlowFailed, lpFlowFailed };
 }

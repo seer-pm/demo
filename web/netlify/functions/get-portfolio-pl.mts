@@ -47,11 +47,12 @@ async function portfolioPlFromLeaderboard(args: {
 }): Promise<PortfolioPlPeriodSnapshot> {
   const { account, chainId, period, endTime } = args;
   const accountLc = account.toLowerCase();
-  const startTime = eodStartTimesForPeriods(endTime, null)[period];
+  const startTime =
+    period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
 
   const { data, error } = await supabase
     .from("pnl_leaderboard")
-    .select("pnl, value_start, value_end, trading_collateral_net_out, volume, market_count")
+    .select("pnl, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume, market_count")
     .eq("app_id", SEER_APP_ALL_ID)
     .eq("chain_id", chainId)
     .eq("address", accountLc)
@@ -88,7 +89,7 @@ async function portfolioPlFromLeaderboard(args: {
     valueStart: Number(data.value_start) || 0,
     valueEnd: Number(data.value_end) || 0,
     tradingCollateralNetOut: Number(data.trading_collateral_net_out) || 0,
-    lpCollateralNetOut: 0,
+    lpCollateralNetOut: Number(data.lp_collateral_net_out) || 0,
     volume: Number(data.volume) || 0,
     marketCount: Number(data.market_count) || 0,
     pnl: Number(data.pnl) || 0,
@@ -98,6 +99,9 @@ async function portfolioPlFromLeaderboard(args: {
 function parseMarketIds(url: URL): { marketIds?: Address[]; error?: string } {
   const multi = url.searchParams.get("marketIds");
   const single = url.searchParams.get("marketId");
+  if (multi != null && single != null) {
+    return { error: "provide marketId or marketIds, not both" };
+  }
   if (multi) {
     const parts = multi
       .split(",")

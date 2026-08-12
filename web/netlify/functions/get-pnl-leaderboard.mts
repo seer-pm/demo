@@ -2,14 +2,12 @@ import { SEER_APP_ALL_ID, type SeerAppFilterId, isSeerAppFilterId, listSeerApps 
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { createClient } from "@supabase/supabase-js";
 import { CORS_HEADERS } from "./utils/common";
+import { capitalUsdFromRow, roiFromCapitalUsd } from "./utils/pnlLeaderboard";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 type Period = "1d" | "1w" | "1m" | "all";
-
-/** Match refresh-job dust: capital below this → ROI null. */
-const ROI_CAPITAL_DUST_USD = 0.01;
 
 export type PnlLeaderboardRow = {
   rank: number;
@@ -21,7 +19,7 @@ export type PnlLeaderboardRow = {
   /**
    * pnl_usd / (value_start_usd + buys_usd); null when capital is dust (< $0.01).
    * buys = (volume + trading_collateral_net_out) / 2 (primary as tokenIn).
-   * See computeRoiUsd in pnlLeaderboard.ts / capitalUsd aggregation below.
+   * See capitalUsdFromRow / computeRoiUsd in pnlLeaderboard.ts.
    */
   roi: number | null;
   unit: "USD";
@@ -29,6 +27,15 @@ export type PnlLeaderboardRow = {
   marketCount: number;
   updatedAt: string | null;
 };
+
+/** Lowercase hex address fragment for ilike search; empty if invalid. */
+function sanitizeAddressSearch(raw: string): string {
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) return "";
+  const hex = trimmed.startsWith("0x") ? trimmed.slice(2) : trimmed;
+  if (!/^[0-9a-f]+$/.test(hex)) return "";
+  return hex;
+}
 
 function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>) {
   return new Response(JSON.stringify(body), {
@@ -51,18 +58,6 @@ function latestUpdatedAt(rows: { updatedAt: string | null }[]): string | null {
   );
 }
 
-/**
- * ROI from summed USD capital across chains.
- * Same definition as the refresh job: roi = pnl_usd / capital_usd where
- * capital_usd = value_start_usd + buys_usd and
- * buys = (volume + trading_collateral_net_out) / 2 (primary as tokenIn).
- * Null when capital_usd < $0.01.
- */
-function roiFromCapitalUsd(pnlUsd: number, capitalUsd: number): number | null {
-  if (capitalUsd < ROI_CAPITAL_DUST_USD) return null;
-  return pnlUsd / capitalUsd;
-}
-
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
@@ -75,7 +70,7 @@ export default async (req: Request) => {
     const chainIdParam = (url.searchParams.get("chainId") ?? String(DEFAULT_CHAIN)).toLowerCase();
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50) || 50, 1), 200);
     const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
-    const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+    const search = sanitizeAddressSearch(url.searchParams.get("search") ?? "");
 
     if (!isSeerAppFilterId(appParam)) {
       return jsonResponse(
@@ -144,7 +139,7 @@ async function serveRankForSingleChainUsd(args: {
     .eq("app_id", app)
     .eq("chain_id", chainId)
     .eq("period", period)
-    .ilike("address", address)
+    .eq("address", address)
     .maybeSingle();
 
   if (rowError) {
@@ -169,7 +164,8 @@ async function serveRankForSingleChainUsd(args: {
   }
 
   const pnlUsd = Number(row.pnl_usd) || 0;
-  const { count: ahead, error: aheadError } = await supabase
+  // Ahead = higher pnl_usd, or same pnl_usd with lexicographically smaller address (matches list order).
+  const { count: aheadHigher, error: aheadHigherError } = await supabase
     .from("pnl_leaderboard")
     .select("address", { count: "exact", head: true })
     .eq("app_id", app)
@@ -177,13 +173,35 @@ async function serveRankForSingleChainUsd(args: {
     .eq("period", period)
     .gt("pnl_usd", pnlUsd);
 
-  if (aheadError) {
-    throw new Error(aheadError.message);
+  if (aheadHigherError) {
+    throw new Error(aheadHigherError.message);
   }
 
-  return jsonResponse({ app, chainId, period, address, rank: (ahead ?? 0) + 1, total: total ?? 0 }, 200, {
-    "Cache-Control": "public, max-age=60",
-  });
+  const { count: aheadTie, error: aheadTieError } = await supabase
+    .from("pnl_leaderboard")
+    .select("address", { count: "exact", head: true })
+    .eq("app_id", app)
+    .eq("chain_id", chainId)
+    .eq("period", period)
+    .eq("pnl_usd", pnlUsd)
+    .lt("address", address);
+
+  if (aheadTieError) {
+    throw new Error(aheadTieError.message);
+  }
+
+  return jsonResponse(
+    {
+      app,
+      chainId,
+      period,
+      address,
+      rank: (aheadHigher ?? 0) + (aheadTie ?? 0) + 1,
+      total: total ?? 0,
+    },
+    200,
+    { "Cache-Control": "public, max-age=60" },
+  );
 }
 
 async function serveRankForAllChainsUsd(args: { app: SeerAppFilterId; period: Period; address: string }) {
@@ -208,13 +226,13 @@ async function serveRankForAllChainsUsd(args: { app: SeerAppFilterId; period: Pe
   for (const row of data ?? []) {
     const addr = row.address.toLowerCase();
     const cur = byAddress.get(addr) ?? { pnlUsd: 0, capitalUsd: 0 };
-    const price = Number(row.collateral_price_usd) || 0;
-    const valueStart = Number(row.value_start) || 0;
-    const volume = Number(row.volume) || 0;
-    const tradingNetOut = Number(row.trading_collateral_net_out) || 0;
-    const buys = (volume + tradingNetOut) / 2;
     cur.pnlUsd += Number(row.pnl_usd) || 0;
-    cur.capitalUsd += valueStart * price + Math.max(buys, 0) * price;
+    cur.capitalUsd += capitalUsdFromRow({
+      valueStart: Number(row.value_start) || 0,
+      volume: Number(row.volume) || 0,
+      tradingCollateralNetOut: Number(row.trading_collateral_net_out) || 0,
+      collateralPriceUsd: Number(row.collateral_price_usd) || 0,
+    });
     byAddress.set(addr, cur);
   }
 
@@ -254,7 +272,8 @@ async function serveSingleChainUsd(args: {
     .eq("app_id", app)
     .eq("chain_id", chainId)
     .eq("period", period)
-    .order("pnl_usd", { ascending: false });
+    .order("pnl_usd", { ascending: false })
+    .order("address", { ascending: true });
 
   if (search) {
     query = query.ilike("address", `%${search}%`);
@@ -340,16 +359,14 @@ async function serveAllChainsUsd(args: {
       marketCount: 0,
       updatedAt: null,
     };
-    const price = Number(row.collateral_price_usd) || 0;
-    const valueStart = Number(row.value_start) || 0;
-    const volume = Number(row.volume) || 0;
-    const tradingNetOut = Number(row.trading_collateral_net_out) || 0;
-    // Capital = value_start + buys; buys = (volume + net_out) / 2 — not max(net_out, 0).
-    // Net sellers / round-trips still have deployed capital via buys even when net ≤ 0.
-    const buys = (volume + tradingNetOut) / 2;
     cur.pnlUsd += Number(row.pnl_usd) || 0;
     cur.volumeUsd += Number(row.volume_usd) || 0;
-    cur.capitalUsd += valueStart * price + Math.max(buys, 0) * price;
+    cur.capitalUsd += capitalUsdFromRow({
+      valueStart: Number(row.value_start) || 0,
+      volume: Number(row.volume) || 0,
+      tradingCollateralNetOut: Number(row.trading_collateral_net_out) || 0,
+      collateralPriceUsd: Number(row.collateral_price_usd) || 0,
+    });
     cur.marketCount += row.market_count ?? 0;
     if (row.updated_at && (!cur.updatedAt || row.updated_at > cur.updatedAt)) {
       cur.updatedAt = row.updated_at;

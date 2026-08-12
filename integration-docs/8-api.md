@@ -353,7 +353,10 @@ Current portfolio value and ~24h mark-to-market change (outcome positions only; 
 
 ## get-portfolio-pl
 
-Period P/L for an account (outcome MTM + router collateral legs − swap cashflow). Cached ~2h when `debug` is not set.
+Period P/L for an account (outcome MTM + router collateral legs − swap/LP cashflow).
+
+- **Global** (no `marketId` / `marketIds`): reads materialized rows from Supabase `pnl_leaderboard` (`app_id = all`). No live compute; miss → zeros.
+- **Market-scoped** (`marketId` or `marketIds`): computes live via `computePortfolioPlAllPeriods`.
 
 | Field | Detail |
 |-------|--------|
@@ -368,9 +371,9 @@ Period P/L for an account (outcome MTM + router collateral legs − swap cashflo
 | `chainId` | Yes | Chain ID (number). |
 | `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `1d`). |
 | `marketId` | No | Restrict to one market. |
-| `marketIds` | No | Comma-separated market IDs (same chain). Overrides / alternative to `marketId`. |
-| `collateralProfile` | No | Registered profile name (see `get-portfolio`). |
-| `debug` | No | `1` or `true` for breakdown (skips cache). |
+| `marketIds` | No | Comma-separated market IDs (same chain). Provide `marketId` or `marketIds`, not both. |
+| `collateralProfile` | No | Registered profile name (see `get-portfolio`). Market-scoped only. |
+| `debug` | No | `1` or `true` for formula breakdown on market-scoped requests (ignored on the global path). |
 
 `@seer-pm/sdk` `fetchPortfolioPnL` / `fetchPortfolioValue` send `collateralProfile` from `getActiveCollateralProfileName()` after `configureCollateral` — see [Collateral profiles](9-collateral-profiles.md).
 
@@ -396,9 +399,9 @@ Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`)
 | `limit` / `offset` | No | Pagination (limit max 200). |
 | `search` | No | Substring filter on address. |
 
-All rankings use **USD** (`pnl_usd` from materialization: native collateral PnL × spot collateral USD). Per-chain filters still return USD so ranks stay comparable; `chainId=all` sums `pnl_usd` across chains. App filter `all` is independent of `SEER_APPS` market lists.---
+All rankings use **USD** (`pnl_usd` from materialization: native collateral PnL × spot collateral USD). Per-chain filters still return USD so ranks stay comparable; `chainId=all` sums `pnl_usd` across chains. App filter `all` is independent of `SEER_APPS` market lists.
 
-## markets-charts
+---## markets-charts
 
 Returns chart data (hourly price/volume) for markets. If IDs are provided, only those markets; if omitted, all cached chart data.
 

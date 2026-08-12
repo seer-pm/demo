@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.pnl_leaderboard (
   value_start numeric NOT NULL DEFAULT 0,
   value_end numeric NOT NULL DEFAULT 0,
   trading_collateral_net_out numeric NOT NULL DEFAULT 0,
+  lp_collateral_net_out numeric NOT NULL DEFAULT 0,
   -- Gross primary-collateral notional of outcome swaps in the period (buy + sell legs).
   volume numeric NOT NULL DEFAULT 0,
   volume_usd numeric NOT NULL DEFAULT 0,
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.pnl_leaderboard (
 ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS volume numeric NOT NULL DEFAULT 0;
 ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS volume_usd numeric NOT NULL DEFAULT 0;
 ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS roi numeric NULL;
+ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS lp_collateral_net_out numeric NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS pnl_leaderboard_chain_period_pnl_idx
   ON public.pnl_leaderboard (chain_id, period, pnl DESC);
@@ -39,6 +41,9 @@ CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_pnl_idx
 
 CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_period_pnl_usd_idx
   ON public.pnl_leaderboard (app_id, period, pnl_usd DESC);
+
+CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_pnl_usd_idx
+  ON public.pnl_leaderboard (app_id, chain_id, period, pnl_usd DESC);
 
 CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_updated_at_idx
   ON public.pnl_leaderboard (app_id, chain_id, period, updated_at);

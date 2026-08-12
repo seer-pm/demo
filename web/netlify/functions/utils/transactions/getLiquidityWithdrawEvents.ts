@@ -1,12 +1,12 @@
 import { gnosis } from "@/lib/chains";
-import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
-import type { MarketDataMapping } from "@seer-pm/sdk";
+import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { Burn_OrderBy, type GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { type Address, parseUnits } from "viem";
 import { getCollateralFromDexTx } from "../markets";
+import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
 
 async function fetchBurnsFromSubgraph(account: string, chainId: SupportedChain, startTime?: number, endTime?: number) {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
@@ -16,43 +16,26 @@ async function fetchBurnsFromSubgraph(account: string, chainId: SupportedChain, 
   }
 
   const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
-  let totalBurns: GetBurnsQuery["burns"] = [];
+  const accountLc = account.toLowerCase() as Address;
 
-  // Process each batch
-  let timestamp: string | undefined = endTime?.toString();
-
-  while (true) {
-    const data = await graphQLSdk(graphQLClient).GetBurns({
-      first: 1000,
-      // biome-ignore lint/suspicious/noExplicitAny:
-      orderBy: Burn_OrderBy.Timestamp as any,
-      // biome-ignore lint/suspicious/noExplicitAny:
-      orderDirection: OrderDirection.Desc as any,
-      where: {
-        origin: account.toLocaleLowerCase() as Address,
-        timestamp_lt: timestamp,
-        ...(startTime && { timestamp_gte: startTime.toString() }),
-      },
-    });
-
-    const burns = data.burns as GetBurnsQuery["burns"];
-    totalBurns = totalBurns.concat(burns);
-
-    // Stop if no more burns or same timestamp (no progress)
-    if (burns.length === 0 || burns[burns.length - 1]?.timestamp === timestamp) {
-      break;
-    }
-
-    // Update timestamp for next page
-    timestamp = burns[burns.length - 1]?.timestamp;
-
-    // Stop if less than the page size (no more data)
-    if (burns.length < 1000) {
-      break;
-    }
-  }
-
-  return totalBurns;
+  // Timestamp + id cursor pagination (shared helper); origin-only for LP burns.
+  return paginateByTimestampId<GetBurnsQuery["burns"][number]>({
+    startTime,
+    endTime,
+    accountFilters: [{ origin: accountLc }],
+    fetchPage: async (where, first) => {
+      const data = await graphQLSdk(graphQLClient).GetBurns({
+        first,
+        // biome-ignore lint/suspicious/noExplicitAny:
+        orderBy: Burn_OrderBy.Timestamp as any,
+        // biome-ignore lint/suspicious/noExplicitAny:
+        orderDirection: OrderDirection.Desc as any,
+        // biome-ignore lint/suspicious/noExplicitAny:
+        where: where as any,
+      });
+      return data.burns as GetBurnsQuery["burns"];
+    },
+  });
 }
 
 export async function getLiquidityWithdrawEvents(

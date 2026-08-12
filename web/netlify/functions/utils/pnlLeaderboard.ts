@@ -38,34 +38,54 @@ export type RefreshJob = {
 type PnlLeaderboardInsert = TablesInsert<"pnl_leaderboard">;
 
 /** Capital dust in USD below which ROI is undefined. */
-const ROI_CAPITAL_DUST_USD = 0.01;
+export const ROI_CAPITAL_DUST_USD = 0.01;
 
 /**
- * ROI in USD space.
- *
- *   roi = pnl_usd / (value_start_usd + buys_usd)
+ * Deployed capital in USD for ROI:
+ *   capital_usd = value_start_usd + buys_usd
  *
  * where buys (primary as tokenIn) is recovered from stored swap aggregates:
  *   volume = primary_in + primary_out
  *   trading_collateral_net_out = primary_in - primary_out
  *   ⇒ buys = (volume + trading_collateral_net_out) / 2
  *
- * We use buys — not max(net_out, 0) — so round-trip / net-seller wallets with large
- * PnL and volume still get a defined ROI (net ≤ 0 would otherwise make capital 0).
+ * We use max(buys, 0) — not max(net_out, 0) — so round-trip / net-seller wallets with large
+ * PnL and volume still get a defined ROI (net ≤ 0 would otherwise make capital 0), without
+ * inventing negative capital from sell-only legs.
+ */
+export function capitalUsdFromRow(args: {
+  valueStart: number;
+  volume: number;
+  tradingCollateralNetOut: number;
+  collateralPriceUsd: number;
+}): number {
+  const price = Number(args.collateralPriceUsd) || 0;
+  const buys = ((Number(args.volume) || 0) + (Number(args.tradingCollateralNetOut) || 0)) / 2;
+  return (Number(args.valueStart) || 0) * price + Math.max(buys, 0) * price;
+}
+
+/**
+ * ROI in USD space.
+ *
+ *   roi = pnl_usd / capital_usd
+ *
  * Returns null when capital_usd < $0.01 (avoids ÷0 / “infinite” ROI); typical when
  * there is no starting value and no buys (e.g. only sold transferred tokens).
  */
-function computeRoiUsd(args: {
+export function computeRoiUsd(args: {
   pnlUsd: number;
   valueStart: number;
   volume: number;
   tradingCollateralNetOut: number;
   collateralPriceUsd: number;
 }): number | null {
-  const { pnlUsd, valueStart, volume, tradingCollateralNetOut, collateralPriceUsd } = args;
-  const price = Number(collateralPriceUsd) || 0;
-  const buys = ((Number(volume) || 0) + (Number(tradingCollateralNetOut) || 0)) / 2;
-  const capitalUsd = (Number(valueStart) || 0) * price + Math.max(buys, 0) * price;
+  const capitalUsd = capitalUsdFromRow(args);
+  if (capitalUsd < ROI_CAPITAL_DUST_USD) return null;
+  return args.pnlUsd / capitalUsd;
+}
+
+/** Same dust rule as `computeRoiUsd`, for already-aggregated capital across chains. */
+export function roiFromCapitalUsd(pnlUsd: number, capitalUsd: number): number | null {
   if (capitalUsd < ROI_CAPITAL_DUST_USD) return null;
   return pnlUsd / capitalUsd;
 }
@@ -106,30 +126,60 @@ export async function listLeaderboardCandidates(
   return listCandidatesFromAnalytics(supabase, chainId, marketIds, cutoffDay, limit);
 }
 
+const CANDIDATE_PAGE_SIZE = 1000;
+
+type CandidateAnalyticsRow = { address: string | null; unique_tx_count: number | null };
+
+function aggregateCandidateRows(rows: CandidateAnalyticsRow[]): Map<string, number> {
+  const byAddress = new Map<string, number>();
+  for (const row of rows) {
+    const address = (row.address ?? "").toLowerCase();
+    if (!address || address === ZERO_ADDRESS) continue;
+    byAddress.set(address, (byAddress.get(address) ?? 0) + Number(row.unique_tx_count ?? 0));
+  }
+  return byAddress;
+}
+
+async function loadCandidateAnalyticsPages(
+  fetchPage: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: CandidateAnalyticsRow[] | null; error: { message: string } | null }>,
+  errorContext: string,
+): Promise<Map<string, number>> {
+  const byAddress = new Map<string, number>();
+  for (let offset = 0; ; offset += CANDIDATE_PAGE_SIZE) {
+    const { data, error } = await fetchPage(offset, offset + CANDIDATE_PAGE_SIZE - 1);
+    if (error) {
+      throw new Error(`pnl-leaderboard: ${errorContext}: ${error.message}`);
+    }
+    const rows = data ?? [];
+    for (const [address, count] of aggregateCandidateRows(rows)) {
+      byAddress.set(address, (byAddress.get(address) ?? 0) + count);
+    }
+    if (rows.length < CANDIDATE_PAGE_SIZE) break;
+  }
+  return byAddress;
+}
+
 async function listCandidatesFromWalletAnalytics(
   supabase: SupabaseClient<Database>,
   chainId: number,
   cutoffDay: number,
   limit: number,
 ): Promise<LeaderboardCandidate[]> {
-  const { data, error } = await supabase
-    .from("analytics_daily_wallet")
-    .select("address, unique_tx_count")
-    .eq("chain_id", chainId)
-    .gte("day", cutoffDay)
-    .limit(50_000);
-
-  if (error) {
-    throw new Error(`pnl-leaderboard: analytics_daily_wallet unavailable: ${error.message}`);
-  }
-
-  const byAddress = new Map<string, number>();
-  for (const row of data ?? []) {
-    const address = (row.address ?? "").toLowerCase();
-    if (!address || address === ZERO_ADDRESS) continue;
-    byAddress.set(address, (byAddress.get(address) ?? 0) + Number(row.unique_tx_count ?? 0));
-  }
-
+  const byAddress = await loadCandidateAnalyticsPages(
+    (from, to) =>
+      supabase
+        .from("analytics_daily_wallet")
+        .select("address, unique_tx_count")
+        .eq("chain_id", chainId)
+        .gte("day", cutoffDay)
+        .order("address", { ascending: true })
+        .order("day", { ascending: true })
+        .range(from, to),
+    "analytics_daily_wallet unavailable",
+  );
   return rankCandidatesByTxCount(byAddress, limit);
 }
 
@@ -141,25 +191,20 @@ async function listCandidatesFromAnalytics(
   limit: number,
 ): Promise<LeaderboardCandidate[]> {
   const marketIdLcs = marketIds.map((id) => id.toLowerCase());
-  const { data, error } = await supabase
-    .from("analytics_daily_wallet_market")
-    .select("address, unique_tx_count")
-    .eq("chain_id", chainId)
-    .in("market_id", marketIdLcs)
-    .gte("day", cutoffDay)
-    .limit(50_000);
-
-  if (error) {
-    throw new Error(`pnl-leaderboard: analytics_daily_wallet_market unavailable: ${error.message}`);
-  }
-
-  const byAddress = new Map<string, number>();
-  for (const row of data ?? []) {
-    const address = (row.address ?? "").toLowerCase();
-    if (!address || address === ZERO_ADDRESS) continue;
-    byAddress.set(address, (byAddress.get(address) ?? 0) + Number(row.unique_tx_count ?? 0));
-  }
-
+  const byAddress = await loadCandidateAnalyticsPages(
+    (from, to) =>
+      supabase
+        .from("analytics_daily_wallet_market")
+        .select("address, unique_tx_count")
+        .eq("chain_id", chainId)
+        .in("market_id", marketIdLcs)
+        .gte("day", cutoffDay)
+        .order("address", { ascending: true })
+        .order("day", { ascending: true })
+        .order("market_id", { ascending: true })
+        .range(from, to),
+    "analytics_daily_wallet_market unavailable",
+  );
   return rankCandidatesByTxCount(byAddress, limit);
 }
 
@@ -266,7 +311,7 @@ export async function expandMarketIdsWithChildren(chainId: number, marketIds: Ad
   if (roots.length === 0) return [];
 
   const expanded = new Set<Address>(roots);
-  for (const parent of roots) {
+  await mapPool(roots, 3, async (parent) => {
     const { markets } = await searchAllMarkets({
       chainIds: [chainId as SupportedChain],
       parentMarket: parent,
@@ -274,7 +319,7 @@ export async function expandMarketIdsWithChildren(chainId: number, marketIds: Ad
     for (const market of markets) {
       expanded.add(market.id.toLowerCase() as Address);
     }
-  }
+  });
   return [...expanded];
 }
 
@@ -348,7 +393,7 @@ export async function refreshPnlLeaderboardForAppChain(
           collateralProfile: DEFAULT_COLLATERAL_PROFILE,
           primaryCollateral,
         });
-        if (!computed) {
+        if (!computed || computed.swapFlowFailed || computed.lpFlowFailed) {
           failures += 1;
           return;
         }
@@ -359,6 +404,7 @@ export async function refreshPnlLeaderboardForAppChain(
           const pnlUsd = pnl * collateralPriceUsd;
           const valueStart = Number(snap.valueStart) || 0;
           const tradingCollateralNetOut = Number(snap.tradingCollateralNetOut) || 0;
+          const lpCollateralNetOut = Number(snap.lpCollateralNetOut) || 0;
           const volume = Number(snap.volume) || 0;
           return {
             app_id: appId,
@@ -371,6 +417,7 @@ export async function refreshPnlLeaderboardForAppChain(
             value_start: valueStart,
             value_end: Number(snap.valueEnd) || 0,
             trading_collateral_net_out: tradingCollateralNetOut,
+            lp_collateral_net_out: lpCollateralNetOut,
             volume,
             volume_usd: volume * collateralPriceUsd,
             roi: computeRoiUsd({
@@ -424,6 +471,11 @@ export async function refreshPnlLeaderboardForAppChain(
 export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
   const jobs: RefreshJob[] = [];
 
+  // Protocol-wide `all` first so app-scoped work cannot starve it under the time budget.
+  for (const chain of Object.values(SUPPORTED_CHAINS)) {
+    jobs.push({ appId: SEER_APP_ALL_ID, chainId: chain.id, marketIds: undefined });
+  }
+
   for (const app of listSeerApps()) {
     for (const [chainIdKey, marketIds] of Object.entries(app.markets)) {
       if (!marketIds || marketIds.length === 0) continue;
@@ -433,10 +485,6 @@ export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
         marketIds: marketIds.map((id) => id.toLowerCase() as Address),
       });
     }
-  }
-
-  for (const chain of Object.values(SUPPORTED_CHAINS)) {
-    jobs.push({ appId: SEER_APP_ALL_ID, chainId: chain.id, marketIds: undefined });
   }
 
   return jobs;

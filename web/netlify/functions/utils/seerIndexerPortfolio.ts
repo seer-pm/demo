@@ -5,6 +5,7 @@ import { seerEnvioSdk } from "./envioClient";
 import { getTokenDecimals } from "./tokenDecimals";
 
 const PAGE = 1000;
+const MAX_TRANSFER_MARKET_PAGES = 50;
 const SECONDS_PER_DAY = 86_400;
 const FALLBACK_EARLIEST = Math.floor(new Date("2024-01-01").getTime() / 1000);
 
@@ -58,14 +59,16 @@ export async function fetchMarketIdsFromAccountTransfers(
   const accountLc = account.toLowerCase();
   const markets = new Set<string>();
   let offset = 0;
+  let pages = 0;
   for (;;) {
     const { Transfer: rows } = await sdk.GetTransfers({
       limit: PAGE,
       offset,
-      orderBy: [{ timestamp: Order_By.Asc }],
+      orderBy: [{ timestamp: Order_By.Asc }, { id: Order_By.Asc }],
       where: {
         chainId: { _eq: String(chainId) },
         timestamp: { _lte: String(endTime) },
+        kind: { _in: ["outcome", "router_collateral"] },
         _or: [{ from: { _eq: accountLc } }, { to: { _eq: accountLc } }],
       },
     });
@@ -73,7 +76,17 @@ export async function fetchMarketIdsFromAccountTransfers(
       const addr = row.market?.address?.toLowerCase();
       if (addr) markets.add(addr);
     }
+    pages += 1;
     if (rows.length < PAGE) break;
+    if (pages >= MAX_TRANSFER_MARKET_PAGES) {
+      console.warn("seerIndexerPortfolio: transfer market scan hit page cap", {
+        account: accountLc,
+        chainId,
+        pages,
+        markets: markets.size,
+      });
+      break;
+    }
     offset += PAGE;
   }
   return [...markets] as Address[];
@@ -139,7 +152,7 @@ export async function fetchTokenBalancesAtEods(
     const { TokenBalanceDaily: rows } = await sdk.GetTokenBalanceDailies({
       limit: PAGE,
       offset,
-      orderBy: [{ dayStartTimestamp: Order_By.Desc }],
+      orderBy: [{ dayStartTimestamp: Order_By.Desc }, { id: Order_By.Desc }],
       where: {
         chainId: { _eq: String(chainId) },
         account: { _eq: accountLc },

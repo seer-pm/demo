@@ -1,8 +1,8 @@
 import type { SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
-import { getMappings } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
 import { getPublicClientByChainId } from "./config";
+import { getMappingsCached } from "./mappingsCache";
 import { getLiquidityEvents } from "./transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./transactions/getLiquidityWithdrawEvents";
 
@@ -44,7 +44,7 @@ export async function computeLpPrimaryCollateralNetOutForPeriods(
     };
   }
 
-  const mappings = await getMappings(getPublicClientByChainId(chainId), markets, chainId);
+  const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
   const minStart = Math.min(...startTimes);
   const [mints, burns] = await Promise.all([
     getLiquidityEvents(mappings, account, chainId, minStart, endTime),

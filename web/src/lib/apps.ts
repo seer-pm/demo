@@ -74,7 +74,7 @@ export const SEER_APP_ALL_ID = "all" as const;
 export type SeerAppFilterId = SeerAppId | typeof SEER_APP_ALL_ID;
 
 export function isSeerAppId(value: string): value is SeerAppId {
-  return value in SEER_APPS;
+  return Object.prototype.hasOwnProperty.call(SEER_APPS, value);
 }
 
 export function isSeerAppFilterId(value: string): value is SeerAppFilterId {
