@@ -18,10 +18,22 @@ export type PrimaryCollateralSwapFlowDebugRow = {
   tokenInSymbol?: string;
   tokenOutSymbol?: string;
   countedPrimaryNetOutWei: string; // signed, in wei of primary token
+  countedPrimaryVolumeWei: string; // absolute primary notional for this swap
 };
 
 export type CollateralSwapFlowOpts = {
   limitRows?: number;
+};
+
+export type PrimaryCollateralSwapFlowByPeriod = {
+  /** Net primary out per window start (positive = spent more primary than received). */
+  netOutByStartTime: Map<number, number>;
+  /** Gross primary notional (buy + sell legs) per window start. */
+  volumeByStartTime: Map<number, number>;
+  /** Distinct markets with counted primary-collateral swap volume per window start. */
+  marketCountByStartTime: Map<number, number>;
+  rowsByStartTime: Map<number, PrimaryCollateralSwapFlowDebugRow[]>;
+  primary: { address: string; decimals: number };
 };
 
 /**
@@ -29,9 +41,12 @@ export type CollateralSwapFlowOpts = {
  * in human units (same decimals as chain primary collateral).
  *
  * Positive = user sent more primary than they received (typical net cost of buying).
+ * Also returns gross primary **volume** (sum of primary as tokenIn + primary as tokenOut).
  *
- * Sources: same as transaction history (`getSwapEvents`). Does not include split/merge/redeem (those are captured in
- * `collateralValues` from router `tokens_transfers` when applicable).
+ * Sources: same as transaction history (`getSwapEvents`). Does not include split/merge/redeem —
+ * those are handled separately in portfolio P/L: global path via HyperIndex
+ * `router_collateral` transfers (`computeCollateralPortfolioValuesForPeriods`); market-scoped
+ * via HyperIndex `ConditionalEvent` (`routerPrimaryCollateralNetInWindow`).
  *
  * `markets` must be pre-scoped to the request collateral profile (e.g. `searchAllMarkets` with `collateralProfile`).
  */
@@ -46,15 +61,18 @@ export async function computeNetPrimaryCollateralSwapFlow(
   opts?: CollateralSwapFlowOpts,
 ): Promise<{
   netOut: number;
+  volume: number;
   rows: PrimaryCollateralSwapFlowDebugRow[];
   primary: { address: string; decimals: number };
 }> {
   const primaryAddr = primaryCollateral.address.toLowerCase();
   const decimals = primaryCollateral.decimals;
 
-  if (markets.length === 0) return { netOut: 0, rows: [], primary: { address: primaryAddr, decimals } };
+  if (markets.length === 0) {
+    return { netOut: 0, volume: 0, rows: [], primary: { address: primaryAddr, decimals } };
+  }
 
-  const { netOutByStartTime, rowsByStartTime } = await computeNetPrimaryCollateralSwapFlowForPeriods(
+  const { netOutByStartTime, volumeByStartTime, rowsByStartTime } = await computeNetPrimaryCollateralSwapFlowForPeriods(
     account,
     chainId,
     [startTime],
@@ -67,14 +85,15 @@ export async function computeNetPrimaryCollateralSwapFlow(
 
   return {
     netOut: netOutByStartTime.get(startTime) ?? 0,
+    volume: volumeByStartTime.get(startTime) ?? 0,
     rows: rowsByStartTime.get(startTime) ?? [],
     primary: { address: primaryAddr, decimals },
   };
 }
 
 /**
- * Single `getSwapEvents` over `(min(startTimes), endTime]`, then net primary collateral out per window
- * `(startTime, endTime]` for each `startTime`.
+ * Single `getSwapEvents` over `(min(startTimes), endTime]`, then net primary collateral out and
+ * gross primary volume per window `(startTime, endTime]` for each `startTime`.
  */
 export async function computeNetPrimaryCollateralSwapFlowForPeriods(
   account: Address,
@@ -85,17 +104,15 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
   primaryCollateral: Token,
   marketId?: Address,
   opts?: CollateralSwapFlowOpts,
-): Promise<{
-  netOutByStartTime: Map<number, number>;
-  rowsByStartTime: Map<number, PrimaryCollateralSwapFlowDebugRow[]>;
-  primary: { address: string; decimals: number };
-}> {
+): Promise<PrimaryCollateralSwapFlowByPeriod> {
   const primaryAddr = primaryCollateral.address.toLowerCase();
   const decimals = primaryCollateral.decimals;
 
   if (markets.length === 0 || startTimes.length === 0) {
     return {
       netOutByStartTime: new Map(startTimes.map((s) => [s, 0])),
+      volumeByStartTime: new Map(startTimes.map((s) => [s, 0])),
+      marketCountByStartTime: new Map(startTimes.map((s) => [s, 0])),
       rowsByStartTime: new Map(startTimes.map((s) => [s, [] as PrimaryCollateralSwapFlowDebugRow[]])),
       primary: { address: primaryAddr, decimals },
     };
@@ -106,9 +123,13 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
   const swaps = await getSwapEvents(mappings, account, chainId, minStart, endTime);
 
   const netOutWeiByStart = new Map<number, bigint>();
+  const volumeWeiByStart = new Map<number, bigint>();
+  const marketsByStart = new Map<number, Set<string>>();
   const rowsByStart = new Map<number, PrimaryCollateralSwapFlowDebugRow[]>();
   for (const s of startTimes) {
     netOutWeiByStart.set(s, 0n);
+    volumeWeiByStart.set(s, 0n);
+    marketsByStart.set(s, new Set());
     rowsByStart.set(s, []);
   }
 
@@ -126,15 +147,30 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
     const tin = (s.tokenIn ?? "").toLowerCase();
     const tout = (s.tokenOut ?? "").toLowerCase();
 
-    let counted = 0n;
-    if (tin === primaryAddr) counted += BigInt(s.amountIn || 0);
-    if (tout === primaryAddr) counted -= BigInt(s.amountOut || 0);
+    let netCounted = 0n;
+    let volumeCounted = 0n;
+    if (tin === primaryAddr) {
+      const amt = BigInt(s.amountIn || 0);
+      netCounted += amt;
+      volumeCounted += amt;
+    }
+    if (tout === primaryAddr) {
+      const amt = BigInt(s.amountOut || 0);
+      netCounted -= amt;
+      volumeCounted += amt;
+    }
 
-    if (counted === 0n) continue;
+    if (volumeCounted === 0n) continue;
+
+    const swapMarketId = String(s.marketId ?? "").toLowerCase();
 
     for (const startTime of startTimes) {
       if (ts <= startTime || ts > endTime) continue;
-      netOutWeiByStart.set(startTime, (netOutWeiByStart.get(startTime) ?? 0n) + counted);
+      netOutWeiByStart.set(startTime, (netOutWeiByStart.get(startTime) ?? 0n) + netCounted);
+      volumeWeiByStart.set(startTime, (volumeWeiByStart.get(startTime) ?? 0n) + volumeCounted);
+      if (swapMarketId) {
+        marketsByStart.get(startTime)?.add(swapMarketId);
+      }
       if (rowLimit > 0) {
         const rows = rowsByStart.get(startTime) ?? [];
         if (rows.length < rowLimit) {
@@ -150,7 +186,8 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
             amountOut: s.amountOut,
             tokenInSymbol: s.tokenInSymbol,
             tokenOutSymbol: s.tokenOutSymbol,
-            countedPrimaryNetOutWei: counted.toString(),
+            countedPrimaryNetOutWei: netCounted.toString(),
+            countedPrimaryVolumeWei: volumeCounted.toString(),
           });
           rowsByStart.set(startTime, rows);
         }
@@ -159,9 +196,19 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
   }
 
   const netOutByStartTime = new Map<number, number>();
+  const volumeByStartTime = new Map<number, number>();
+  const marketCountByStartTime = new Map<number, number>();
   for (const st of startTimes) {
     netOutByStartTime.set(st, Number(formatUnits(netOutWeiByStart.get(st) ?? 0n, decimals)));
+    volumeByStartTime.set(st, Number(formatUnits(volumeWeiByStart.get(st) ?? 0n, decimals)));
+    marketCountByStartTime.set(st, marketsByStart.get(st)?.size ?? 0);
   }
 
-  return { netOutByStartTime, rowsByStartTime: rowsByStart, primary: { address: primaryAddr, decimals } };
+  return {
+    netOutByStartTime,
+    volumeByStartTime,
+    marketCountByStartTime,
+    rowsByStartTime: rowsByStart,
+    primary: { address: primaryAddr, decimals },
+  };
 }

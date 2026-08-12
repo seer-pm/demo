@@ -1,6 +1,10 @@
-import { sepolia } from "@/lib/chains";
+import { gnosis, optimism, sepolia } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
+import { TOKENS_BY_CHAIN } from "@seer-pm/sdk/collateral";
 import type { Address } from "viem";
+import { formatUnits } from "viem";
+import { fetchSUSDSPriceFromContract } from "./fetchSUSDSPriceFromContract";
+import { convertFromSDAI } from "./sdai";
 
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -17,10 +21,27 @@ export const liquidityManagerAddressMapping: Partial<Record<SupportedChain, Addr
 
 export const FROM_EMAIL = "gen@seer.pm";
 
+/**
+ * Spot USD for a token. DexScreener no longer covers Gnosis; for Gnosis sDAI we use
+ * on-chain ERC-4626 `convertToAssets` (wxDAI ≈ $1). For Optimism sUSDS we use Spark
+ * PSM3 `previewSwapExactIn` (USDS ≈ $1).
+ */
 export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedChain): Promise<number> {
   if (chainId === sepolia.id) {
     return 0;
   }
+
+  const gnosisSdai = TOKENS_BY_CHAIN[gnosis.id].sDAI;
+  if (chainId === gnosis.id && token.toLowerCase() === gnosisSdai.toLowerCase()) {
+    const assets = await convertFromSDAI(chainId, 10n ** 18n);
+    return Number(formatUnits(assets, 18));
+  }
+
+  const optimismSusds = TOKENS_BY_CHAIN[optimism.id].sUSDS;
+  if (chainId === optimism.id && token.toLowerCase() === optimismSusds.toLowerCase()) {
+    return fetchSUSDSPriceFromContract(chainId);
+  }
+
   const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
     pairs: { chainId: string; priceUsd: string }[];
   };

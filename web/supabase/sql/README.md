@@ -20,6 +20,22 @@ multi-statement scripts in one, so run those statements individually.
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
+| `pnl_leaderboard.sql` | Table + indexes for the app-scoped PnL leaderboard (`get-pnl-leaderboard` / refresh job). |
+| `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
+| `dex_pool_hour_prices_latest_for_pairs.sql` | RPC: latest pool hour row per (token0, token1) pair (replaces flat-token latest RPC). |
+
+## Apply for PnL leaderboard / portfolio fixes
+
+After pulling these changes, run in the Supabase SQL editor (in order):
+
+1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
+2. `dex_pool_hour_prices_latest_for_pairs.sql`
+3. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `roi` via `ADD COLUMN IF NOT EXISTS`)
+
+App code no longer calls the old transfer-replay RPCs
+(`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,
+`earliest_user_transfer_timestamp`) nor `dex_pool_hour_prices_latest_for_tokens`.
+Those live functions can be left in place or dropped manually in production later.
 
 ## Not yet captured
 
@@ -28,7 +44,6 @@ live Supabase project. Worth dumping and committing here:
 
 - `get_direct_holdings_at` — referenced by `netlify/functions/utils/airdropCalculation/computeDailyAirdrop.ts`
 - `insert_airdrop_safely`
-- `dex_pool_hour_prices_latest_for_tokens`
 - `dex_pool_hour_prices_nearest_before_for_pairs`
 - `markets_by_question_ids`
 

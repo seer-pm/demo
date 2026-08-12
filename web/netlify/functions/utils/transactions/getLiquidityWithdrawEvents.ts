@@ -1,22 +1,14 @@
 import { gnosis } from "@/lib/chains";
 import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
 import type { MarketDataMapping } from "@seer-pm/sdk";
-import { getToken0Token1, getTokensPairKey } from "@seer-pm/sdk/market-pools";
+import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { Burn_OrderBy, type GetBurnsQuery, OrderDirection, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { type Address, parseUnits } from "viem";
 import { getCollateralFromDexTx } from "../markets";
 
-async function fetchBurnsFromSubgraph(
-  outcomeTokenToCollateral: MarketDataMapping["outcomeTokenToCollateral"],
-  account: string,
-  chainId: SupportedChain,
-  startTime?: number,
-  endTime?: number,
-) {
-  if (outcomeTokenToCollateral.size === 0) return [];
-
+async function fetchBurnsFromSubgraph(account: string, chainId: SupportedChain, startTime?: number, endTime?: number) {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
@@ -25,10 +17,6 @@ async function fetchBurnsFromSubgraph(
 
   const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
   let totalBurns: GetBurnsQuery["burns"] = [];
-
-  const tokens = Array.from(outcomeTokenToCollateral, ([tokenId, collateralToken]) =>
-    getToken0Token1(tokenId, collateralToken),
-  );
 
   // Process each batch
   let timestamp: string | undefined = endTime?.toString();
@@ -41,16 +29,9 @@ async function fetchBurnsFromSubgraph(
       // biome-ignore lint/suspicious/noExplicitAny:
       orderDirection: OrderDirection.Desc as any,
       where: {
-        and: [
-          {
-            or: tokens,
-          },
-          {
-            origin: account.toLocaleLowerCase() as Address,
-            timestamp_lt: timestamp,
-            ...(startTime && { timestamp_gte: startTime.toString() }),
-          },
-        ],
+        origin: account.toLocaleLowerCase() as Address,
+        timestamp_lt: timestamp,
+        ...(startTime && { timestamp_gte: startTime.toString() }),
       },
     });
 
@@ -82,7 +63,8 @@ export async function getLiquidityWithdrawEvents(
   endTime?: number,
 ) {
   const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
-  const total = await fetchBurnsFromSubgraph(outcomeTokenToCollateral, account, chainId, startTime, endTime);
+  if (outcomeTokenToCollateral.size === 0) return [];
+  const total = await fetchBurnsFromSubgraph(account, chainId, startTime, endTime);
   return total.reduce((acc, swap) => {
     const amount0 = parseUnits(swap.amount0.replace("-", ""), Number(swap.token0.decimals));
     const amount1 = parseUnits(swap.amount1.replace("-", ""), Number(swap.token1.decimals));

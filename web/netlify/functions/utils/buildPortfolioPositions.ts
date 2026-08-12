@@ -4,11 +4,10 @@ import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { type Address, erc20Abi, formatUnits } from "viem";
-import { multicall } from "viem/actions";
-import { getPublicClientByChainId } from "./config";
+import { type Address, formatUnits } from "viem";
 import { getCurrentTokensPricesForPortfolio } from "./dexPoolPricesFromDb";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
+import { fetchTokenBalances } from "./seerIndexerPortfolio";
 import type { Database } from "./supabase";
 import { getTokenDecimalsList } from "./tokenDecimals";
 
@@ -26,76 +25,6 @@ function enrichPositionsWithTokenValues(
       tokenValue,
     };
   });
-}
-
-/** Current holdings only: `tokens_holdings_v` with balance > 0; balances via `balanceOf` on-chain. */
-export async function fetchCurrentTokenHoldings(
-  supabase: SupabaseClient<Database>,
-  address: Address,
-  chainId: SupportedChain,
-): Promise<{ tokens: Address[]; balances: bigint[] }> {
-  const { data, error } = await supabase
-    .from("tokens_holdings_v")
-    .select("token")
-    .eq("owner", address.toLowerCase())
-    .gt("balance", 0)
-    .eq("chain_id", chainId)
-    .order("token", { ascending: true });
-
-  if (error) {
-    throw new Error(`Error fetching positions: ${error.message}`);
-  }
-
-  const rows = data ?? [];
-  const tokens = rows.map((row) => row.token as Address);
-
-  if (tokens.length === 0) {
-    return { tokens, balances: [] };
-  }
-
-  const publicClient = getPublicClientByChainId(chainId);
-  const balanceResults = await multicall(publicClient, {
-    contracts: tokens.map((tokenAddress) => ({
-      abi: erc20Abi,
-      address: tokenAddress,
-      functionName: "balanceOf",
-      args: [address],
-    })),
-    allowFailure: true,
-  });
-  const balances = balanceResults.map((r) => (r.status === "success" ? (r.result as bigint) : 0n));
-
-  return { tokens, balances };
-}
-
-async function fetchHistoricTokenHoldings(
-  supabase: SupabaseClient<Database>,
-  address: Address,
-  chainId: SupportedChain,
-  tokens: Address[],
-): Promise<bigint[]> {
-  if (tokens.length === 0) {
-    return [];
-  }
-
-  const lower = tokens.map((t) => t.toLowerCase());
-  const { data, error } = await supabase
-    .from("tokens_holdings_v")
-    .select("token, balance::text")
-    .eq("owner", address.toLowerCase())
-    .eq("chain_id", chainId)
-    .in("token", lower);
-
-  if (error) {
-    throw new Error(`Error fetching balances from tokens_holdings_v: ${error.message}`);
-  }
-
-  const balanceByTokenLc = new Map<string, bigint>();
-  for (const row of data ?? []) {
-    balanceByTokenLc.set(row.token.toLowerCase(), BigInt(row.balance));
-  }
-
-  return tokens.map((t) => balanceByTokenLc.get(t.toLowerCase()) ?? 0n);
 }
 
 /**
@@ -183,30 +112,42 @@ export async function buildPortfolioPositionsCore(
   return enrichPositionsWithTokenValues(positions, currentPrices);
 }
 
-export async function buildHistoricPortfolioPositions(
+/**
+ * Positions from indexer balances: intersection of market wrappedTokens with `relevantTokens` ∪ holdings keys.
+ */
+export async function buildPortfolioPositionsFromBalances(
   supabase: SupabaseClient<Database>,
-  address: Address,
   chainId: SupportedChain,
   markets: Market[],
+  relevantTokens: Address[],
+  holdings: Map<string, bigint>,
 ): Promise<PortfolioPosition[]> {
+  const relevant = new Set<string>([...relevantTokens.map((t) => t.toLowerCase()), ...holdings.keys()]);
   const allTokenIds = [
-    ...new Set(markets.flatMap((m) => (m.wrappedTokens ?? []).map((w) => String(w).toLowerCase()))),
+    ...new Set(
+      markets
+        .flatMap((m) => (m.wrappedTokens ?? []).map((w) => String(w).toLowerCase()))
+        .filter((t) => relevant.has(t)),
+    ),
   ] as Address[];
-  const balances = await fetchHistoricTokenHoldings(supabase, address, chainId, allTokenIds);
+  const balances = allTokenIds.map((t) => holdings.get(t.toLowerCase()) ?? 0n);
 
   return buildPortfolioPositionsCore(supabase, chainId, allTokenIds, balances, markets, true);
 }
 
+/** Current portfolio UI: TokenBalance rows with balance > 0 from HyperIndex. */
 export async function buildCurrentPortfolioPositions(
   supabase: SupabaseClient<Database>,
   address: Address,
   chainId: SupportedChain,
   collateralProfile: string,
 ): Promise<PortfolioPosition[]> {
-  const { tokens, balances } = await fetchCurrentTokenHoldings(supabase, address, chainId);
+  const holdings = await fetchTokenBalances(address, chainId);
+  const tokens = [...holdings.entries()].filter(([, bal]) => bal > 0n).map(([t]) => t as Address);
   if (tokens.length === 0) {
     return [];
   }
+  const balances = tokens.map((t) => holdings.get(t.toLowerCase()) ?? 0n);
 
   const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens, collateralProfile });
   return buildPortfolioPositionsCore(supabase, chainId, tokens, balances, markets, false);

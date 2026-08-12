@@ -2,7 +2,7 @@ import { type MarketDataMapping, type SupportedChain, type TransactionData, getM
 import type { Address } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "./utils/config";
-import { searchMarkets } from "./utils/markets";
+import { searchAllMarkets } from "./utils/markets";
 import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
 import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
@@ -76,7 +76,7 @@ async function getTransactions(
   endTime?: number,
   eventType?: string,
 ) {
-  const { markets } = await searchMarkets({ chainIds: [chainId] });
+  const { markets } = await searchAllMarkets({ chainIds: [chainId] });
 
   if (markets.length === 0) {
     return [];

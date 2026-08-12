@@ -91,15 +91,19 @@ query GetConditionalEvents(
 ) {
   ConditionalEvent(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
     market {
+      id
       address
       marketName
     }
     accountId
+    stakeholder
     eventType
     amount
     blockNumber
     timestamp
     collateral
+    parentCollectionId
+    conditionId
     transactionHash
   }
 }
@@ -126,6 +130,12 @@ fragment Transfer on Transfer {
   transactionFrom
   logIndex
   value
+  kind
+  involvesRouter
+  market {
+    id
+    address
+  }
   token {
     id
   }
@@ -139,5 +149,50 @@ query GetTransfers(
 ) {
   Transfer(limit: $limit, offset: $offset, where: $where, order_by: $orderBy) {
     ...Transfer
+  }
+}
+
+query GetTokenBalances(
+  $where: TokenBalance_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+  $orderBy: [TokenBalance_order_by!]
+) {
+  TokenBalance(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
+    chainId
+    token
+    account
+    balance
+    updatedAtBlock
+    updatedAtTimestamp
+    lastDailyDayStart
+  }
+}
+
+query GetTokenBalanceDailies(
+  $where: TokenBalanceDaily_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+  $orderBy: [TokenBalanceDaily_order_by!]
+) {
+  TokenBalanceDaily(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
+    chainId
+    account
+    token
+    dayStartTimestamp
+    balance
+  }
+}
+
+query GetAccountActivity($id: String!) {
+  accountActivity: AccountActivity_by_pk(id: $id) {
+    id
+    chainId
+    account
+    earliestTransferTimestamp
+    lastTransferTimestamp
+    transferCount
   }
 }
