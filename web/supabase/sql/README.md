@@ -25,11 +25,27 @@ multi-statement scripts in one, so run those statements individually.
 | `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Also carries the trader-score sufficient statistics (`scored_market_count`, `winning_market_count`, `gross_profit_usd`, `gross_loss_usd`, `best_market_pnl_usd`, `scored_capital_usd`); the score itself is derived at read time, never stored. Those six columns hold an *owner's* statistics: for a wallet trading through a TradeExecutor, they are gathered over the combined book and written on the owner's row, and the executor's row carries zeros (its other columns stay its own). Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
+| `users_username.sql` | Adds the unique wallet-linked username column and validation constraints. |
+| `users_username_not_null.sql` | Makes usernames required after existing users have been backfilled. |
 
 Analytics matview RPC `refresh_market_outcome_tokens` lives in
 [`dashboard/supabase/sql/analytics_rpcs.sql`](../../dashboard/supabase/sql/analytics_rpcs.sql)
 (same DB). `scheduled-markets-import` calls it when new market ids are upserted. Apply that
 function in the SQL editor before relying on the auto-refresh.
+
+## Deployment order (usernames)
+
+Before deploying the matching application code:
+
+1. Apply `users_username.sql`.
+2. From `web/`, run `npx tsx scripts/backfill-usernames.ts` with `SUPABASE_PROJECT_URL` and a
+   service-role `SUPABASE_API_KEY` capable of updating every user.
+3. Immediately apply `users_username_not_null.sql`. If an old sign-in creates another user between
+   steps 2 and 3, rerun the backfill and this statement.
+4. Deploy the matching application code. Old sign-ins will fail after step 3, so keep steps 2–4
+   together to minimize the interruption.
+
+The matching functions expect the finalized schema and should only be deployed after the migration completes.
 
 ## Apply for PnL leaderboard / portfolio fixes
 

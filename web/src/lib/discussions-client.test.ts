@@ -1,6 +1,8 @@
 import { createDiscussionsClient } from "@seer-pm/discussions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
+
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -90,5 +92,36 @@ describe("createDiscussionsClient", () => {
       body: "hello",
       parent_id: null,
     });
+  });
+
+  it("adds host profile links", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        data: [
+          {
+            id: "comment-1",
+            author: ADDRESS,
+            authorDetails: { address: ADDRESS, username: "seer-user" },
+            body: "hello",
+            parentId: null,
+            createdAt: 1,
+            likeCount: 0,
+            likedByMe: false,
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDiscussionsClient({
+      marketId: "0xABC",
+      chainId: 100,
+      getAccessToken: () => "",
+      getProfileHref: ({ username }) => `/portfolio/@${username}`,
+    });
+
+    const comments = await client.listComments();
+
+    expect(comments[0].authorDetails.profileHref).toBe("/portfolio/@seer-user");
   });
 });

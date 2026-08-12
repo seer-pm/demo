@@ -3,11 +3,13 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import { CopyButton } from "@/components/CopyButton";
+import { EnsBadge } from "@/components/EnsBadge";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { usePortfolioIdentity } from "@/hooks/portfolio/usePortfolioIdentity";
 import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolioTabs";
+import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
@@ -18,7 +20,7 @@ import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { type KeyboardEvent, useRef } from "react";
 import { Address, getAddress, isAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
-import { useAccount } from "wagmi";
+import { useAccount, useEnsName } from "wagmi";
 
 const TABS = [
   { id: "positions", label: "Positions", panelId: "portfolio-panel-positions" },
@@ -205,8 +207,34 @@ function LinkedExecutors({ account }: { account: Address }) {
 function PortfolioPage() {
   const { address: connectedAccount } = useAccount();
   const { routeParams } = usePageContext();
-  const routeAccount = routeParams?.id && isAddress(routeParams.id) ? getAddress(routeParams.id) : undefined;
-  const account = routeAccount ?? connectedAccount;
+  const routeIdentity = routeParams?.id ? String(routeParams.id) : "";
+  const requestedIdentity = routeIdentity || connectedAccount || "";
+  const isUsernameRoute = requestedIdentity.startsWith("@");
+  const requestedUsername = isUsernameRoute ? requestedIdentity.slice(1).toLowerCase() : "";
+  const addressIsValid = !isUsernameRoute && isAddress(requestedIdentity);
+  const requestedAddress = addressIsValid ? getAddress(requestedIdentity) : undefined;
+  const userLookup = isUsernameRoute
+    ? { username: requestedUsername }
+    : requestedAddress
+      ? { address: requestedAddress }
+      : null;
+  const { data: publicUser, isLoading, error: userError } = usePublicUser(userLookup);
+  const account = isUsernameRoute ? (publicUser ? getAddress(publicUser.address) : undefined) : requestedAddress;
+  const username = publicUser?.username;
+  const error = isUsernameRoute
+    ? userError instanceof Error
+      ? userError.message
+      : !isLoading && !publicUser
+        ? "User not found"
+        : undefined
+    : requestedIdentity && !addressIsValid
+      ? "This portfolio address is invalid."
+      : undefined;
+  const { data: ensName } = useEnsName({
+    address: account,
+    chainId: 1,
+    query: { enabled: Boolean(account) },
+  });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -267,12 +295,21 @@ function PortfolioPage() {
     }
   };
 
-  if (!account) {
+  if (isUsernameRoute && isLoading) {
+    return (
+      <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px]">
+        <Breadcrumb links={[{ title: "Portfolio" }]} />
+        <div className="shimmer-container h-[162px] w-full" />
+      </div>
+    );
+  }
+
+  if (!account || error) {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
         <Breadcrumb links={[{ title: "Portfolio" }]} />
         <Alert type="warning" title="Account not found">
-          Connect your wallet to see this portfolio.
+          {error || "Connect your wallet to see this portfolio."}
         </Alert>
       </div>
     );
@@ -289,15 +326,23 @@ function PortfolioPage() {
               <Union />
             </div>
             <div className="min-w-0">
-              <div className={`flex items-center gap-1 min-w-0 ${activeTab === "airdrop" ? "" : "mb-2"}`}>
+              <div className={`flex items-center gap-1 min-w-0 ${activeTab === "airdrop" && !username ? "" : "mb-2"}`}>
                 <h1 className="text-[18px] font-semibold text-base-content truncate">
-                  <AddressOrName address={account} />
+                  {username ? `@${username}` : <AddressOrName address={account} />}
                 </h1>
                 <CopyButton textToCopy={account} size={16} className="shrink-0 min-h-11 min-w-11 text-black-primary" />
                 {isTwoStringsEqual(connectedAccount, account) ? (
                   <span className="text-xs text-purple-primary font-medium shrink-0">You</span>
                 ) : null}
               </div>
+              {username ? (
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-xs text-black-primary font-mono" title={account}>
+                    {shortenAddress(account)}
+                  </span>
+                  {ensName ? <EnsBadge name={ensName} /> : null}
+                </div>
+              ) : null}
               <LinkedExecutors account={account} />
               {activeTab !== "airdrop" ? <PortfolioValueVariation account={account} chainId={chainId} /> : null}
             </div>

@@ -1,8 +1,11 @@
+import { Alert } from "@/components/Alert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
+import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSignIn } from "@/hooks/useSignIn";
+import { paths } from "@/lib/paths";
 import { getAppUrl, isAccessTokenExpired } from "@/lib/utils";
 import { Discussion, type DiscussionButtonProps, createDiscussionsClient, userFromAddress } from "@seer-pm/discussions";
 import type { Market } from "@seer-pm/sdk";
@@ -45,12 +48,21 @@ function Comments({ market }: { market: Market }) {
   const isSignedIn = useIsConnectedAndSignedIn();
   const signIn = useSignIn();
   const { open } = useWeb3Modal();
+  const {
+    data: currentUser,
+    isPending: isCurrentUserPending,
+    isFetching: isCurrentUserFetching,
+    error: currentUserError,
+    refetch: refetchCurrentUser,
+  } = usePublicUser(isSignedIn && address ? { address } : null);
+
   const client = useMemo(
     () =>
       createDiscussionsClient({
         baseUrl: getAppUrl(),
         marketId: market.id,
         chainId: market.chainId,
+        getProfileHref: ({ username }) => paths.portfolioUsername(username),
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;
@@ -59,7 +71,10 @@ function Comments({ market }: { market: Market }) {
     [market.id, market.chainId],
   );
 
-  const user = isSignedIn && address ? userFromAddress(address) : null;
+  const user =
+    isSignedIn && address && !isCurrentUserPending && currentUser
+      ? userFromAddress(address, currentUser.username, paths.portfolioUsername(currentUser.username))
+      : null;
 
   const requestConnect = async () => {
     if (!isConnected || !address || !chainId) {
@@ -69,6 +84,25 @@ function Comments({ market }: { market: Market }) {
     // toastify already reports the failure; swallow so onRequestConnect never rejects
     await signIn.mutateAsync({ address, chainId }).catch(() => undefined);
   };
+
+  if (isSignedIn && address && isCurrentUserPending) {
+    return <div className="shimmer-container h-48 w-full" />;
+  }
+
+  if (isSignedIn && address && (currentUserError || !currentUser)) {
+    return (
+      <Alert type="error" title="Unable to load your discussion profile">
+        <div className="mt-2">
+          <Button
+            text="Try again"
+            size="small"
+            isLoading={isCurrentUserFetching}
+            onClick={() => void refetchCurrentUser()}
+          />
+        </div>
+      </Alert>
+    );
+  }
 
   return (
     <ErrorBoundary fallback={<p>Something went wrong.</p>}>

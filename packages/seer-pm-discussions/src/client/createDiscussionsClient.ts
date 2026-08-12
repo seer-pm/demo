@@ -9,6 +9,8 @@ export type CreateDiscussionsClientOptions = {
   chainId: number;
   /** Returns current Seer JWT, or empty string if signed out */
   getAccessToken: () => string;
+  /** Optional host-owned profile route builder. */
+  getProfileHref?: (user: DiscussionUser) => string;
 };
 
 type ApiPosition = {
@@ -47,6 +49,14 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   const marketId = options.marketId.toLowerCase();
   const chainId = options.chainId;
 
+  const withProfileHref = (comment: Comment): Comment => ({
+    ...comment,
+    authorDetails: {
+      ...comment.authorDetails,
+      profileHref: options.getProfileHref?.(comment.authorDetails) ?? null,
+    },
+  });
+
   return {
     marketId,
 
@@ -59,7 +69,9 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
         throw new Error(await readError(res));
       }
       const json = (await res.json()) as { data?: ApiComment[] };
-      return (json.data ?? []).map((comment) => ({ ...comment, positions: parsePositions(comment.positions) }));
+      return (json.data ?? []).map((comment) =>
+        withProfileHref({ ...comment, positions: parsePositions(comment.positions) }),
+      );
     },
 
     async createComment(input: CreateCommentInput) {
@@ -120,8 +132,10 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   };
 }
 
-export function userFromAddress(address: string): DiscussionUser {
+export function userFromAddress(address: string, username: string, profileHref?: string | null): DiscussionUser {
   return {
     address: address.toLowerCase(),
+    username,
+    profileHref: profileHref ?? null,
   };
 }

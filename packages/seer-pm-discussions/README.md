@@ -17,6 +17,7 @@ const client = createDiscussionsClient({
   marketId: market.id,
   chainId: market.chainId,
   getAccessToken: () => accessToken,
+  getProfileHref: (user) => `/portfolio/@${user.username}`,
 });
 
 function DiscussionButton({
@@ -37,7 +38,7 @@ function DiscussionButton({
 
 <Discussion
   client={client}
-  user={address ? userFromAddress(address) : null}
+  user={address && username ? userFromAddress(address, username) : null}
   onRequestConnect={signIn}
   components={{ Button: DiscussionButton }}
 />
@@ -47,7 +48,7 @@ Pass your design-system button via `components.Button`. If omitted, CTAs fall ba
 
 Set `baseUrl` to the Seer deployment hosting the discussion API functions. Comments come back with each author's current outcome-token positions (`comment.positions`), and the package renders a position badge automatically. To replace its presentation, pass `components.UserPositionBadge`; the override receives both `user` and `positions`.
 
-Author labels resolve primary ENS names via wagmi (`useEnsName`, mainnet). Wrap the tree in a `WagmiProvider` whose config includes mainnet so reverse lookups succeed; without that, addresses fall back to a shortened form.
+Author labels use `DiscussionUser.username` as the primary identity and show a verified mainnet ENS primary name as a secondary badge. Wrap the tree in a `WagmiProvider` whose config includes mainnet so reverse lookups succeed.
 
 ## Styling (Tailwind)
 
@@ -94,7 +95,9 @@ You can also pass `className` / `style` on `<Discussion />` (including CSS varia
 - `Discussion` — thread UI (`components.Button` / `components.ConnectButton` / `components.UserPositionBadge`)
 - `createDiscussionsClient` — Seer HTTP client for comments with commenter positions (`marketId`, `chainId`, `listComments`, comment mutations)
 - `useDiscussions` — context hook
-- `userFromAddress` — build `DiscussionUser` from a wallet
+- `CopyableAddress` — shortened address label that copies the full address
+- `EnsIcon` — ENS logo used by host-owned identity badges
+- `userFromAddress` — build `DiscussionUser` from a wallet and username
 - `SD_ROOT_CLASS` — root class name for theming (`"sd-root"`)
 - `@seer-pm/discussions/tailwind` — Tailwind preset (`sd-*` colors)
 - Types: `DiscussionPosition`, `DiscussionButtonProps`, `DiscussionConnectButtonProps`, `DiscussionUserPositionBadgeProps`, `DiscussionComponents`

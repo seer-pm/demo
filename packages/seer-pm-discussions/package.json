@@ -54,8 +54,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "unique-names-generator": "^4.7.1"
   }
 }

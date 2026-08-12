@@ -43,13 +43,20 @@ function parsePath(url: string) {
   return { id, action };
 }
 
-function toComment(row: CommentRow, likeCount: number, likedByMe: boolean, positions: AuthorPosition[] = []) {
+function toComment(
+  row: CommentRow,
+  likeCount: number,
+  likedByMe: boolean,
+  username?: string,
+  positions: AuthorPosition[] = [],
+) {
   const author = row.author.toLowerCase();
   return {
     id: row.id,
     author,
     authorDetails: {
       address: author,
+      ...(username ? { username } : {}),
     },
     body: row.body,
     parentId: row.parent_id,
@@ -106,6 +113,16 @@ async function getAuthorPositions(chainId: number | null, marketId: string, auth
     positionsByAuthor.clear();
   }
   return positionsByAuthor;
+}
+
+async function getUsernames(addresses: string[]) {
+  const normalized = [...new Set(addresses.map((address) => address.toLowerCase()))];
+  if (normalized.length === 0) return new Map<string, string>();
+
+  const { data, error } = await supabase.from("users").select("id, username").in("id", normalized);
+  if (error) throw error;
+
+  return new Map((data ?? []).map((row) => [row.id.toLowerCase(), row.username]));
 }
 
 async function getLikeStats(commentIds: string[], viewer: string | null) {
@@ -165,11 +182,12 @@ export default async (req: Request) => {
       }
 
       const rows = (data || []) as CommentRow[];
-      const [{ counts, liked }, positionsByAuthor] = await Promise.all([
+      const [{ counts, liked }, usernames, positionsByAuthor] = await Promise.all([
         getLikeStats(
           rows.map((r) => r.id),
           viewer,
         ),
+        getUsernames(rows.map((row) => row.author)),
         getAuthorPositions(
           parseChainId(url.searchParams.get("chain_id")),
           marketId,
@@ -179,9 +197,17 @@ export default async (req: Request) => {
 
       return new Response(
         JSON.stringify({
-          data: rows.map((row) =>
-            toComment(row, counts.get(row.id) || 0, liked.has(row.id), positionsByAuthor.get(row.author.toLowerCase())),
-          ),
+          data: rows.map((row) => {
+            const username = usernames.get(row.author.toLowerCase());
+            if (!username) throw new Error(`Username not found for ${row.author}`);
+            return toComment(
+              row,
+              counts.get(row.id) || 0,
+              liked.has(row.id),
+              username,
+              positionsByAuthor.get(row.author.toLowerCase()),
+            );
+          }),
         }),
         { status: 200, headers: jsonHeaders },
       );
@@ -245,7 +271,7 @@ export default async (req: Request) => {
       return new Response(
         JSON.stringify({
           id: data.id,
-          data: toComment(data as CommentRow, 0, false, positionsByAuthor.get(viewer.toLowerCase())),
+          data: toComment(data as CommentRow, 0, false, undefined, positionsByAuthor.get(viewer.toLowerCase())),
         }),
         {
           status: 200,

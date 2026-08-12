@@ -5,10 +5,48 @@ import { verifyMessage } from "viem/actions";
 import { parseSiweMessage } from "viem/siwe";
 import { CORS_HEADERS } from "./utils/common";
 import { getPublicClientByChainId } from "./utils/config";
+import { makeUsername } from "./utils/username";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
+
+async function findOrCreateUser(address: string) {
+  const userId = address.toLowerCase();
+  const lastLoginAt = new Date().toISOString();
+
+  const { data: existingUser, error: updateError } = await supabase
+    .from("users")
+    .update({ last_login_at: lastLoginAt })
+    .eq("id", userId)
+    .select()
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (existingUser) return existingUser;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const username = makeUsername(attempt === 0 ? address.toLowerCase() : undefined);
+    const { data: user, error } = await supabase
+      .from("users")
+      .insert({ id: userId, last_login_at: lastLoginAt, username })
+      .select()
+      .single();
+
+    if (!error && user) return user;
+    if (error?.code !== "23505") throw error;
+
+    // A concurrent sign-in for this address may have created the row.
+    const { data: concurrentUser, error: concurrentUserError } = await supabase
+      .from("users")
+      .select()
+      .eq("id", userId)
+      .maybeSingle();
+    if (concurrentUserError) throw concurrentUserError;
+    if (concurrentUser) return concurrentUser;
+  }
+
+  throw new Error("Unable to create user with a unique username");
+}
 
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -49,23 +87,7 @@ export default async (req: Request) => {
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: jsonHeaders });
     }
 
-    // Store or update user in Supabase
-    const { data: user, error: upsertError } = await supabase
-      .from("users")
-      .upsert({
-        id: address.toLowerCase(),
-        last_login_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (upsertError) {
-      console.error("Error upserting user:", upsertError);
-      return new Response(JSON.stringify({ error: "Failed to update user data" }), {
-        status: 500,
-        headers: jsonHeaders,
-      });
-    }
+    const user = await findOrCreateUser(address);
 
     // Create JWT token
     const token = jwt.sign(
@@ -78,7 +100,10 @@ export default async (req: Request) => {
       { expiresIn: "1h" },
     );
 
-    return new Response(JSON.stringify({ token, user }), { status: 200, headers: jsonHeaders });
+    return new Response(JSON.stringify({ token, user }), {
+      status: 200,
+      headers: jsonHeaders,
+    });
   } catch (error) {
     console.error("Error processing request:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
