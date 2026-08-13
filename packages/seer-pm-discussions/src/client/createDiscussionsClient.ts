@@ -32,6 +32,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   const endpoint = `${base}/.netlify/functions/market-comments`;
   const marketId = options.marketId.toLowerCase();
 
+  /** Adds the host application's profile route to a server comment. */
   const withProfileHref = (comment: Comment): Comment => ({
     ...comment,
     authorDetails: {
@@ -112,6 +113,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   };
 }
 
+/** Builds the discussion identity supplied by a signed-in host application. */
 export function userFromAddress(address: string, username: string, profileHref?: string | null): DiscussionUser {
   return {
     address: address.toLowerCase(),

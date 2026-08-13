@@ -17,6 +17,7 @@ import type { Address } from "viem";
 import { navigate } from "vike/client/router";
 import { useAccount, useEnsName } from "wagmi";
 
+/** Displays the connected address's verified primary ENS identity, when one exists. */
 function EnsIdentity({ address }: { address: Address }) {
   const { data: ensName, isLoading } = useEnsName({
     address,
@@ -29,6 +30,7 @@ function EnsIdentity({ address }: { address: Address }) {
   return <EnsBadge name={ensName} className="mt-2" />;
 }
 
+/** Shared identity header for signed-in and signed-out profile states. */
 function ProfileHeader({
   address,
   description,
@@ -63,6 +65,7 @@ function ProfileHeader({
   );
 }
 
+/** Displays and updates the signed-in user's persistent Seer username. */
 function UsernameManager({ accessToken, address }: { accessToken: string; address: Address }) {
   const { data: user, isLoading, error: loadError } = usePublicUser({ address });
   const [draft, setDraft] = useState("");
@@ -149,6 +152,7 @@ function UsernameManager({ accessToken, address }: { accessToken: string; addres
   );
 }
 
+/** Resolves an exact username and navigates directly to its portfolio. */
 function UserSearch() {
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
@@ -205,6 +209,7 @@ function UserSearch() {
   );
 }
 
+/** Prompts a connected but unauthenticated wallet to create or load its profile. */
 function ConnectedUsernamePrompt({
   address,
   chainId,
@@ -252,6 +257,7 @@ function ConnectedUsernamePrompt({
   );
 }
 
+/** Provides profile management and public username search. */
 export default function UsersPage() {
   const { address, chainId, isConnected } = useAccount();
   const accessToken = useGlobalState((state) => state.accessToken);

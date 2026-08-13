@@ -6,6 +6,7 @@ import type { DiscussionUser } from "../../types";
 import { addressAccent } from "../../utils/linkify";
 import { EnsIcon } from "../EnsIcon/EnsIcon";
 
+/** Renders a deterministic wallet avatar linked to the user's profile when available. */
 export function UserPfp({ details, height = 44 }: { details?: DiscussionUser | null; height?: number }) {
   const accent = addressAccent(details?.address);
   const href = details?.profileHref ?? null;
@@ -86,6 +87,7 @@ export function CopyableAddress({
   );
 }
 
+/** Renders a verified primary ENS name as a link to the ENS application. */
 function EnsBadge({ name }: { name: string }) {
   return (
     <a
@@ -101,6 +103,7 @@ function EnsBadge({ name }: { name: string }) {
   );
 }
 
+/** Renders a Seer username and, when available, its verified primary ENS name. */
 export function Username({ details }: { details?: DiscussionUser | null }) {
   const address = details?.address;
   const normalizedAddress = address && isAddress(address) ? (address.toLowerCase() as Address) : undefined;

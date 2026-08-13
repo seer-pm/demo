@@ -17,6 +17,7 @@ type CommentRow = {
   deleted_at: string | null;
 };
 
+/** Parses an optional comment id and action from a function request URL. */
 function parsePath(url: string) {
   // /.netlify/functions/market-comments/:id?/action?
   const parts = new URL(url).pathname.split("/").filter(Boolean);
@@ -26,6 +27,7 @@ function parsePath(url: string) {
   return { id, action };
 }
 
+/** Converts a stored comment and its viewer-specific metadata to the API shape. */
 function toComment(row: CommentRow, likeCount: number, likedByMe: boolean, username?: string) {
   const author = row.author.toLowerCase();
   return {
@@ -43,6 +45,7 @@ function toComment(row: CommentRow, likeCount: number, likedByMe: boolean, usern
   };
 }
 
+/** Loads usernames for the supplied comment-author addresses. */
 async function getUsernames(addresses: string[]) {
   const normalized = [...new Set(addresses.map((address) => address.toLowerCase()))];
   if (normalized.length === 0) return new Map<string, string>();
@@ -53,6 +56,7 @@ async function getUsernames(addresses: string[]) {
   return new Map((data ?? []).map((row) => [row.id.toLowerCase(), row.username]));
 }
 
+/** Returns like totals and the set liked by the current viewer. */
 async function getLikeStats(commentIds: string[], viewer: string | null) {
   if (commentIds.length === 0) {
     return { counts: new Map<string, number>(), liked: new Set<string>() };
@@ -75,6 +79,7 @@ async function getLikeStats(commentIds: string[], viewer: string | null) {
   return { counts, liked };
 }
 
+/** Handles public comment reads and authenticated comment mutations. */
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
