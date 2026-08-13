@@ -47,7 +47,7 @@ export function UserPfp({ details, height = 44 }: { details?: DiscussionUser | n
 export function CopyableAddress({
   address,
   shortAddress,
-  className = "",
+  className = "text-sd-color-secondary",
 }: {
   address: string;
   shortAddress: string;
@@ -57,26 +57,29 @@ export function CopyableAddress({
 
   useEffect(() => {
     if (!copied) return;
-    const timeout = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timeout);
+    const id = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(id);
   }, [copied]);
 
-  const copy = async () => {
+  async function handleCopy() {
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
     } catch (error) {
       console.error("Failed to copy address:", error);
     }
-  };
+  }
 
   return (
     <button
       type="button"
-      className={`shrink-0 cursor-pointer rounded-sm font-normal underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className}`}
+      className={`shrink-0 rounded-sm font-normal underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className}`}
       title={copied ? "Copied" : address}
       aria-label={copied ? "Address copied" : `Copy address ${address}`}
-      onClick={() => void copy()}
+      onClick={(event) => {
+        event.stopPropagation();
+        void handleCopy();
+      }}
     >
       {copied ? "Copied" : shortAddress}
     </button>
