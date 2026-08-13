@@ -6,12 +6,13 @@ import type { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
 import { type LegacySubgraphMarket, MARKET_DB_FIELDS, mapGraphMarketFromDbResult } from "../markets";
 import type { Database, Json } from "../supabase";
+import { withRetry } from "../withRetry";
 import { getAllTokens } from "./getAllTokens";
 import { type LiquidityEvent, getAllLiquidityEvents, getLiquidityBalancesAtTimestamp } from "./getLiquidityBalances";
 import { type PoHRequest, getPOHVerifiedUsers, isPOHVerifiedUserAtTime } from "./getPOHVerifiedUsers";
 import type { PoolHourData } from "./getPoolHourDatas";
 import { computePrices, fetchPoolHourDatas } from "./getPrices";
-import { getTokensByTimestamp, withRetry } from "./utils";
+import { getTokensByTimestamp } from "./utils";
 
 const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.SUPABASE_PROJECT_URL!,

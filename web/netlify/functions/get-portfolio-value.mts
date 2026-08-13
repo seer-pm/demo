@@ -13,7 +13,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * Portfolio value + ~24h mark-to-market change — how this endpoint works (important assumptions)
  *
  * What we value (`currentPortfolioValue` / `historyPortfolioValue`)
- * - We value **outcome-token positions only** (same shape as `get-portfolio` / `get-portfolio-pl`).
+ * - We value **outcome-token positions only** (same shape as `get-portfolio`, including Futarchy).
+ *   `get-portfolio-pl` is Generic-only and is not the same bag.
  * - We intentionally **do not** include “idle” primary collateral in wallet in these totals.
  *
  * Prices

@@ -299,6 +299,7 @@ export default function Header() {
         children: [
           { id: "market", type: "link", url: "/", title: "Markets" },
           { id: "users", type: "link", url: paths.users(), title: "Users" },
+          { id: "leaderboard", type: "link", url: "/leaderboard", title: "Leaderboard" },
           { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
           {
             id: "policies-dropdown",

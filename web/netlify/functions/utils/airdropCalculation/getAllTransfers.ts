@@ -5,7 +5,7 @@ import pLimit from "p-limit";
 import { Address, formatUnits, zeroAddress } from "viem";
 
 import type { Database } from "../supabase";
-import { withRetry } from "./utils";
+import { withRetry } from "../withRetry";
 
 const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.SUPABASE_PROJECT_URL!,

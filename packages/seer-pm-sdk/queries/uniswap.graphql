@@ -109,6 +109,7 @@ query GetSwaps(
     id
     sender
     recipient
+    origin
     amount0
     amount1
     token0 {
