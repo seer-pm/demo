@@ -107,7 +107,13 @@ as $$
     from public.pnl_leaderboard l
     where l.app_id = p_app_id
       and l.period = p_period
-      and (p_search is null or p_search = '' or l.address ilike '%' || p_search || '%')
+      and (
+        p_search is null
+        or p_search = ''
+        or l.address ilike
+          '%' || replace(replace(replace(p_search, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+          escape '\'
+      )
     group by l.address
   )
   select
@@ -120,7 +126,7 @@ as $$
     (count(*) over ())::bigint as total_count
   from agg a
   order by a.pnl_usd desc, a.address
-  limit greatest(p_limit, 0)
+  limit greatest(coalesce(p_limit, 50), 0)
   offset greatest(p_offset, 0);
 $$;
 
