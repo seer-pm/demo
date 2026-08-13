@@ -12,20 +12,24 @@ type PublicUser = {
   username: string;
 };
 
+/** Creates a JSON response with the function's standard CORS headers. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
+/** Converts a complete database profile to its public representation. */
 function publicUser(row: { id: string; username: string }): PublicUser {
   return { address: row.id.toLowerCase(), username: row.username };
 }
 
+/** Finds a user by their normalized username. */
 async function findByUsername(username: string): Promise<{ id: string; username: string } | null> {
   const { data, error } = await supabase.from("users").select("id, username").eq("username", username).maybeSingle();
   if (error) throw error;
   return data;
 }
 
+/** Handles public profile lookup and authenticated username updates. */
 export default async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 

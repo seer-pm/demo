@@ -11,6 +11,7 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUP
 
 const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
 
+/** Updates the login time or creates a new user with a unique username. */
 async function findOrCreateUser(address: string) {
   const userId = address.toLowerCase();
   const lastLoginAt = new Date().toISOString();
@@ -48,6 +49,7 @@ async function findOrCreateUser(address: string) {
   throw new Error("Unable to create user with a unique username");
 }
 
+/** Verifies a SIWE signature, persists the user, and returns a short-lived JWT. */
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });

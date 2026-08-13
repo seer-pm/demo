@@ -10,6 +10,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+/** Assigns a username unless a concurrent process already populated the row. */
 async function assignUsername(id: string) {
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const username = makeUsername(attempt === 0 ? id.toLowerCase() : undefined);
@@ -38,6 +39,7 @@ async function assignUsername(id: string) {
   throw new Error(`Unable to assign a unique username to ${id}`);
 }
 
+/** Backfills every legacy user in batches until no nullable usernames remain. */
 async function main() {
   let updated = 0;
 

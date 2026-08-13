@@ -1,6 +1,7 @@
 import { EnsIcon } from "@seer-pm/discussions";
 import clsx from "clsx";
 
+/** Links a verified primary ENS name using the web application's badge styling. */
 export function EnsBadge({ name, className }: { name: string; className?: string }) {
   return (
     <a

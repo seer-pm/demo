@@ -1,3 +1,4 @@
+/** Renders the ENS brand mark for verified ENS identity badges. */
 export function EnsIcon({ className = "h-3 w-3 shrink-0" }: { className?: string }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 202 231" className={className} fill="none">
