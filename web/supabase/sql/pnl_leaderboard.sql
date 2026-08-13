@@ -57,3 +57,119 @@ COMMENT ON TABLE public.pnl_leaderboard IS
 -- (especially with RLS), so updated_at never moves and the stale batch never rotates.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pnl_leaderboard TO service_role;
 GRANT SELECT ON public.pnl_leaderboard TO anon, authenticated;
+
+-- Rotation cursor for refresh-pnl-leaderboard-background (one row, id='default').
+CREATE TABLE IF NOT EXISTS public.pnl_leaderboard_refresh_cursor (
+  id text PRIMARY KEY DEFAULT 'default',
+  app_id text NOT NULL,
+  chain_id integer NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pnl_leaderboard_refresh_cursor TO service_role;
+
+-- All-chains leaderboard: group by address (capital summed per chain row, then across chains).
+-- capital_usd = value_start * price + greatest((volume + trading_collateral_net_out) / 2, 0) * price
+create or replace function public.pnl_leaderboard_all_chains(
+  p_app_id text,
+  p_period text,
+  p_search text default null,
+  p_limit integer default 50,
+  p_offset integer default 0
+)
+returns table (
+  address text,
+  pnl_usd numeric,
+  volume_usd numeric,
+  capital_usd numeric,
+  market_count bigint,
+  updated_at timestamptz,
+  total_count bigint
+)
+language sql
+stable
+parallel safe
+security invoker
+set search_path = public
+as $$
+  with agg as (
+    select
+      l.address,
+      sum(l.pnl_usd) as pnl_usd,
+      sum(l.volume_usd) as volume_usd,
+      sum(
+        (coalesce(l.value_start, 0) * coalesce(l.collateral_price_usd, 0))
+        + greatest((coalesce(l.volume, 0) + coalesce(l.trading_collateral_net_out, 0)) / 2, 0)
+          * coalesce(l.collateral_price_usd, 0)
+      ) as capital_usd,
+      sum(l.market_count)::bigint as market_count,
+      max(l.updated_at) as updated_at
+    from public.pnl_leaderboard l
+    where l.app_id = p_app_id
+      and l.period = p_period
+      and (p_search is null or p_search = '' or l.address ilike '%' || p_search || '%')
+    group by l.address
+  )
+  select
+    a.address,
+    a.pnl_usd,
+    a.volume_usd,
+    a.capital_usd,
+    a.market_count,
+    a.updated_at,
+    (count(*) over ())::bigint as total_count
+  from agg a
+  order by a.pnl_usd desc, a.address
+  limit greatest(p_limit, 0)
+  offset greatest(p_offset, 0);
+$$;
+
+grant execute on function public.pnl_leaderboard_all_chains(text, text, text, integer, integer)
+  to anon, authenticated, service_role;
+
+create or replace function public.pnl_leaderboard_all_chains_rank(
+  p_app_id text,
+  p_period text,
+  p_address text
+)
+returns table (
+  rank bigint,
+  total bigint
+)
+language sql
+stable
+parallel safe
+security invoker
+set search_path = public
+as $$
+  with agg as (
+    select l.address, sum(l.pnl_usd) as pnl_usd
+    from public.pnl_leaderboard l
+    where l.app_id = p_app_id
+      and l.period = p_period
+    group by l.address
+  ),
+  target as (
+    select a.address, a.pnl_usd
+    from agg a
+    where a.address = lower(p_address)
+  )
+  select
+    case
+      when exists (select 1 from target) then
+        (
+          select count(*)::bigint + 1
+          from agg a
+          cross join target t
+          where a.pnl_usd > t.pnl_usd
+             or (a.pnl_usd = t.pnl_usd and a.address < t.address)
+        )
+      else null
+    end as rank,
+    (select count(*)::bigint from agg) as total;
+$$;
+
+grant execute on function public.pnl_leaderboard_all_chains_rank(text, text, text)
+  to anon, authenticated, service_role;
+
+notify pgrst, 'reload schema';

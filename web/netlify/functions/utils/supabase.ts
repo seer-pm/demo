@@ -483,6 +483,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      pnl_leaderboard_refresh_cursor: {
+        Row: {
+          app_id: string;
+          chain_id: number;
+          id: string;
+          updated_at: string;
+        };
+        Insert: {
+          app_id: string;
+          chain_id: number;
+          id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          app_id?: string;
+          chain_id?: number;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       notifications_queue: {
         Row: {
           created_at: string;
@@ -780,6 +801,31 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      pnl_leaderboard_all_chains: {
+        Args: {
+          p_app_id: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_period: string;
+          p_search?: string | null;
+        };
+        Returns: {
+          address: string;
+          capital_usd: number;
+          market_count: number;
+          pnl_usd: number;
+          total_count: number;
+          updated_at: string;
+          volume_usd: number;
+        }[];
+      };
+      pnl_leaderboard_all_chains_rank: {
+        Args: { p_address: string; p_app_id: string; p_period: string };
+        Returns: {
+          rank: number | null;
+          total: number;
+        }[];
       };
       search_markets_any_token: {
         Args: { tokens: string[] };

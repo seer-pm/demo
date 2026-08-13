@@ -20,7 +20,7 @@ multi-statement scripts in one, so run those statements individually.
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
-| `pnl_leaderboard.sql` | Table + indexes for the app-scoped PnL leaderboard (`get-pnl-leaderboard` / refresh job). Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). |
+| `pnl_leaderboard.sql` | Table + indexes + all-chains RPCs (`pnl_leaderboard_all_chains`, `pnl_leaderboard_all_chains_rank`) + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `dex_pool_hour_prices_latest_for_pairs.sql` | RPC: latest pool hour row per (token0, token1) pair (replaces flat-token latest RPC). |
 
@@ -30,7 +30,7 @@ After pulling these changes, run in the Supabase SQL editor (in order):
 
 1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
 2. `dex_pool_hour_prices_latest_for_pairs.sql`
-3. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `roi` via `ADD COLUMN IF NOT EXISTS`)
+3. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `roi`, the refresh cursor table, and all-chains RPCs)
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

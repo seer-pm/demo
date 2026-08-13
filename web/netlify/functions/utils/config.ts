@@ -16,7 +16,7 @@ const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || "https://eth-pokt.nodies.
 const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || "https://mainnet.optimism.io";
 const BASE_RPC = process.env.PRIVATE_RPC_BASE || "https://base.llamarpc.com";
 
-initApiHost("http://localhost:3001");
+initApiHost(process.env.API_HOST || process.env.URL || "https://app.seer.pm");
 
 configurePublicRpcUrls({
   [gnosis.id]: GNOSIS_RPC,

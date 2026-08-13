@@ -2,7 +2,7 @@ import { SEER_APP_ALL_ID, type SeerAppFilterId, isSeerAppFilterId, listSeerApps 
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { createClient } from "@supabase/supabase-js";
 import { CORS_HEADERS } from "./utils/common";
-import { capitalUsdFromRow, roiFromCapitalUsd } from "./utils/pnlLeaderboard";
+import { roiFromCapitalUsd } from "./utils/pnlLeaderboard";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -28,13 +28,16 @@ export type PnlLeaderboardRow = {
   updatedAt: string | null;
 };
 
-/** Lowercase hex address fragment for ilike search; empty if invalid. */
-function sanitizeAddressSearch(raw: string): string {
+type AddressSearch = { kind: "none" } | { kind: "fragment"; hex: string };
+
+/** Lowercase hex address fragment for ilike search. */
+function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invalid" } {
+  if (raw == null) return { kind: "none" };
   const trimmed = raw.trim().toLowerCase();
-  if (!trimmed) return "";
+  if (!trimmed) return { kind: "none" };
   const hex = trimmed.startsWith("0x") ? trimmed.slice(2) : trimmed;
-  if (!/^[0-9a-f]+$/.test(hex)) return "";
-  return hex;
+  if (!/^[0-9a-f]+$/.test(hex)) return { kind: "invalid" };
+  return { kind: "fragment", hex };
 }
 
 function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>) {
@@ -70,7 +73,11 @@ export default async (req: Request) => {
     const chainIdParam = (url.searchParams.get("chainId") ?? String(DEFAULT_CHAIN)).toLowerCase();
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50) || 50, 1), 200);
     const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
-    const search = sanitizeAddressSearch(url.searchParams.get("search") ?? "");
+    const searchParsed = parseAddressSearch(url.searchParams.get("search"));
+    if (searchParsed.kind === "invalid") {
+      return jsonResponse({ error: "search must be a hex address fragment" }, 400);
+    }
+    const search = searchParsed.kind === "fragment" ? searchParsed.hex : "";
 
     if (!isSeerAppFilterId(appParam)) {
       return jsonResponse(
@@ -207,48 +214,25 @@ async function serveRankForSingleChainUsd(args: {
 async function serveRankForAllChainsUsd(args: { app: SeerAppFilterId; period: Period; address: string }) {
   const { app, period, address } = args;
 
-  const { data, error } = await supabase
-    .from("pnl_leaderboard")
-    .select(
-      "address, pnl_usd, volume, value_start, trading_collateral_net_out, collateral_price_usd, market_count, updated_at",
-    )
-    .eq("app_id", app)
-    .eq("period", period)
-    .order("pnl_usd", { ascending: false })
-    .limit(5000);
+  const { data, error } = await supabase.rpc("pnl_leaderboard_all_chains_rank", {
+    p_app_id: app,
+    p_period: period,
+    p_address: address,
+  });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  type Agg = { pnlUsd: number; capitalUsd: number };
-  const byAddress = new Map<string, Agg>();
-  for (const row of data ?? []) {
-    const addr = row.address.toLowerCase();
-    const cur = byAddress.get(addr) ?? { pnlUsd: 0, capitalUsd: 0 };
-    cur.pnlUsd += Number(row.pnl_usd) || 0;
-    cur.capitalUsd += capitalUsdFromRow({
-      valueStart: Number(row.value_start) || 0,
-      volume: Number(row.volume) || 0,
-      tradingCollateralNetOut: Number(row.trading_collateral_net_out) || 0,
-      collateralPriceUsd: Number(row.collateral_price_usd) || 0,
-    });
-    byAddress.set(addr, cur);
-  }
-
-  const ranked = [...byAddress.entries()]
-    .map(([addr, v]) => ({ address: addr, pnlUsd: v.pnlUsd }))
-    .sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
-
-  const index = ranked.findIndex((r) => r.address === address);
+  const row = data?.[0];
   return jsonResponse(
     {
       app,
       chainId: "all",
       period,
       address,
-      rank: index >= 0 ? index + 1 : null,
-      total: ranked.length,
+      rank: row?.rank == null ? null : Number(row.rank),
+      total: Number(row?.total) || 0,
     },
     200,
     { "Cache-Control": "public, max-age=60" },
@@ -322,81 +306,47 @@ async function serveAllChainsUsd(args: {
 }) {
   const { app, period, limit, offset, search } = args;
 
-  // Fetch a generous page then aggregate in memory (wallet set per app is capped at refresh time).
-  let query = supabase
-    .from("pnl_leaderboard")
-    .select(
-      "address, pnl_usd, volume_usd, volume, value_start, trading_collateral_net_out, collateral_price_usd, market_count, updated_at, chain_id",
-    )
-    .eq("app_id", app)
-    .eq("period", period)
-    .order("pnl_usd", { ascending: false })
-    .limit(5000);
+  const { data, error } = await supabase.rpc("pnl_leaderboard_all_chains", {
+    p_app_id: app,
+    p_period: period,
+    p_search: search || null,
+    p_limit: limit,
+    p_offset: offset,
+  });
 
-  if (search) {
-    query = query.ilike("address", `%${search}%`);
-  }
-
-  const { data, error } = await query;
   if (error) {
     throw new Error(error.message);
   }
 
-  type Agg = {
-    pnlUsd: number;
-    volumeUsd: number;
-    capitalUsd: number;
-    marketCount: number;
-    updatedAt: string | null;
-  };
-  const byAddress = new Map<string, Agg>();
-  for (const row of data ?? []) {
-    const address = row.address.toLowerCase();
-    const cur = byAddress.get(address) ?? {
-      pnlUsd: 0,
-      volumeUsd: 0,
-      capitalUsd: 0,
-      marketCount: 0,
-      updatedAt: null,
-    };
-    cur.pnlUsd += Number(row.pnl_usd) || 0;
-    cur.volumeUsd += Number(row.volume_usd) || 0;
-    cur.capitalUsd += capitalUsdFromRow({
-      valueStart: Number(row.value_start) || 0,
-      volume: Number(row.volume) || 0,
-      tradingCollateralNetOut: Number(row.trading_collateral_net_out) || 0,
-      collateralPriceUsd: Number(row.collateral_price_usd) || 0,
+  const page = data ?? [];
+  let total = Number(page[0]?.total_count) || 0;
+  if (page.length === 0 && offset > 0) {
+    const { data: head, error: headError } = await supabase.rpc("pnl_leaderboard_all_chains", {
+      p_app_id: app,
+      p_period: period,
+      p_search: search || null,
+      p_limit: 1,
+      p_offset: 0,
     });
-    cur.marketCount += row.market_count ?? 0;
-    if (row.updated_at && (!cur.updatedAt || row.updated_at > cur.updatedAt)) {
-      cur.updatedAt = row.updated_at;
+    if (headError) {
+      throw new Error(headError.message);
     }
-    byAddress.set(address, cur);
+    total = Number(head?.[0]?.total_count) || 0;
   }
-
-  const ranked = [...byAddress.entries()]
-    .map(([address, v]) => ({
-      address,
-      pnlUsd: v.pnlUsd,
-      volumeUsd: v.volumeUsd,
-      marketCount: v.marketCount,
-      updatedAt: v.updatedAt,
-      roi: roiFromCapitalUsd(v.pnlUsd, v.capitalUsd),
-    }))
-    .sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
-
-  const total = ranked.length;
-  const page = ranked.slice(offset, offset + limit);
-  const rows: PnlLeaderboardRow[] = page.map((r, i) => ({
-    rank: offset + i + 1,
-    address: r.address,
-    pnl: r.pnlUsd,
-    volume: r.volumeUsd,
-    roi: r.roi,
-    unit: "USD",
-    marketCount: r.marketCount,
-    updatedAt: r.updatedAt,
-  }));
+  const rows: PnlLeaderboardRow[] = page.map((r, i) => {
+    const pnlUsd = Number(r.pnl_usd) || 0;
+    const capitalUsd = Number(r.capital_usd) || 0;
+    return {
+      rank: offset + i + 1,
+      address: r.address,
+      pnl: pnlUsd,
+      volume: Number(r.volume_usd) || 0,
+      roi: roiFromCapitalUsd(pnlUsd, capitalUsd),
+      unit: "USD",
+      marketCount: Number(r.market_count) || 0,
+      updatedAt: r.updated_at ?? null,
+    };
+  });
 
   return jsonResponse(
     {

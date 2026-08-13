@@ -46,6 +46,8 @@ export type PortfolioPlPeriodSnapshot = {
   volume: number;
   /** Distinct markets with counted primary-collateral swaps in the window. */
   marketCount: number;
+  /** Snapshot write time from `pnl_leaderboard.updated_at` (global path). */
+  updatedAt?: string | null;
   routerPrimaryCollateralNetInWindow?: number;
   events?: unknown[];
   pnl: number;

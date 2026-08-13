@@ -14,7 +14,7 @@ export const PNL_LEADERBOARD_CONCURRENCY = 1;
 /** Max wallets to compute/upsert per app×chain job in one background run. */
 export const PNL_LEADERBOARD_BATCH_SIZE = 200;
 /** Only wallets with analytics activity in this UTC window are refresh candidates. */
-export const PNL_LEADERBOARD_RECENT_DAYS = 5000;
+export const PNL_LEADERBOARD_RECENT_DAYS = 5;
 /** Stay under Netlify's ~15m background limit. */
 export const PNL_LEADERBOARD_REFRESH_BUDGET_MS = 13 * 60 * 1000;
 
@@ -266,19 +266,6 @@ export async function selectStaleLeaderboardBatch(
     }
   }
 
-  const { data: oldestRow, error: oldestError } = await supabase
-    .from("pnl_leaderboard")
-    .select("updated_at")
-    .eq("app_id", appId)
-    .eq("chain_id", chainId)
-    .eq("period", "all")
-    .order("updated_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (oldestError) {
-    throw new Error(`pnl-leaderboard: table min updated_at lookup failed: ${oldestError.message}`);
-  }
-
   const ranked = [...candidates].sort((a, b) => {
     const aMs = updatedAtMs(updatedAtByAddress.get(a.address.toLowerCase()));
     const bMs = updatedAtMs(updatedAtByAddress.get(b.address.toLowerCase()));
@@ -300,7 +287,7 @@ export async function selectStaleLeaderboardBatch(
   }
 
   console.log(
-    `pnl-leaderboard: stale lookup app=${appId} chain=${chainId} candidates=${candidates.length} missing=${missing} resolved=${updatedAtByAddress.size} tableMinUpdatedAt=${isoOrNull(updatedAtMs(oldestRow?.updated_at))} batchMinUpdatedAt=${isoOrNull(batchMinMs)} batchMaxUpdatedAt=${isoOrNull(batchMaxMs)} sample=${JSON.stringify(batch.slice(0, 8).map((c) => c.address))}`,
+    `pnl-leaderboard: stale lookup app=${appId} chain=${chainId} candidates=${candidates.length} missing=${missing} resolved=${updatedAtByAddress.size} batchMinUpdatedAt=${isoOrNull(batchMinMs)} batchMaxUpdatedAt=${isoOrNull(batchMaxMs)} sample=${JSON.stringify(batch.slice(0, 8).map((c) => c.address))}`,
   );
 
   return batch;
@@ -344,8 +331,15 @@ export async function expandMarketIdsWithChildren(chainId: number, marketIds: Ad
   return [...expanded];
 }
 
+class FatalLeaderboardUpsertError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FatalLeaderboardUpsertError";
+  }
+}
+
 function isFatalLeaderboardUpsertError(error: unknown): boolean {
-  return error instanceof Error && error.message.startsWith("pnl-leaderboard: upsert wrote");
+  return error instanceof FatalLeaderboardUpsertError;
 }
 
 async function upsertLeaderboardRows(
@@ -367,12 +361,12 @@ async function upsertLeaderboardRows(
 
   const written = data ?? [];
   if (count === 0 || written.length === 0) {
-    throw new Error(
+    throw new FatalLeaderboardUpsertError(
       `pnl-leaderboard: upsert wrote 0 rows for ${address} (count=${count}, returned=${written.length}); check SUPABASE_API_KEY is service_role and INSERT/UPDATE grants (anon is SELECT-only)`,
     );
   }
   if (written.length !== rows.length) {
-    throw new Error(
+    throw new FatalLeaderboardUpsertError(
       `pnl-leaderboard: upsert wrote ${written.length}/${rows.length} rows for ${address} (count=${count})`,
     );
   }
@@ -384,8 +378,8 @@ async function upsertLeaderboardRows(
     return !Number.isFinite(ts) || ts < freshAfter;
   });
   if (stale.length > 0) {
-    throw new Error(
-      `pnl-leaderboard: upsert wrote 0 fresh updated_at for ${address} (${stale.length}/${written.length} stale or missing); writes may be no-ops`,
+    throw new FatalLeaderboardUpsertError(
+      `pnl-leaderboard: upsert wrote ${stale.length}/${written.length} rows with stale or missing updated_at for ${address}; writes may be no-ops`,
     );
   }
 }
@@ -534,11 +528,11 @@ export async function refreshPnlLeaderboardForAppChain(
 /**
  * Jobs: each configured app × chain (allowlisted root markets; children expanded at refresh),
  * plus protocol-wide `all` × every supported chain (includes markets that belong to no app).
+ * Background refresh walks this list as a ring from a persisted cursor.
  */
 export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
   const jobs: RefreshJob[] = [];
 
-  // Protocol-wide `all` first so app-scoped work cannot starve it under the time budget.
   for (const chain of Object.values(SUPPORTED_CHAINS)) {
     jobs.push({ appId: SEER_APP_ALL_ID, chainId: chain.id, marketIds: undefined });
   }
@@ -555,4 +549,43 @@ export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
   }
 
   return jobs;
+}
+
+const REFRESH_CURSOR_ID = "default";
+
+export async function loadPnlLeaderboardRefreshCursor(
+  supabase: SupabaseClient<Database>,
+): Promise<{ appId: string; chainId: number } | null> {
+  const { data, error } = await supabase
+    .from("pnl_leaderboard_refresh_cursor")
+    .select("app_id, chain_id")
+    .eq("id", REFRESH_CURSOR_ID)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`pnl-leaderboard: load refresh cursor failed: ${error.message}`);
+  }
+  if (!data) return null;
+  return { appId: data.app_id, chainId: data.chain_id };
+}
+
+export async function savePnlLeaderboardRefreshCursor(
+  supabase: SupabaseClient<Database>,
+  job: { appId: string; chainId: number },
+): Promise<void> {
+  const { error } = await supabase.from("pnl_leaderboard_refresh_cursor").upsert({
+    id: REFRESH_CURSOR_ID,
+    app_id: job.appId,
+    chain_id: job.chainId,
+  });
+  if (error) {
+    throw new Error(`pnl-leaderboard: save refresh cursor failed: ${error.message}`);
+  }
+}
+
+/** Index of the job after `cursor` in `jobs`, wrapping. Missing cursor → 0. */
+export function nextJobIndexAfterCursor(jobs: RefreshJob[], cursor: { appId: string; chainId: number } | null): number {
+  if (!cursor || jobs.length === 0) return 0;
+  const idx = jobs.findIndex((j) => j.appId === cursor.appId && j.chainId === cursor.chainId);
+  if (idx < 0) return 0;
+  return (idx + 1) % jobs.length;
 }

@@ -1,8 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import { requireBackgroundSecret } from "./utils/backgroundAuth";
 import {
   PNL_LEADERBOARD_REFRESH_BUDGET_MS,
   listPnlLeaderboardRefreshJobs,
+  loadPnlLeaderboardRefreshCursor,
+  nextJobIndexAfterCursor,
   refreshPnlLeaderboardForAppChain,
+  savePnlLeaderboardRefreshCursor,
 } from "./utils/pnlLeaderboard";
 import type { Database } from "./utils/supabase";
 
@@ -17,7 +21,7 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *
  * Each job refreshes a stale/missing batch among wallets with analytics activity;
  * a global time budget aborts cleanly before Netlify's ~15m background limit so the next
- * schedule can continue the rotation.
+ * schedule can continue the (app, chain) ring from a persisted cursor.
  */
 export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
@@ -25,16 +29,9 @@ export default async (req: Request) => {
     return;
   }
 
-  const expectedSecret = process.env.PNL_LEADERBOARD_REFRESH_SECRET;
-  if (expectedSecret) {
-    const provided = req.headers.get("x-pnl-leaderboard-refresh-secret");
-    if (provided !== expectedSecret) {
-      console.error("refresh-pnl-leaderboard-background: rejected (missing or invalid secret)");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+  const unauthorized = requireBackgroundSecret(req);
+  if (unauthorized) {
+    return unauthorized;
   }
 
   const jobs = listPnlLeaderboardRefreshJobs();
@@ -43,21 +40,26 @@ export default async (req: Request) => {
     return;
   }
 
+  const cursor = await loadPnlLeaderboardRefreshCursor(supabase);
+  const startIndex = nextJobIndexAfterCursor(jobs, cursor);
+
   const startedAt = Date.now();
   const deadlineMs = startedAt + PNL_LEADERBOARD_REFRESH_BUDGET_MS;
 
   console.log(
-    `refresh-pnl-leaderboard-background: starting ${jobs.length} job(s) budgetMs=${PNL_LEADERBOARD_REFRESH_BUDGET_MS}`,
+    `refresh-pnl-leaderboard-background: starting ${jobs.length} job(s) from ${jobs[startIndex].appId} chain=${jobs[startIndex].chainId} budgetMs=${PNL_LEADERBOARD_REFRESH_BUDGET_MS}`,
   );
   const results = [];
-  for (const job of jobs) {
+  for (let n = 0; n < jobs.length; n++) {
     if (Date.now() >= deadlineMs) {
+      const deferred = jobs[(startIndex + n) % jobs.length];
       console.log(
-        `refresh-pnl-leaderboard-background: budget exhausted before job ${job.appId} chain=${job.chainId}; deferring remaining jobs`,
+        `refresh-pnl-leaderboard-background: budget exhausted before job ${deferred.appId} chain=${deferred.chainId}; deferring remaining jobs`,
       );
       break;
     }
 
+    const job = jobs[(startIndex + n) % jobs.length];
     const scope = job.marketIds === undefined ? "global" : `${job.marketIds.length} allowlisted root(s)`;
     console.log(`refresh-pnl-leaderboard-background: ${job.appId} chain=${job.chainId} scope=${scope}`);
     try {
@@ -69,6 +71,7 @@ export default async (req: Request) => {
 
       if (result.abortedByBudget) {
         console.log("refresh-pnl-leaderboard-background: aborted mid-job by budget; remaining jobs deferred");
+        await persistCursor(job);
         break;
       }
     } catch (e) {
@@ -76,6 +79,8 @@ export default async (req: Request) => {
       console.error(`refresh-pnl-leaderboard-background: skipped job ${job.appId} chain=${job.chainId}:`, error);
       results.push({ appId: job.appId, chainId: job.chainId, error, skipped: true });
     }
+
+    await persistCursor(job);
   }
 
   console.log(
@@ -86,3 +91,11 @@ export default async (req: Request) => {
     }),
   );
 };
+
+async function persistCursor(job: { appId: string; chainId: number }) {
+  try {
+    await savePnlLeaderboardRefreshCursor(supabase, job);
+  } catch (e) {
+    console.error("refresh-pnl-leaderboard-background: failed to persist rotation cursor", e);
+  }
+}

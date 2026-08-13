@@ -40,7 +40,9 @@ async function getMarketsAndMappings(chainId: SupportedChain): Promise<{
         mappings,
         expiresAt: Date.now() + MARKETS_MAPPINGS_TTL_MS,
       };
-      marketsMappingsByChain.set(chainId, entry);
+      if (markets.length > 0) {
+        marketsMappingsByChain.set(chainId, entry);
+      }
       return entry;
     })().finally(() => {
       marketsMappingsInflight.delete(chainId);

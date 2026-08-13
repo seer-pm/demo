@@ -247,11 +247,7 @@ async function getCowswapSwapsCached(
   }
 
   const cacheKey = `${chainId}:${account.toLowerCase()}`;
-  console.log({
-    name: COWSWAP_OWNER_TRADES_STORE,
-    siteID: process.env.NETLIFY_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  });
+
   try {
     const store = getStore({
       name: COWSWAP_OWNER_TRADES_STORE,

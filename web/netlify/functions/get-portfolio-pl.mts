@@ -28,7 +28,9 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *
  * Global response shape
  * - Snapshot fields from the table: `pnl`, `valueStart`, `valueEnd`, `tradingCollateralNetOut`,
- *   `volume`, `marketCount`, plus request `account` / `chainId` / `period` and EOD `startTime` / `endTime=now`.
+ *   `volume`, `marketCount`, plus request `account` / `chainId` / `period`.
+ * - `endTime` / `startTime` (for 1d, 1w, 1m) are derived from the row's `updated_at`, not request-time now.
+ * - `updatedAt` is that snapshot timestamp. `period=all` keeps `startTime` null.
  * - May be stale until the next successful refresh; wallets never selected as candidates
  *   (no analytics activity in the window, or still waiting on the stale/missing rotation)
  *   stay at zeros.
@@ -48,11 +50,12 @@ async function portfolioPlFromLeaderboard(args: {
 }): Promise<PortfolioPlPeriodSnapshot> {
   const { account, chainId, period, endTime } = args;
   const accountLc = account.toLowerCase();
-  const startTime = period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
 
   const { data, error } = await supabase
     .from("pnl_leaderboard")
-    .select("pnl, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume, market_count")
+    .select(
+      "pnl, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume, market_count, updated_at",
+    )
     .eq("app_id", SEER_APP_ALL_ID)
     .eq("chain_id", chainId)
     .eq("address", accountLc)
@@ -63,29 +66,37 @@ async function portfolioPlFromLeaderboard(args: {
     throw new Error(`portfolio-pl leaderboard read failed: ${error.message}`);
   }
 
+  const zeros = (windowEnd: number, startTime: number | null, updatedAt: string | null): PortfolioPlPeriodSnapshot => ({
+    account: accountLc,
+    chainId,
+    period,
+    startTime,
+    endTime: windowEnd,
+    valueStart: 0,
+    valueEnd: 0,
+    tradingCollateralNetOut: 0,
+    lpCollateralNetOut: 0,
+    volume: 0,
+    marketCount: 0,
+    pnl: 0,
+    updatedAt,
+  });
+
   if (!data) {
-    return {
-      account: accountLc,
-      chainId,
-      period,
-      startTime,
-      endTime,
-      valueStart: 0,
-      valueEnd: 0,
-      tradingCollateralNetOut: 0,
-      lpCollateralNetOut: 0,
-      volume: 0,
-      marketCount: 0,
-      pnl: 0,
-    };
+    const startTime = period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
+    return zeros(endTime, startTime, null);
   }
+
+  const parsed = Date.parse(data.updated_at);
+  const snapshotEnd = Number.isFinite(parsed) ? Math.floor(parsed / 1000) : endTime;
+  const startTime = period === "all" ? null : eodStartTimesForPeriods(snapshotEnd, null)[period];
 
   return {
     account: accountLc,
     chainId,
     period,
     startTime,
-    endTime,
+    endTime: snapshotEnd,
     valueStart: Number(data.value_start) || 0,
     valueEnd: Number(data.value_end) || 0,
     tradingCollateralNetOut: Number(data.trading_collateral_net_out) || 0,
@@ -93,6 +104,7 @@ async function portfolioPlFromLeaderboard(args: {
     volume: Number(data.volume) || 0,
     marketCount: Number(data.market_count) || 0,
     pnl: Number(data.pnl) || 0,
+    updatedAt: data.updated_at,
   };
 }
 

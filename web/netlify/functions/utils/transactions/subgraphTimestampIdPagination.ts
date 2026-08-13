@@ -17,8 +17,8 @@ export type TimestampIdPageItem = {
 export function buildTimestampIdPageWhere(args: {
   accountFilters: Record<string, unknown>[];
   startTime?: number;
-  /** Exclusive upper bound for the first page (typically endTime). */
-  endExclusive?: string;
+  /** Inclusive upper bound for the first page (typically endTime). */
+  endInclusive?: string;
   cursor?: TimestampIdCursor;
 }): Record<string, unknown> {
   const and: Record<string, unknown>[] = [];
@@ -40,8 +40,8 @@ export function buildTimestampIdPageWhere(args: {
         { and: [{ timestamp: args.cursor.timestamp }, { id_lt: args.cursor.id }] },
       ],
     });
-  } else if (args.endExclusive != null) {
-    and.push({ timestamp_lt: args.endExclusive });
+  } else if (args.endInclusive != null) {
+    and.push({ timestamp_lte: args.endInclusive });
   }
 
   return { and };
@@ -61,13 +61,13 @@ export async function paginateByTimestampId<T extends TimestampIdPageItem>(args:
   const out: T[] = [];
   const seen = new Set<string>();
   let cursor: TimestampIdCursor | undefined;
-  const endExclusive = args.endTime?.toString();
+  const endInclusive = args.endTime?.toString();
 
   for (;;) {
     const where = buildTimestampIdPageWhere({
       accountFilters: args.accountFilters,
       startTime: args.startTime,
-      endExclusive: cursor ? undefined : endExclusive,
+      endInclusive: cursor ? undefined : endInclusive,
       cursor,
     });
 
