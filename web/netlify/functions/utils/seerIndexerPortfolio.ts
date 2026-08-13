@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import type { PortfolioPosition, SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
 import { Order_By } from "@seer-pm/sdk/subgraph/seer";
 import { type Address, formatUnits } from "viem";
@@ -31,6 +32,18 @@ export type AccountActivityRow = {
   transferCount: number;
 };
 
+function mapAccountActivityRow(row: {
+  earliestTransferTimestamp: string;
+  lastTransferTimestamp: string;
+  transferCount: string;
+}): AccountActivityRow {
+  return {
+    earliestTransferTimestamp: Number(row.earliestTransferTimestamp),
+    lastTransferTimestamp: Number(row.lastTransferTimestamp),
+    transferCount: Number(row.transferCount),
+  };
+}
+
 export async function fetchAccountActivity(
   account: Address,
   chainId: SupportedChain,
@@ -39,11 +52,15 @@ export async function fetchAccountActivity(
     id: accountActivityEntityId(chainId, account),
   });
   if (!accountActivity) return null;
-  return {
-    earliestTransferTimestamp: Number(accountActivity.earliestTransferTimestamp),
-    lastTransferTimestamp: Number(accountActivity.lastTransferTimestamp),
-    transferCount: Number(accountActivity.transferCount),
-  };
+  return mapAccountActivityRow(accountActivity);
+}
+
+/** All chain rows for an account from the shared HyperIndex (one HTTP call). */
+export async function fetchAccountActivities(account: Address): Promise<AccountActivityRow[]> {
+  const { AccountActivity: rows } = await seerEnvioSdk(DEFAULT_CHAIN).GetAccountActivities({
+    account: account.toLowerCase(),
+  });
+  return rows.map(mapAccountActivityRow);
 }
 
 /**

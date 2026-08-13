@@ -1,14 +1,14 @@
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
 import { usePortfolioPositions } from "@seer-pm/react";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
 import PositionsTable from "./PositionsTable";
 
-function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: SupportedChain }) {
+function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: PortfolioChainId }) {
   const { data: positions = [], isLoading, error } = usePortfolioPositions(account, chainId);
   const [filterMarketName, setFilterMarketName] = useState("");
   const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {

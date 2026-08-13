@@ -1,8 +1,8 @@
 import { useHistoryTransactions } from "@/hooks/portfolio/historyTab/useHistoryTransactions";
 import { SearchIcon } from "@/lib/icons";
 import { isUndefined } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
-import { endOfDay, format, startOfDay, subMonths } from "date-fns";
+import type { PortfolioChainId } from "@seer-pm/sdk";
+import { endOfDay, format, startOfDay } from "date-fns";
 import { useState } from "react";
 import { Address } from "viem";
 import { Alert } from "../Alert";
@@ -11,16 +11,15 @@ import Input from "../Form/Input";
 import DateRangePicker from "./DateRangePicker";
 import HistoryTable from "./HistoryTable";
 
-function HistoryTab({ account, chainId }: { account: Address | undefined; chainId: SupportedChain }) {
-  const currentDate = startOfDay(new Date());
-  const [startDate, setStartDate] = useState<Date | undefined>(subMonths(currentDate, 1));
-  const [endDate, setEndDate] = useState<Date | undefined>(currentDate);
-  const { data: historyTransactions, error } = useHistoryTransactions(
-    account as Address,
-    chainId,
-    startDate && Math.floor(startOfDay(startDate).getTime() / 1000),
-    endDate && Math.floor(endOfDay(endDate).getTime() / 1000),
-  );
+function txTimestampSeconds(timestamp: number | undefined): number | undefined {
+  if (timestamp == null || !Number.isFinite(timestamp) || timestamp === 0) return undefined;
+  return timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
+}
+
+function HistoryTab({ account, chainId }: { account: Address | undefined; chainId: PortfolioChainId }) {
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const { data: historyTransactions, error } = useHistoryTransactions(account);
 
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
   const onChangeDate = (dates: (Date | null)[]) => {
@@ -34,10 +33,12 @@ function HistoryTab({ account, chainId }: { account: Address | undefined; chainI
   };
   const filteredTransactions =
     historyTransactions?.filter((tx) => {
-      const nameFilter = tx.marketName.toLowerCase().includes(filterMarketName.toLowerCase());
-      if (!tx.timestamp) return nameFilter;
-      const startDateFilter = startDate ? tx.timestamp >= Math.floor(startOfDay(startDate).getTime() / 1000) : true;
-      const endDateFilter = endDate ? tx.timestamp <= Math.floor(endOfDay(endDate).getTime() / 1000) : true;
+      if (chainId !== "all" && tx.chainId !== chainId) return false;
+      const nameFilter = (tx.marketName ?? "").toLowerCase().includes(filterMarketName.toLowerCase());
+      const ts = txTimestampSeconds(tx.timestamp);
+      if (ts == null) return nameFilter;
+      const startDateFilter = startDate ? ts >= Math.floor(startOfDay(startDate).getTime() / 1000) : true;
+      const endDateFilter = endDate ? ts <= Math.floor(endOfDay(endDate).getTime() / 1000) : true;
       return nameFilter && startDateFilter && endDateFilter;
     }) ?? [];
   const renderTable = () => {

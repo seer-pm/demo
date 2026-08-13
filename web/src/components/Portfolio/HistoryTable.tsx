@@ -1,10 +1,11 @@
 import React from "react";
 
-import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
+import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { ArrowDropDown, ArrowDropUp, ArrowSwap } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
-import type { SupportedChain, TransactionData } from "@seer-pm/sdk";
+import type { PortfolioChainId, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import {
   ColumnDef,
   PaginationState,
@@ -21,7 +22,14 @@ import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
-export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: SupportedChain }) {
+function txChainId(tx: TransactionData, filter: PortfolioChainId): SupportedChain {
+  if (tx.chainId) return tx.chainId;
+  if (filter !== "all") return filter;
+  return DEFAULT_CHAIN;
+}
+
+export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: PortfolioChainId }) {
+  const showChain = chainId === "all";
   const columns = React.useMemo<ColumnDef<TransactionData>[]>(
     () => [
       {
@@ -52,15 +60,25 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         accessorKey: "marketName",
         cell: (info) => {
           const data = info.row.original;
+          const rowChainId = txChainId(data, chainId);
+          const chainName = SUPPORTED_CHAINS[rowChainId as keyof typeof SUPPORTED_CHAINS]?.name;
           return (
             <a
               className="flex gap-2 items-center text-[14px] hover:underline cursor-pointer whitespace-nowrap"
-              href={`${paths.market(data.marketId, chainId)}`}
+              href={`${paths.market(data.marketId, rowChainId)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <MarketImage marketAddress={data.marketId as Address} chainId={chainId as SupportedChain} />
+              <MarketImage marketAddress={data.marketId as Address} chainId={rowChainId} />
               <TextOverflowTooltip text={info.getValue<string>()} maxChar={50} />
+              {showChain && NETWORK_ICON_MAPPING[rowChainId] ? (
+                <img
+                  alt={chainName ?? String(rowChainId)}
+                  title={chainName}
+                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  src={NETWORK_ICON_MAPPING[rowChainId]}
+                />
+              ) : null}
             </a>
           );
         },
@@ -197,7 +215,8 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         accessorKey: "transactionHash",
         cell: (info) => {
           const data = info.row.original;
-          const blockExplorerUrl = SUPPORTED_CHAINS?.[chainId]?.blockExplorers?.default?.url;
+          const rowChainId = txChainId(data, chainId);
+          const blockExplorerUrl = SUPPORTED_CHAINS?.[rowChainId]?.blockExplorers?.default?.url;
           if (!data.transactionHash) return "-";
           return (
             <a
@@ -213,7 +232,7 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         header: "Transaction Hash",
       },
     ],
-    [],
+    [chainId, showChain],
   );
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,

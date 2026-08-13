@@ -1,6 +1,6 @@
 import type { Address } from "viem";
-import type { SupportedChain } from "./chains";
 import type {
+  PortfolioChainId,
   PortfolioPnLData,
   PortfolioPnLPeriod,
   PortfolioPosition,
@@ -10,14 +10,16 @@ import { getApiHost } from "./subgraph/app-subgraph";
 
 export async function fetchPortfolioPositions(
   account: Address,
-  chainId: SupportedChain,
   collateralProfile: string,
+  chainId?: PortfolioChainId,
 ): Promise<PortfolioPosition[]> {
   const params = new URLSearchParams({
     account,
-    chainId: String(chainId),
     collateralProfile,
   });
+  if (chainId !== undefined) {
+    params.set("chainId", String(chainId));
+  }
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio?${params.toString()}`);
   if (!res.ok) {
     const text = await res.text();
@@ -28,7 +30,7 @@ export async function fetchPortfolioPositions(
 
 export async function fetchPortfolioValue(
   account: Address,
-  chainId: SupportedChain,
+  chainId: PortfolioChainId,
   collateralProfile: string,
 ): Promise<PortfolioValueApiResponse> {
   const params = new URLSearchParams({
@@ -46,7 +48,7 @@ export async function fetchPortfolioValue(
 
 export async function fetchPortfolioPnL(
   account: Address,
-  chainId: SupportedChain,
+  chainId: PortfolioChainId,
   period: PortfolioPnLPeriod,
   collateralProfile: string,
   marketId?: Address,

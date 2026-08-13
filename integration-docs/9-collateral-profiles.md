@@ -98,8 +98,8 @@ Portfolio and related endpoints accept an optional **`collateralProfile`** query
 | Function | `collateralProfile` param |
 |----------|---------------------------|
 | `get-portfolio` | Yes — filters positions to markets with that profile’s primary `collateralToken`. |
-| `get-portfolio-value` | Yes — same filter; 24h MTM in that denomination. |
-| `get-portfolio-pl` | Yes — PnL, router legs, and swap cashflow for that primary only. Generic markets only (Futarchy excluded). |
+| `get-portfolio-value` | Yes — same filter; 24h MTM converted to USD (primary × spot). `chainId=all` sums USD across chains. |
+| `get-portfolio-pl` | Global path: USD from `pnl_leaderboard`. Market-scoped: PnL, router legs, and swap cashflow for that primary only. Generic markets only (Futarchy excluded). |
 
 If omitted, the API defaults to the **`default`** profile (sDAI on Gnosis).
 
@@ -108,6 +108,7 @@ The **@seer-pm/sdk** `fetchPortfolio*` functions send `collateralProfile` from `
 Example:
 
 ```
+GET /.netlify/functions/get-portfolio?account=0x...&collateralProfile=circles
 GET /.netlify/functions/get-portfolio?account=0x...&chainId=100&collateralProfile=circles
 ```
 

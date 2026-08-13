@@ -1,9 +1,9 @@
-import type { PortfolioValueApiResponse, SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId, PortfolioValueApiResponse } from "@seer-pm/sdk";
 import { fetchPortfolioValue, getActiveCollateralProfileName } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 
-export function usePortfolioValue(account: Address | undefined, chainId: SupportedChain | undefined) {
+export function usePortfolioValue(account: Address | undefined, chainId: PortfolioChainId | undefined) {
   return useQuery<PortfolioValueApiResponse | undefined, Error>({
     queryKey: ["portfolioValue", account, chainId],
     queryFn: () => fetchPortfolioValue(account as Address, chainId!, getActiveCollateralProfileName()),

@@ -1,4 +1,5 @@
 import Breadcrumb from "@/components/Breadcrumb";
+import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import {
   SEER_APP_ALL_ID,
@@ -9,6 +10,7 @@ import {
   marketsForAppFilter,
 } from "@/lib/apps";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { formatUsd } from "@/lib/formatUsd";
 import { Filter } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useQuery } from "@tanstack/react-query";
@@ -57,14 +59,11 @@ const PERIOD_LABELS: Record<Period, string> = {
 };
 
 function formatPnlUsd(value: number) {
-  const abs = Math.abs(value);
-  const formatted = abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}$${formatted}`;
+  return formatUsd(value, { signed: true });
 }
 
 function formatVolumeUsd(value: number) {
-  return `$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatUsd(Math.abs(value));
 }
 
 function formatRoi(roi: number | null) {
@@ -378,36 +377,16 @@ function LeaderboardPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-sm text-black-secondary mr-1">Chain</span>
-            <button
-              type="button"
-              className={chipClass(effectiveChainId === "all")}
-              onClick={() => {
-                setChainId("all");
-                setPage(0);
-                setHighlightAddress(undefined);
-                setRankStatus("idle");
-              }}
-            >
-              All
-            </button>
-            {(availableChains.length > 0 ? availableChains : supportedChainIds).map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={chipClass(effectiveChainId === id)}
-                onClick={() => {
-                  setChainId(id);
-                  setPage(0);
-                  setHighlightAddress(undefined);
-                  setRankStatus("idle");
-                }}
-              >
-                {SUPPORTED_CHAINS[id as keyof typeof SUPPORTED_CHAINS]?.name ?? id}
-              </button>
-            ))}
-          </div>
+          <ChainFilterChips
+            value={effectiveChainId}
+            chains={availableChains.length > 0 ? availableChains : supportedChainIds}
+            onChange={(id) => {
+              setChainId(id);
+              setPage(0);
+              setHighlightAddress(undefined);
+              setRankStatus("idle");
+            }}
+          />
         </div>
       ) : null}
 

@@ -1,15 +1,34 @@
 import { type MarketDataMapping, type SupportedChain, type TransactionData, getMappings } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
-import type { Address } from "viem";
+import { type Address, isAddress } from "viem";
 import { getBlock } from "viem/actions";
+import { fetchLastActivityTimestamp, supportedChainIds } from "./utils/accountLastActivity";
 import { getPublicClientByChainId } from "./utils/config";
 import { searchAllMarkets } from "./utils/markets";
+import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
+import {
+  type ActivityCachedPayload,
+  isActivityCacheFresh,
+  readJsonBlob,
+  writeJsonBlob,
+} from "./utils/portfolioBlobCache";
 import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
 import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./utils/transactions/getSwapEvents";
 
 const MARKETS_MAPPINGS_TTL_MS = 15 * 60 * 1000;
+const PORTFOLIO_TRANSACTIONS_STORE = "portfolio-transactions";
+
+type TransactionsCachePayload = ActivityCachedPayload<{ transactions: TransactionData[] }>;
+
+type EventTypeFilter = "swap" | "lp" | "ctf";
+
+const EVENT_TYPE_GROUPS: Record<EventTypeFilter, ReadonlySet<TransactionData["type"]>> = {
+  swap: new Set(["swap", "bought", "sold"]),
+  lp: new Set(["lp", "lp-burn"]),
+  ctf: new Set(["split", "merge", "redeem"]),
+};
 
 type MarketsMappingsCacheEntry = {
   markets: Market[];
@@ -19,6 +38,20 @@ type MarketsMappingsCacheEntry = {
 
 const marketsMappingsByChain = new Map<number, MarketsMappingsCacheEntry>();
 const marketsMappingsInflight = new Map<number, Promise<MarketsMappingsCacheEntry>>();
+
+function jsonError(error: string, status: number) {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function jsonOk(body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 async function getMarketsAndMappings(chainId: SupportedChain): Promise<{
   markets: Market[];
@@ -56,7 +89,7 @@ async function getMarketsAndMappings(chainId: SupportedChain): Promise<{
 
 async function getBlockTimestamp(chainId: SupportedChain, initialBlockNumber: number) {
   let blockNumber = initialBlockNumber;
-  const maxAttempts = 10; // Limit the number of attempts
+  const maxAttempts = 10;
   let attempts = 0;
   const client = getPublicClientByChainId(chainId);
 
@@ -66,62 +99,26 @@ async function getBlockTimestamp(chainId: SupportedChain, initialBlockNumber: nu
       if (block.timestamp) {
         return Number(block.timestamp);
       }
-      // Increment block number and attempts
       blockNumber++;
       attempts++;
-    } catch (error) {
+    } catch {
       blockNumber++;
       attempts++;
     }
   }
 }
 
-async function getEvents(
-  mappings: MarketDataMapping,
-  account: Address,
-  chainId: SupportedChain,
-  startTime?: number,
-  endTime?: number,
-  eventType?: string,
-) {
-  let events: TransactionData[][] = [];
-
-  // If no eventType specified or invalid, return all events
-  if (!eventType || !["swap", "lp", "ctf"].includes(eventType)) {
-    events = await Promise.all([
-      getSwapEvents(mappings, account, chainId, startTime, endTime),
-      getLiquidityEvents(mappings, account, chainId, startTime, endTime),
-      getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
-      getSplitMergeRedeemEvents(account, chainId),
-    ]);
-  } else {
-    // Filter events based on eventType
-    switch (eventType) {
-      case "swap":
-        events = [await getSwapEvents(mappings, account, chainId, startTime, endTime)];
-        break;
-      case "lp":
-        events = await Promise.all([
-          getLiquidityEvents(mappings, account, chainId, startTime, endTime),
-          getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
-        ]);
-        break;
-      case "ctf":
-        events = [await getSplitMergeRedeemEvents(account, chainId)];
-        break;
-    }
-  }
-
+async function getEvents(mappings: MarketDataMapping, account: Address, chainId: SupportedChain) {
+  const events = await Promise.all([
+    getSwapEvents(mappings, account, chainId),
+    getLiquidityEvents(mappings, account, chainId),
+    getLiquidityWithdrawEvents(mappings, account, chainId),
+    getSplitMergeRedeemEvents(account, chainId),
+  ]);
   return events.flat();
 }
 
-async function getTransactions(
-  account: Address,
-  chainId: SupportedChain,
-  startTime?: number,
-  endTime?: number,
-  eventType?: string,
-) {
+async function getTransactions(account: Address, chainId: SupportedChain): Promise<TransactionData[]> {
   const { markets, mappings } = await getMarketsAndMappings(chainId);
 
   if (markets.length === 0 || !mappings) {
@@ -129,123 +126,130 @@ async function getTransactions(
   }
 
   const { tokenIdToTokenSymbolMapping } = mappings;
-
-  const data = await getEvents(mappings, account, chainId, startTime, endTime, eventType);
-
-  // get timestamp
+  const data = await getEvents(mappings, account, chainId);
   const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(chainId, x.blockNumber)));
 
-  return data
-    .map((x, index) => {
-      function parseSymbol(tokenAddress?: string) {
-        return tokenAddress ? tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()] : undefined;
-      }
-      return {
-        ...x,
-        timestamp: timestamps[index],
-        collateralSymbol: parseSymbol(x.collateral),
-        token0Symbol: x.token0Symbol ?? parseSymbol(x.token0),
-        token1Symbol: x.token1Symbol ?? parseSymbol(x.token1),
-        tokenInSymbol: x.tokenInSymbol ?? parseSymbol(x.tokenIn),
-        tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
-      };
-    })
-    .sort((a, b) => b.blockNumber - a.blockNumber);
+  return data.map((x, index) => {
+    function parseSymbol(tokenAddress?: string) {
+      return tokenAddress ? tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()] : undefined;
+    }
+    return {
+      ...x,
+      chainId,
+      timestamp: timestamps[index],
+      collateralSymbol: parseSymbol(x.collateral),
+      token0Symbol: x.token0Symbol ?? parseSymbol(x.token0),
+      token1Symbol: x.token1Symbol ?? parseSymbol(x.token1),
+      tokenInSymbol: x.tokenInSymbol ?? parseSymbol(x.tokenIn),
+      tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
+    };
+  });
+}
+
+function sortTransactions(transactions: TransactionData[]): TransactionData[] {
+  return [...transactions].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0) || b.blockNumber - a.blockNumber);
+}
+
+async function computeAllChainTransactions(account: Address): Promise<TransactionData[]> {
+  const results = await Promise.allSettled(supportedChainIds().map((id) => getTransactions(account, id)));
+  const transactions: TransactionData[] = [];
+  let failures = 0;
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      transactions.push(...result.value);
+    } else {
+      failures += 1;
+      console.warn("get-transactions: chain compute failed", result.reason);
+    }
+  }
+  if (failures === results.length) {
+    throw new Error("Failed to load transactions on all chains");
+  }
+  return sortTransactions(transactions);
+}
+
+function filterTransactions(
+  transactions: TransactionData[],
+  opts: {
+    chainId: number | "all";
+    startTime?: number;
+    endTime?: number;
+    eventType?: EventTypeFilter;
+  },
+): TransactionData[] {
+  return transactions.filter((tx) => {
+    if (opts.chainId !== "all" && tx.chainId !== opts.chainId) return false;
+    if (opts.eventType && !EVENT_TYPE_GROUPS[opts.eventType].has(tx.type)) return false;
+    if (opts.startTime != null || opts.endTime != null) {
+      const ts = tx.timestamp;
+      if (ts == null || !Number.isFinite(ts)) return false;
+      if (opts.startTime != null && ts < opts.startTime) return false;
+      if (opts.endTime != null && ts > opts.endTime) return false;
+    }
+    return true;
+  });
 }
 
 export default async (req: Request) => {
   try {
     const url = new URL(req.url);
-    const account = url.searchParams.get("account");
-    const chainId = url.searchParams.get("chainId");
+    const accountParam = url.searchParams.get("account");
+    const eventType = url.searchParams.get("eventType");
     const startTime = url.searchParams.get("startTime");
     const endTime = url.searchParams.get("endTime");
-    const eventType = url.searchParams.get("eventType");
 
-    // Validate required parameters
-    if (!account) {
-      return new Response(JSON.stringify({ error: "Account parameter is required" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+    if (!accountParam || !isAddress(accountParam)) {
+      return jsonError("Account parameter is required", 400);
+    }
+    const account = accountParam as Address;
+
+    const chainParsed = parseChainIdQueryParam(url.searchParams.get("chainId") ?? "all", { allowAll: true });
+    if ("error" in chainParsed) {
+      return jsonError(chainParsed.error, 400);
     }
 
-    if (!chainId) {
-      return new Response(JSON.stringify({ error: "ChainId parameter is required" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    }
-
-    // Validate eventType if provided
     if (eventType && !["swap", "lp", "ctf"].includes(eventType)) {
-      return new Response(JSON.stringify({ error: "eventType must be one of: swap, lp, ctf" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      return jsonError("eventType must be one of: swap, lp, ctf", 400);
     }
 
-    // Convert startTime and endTime to numbers if present
     const startTimeNum = startTime ? Number.parseInt(startTime, 10) : undefined;
     const endTimeNum = endTime ? Number.parseInt(endTime, 10) : undefined;
 
-    // Validate that startTime and endTime are valid numbers if present
     if (startTime && Number.isNaN(startTimeNum!)) {
-      return new Response(JSON.stringify({ error: "startTime must be a valid number" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      return jsonError("startTime must be a valid number", 400);
     }
-
     if (endTime && Number.isNaN(endTimeNum!)) {
-      return new Response(JSON.stringify({ error: "endTime must be a valid number" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      return jsonError("endTime must be a valid number", 400);
     }
 
-    // Convert chainId to number and validate it's a supported chain
-    const chainIdNum = Number(chainId);
-    if (!Number.isInteger(chainIdNum)) {
-      return new Response(JSON.stringify({ error: "chainId must be a valid number" }), {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+    const cacheKey = account.toLowerCase();
+    const [cached, lastActivityTs] = await Promise.all([
+      readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey),
+      fetchLastActivityTimestamp(account),
+    ]);
+
+    let transactions: TransactionData[];
+    if (isActivityCacheFresh(cached, lastActivityTs) && Array.isArray(cached.transactions)) {
+      transactions = cached.transactions;
+    } else {
+      transactions = await computeAllChainTransactions(account);
+      await writeJsonBlob(PORTFOLIO_TRANSACTIONS_STORE, cacheKey, {
+        cachedAt: Date.now(),
+        lastActivityTs,
+        transactions,
+      } satisfies TransactionsCachePayload);
     }
 
-    const transactions = await getTransactions(
-      account as Address,
-      chainIdNum as SupportedChain,
-      startTimeNum,
-      endTimeNum,
-      eventType || undefined,
+    return jsonOk(
+      filterTransactions(transactions, {
+        chainId: chainParsed.chainId,
+        startTime: startTimeNum,
+        endTime: endTimeNum,
+        eventType: (eventType as EventTypeFilter | null) || undefined,
+      }),
     );
-
-    return new Response(JSON.stringify(transactions), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
   } catch (e) {
     console.log(e);
-    return new Response(JSON.stringify({ error: e.message || "Internal server error" }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    return jsonError((e as Error)?.message || "Internal server error", 500);
   }
 };

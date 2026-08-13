@@ -4,7 +4,12 @@ import { graphQLClient } from "@seer-pm/sdk/subgraph";
 import { ConditionalEvent_Select_Column, Order_By, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import type { Address } from "viem";
 
-export async function getSplitMergeRedeemEvents(account: string, chainId: SupportedChain): Promise<TransactionData[]> {
+export async function getSplitMergeRedeemEvents(
+  account: string,
+  chainId: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+): Promise<TransactionData[]> {
   const client = graphQLClient(chainId);
 
   if (!client) {
@@ -16,6 +21,14 @@ export async function getSplitMergeRedeemEvents(account: string, chainId: Suppor
     where: {
       accountId: { _eq: account.toLowerCase() },
       chainId: { _eq: String(chainId) },
+      ...(startTime != null || endTime != null
+        ? {
+            timestamp: {
+              ...(startTime != null ? { _gte: String(startTime) } : {}),
+              ...(endTime != null ? { _lte: String(endTime) } : {}),
+            },
+          }
+        : {}),
     },
   });
   return data.ConditionalEvent.map((d) => ({

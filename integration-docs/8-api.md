@@ -210,7 +210,7 @@ Header: `Cache-Control: public, max-age=300` (5 minutes).
 
 ## get-transactions
 
-Transaction history for an account on a chain: swaps, liquidity (LP add/remove), and CTF events (split/merge/redeem).
+Transaction history for an account: swaps, liquidity (LP add/remove), and CTF events (split/merge/redeem). Always computed across all production chains and cached; optional filters apply in memory on the cached payload.
 
 | Field | Detail |
 |-------|--------|
@@ -223,14 +223,14 @@ Transaction history for an account on a chain: swaps, liquidity (LP add/remove),
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `account` | Yes | Wallet address. |
-| `chainId` | Yes | Chain ID (number). |
+| `chainId` | No | Chain ID (number) or `all`. Omit or `all` returns every chain. |
 | `startTime` | No | Unix timestamp start (number). |
 | `endTime` | No | Unix timestamp end (number). |
 | `eventType` | No | `swap` \| `lp` \| `ctf`. If omitted, all event types are returned. |
 
 ### Response 200
 
-Array of `TransactionData`, sorted by `blockNumber` descending:
+Array of `TransactionData`, sorted by `timestamp` descending (then `blockNumber`). Each row includes `chainId`.
 
 ```ts
 type TransactionType = "split" | "merge" | "redeem" | "swap" | "lp" | "lp-burn";
@@ -240,6 +240,7 @@ interface TransactionData {
   marketId: string;
   type: TransactionType;
   blockNumber: number;
+  chainId: number;
   collateral: `0x${string}`;
   collateralSymbol?: string;
   timestamp?: number;
@@ -270,14 +271,14 @@ interface TransactionData {
 
 ### Errors
 
-- **400** – Missing `account` or `chainId`, invalid `eventType`, or non-numeric `startTime`/`endTime`.
+- **400** – Missing `account`, invalid `chainId`/`eventType`, or non-numeric `startTime`/`endTime`.
 - **500** – Internal server error.
 
 ---
 
 ## get-portfolio
 
-Positions for an account on a chain: outcome token balances per market, with market data, outcome, collateral, and redeemed prices.
+Positions for an account: outcome token balances per market, with market data, outcome, collateral, and redeemed prices. Always computed across all production chains and cached; optional `chainId` filters the cached payload.
 
 | Field | Detail |
 |-------|--------|
@@ -290,7 +291,7 @@ Positions for an account on a chain: outcome token balances per market, with mar
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `account` | Yes | Wallet address. |
-| `chainId` | Yes | Chain ID (number). |
+| `chainId` | No | Chain ID (number) or `all`. Omit or `all` returns every chain. |
 | `collateralProfile` | No | Registered profile name (`default`, `circles`, …). Defaults to `default`. Filters positions to markets using that profile’s primary collateral. |
 
 ### Response 200
@@ -308,6 +309,7 @@ interface PortfolioPosition {
   tokenValue: number;
   tokenPrice: number;
   outcome: string;
+  chainId: number;
   collateralToken: `0x${string}`;
   parentMarketId?: `0x${string}`;
   parentMarketName?: string;
@@ -323,14 +325,14 @@ Only positions with balance > 0 are included; for closed markets, only those tha
 
 ### Errors
 
-- **400** – Missing `account` or `chainId`, or non-numeric `chainId`.
+- **400** – Missing `account`, or invalid `chainId`.
 - **500** – Internal server error.
 
 ---
 
 ## get-portfolio-value
 
-Current portfolio value and ~24h mark-to-market change (outcome positions only; same collateral filter as `get-portfolio`).
+Current portfolio value and ~24h mark-to-market change (outcome positions only; same collateral filter as `get-portfolio`). Totals are **USD** (primary collateral × spot USD via DexScreener / on-chain sDAI·sUSDS, same source as the PnL leaderboard).
 
 | Field | Detail |
 |-------|--------|
@@ -342,12 +344,12 @@ Current portfolio value and ~24h mark-to-market change (outcome positions only; 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `account` | Yes | Wallet address. |
-| `chainId` | Yes | Chain ID (number). |
+| `chainId` | Yes | Chain ID (number), or `all` to sum USD across supported chains. |
 | `collateralProfile` | No | Registered profile name (see `get-portfolio`). |
 
 ### Response 200
 
-`currentPortfolioValue`, `historyPortfolioValue`, `historyTimestamp`, `delta`, `deltaPercent` — values denominated in the selected collateral’s units.
+`currentPortfolioValue`, `historyPortfolioValue`, `historyTimestamp`, `delta`, `deltaPercent`, `unit: "USD"`.
 
 ---
 
@@ -355,8 +357,8 @@ Current portfolio value and ~24h mark-to-market change (outcome positions only; 
 
 Period P/L for an account (outcome MTM + router collateral legs − swap/LP cashflow). **Generic markets only** — Futarchy is excluded so non-primary notional (PNK/GNO, …) is not mixed into the profile’s primary units. `get-portfolio` still lists Futarchy positions.
 
-- **Global** (no `marketId` / `marketIds`): reads materialized rows from Supabase `pnl_leaderboard` (`app_id = all`). No live compute; miss → zeros.
-- **Market-scoped** (`marketId` or `marketIds`): computes live via `computePortfolioPlAllPeriods`. Futarchy ids → 404.
+- **Global** (no `marketId` / `marketIds`): reads materialized rows from Supabase `pnl_leaderboard` (`app_id = all`). No live compute; miss → zeros. Values are **USD** (`pnl` = `pnl_usd`; other fields converted with `collateral_price_usd`). `chainId=all` sums USD across chains. Response includes `unit: "USD"`.
+- **Market-scoped** (`marketId` or `marketIds`): computes live via `computePortfolioPlAllPeriods` in native collateral units. Futarchy ids → 404. `chainId=all` is not allowed.
 
 | Field | Detail |
 |-------|--------|
@@ -368,14 +370,14 @@ Period P/L for an account (outcome MTM + router collateral legs − swap/LP cash
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `account` | Yes | Wallet address. |
-| `chainId` | Yes | Chain ID (number). |
+| `chainId` | Yes | Chain ID (number), or `all` (global path only). |
 | `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `1d`). |
 | `marketId` | No | Restrict to one market. |
 | `marketIds` | No | Comma-separated market IDs (same chain). Provide `marketId` or `marketIds`, not both. |
 | `collateralProfile` | No | Registered profile name (see `get-portfolio`). Market-scoped only. |
 | `debug` | No | `1` or `true` for formula breakdown on market-scoped requests (ignored on the global path). |
 
-`@seer-pm/sdk` `fetchPortfolioPnL` / `fetchPortfolioValue` send `collateralProfile` from `getActiveCollateralProfileName()` after `configureCollateral` — see [Collateral profiles](9-collateral-profiles.md).
+`@seer-pm/sdk` `fetchPortfolioPnL` / `fetchPortfolioValue` send `collateralProfile` from `getActiveCollateralProfileName()` after `configureCollateral` — see [Collateral profiles](9-collateral-profiles.md). `fetchPortfolioPnL` / `fetchPortfolioValue` accept `chainId: number | "all"`.
 
 ---
 
@@ -447,10 +449,10 @@ type MarketsChartsResponse = Record<`0x${string}`, ChartDataSeries>;
 | get-market | POST | `chainId` + `id` or `url` | Single market page or API |
 | markets-search | POST | Body with filters and `page`/`limit` | Listings, search, filters |
 | get-token-transactions | GET | `tokenIds`, `chainId` | Token holders and activity |
-| get-transactions | GET | `account`, `chainId`, opt. `eventType`, `startTime`, `endTime` | Wallet transaction history |
-| get-portfolio | GET | `account`, `chainId`, opt. `collateralProfile` | Wallet positions (filtered by profile) |
-| get-portfolio-value | GET | `account`, `chainId`, opt. `collateralProfile` | Portfolio value + 24h delta |
-| get-portfolio-pl | GET | `account`, `chainId`, opt. `collateralProfile`, `period`, `marketId` / `marketIds` | Period P/L |
+| get-transactions | GET | `account`, opt. `chainId`/`all`, `eventType`, `startTime`, `endTime` | Wallet transaction history |
+| get-portfolio | GET | `account`, opt. `chainId`/`all`, `collateralProfile` | Wallet positions (filtered by profile); each row has `chainId` |
+| get-portfolio-value | GET | `account`, `chainId` or `all`, opt. `collateralProfile` | Portfolio value + 24h delta (USD) |
+| get-portfolio-pl | GET | `account`, `chainId` or `all`, opt. `collateralProfile`, `period`, `marketId` / `marketIds` | Period P/L (global path USD; market-scoped native) |
 | get-pnl-leaderboard | GET | `app`, `chainId` or `all`, `period` | App-scoped P/L rankings |
 | markets-charts | GET | opt. `ids` (market IDs) | Price/volume charts per market |
 

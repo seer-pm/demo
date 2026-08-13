@@ -13,7 +13,11 @@
     "strictNullChecks": true,
     "noImplicitAny": true,
     "paths": {
-      "@/*": ["../src/*"]
+      "@/*": ["../src/*"],
+      "@seer-pm/sdk": ["../../packages/seer-pm-sdk/src/index.ts"],
+      "@seer-pm/sdk/sign-in": ["../../packages/seer-pm-sdk/src/sign-in.ts"],
+      "@seer-pm/react": ["../../packages/seer-pm-react/src/index.ts"],
+      "@seer-pm/discussions": ["../../packages/seer-pm-discussions/src/index.ts"]
     }
   },
   "include": ["./functions/**/*", "../src"]

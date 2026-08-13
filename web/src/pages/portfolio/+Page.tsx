@@ -1,20 +1,21 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
+import { ChainFilterChips } from "@/components/ChainFilterChips";
 import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { useSearchParams } from "@/hooks/useSearchParams";
-import { filterChain } from "@/lib/chains";
+import { parsePortfolioChainParam } from "@/lib/chains";
+import { formatUsd } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
-import { getActiveCollateralProfile } from "@seer-pm/sdk";
-import { type PortfolioPnLPeriod, type SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
-function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: SupportedChain }) {
+function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: PortfolioChainId }) {
   const { data, isLoading, error } = usePortfolioValue(account, chainId);
   const currentPortfolioValue = data?.currentPortfolioValue ?? 0;
   const delta = data?.delta ?? 0;
@@ -35,9 +36,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
       {isLoading ? (
         <div className="mt-3 shimmer-container h-[28px] w-[300px]" />
       ) : (
-        <p className="text-[32px] text-base-content font-semibold">
-          {Number(currentPortfolioValue).toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol}
-        </p>
+        <p className="text-[32px] text-base-content font-semibold">{formatUsd(Number(currentPortfolioValue))}</p>
       )}
       {isLoading ? (
         <div className="shimmer-container h-[20px] w-[300px]" />
@@ -46,22 +45,22 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
           <span>
             <ArrowDropUp fill="#00C42B" />
           </span>
-          {delta.toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol} ({deltaPercent.toFixed(2)}%) today
+          {formatUsd(delta, { signed: true })} ({deltaPercent.toFixed(2)}%) today
         </p>
       ) : (
         <p className="text-[#c40000] flex gap-2">
           <span>
             <ArrowDropDown fill="#c40000" />
           </span>
-          {delta.toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol} ({deltaPercent.toFixed(2)}%) today
+          {formatUsd(delta, { signed: true })} ({deltaPercent.toFixed(2)}%) today
         </p>
       )}
     </div>
   );
 }
 
-function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: SupportedChain }) {
-  const [plPeriod, setPlPeriod] = useState<PortfolioPnLPeriod>("1d");
+function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: PortfolioChainId }) {
+  const [plPeriod, setPlPeriod] = useState<PortfolioPnLPeriod>("all");
   const { data: plData, isLoading, error } = usePortfolioPnL(account, chainId, plPeriod);
 
   const pnl = plData?.pnl ?? 0;
@@ -90,24 +89,37 @@ function PortfolioPnLHistory({ account, chainId }: { account: Address; chainId: 
       ) : error ? (
         <p className="text-sm text-error">Unable to load P/L.</p>
       ) : (
-        <p className={`text-[32px] font-semibold ${pnlTextColor}`}>
-          {isPnlPositive ? "+" : ""}
-          {pnl.toFixed(2)} {getActiveCollateralProfile(chainId).primary.symbol}
-        </p>
+        <p className={`text-[32px] font-semibold ${pnlTextColor}`}>{formatUsd(pnl, { signed: true })}</p>
       )}
     </div>
   );
 }
 
 function PortfolioPage() {
-  const { address: connectedAccount, chainId: rawChainId } = useAccount();
-  const chainId: SupportedChain = filterChain(rawChainId);
+  const { address: connectedAccount } = useAccount();
   const { routeParams } = usePageContext();
   const account = (routeParams?.id || connectedAccount) as Address | undefined;
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "positions";
+  const chainId = parsePortfolioChainParam(searchParams.get("chain"));
+
+  const setTab = (tab: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", tab);
+      return next;
+    });
+  };
+
+  const setChainId = (nextChain: number | "all") => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("chain", String(nextChain));
+      return next;
+    });
+  };
 
   if (!account) {
     return (
@@ -123,15 +135,18 @@ function PortfolioPage() {
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Portfolio" }]} />
-      <div className="mt-8 bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex gap-4 items-start justify-between">
-        <div className="flex gap-4">
-          <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
-            <Union />
+      <div className="mt-8 space-y-4">
+        <ChainFilterChips value={chainId} onChange={setChainId} />
+        <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex gap-4 items-start justify-between">
+          <div className="flex gap-4">
+            <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
+              <Union />
+            </div>
+            <PortfolioValueVariation account={account} chainId={chainId} />
           </div>
-          <PortfolioValueVariation account={account} chainId={chainId} />
-        </div>
 
-        <PortfolioPnLHistory account={account} chainId={chainId} />
+          <PortfolioPnLHistory account={account} chainId={chainId} />
+        </div>
       </div>
 
       <div>
@@ -143,11 +158,7 @@ function PortfolioPage() {
             type="button"
             role="tab"
             className={`tab ${activeTab === "positions" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "positions",
-              })
-            }
+            onClick={() => setTab("positions")}
           >
             Positions
           </button>
@@ -155,11 +166,7 @@ function PortfolioPage() {
             type="button"
             role="tab"
             className={`tab ${activeTab === "history" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "history",
-              })
-            }
+            onClick={() => setTab("history")}
           >
             History
           </button>
@@ -167,11 +174,7 @@ function PortfolioPage() {
             type="button"
             role="tab"
             className={`tab ${activeTab === "airdrop" && "tab-active"}`}
-            onClick={() =>
-              setSearchParams({
-                tab: "airdrop",
-              })
-            }
+            onClick={() => setTab("airdrop")}
           >
             Airdrop
           </button>
