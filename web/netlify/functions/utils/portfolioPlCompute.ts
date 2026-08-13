@@ -65,9 +65,15 @@ function positionRowValueAtReference(
   return tokenPrice * p.tokenBalance;
 }
 
+/** P/L is Generic-only: Futarchy (PNK/GNO, …) would mix 1.0 notional into primary-collateral units. */
+function searchGenericMarkets(
+  args: Omit<Parameters<typeof searchAllMarkets>[0], "type">,
+): ReturnType<typeof searchAllMarkets> {
+  return searchAllMarkets({ ...args, type: "Generic" });
+}
+
 async function getMarketsAndPositions(
   supabase: SupabaseClient<Database>,
-  account: Address,
   chainId: SupportedChain,
   marketIds: Address[] | undefined,
   collateralProfile: string,
@@ -75,7 +81,7 @@ async function getMarketsAndPositions(
   historicalMarketIds: Address[],
 ): Promise<{ markets: Market[]; positions: PortfolioPosition[] } | null> {
   if (marketIds?.length) {
-    const { markets } = await searchAllMarkets({
+    const { markets } = await searchGenericMarkets({
       chainIds: [chainId],
       marketIds: marketIds.map((id) => id.toLowerCase()),
       collateralProfile,
@@ -91,7 +97,7 @@ async function getMarketsAndPositions(
   const distinctTokens = [...holdings.keys()] as Address[];
   let markets: Market[] = [];
   if (distinctTokens.length > 0) {
-    const { markets: loaded } = await searchAllMarkets({
+    const { markets: loaded } = await searchGenericMarkets({
       chainIds: [chainId],
       tokens: distinctTokens,
       collateralProfile,
@@ -105,7 +111,7 @@ async function getMarketsAndPositions(
     const have = new Set(markets.map((m) => m.id.toLowerCase()));
     const missing = historicalMarketIds.filter((id) => !have.has(id.toLowerCase()));
     if (missing.length > 0) {
-      const { markets: hist } = await searchAllMarkets({
+      const { markets: hist } = await searchGenericMarkets({
         chainIds: [chainId],
         marketIds: missing.map((id) => id.toLowerCase()),
         collateralProfile,
@@ -190,7 +196,9 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  * (materialized into `pnl_leaderboard` for global / app-scoped reads).
  *
  * What we value (`valueEnd` / `valueStart`)
- * - **Outcome-token positions** (same shape as `get-portfolio` / `get-portfolio-value`).
+ * - **Generic** outcome-token positions only. Futarchy is excluded so PNK/GNO (etc.)
+ *   notional at `redeemedPrice = 1` is not mixed into primary-collateral units.
+ *   (`get-portfolio` still lists Futarchy; this compute does not.)
  * - **Global** (no `marketIds`): also **protocol collateral (router legs)** — cumulative
  *   HyperIndex `Transfer` with `kind=router_collateral` between the user and Seer routers
  *   for the request **primary** collateral (`computeCollateralPortfolioValuesForPeriods`).
@@ -198,12 +206,14 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  *   primary legs come from HyperIndex `ConditionalEvent` as
  *   `routerPrimaryCollateralNetInWindow` (split → −amount, merge/redeem → +amount; only
  *   legs whose collateral matches primary). Not folded into `valueStart`/`valueEnd`.
+ *   A scoped Futarchy id yields no Generic markets → caller 404.
  *
  * Data sources
  * - Balances / activity / CTF: HyperIndex (`TokenBalance`, `TokenBalanceDaily`, account
  *   activity, `ConditionalEvent`, `router_collateral` transfers).
- * - Markets + historical DEX prices: Supabase (`searchAllMarkets`, `dex_pool_hour_prices`
- *   via `dexPoolPricesFromDb`). Current outcome prices come from position building.
+ * - Markets + historical DEX prices: Supabase (`searchAllMarkets` with `type: Generic`,
+ *   `dex_pool_hour_prices` via `dexPoolPricesFromDb`). Current outcome prices come from
+ *   position building.
  * - Swap cashflow: DEX subgraphs + CoW fills via `getSwapEvents` /
  *   `computeNetPrimaryCollateralSwapFlowForPeriods` (same semantics as `/get-transactions`
  *   swap rows).
@@ -282,7 +292,6 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   const historicalMarketIds = isMarketScoped ? [] : await fetchMarketIdsFromAccountTransfers(account, chainId, endTime);
   const marketsAndPositions = await getMarketsAndPositions(
     supabase,
-    account,
     chainId,
     scopedMarketIds,
     collateralProfile,

@@ -99,7 +99,7 @@ Portfolio and related endpoints accept an optional **`collateralProfile`** query
 |----------|---------------------------|
 | `get-portfolio` | Yes — filters positions to markets with that profile’s primary `collateralToken`. |
 | `get-portfolio-value` | Yes — same filter; 24h MTM in that denomination. |
-| `get-portfolio-pl` | Yes — PnL, router legs, and swap cashflow for that primary only. |
+| `get-portfolio-pl` | Yes — PnL, router legs, and swap cashflow for that primary only. Generic markets only (Futarchy excluded). |
 
 If omitted, the API defaults to the **`default`** profile (sDAI on Gnosis).
 

@@ -23,8 +23,10 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   `scheduled-refresh-pnl-leaderboard`), which calls `computePortfolioPlAllPeriods` for
  *   candidate wallets (analytics activity window, Netlify time budget) under the
  *   **default** collateral profile and upserts four period rows per wallet×chain.
+ *   Compute is **Generic markets only** (Futarchy excluded).
  * - **Market-scoped** (`marketId` or comma-separated `marketIds`): live
  *   `computePortfolioPlAllPeriods` (see that module for valuation, periods, formula, limits).
+ *   Futarchy ids → 404.
  *
  * Global response shape
  * - Snapshot fields from the table: `pnl`, `valueStart`, `valueEnd`, `tradingCollateralNetOut`,

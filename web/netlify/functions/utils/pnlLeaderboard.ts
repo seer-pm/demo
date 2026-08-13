@@ -14,7 +14,7 @@ export const PNL_LEADERBOARD_CONCURRENCY = 1;
 /** Max wallets to compute/upsert per app×chain job in one background run. */
 export const PNL_LEADERBOARD_BATCH_SIZE = 200;
 /** Only wallets with analytics activity in this UTC window are refresh candidates. */
-export const PNL_LEADERBOARD_RECENT_DAYS = 5;
+export const PNL_LEADERBOARD_RECENT_DAYS = 5000; // TEMP: use 5000 days until all wallets are migrated, then set to 5
 /** Stay under Netlify's ~15m background limit. */
 export const PNL_LEADERBOARD_REFRESH_BUDGET_MS = 13 * 60 * 1000;
 
@@ -394,6 +394,8 @@ export async function refreshPnlLeaderboardForAppChain(
     batchSize?: number;
     /** Absolute deadline (Date.now() ms). When exceeded, stop claiming new wallets. */
     deadlineMs?: number;
+    /** If set, compute exactly these wallets (no analytics candidate list / stale rotation). */
+    candidates?: LeaderboardCandidate[];
   },
 ): Promise<RefreshAppChainResult> {
   const concurrency = opts?.concurrency ?? PNL_LEADERBOARD_CONCURRENCY;
@@ -419,9 +421,18 @@ export async function refreshPnlLeaderboardForAppChain(
     };
   }
 
-  const candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds);
-  const batch = await selectStaleLeaderboardBatch(supabase, appId, chainId, candidates, batchSize);
-  const skippedStale = Math.max(0, candidates.length - batch.length);
+  let candidates: LeaderboardCandidate[];
+  let batch: LeaderboardCandidate[];
+  let skippedStale: number;
+  if (opts?.candidates) {
+    candidates = opts.candidates;
+    batch = candidates;
+    skippedStale = 0;
+  } else {
+    candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds);
+    batch = await selectStaleLeaderboardBatch(supabase, appId, chainId, candidates, batchSize);
+    skippedStale = Math.max(0, candidates.length - batch.length);
+  }
 
   const profile = getCollateralProfileByName(supportedChain, DEFAULT_COLLATERAL_PROFILE);
   const primaryCollateral = profile.primary;

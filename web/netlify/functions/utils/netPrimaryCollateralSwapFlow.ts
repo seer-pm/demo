@@ -48,7 +48,8 @@ export type PrimaryCollateralSwapFlowByPeriod = {
  * `router_collateral` transfers (`computeCollateralPortfolioValuesForPeriods`); market-scoped
  * via HyperIndex `ConditionalEvent` (`routerPrimaryCollateralNetInWindow`).
  *
- * `markets` must be pre-scoped to the request collateral profile (e.g. `searchAllMarkets` with `collateralProfile`).
+ * `markets` must be pre-scoped to Generic + the request collateral profile
+ * (P/L compute uses `searchAllMarkets` with `type: Generic` and `collateralProfile`).
  */
 export async function computeNetPrimaryCollateralSwapFlow(
   account: Address,
