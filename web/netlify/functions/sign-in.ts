@@ -100,10 +100,7 @@ export default async (req: Request) => {
       { expiresIn: "1h" },
     );
 
-    return new Response(JSON.stringify({ token, user }), {
-      status: 200,
-      headers: jsonHeaders,
-    });
+    return new Response(JSON.stringify({ token, user }), { status: 200, headers: jsonHeaders });
   } catch (error) {
     console.error("Error processing request:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
