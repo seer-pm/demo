@@ -15,7 +15,7 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * Always refreshes protocol-wide `app=all` per supported chain (every market, including those
  * not assigned to any app). App-scoped jobs run only when `SEER_APPS` lists markets.
  *
- * Each job refreshes a stale/missing batch among wallets with recent activity (last 5d);
+ * Each job refreshes a stale/missing batch among wallets with analytics activity;
  * a global time budget aborts cleanly before Netlify's ~15m background limit so the next
  * schedule can continue the rotation.
  */

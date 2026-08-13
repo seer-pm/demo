@@ -20,7 +20,7 @@ multi-statement scripts in one, so run those statements individually.
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
-| `pnl_leaderboard.sql` | Table + indexes for the app-scoped PnL leaderboard (`get-pnl-leaderboard` / refresh job). |
+| `pnl_leaderboard.sql` | Table + indexes for the app-scoped PnL leaderboard (`get-pnl-leaderboard` / refresh job). Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `dex_pool_hour_prices_latest_for_pairs.sql` | RPC: latest pool hour row per (token0, token1) pair (replaces flat-token latest RPC). |
 

@@ -381,7 +381,7 @@ Period P/L for an account (outcome MTM + router collateral legs − swap/LP cash
 
 ## get-pnl-leaderboard
 
-Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`). Data is **materialized** by `scheduled-refresh-pnl-leaderboard` / `refresh-pnl-leaderboard-background` into Supabase `pnl_leaderboard` (apply `web/supabase/sql/pnl_leaderboard.sql` first).
+Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`). Data is **materialized** by `scheduled-refresh-pnl-leaderboard` / `refresh-pnl-leaderboard-background` into Supabase `pnl_leaderboard` (apply `web/supabase/sql/pnl_leaderboard.sql` first). The refresh considers every wallet with analytics activity (not a top-N by tx count) and rotates a stale/missing batch each run.
 
 | Field | Detail |
 |-------|--------|

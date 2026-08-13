@@ -1,4 +1,4 @@
-import { configurePublicRpcUrls } from "@seer-pm/sdk";
+import { configurePublicRpcUrls, initApiHost } from "@seer-pm/sdk";
 import {
   http,
   type Chain,
@@ -15,6 +15,8 @@ const GNOSIS_RPC = process.env.PRIVATE_RPC_GNOSIS || "https://gnosis-pokt.nodies
 const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || "https://eth-pokt.nodies.app";
 const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || "https://mainnet.optimism.io";
 const BASE_RPC = process.env.PRIVATE_RPC_BASE || "https://base.llamarpc.com";
+
+initApiHost("http://localhost:3001");
 
 configurePublicRpcUrls({
   [gnosis.id]: GNOSIS_RPC,

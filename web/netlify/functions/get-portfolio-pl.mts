@@ -21,7 +21,7 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   `pnl_leaderboard` (`app_id = all`). No live compute. Miss → zeros.
  *   Same numbers as the scheduled refresh job (`refresh-pnl-leaderboard-background` /
  *   `scheduled-refresh-pnl-leaderboard`), which calls `computePortfolioPlAllPeriods` for
- *   candidate wallets (recent activity window, wallet cap, Netlify time budget) under the
+ *   candidate wallets (analytics activity window, Netlify time budget) under the
  *   **default** collateral profile and upserts four period rows per wallet×chain.
  * - **Market-scoped** (`marketId` or comma-separated `marketIds`): live
  *   `computePortfolioPlAllPeriods` (see that module for valuation, periods, formula, limits).
@@ -30,7 +30,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * - Snapshot fields from the table: `pnl`, `valueStart`, `valueEnd`, `tradingCollateralNetOut`,
  *   `volume`, `marketCount`, plus request `account` / `chainId` / `period` and EOD `startTime` / `endTime=now`.
  * - May be stale until the next successful refresh; wallets never selected as candidates
- *   (no recent activity, outside cap, budget abort) stay at zeros.
+ *   (no analytics activity in the window, or still waiting on the stale/missing rotation)
+ *   stay at zeros.
  *
  * `debug=1` (market-scoped only): attaches a `debug` object for the requested `period`
  * (formula breakdown + swap sample rows). Ignored on the global path.
@@ -47,8 +48,7 @@ async function portfolioPlFromLeaderboard(args: {
 }): Promise<PortfolioPlPeriodSnapshot> {
   const { account, chainId, period, endTime } = args;
   const accountLc = account.toLowerCase();
-  const startTime =
-    period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
+  const startTime = period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
 
   const { data, error } = await supabase
     .from("pnl_leaderboard")

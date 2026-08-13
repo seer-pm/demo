@@ -9,14 +9,12 @@ import { searchAllMarkets } from "./markets";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
 import type { Database, TablesInsert } from "./supabase";
 
-/** Max candidate wallets (by recent tx count) considered per app×chain refresh. */
-export const PNL_LEADERBOARD_WALLET_CAP = 500;
 /** Serialize wallets so Envio pacing (~200/min) is not burst by parallel computes. */
 export const PNL_LEADERBOARD_CONCURRENCY = 1;
 /** Max wallets to compute/upsert per app×chain job in one background run. */
-export const PNL_LEADERBOARD_BATCH_SIZE = 100;
+export const PNL_LEADERBOARD_BATCH_SIZE = 200;
 /** Only wallets with analytics activity in this UTC window are refresh candidates. */
-export const PNL_LEADERBOARD_RECENT_DAYS = 5;
+export const PNL_LEADERBOARD_RECENT_DAYS = 5000;
 /** Stay under Netlify's ~15m background limit. */
 export const PNL_LEADERBOARD_REFRESH_BUDGET_MS = 13 * 60 * 1000;
 
@@ -25,7 +23,6 @@ const DAY_SECONDS = 86_400;
 
 export type LeaderboardCandidate = {
   address: string;
-  uniqueTxCount: number;
 };
 
 export type RefreshJob = {
@@ -99,80 +96,67 @@ export function recentActivityCutoffDay(
   return todayMidnight - recentDays * DAY_SECONDS;
 }
 
-function rankCandidatesByTxCount(byAddress: Map<string, number>, limit: number): LeaderboardCandidate[] {
-  return [...byAddress.entries()]
-    .map(([address, uniqueTxCount]) => ({ address, uniqueTxCount }))
-    .sort((a, b) => b.uniqueTxCount - a.uniqueTxCount || a.address.localeCompare(b.address))
-    .slice(0, limit);
-}
-
 /**
- * Candidate wallets with activity in the last `PNL_LEADERBOARD_RECENT_DAYS` UTC days.
- * When `marketIds` is omitted, ranks activity across the whole chain (All / protocol-wide).
+ * Every wallet with analytics activity in the last `PNL_LEADERBOARD_RECENT_DAYS` UTC days.
+ * When `marketIds` is omitted, uses the whole chain (All / protocol-wide).
  */
 export async function listLeaderboardCandidates(
   supabase: SupabaseClient<Database>,
   chainId: number,
   marketIds: Address[] | undefined,
-  limit = PNL_LEADERBOARD_WALLET_CAP,
 ): Promise<LeaderboardCandidate[]> {
   const cutoffDay = recentActivityCutoffDay();
 
   if (marketIds === undefined) {
-    return listCandidatesFromWalletAnalytics(supabase, chainId, cutoffDay, limit);
+    return listCandidatesFromWalletAnalytics(supabase, chainId, cutoffDay);
   }
   if (marketIds.length === 0) return [];
 
-  return listCandidatesFromAnalytics(supabase, chainId, marketIds, cutoffDay, limit);
+  return listCandidatesFromAnalytics(supabase, chainId, marketIds, cutoffDay);
 }
 
 const CANDIDATE_PAGE_SIZE = 1000;
 
-type CandidateAnalyticsRow = { address: string | null; unique_tx_count: number | null };
+type CandidateAnalyticsRow = { address: string | null };
 
-function aggregateCandidateRows(rows: CandidateAnalyticsRow[]): Map<string, number> {
-  const byAddress = new Map<string, number>();
+function addCandidateAddresses(into: Set<string>, rows: CandidateAnalyticsRow[]): void {
   for (const row of rows) {
     const address = (row.address ?? "").toLowerCase();
     if (!address || address === ZERO_ADDRESS) continue;
-    byAddress.set(address, (byAddress.get(address) ?? 0) + Number(row.unique_tx_count ?? 0));
+    into.add(address);
   }
-  return byAddress;
 }
 
-async function loadCandidateAnalyticsPages(
+async function loadCandidateAddresses(
   fetchPage: (
     from: number,
     to: number,
   ) => PromiseLike<{ data: CandidateAnalyticsRow[] | null; error: { message: string } | null }>,
   errorContext: string,
-): Promise<Map<string, number>> {
-  const byAddress = new Map<string, number>();
+): Promise<LeaderboardCandidate[]> {
+  const addresses = new Set<string>();
   for (let offset = 0; ; offset += CANDIDATE_PAGE_SIZE) {
     const { data, error } = await fetchPage(offset, offset + CANDIDATE_PAGE_SIZE - 1);
     if (error) {
       throw new Error(`pnl-leaderboard: ${errorContext}: ${error.message}`);
     }
     const rows = data ?? [];
-    for (const [address, count] of aggregateCandidateRows(rows)) {
-      byAddress.set(address, (byAddress.get(address) ?? 0) + count);
-    }
+    addCandidateAddresses(addresses, rows);
     if (rows.length < CANDIDATE_PAGE_SIZE) break;
   }
-  return byAddress;
+  return [...addresses].map((address) => ({ address }));
 }
 
 async function listCandidatesFromWalletAnalytics(
   supabase: SupabaseClient<Database>,
   chainId: number,
   cutoffDay: number,
-  limit: number,
 ): Promise<LeaderboardCandidate[]> {
-  const byAddress = await loadCandidateAnalyticsPages(
+  return loadCandidateAddresses(
     (from, to) =>
       supabase
         .from("analytics_daily_wallet")
-        .select("address, unique_tx_count")
+        .select("address")
         .eq("chain_id", chainId)
         .gte("day", cutoffDay)
         .order("address", { ascending: true })
@@ -180,7 +164,6 @@ async function listCandidatesFromWalletAnalytics(
         .range(from, to),
     "analytics_daily_wallet unavailable",
   );
-  return rankCandidatesByTxCount(byAddress, limit);
 }
 
 async function listCandidatesFromAnalytics(
@@ -188,14 +171,13 @@ async function listCandidatesFromAnalytics(
   chainId: number,
   marketIds: Address[],
   cutoffDay: number,
-  limit: number,
 ): Promise<LeaderboardCandidate[]> {
   const marketIdLcs = marketIds.map((id) => id.toLowerCase());
-  const byAddress = await loadCandidateAnalyticsPages(
+  return loadCandidateAddresses(
     (from, to) =>
       supabase
         .from("analytics_daily_wallet_market")
-        .select("address, unique_tx_count")
+        .select("address")
         .eq("chain_id", chainId)
         .in("market_id", marketIdLcs)
         .gte("day", cutoffDay)
@@ -205,7 +187,6 @@ async function listCandidatesFromAnalytics(
         .range(from, to),
     "analytics_daily_wallet_market unavailable",
   );
-  return rankCandidatesByTxCount(byAddress, limit);
 }
 
 async function mapPool<T>(
@@ -230,10 +211,25 @@ async function mapPool<T>(
   return { abortedByBudget };
 }
 
+/** Addresses per `.in()` lookup. If PostgREST 414s, lower this — do not swallow the error. */
+const STALE_LOOKUP_IN_CHUNK = 200;
+
+/** Reject returned `updated_at` older than this; catches silent no-op upserts. */
+const UPSERT_UPDATED_AT_MAX_AGE_MS = 5 * 60 * 1000;
+
+function updatedAtMs(value: string | undefined): number | null {
+  if (!value) return null;
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? ts : null;
+}
+
+function isoOrNull(ms: number | null): string | null {
+  return ms == null ? null : new Date(ms).toISOString();
+}
+
 /**
  * Prefer wallets missing from `pnl_leaderboard`, then those with the oldest `updated_at`
  * (period=`all` is the representative row — all periods upsert together).
- * Ties keep candidate order (stable sort); the next run breaks ties via updated_at.
  */
 export async function selectStaleLeaderboardBatch(
   supabase: SupabaseClient<Database>,
@@ -247,10 +243,8 @@ export async function selectStaleLeaderboardBatch(
   const addresses = candidates.map((c) => c.address.toLowerCase());
   const updatedAtByAddress = new Map<string, string>();
 
-  // Supabase `.in()` can blow past URL limits; page in chunks.
-  const IN_CHUNK = 200;
-  for (let offset = 0; offset < addresses.length; offset += IN_CHUNK) {
-    const chunk = addresses.slice(offset, offset + IN_CHUNK);
+  for (let offset = 0; offset < addresses.length; offset += STALE_LOOKUP_IN_CHUNK) {
+    const chunk = addresses.slice(offset, offset + STALE_LOOKUP_IN_CHUNK);
     const { data, error } = await supabase
       .from("pnl_leaderboard")
       .select("address, updated_at")
@@ -260,9 +254,9 @@ export async function selectStaleLeaderboardBatch(
       .in("address", chunk);
 
     if (error) {
-      console.warn("pnl-leaderboard: stale batch lookup failed", error.message);
-      // Fall back to first N candidates so refresh still progresses.
-      return candidates.slice(0, batchSize);
+      throw new Error(
+        `pnl-leaderboard: stale batch lookup failed (inChunk=${STALE_LOOKUP_IN_CHUNK}): ${error.message}`,
+      );
     }
     for (const row of data ?? []) {
       const address = (row.address ?? "").toLowerCase();
@@ -272,24 +266,51 @@ export async function selectStaleLeaderboardBatch(
     }
   }
 
-  const ranked = [...candidates].sort((a, b) => {
-    const aAt = updatedAtByAddress.get(a.address.toLowerCase());
-    const bAt = updatedAtByAddress.get(b.address.toLowerCase());
-    if (!aAt && !bAt) return 0;
-    if (!aAt) return -1;
-    if (!bAt) return 1;
-    if (aAt !== bAt) return aAt < bAt ? -1 : 1;
-    return 0;
-  });
+  const { data: oldestRow, error: oldestError } = await supabase
+    .from("pnl_leaderboard")
+    .select("updated_at")
+    .eq("app_id", appId)
+    .eq("chain_id", chainId)
+    .eq("period", "all")
+    .order("updated_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (oldestError) {
+    throw new Error(`pnl-leaderboard: table min updated_at lookup failed: ${oldestError.message}`);
+  }
 
-  return ranked.slice(0, batchSize);
+  const ranked = [...candidates].sort((a, b) => {
+    const aMs = updatedAtMs(updatedAtByAddress.get(a.address.toLowerCase()));
+    const bMs = updatedAtMs(updatedAtByAddress.get(b.address.toLowerCase()));
+    if (aMs == null && bMs == null) return 0;
+    if (aMs == null) return -1;
+    if (bMs == null) return 1;
+    return aMs - bMs;
+  });
+  const batch = ranked.slice(0, batchSize);
+
+  const missing = candidates.length - updatedAtByAddress.size;
+  let batchMinMs: number | null = null;
+  let batchMaxMs: number | null = null;
+  for (const candidate of batch) {
+    const ms = updatedAtMs(updatedAtByAddress.get(candidate.address.toLowerCase()));
+    if (ms == null) continue;
+    if (batchMinMs == null || ms < batchMinMs) batchMinMs = ms;
+    if (batchMaxMs == null || ms > batchMaxMs) batchMaxMs = ms;
+  }
+
+  console.log(
+    `pnl-leaderboard: stale lookup app=${appId} chain=${chainId} candidates=${candidates.length} missing=${missing} resolved=${updatedAtByAddress.size} tableMinUpdatedAt=${isoOrNull(updatedAtMs(oldestRow?.updated_at))} batchMinUpdatedAt=${isoOrNull(batchMinMs)} batchMaxUpdatedAt=${isoOrNull(batchMaxMs)} sample=${JSON.stringify(batch.slice(0, 8).map((c) => c.address))}`,
+  );
+
+  return batch;
 }
 
 export type RefreshAppChainResult = {
   appId: string;
   chainId: number;
   candidates: number;
-  /** Wallets selected for this run (stale/missing batch). */
+  /** Wallets actually computed this run (`upserted + failures`), not the claimed batch size. */
   processed: number;
   /** Candidates not in this batch (deferred to a later run). */
   skippedStale: number;
@@ -323,20 +344,64 @@ export async function expandMarketIdsWithChildren(chainId: number, marketIds: Ad
   return [...expanded];
 }
 
+function isFatalLeaderboardUpsertError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith("pnl-leaderboard: upsert wrote");
+}
+
+async function upsertLeaderboardRows(
+  supabase: SupabaseClient<Database>,
+  address: string,
+  rows: PnlLeaderboardInsert[],
+): Promise<void> {
+  const { data, error, count } = await supabase
+    .from("pnl_leaderboard")
+    .upsert(rows, {
+      onConflict: "app_id,chain_id,address,period",
+      count: "exact",
+    })
+    .select("address, period, updated_at");
+
+  if (error) {
+    throw new Error(`pnl-leaderboard upsert failed ${address}: ${error.message}`);
+  }
+
+  const written = data ?? [];
+  if (count === 0 || written.length === 0) {
+    throw new Error(
+      `pnl-leaderboard: upsert wrote 0 rows for ${address} (count=${count}, returned=${written.length}); check SUPABASE_API_KEY is service_role and INSERT/UPDATE grants (anon is SELECT-only)`,
+    );
+  }
+  if (written.length !== rows.length) {
+    throw new Error(
+      `pnl-leaderboard: upsert wrote ${written.length}/${rows.length} rows for ${address} (count=${count})`,
+    );
+  }
+
+  const freshAfter = Date.now() - UPSERT_UPDATED_AT_MAX_AGE_MS;
+  const stale = written.filter((row) => {
+    if (!row.updated_at) return true;
+    const ts = Date.parse(row.updated_at);
+    return !Number.isFinite(ts) || ts < freshAfter;
+  });
+  if (stale.length > 0) {
+    throw new Error(
+      `pnl-leaderboard: upsert wrote 0 fresh updated_at for ${address} (${stale.length}/${written.length} stale or missing); writes may be no-ops`,
+    );
+  }
+}
+
 export async function refreshPnlLeaderboardForAppChain(
   supabase: SupabaseClient<Database>,
   appId: string,
   chainId: number,
   marketIds: Address[] | undefined,
   opts?: {
-    walletCap?: number;
     concurrency?: number;
     batchSize?: number;
     /** Absolute deadline (Date.now() ms). When exceeded, stop claiming new wallets. */
     deadlineMs?: number;
   },
 ): Promise<RefreshAppChainResult> {
-  const walletCap = opts?.walletCap ?? PNL_LEADERBOARD_WALLET_CAP;
   const concurrency = opts?.concurrency ?? PNL_LEADERBOARD_CONCURRENCY;
   const batchSize = opts?.batchSize ?? PNL_LEADERBOARD_BATCH_SIZE;
   const shouldAbort = opts?.deadlineMs != null ? () => Date.now() >= opts.deadlineMs! : undefined;
@@ -360,7 +425,7 @@ export async function refreshPnlLeaderboardForAppChain(
     };
   }
 
-  const candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds, walletCap);
+  const candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds);
   const batch = await selectStaleLeaderboardBatch(supabase, appId, chainId, candidates, batchSize);
   const skippedStale = Math.max(0, candidates.length - batch.length);
 
@@ -398,6 +463,7 @@ export async function refreshPnlLeaderboardForAppChain(
           return;
         }
 
+        const writtenAt = new Date().toISOString();
         const rows: PnlLeaderboardInsert[] = PORTFOLIO_PL_PERIODS.map((period) => {
           const snap = computed.byPeriod[period];
           const pnl = Number(snap.pnl) || 0;
@@ -428,20 +494,21 @@ export async function refreshPnlLeaderboardForAppChain(
               collateralPriceUsd,
             }),
             market_count: Number(snap.marketCount) || 0,
-            updated_at: new Date().toISOString(),
+            updated_at: writtenAt,
           };
         });
 
-        const { error } = await supabase.from("pnl_leaderboard").upsert(rows, {
-          onConflict: "app_id,chain_id,address,period",
-        });
-        if (error) {
-          console.error("pnl-leaderboard upsert failed", candidate.address, error.message);
+        try {
+          await upsertLeaderboardRows(supabase, candidate.address, rows);
+        } catch (e) {
+          if (isFatalLeaderboardUpsertError(e)) throw e;
+          console.error("pnl-leaderboard upsert failed", candidate.address, e instanceof Error ? e.message : e);
           failures += 1;
           return;
         }
         upserted += 1;
       } catch (e) {
+        if (isFatalLeaderboardUpsertError(e)) throw e;
         console.error("pnl-leaderboard wallet compute failed", candidate.address, e);
         failures += 1;
       }
@@ -453,7 +520,7 @@ export async function refreshPnlLeaderboardForAppChain(
     appId,
     chainId,
     candidates: candidates.length,
-    processed: batch.length,
+    processed: upserted + failures,
     skippedStale,
     upserted,
     failures,

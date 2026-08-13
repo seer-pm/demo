@@ -51,5 +51,9 @@ CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_updated_at_idx
 COMMENT ON TABLE public.pnl_leaderboard IS
   'Materialized wallet PnL for Seer app leaderboards. Native pnl/volume stored for audit; public rankings use pnl_usd / volume_usd (spot collateral USD at refresh). roi = pnl_usd / (value_start_usd + buys_usd) with buys = (volume + trading_collateral_net_out) / 2; NULL when capital < $0.01. market_count = distinct markets with primary-collateral swaps in the row period.';
 
+-- Refresh job (`refresh-pnl-leaderboard-background`) uses SUPABASE_API_KEY.
+-- That must be the service_role key: anon/authenticated are SELECT-only (public
+-- leaderboard reads). Upserts with the anon key can return 200 with 0 rows
+-- (especially with RLS), so updated_at never moves and the stale batch never rotates.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pnl_leaderboard TO service_role;
 GRANT SELECT ON public.pnl_leaderboard TO anon, authenticated;

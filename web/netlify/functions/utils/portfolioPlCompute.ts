@@ -244,9 +244,10 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  *   excluded from swap cashflow — assumed rare.
  * - Swaps counted only through venues indexed in `getSwapEvents` (pool subgraph + CoW
  *   owner trades).
- * - When this runs inside the leaderboard job: only recent-activity candidates within the
- *   wallet cap and Netlify budget are refreshed; other wallets keep prior/zero rows.
- *   `marketCount` is always for the period window (not the recent-activity candidate filter).
+ * - When this runs inside the leaderboard job: wallets with analytics activity are
+ *   refreshed in stale/missing batches under the Netlify time budget; other wallets
+ *   keep prior/zero rows. `marketCount` is always for the period window (not the
+ *   candidate activity filter).
  */
 export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPeriodsArgs): Promise<{
   startTimeByPeriod: Record<PortfolioPlPeriod, number>;
