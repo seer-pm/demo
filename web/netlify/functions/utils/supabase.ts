@@ -90,6 +90,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      analytics_daily_wallet: {
+        Row: {
+          address: string;
+          chain_id: number;
+          day: number;
+          unique_tx_count: number;
+        };
+        Insert: {
+          address: string;
+          chain_id: number;
+          day: number;
+          unique_tx_count?: number;
+        };
+        Update: {
+          address?: string;
+          chain_id?: number;
+          day?: number;
+          unique_tx_count?: number;
+        };
+        Relationships: [];
+      };
+      analytics_daily_wallet_market: {
+        Row: {
+          address: string;
+          chain_id: number;
+          day: number;
+          market_id: string;
+          unique_tx_count: number;
+        };
+        Insert: {
+          address: string;
+          chain_id: number;
+          day: number;
+          market_id: string;
+          unique_tx_count?: number;
+        };
+        Update: {
+          address?: string;
+          chain_id?: number;
+          day?: number;
+          market_id?: string;
+          unique_tx_count?: number;
+        };
+        Relationships: [];
+      };
       collections: {
         Row: {
           created_at: string | null;
@@ -381,6 +426,84 @@ export type Database = {
           },
         ];
       };
+      pnl_leaderboard: {
+        Row: {
+          address: string;
+          app_id: string;
+          chain_id: number;
+          collateral_price_usd: number;
+          lp_collateral_net_out: number;
+          market_count: number;
+          period: string;
+          pnl: number;
+          pnl_usd: number;
+          roi: number | null;
+          trading_collateral_net_out: number;
+          updated_at: string;
+          value_end: number;
+          value_start: number;
+          volume: number;
+          volume_usd: number;
+        };
+        Insert: {
+          address: string;
+          app_id: string;
+          chain_id: number;
+          collateral_price_usd?: number;
+          lp_collateral_net_out?: number;
+          market_count?: number;
+          period: string;
+          pnl?: number;
+          pnl_usd?: number;
+          roi?: number | null;
+          trading_collateral_net_out?: number;
+          updated_at?: string;
+          value_end?: number;
+          value_start?: number;
+          volume?: number;
+          volume_usd?: number;
+        };
+        Update: {
+          address?: string;
+          app_id?: string;
+          chain_id?: number;
+          collateral_price_usd?: number;
+          lp_collateral_net_out?: number;
+          market_count?: number;
+          period?: string;
+          pnl?: number;
+          pnl_usd?: number;
+          roi?: number | null;
+          trading_collateral_net_out?: number;
+          updated_at?: string;
+          value_end?: number;
+          value_start?: number;
+          volume?: number;
+          volume_usd?: number;
+        };
+        Relationships: [];
+      };
+      pnl_leaderboard_refresh_cursor: {
+        Row: {
+          app_id: string;
+          chain_id: number;
+          id: string;
+          updated_at: string;
+        };
+        Insert: {
+          app_id: string;
+          chain_id: number;
+          id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          app_id?: string;
+          chain_id?: number;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       notifications_queue: {
         Row: {
           created_at: string;
@@ -578,8 +701,8 @@ export type Database = {
       };
     };
     Functions: {
-      dex_pool_hour_prices_latest_for_tokens: {
-        Args: { p_chain_id: number; p_token_ids: string[] };
+      dex_pool_hour_prices_latest_for_pairs: {
+        Args: { p_chain_id: number; p_token0_ids: string[]; p_token1_ids: string[] };
         Returns: {
           chain_id: number;
           period_start_unix: number;
@@ -678,6 +801,31 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      pnl_leaderboard_all_chains: {
+        Args: {
+          p_app_id: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_period: string;
+          p_search?: string | null;
+        };
+        Returns: {
+          address: string;
+          capital_usd: number;
+          market_count: number;
+          pnl_usd: number;
+          total_count: number;
+          updated_at: string;
+          volume_usd: number;
+        }[];
+      };
+      pnl_leaderboard_all_chains_rank: {
+        Args: { p_address: string; p_app_id: string; p_period: string };
+        Returns: {
+          rank: number | null;
+          total: number;
+        }[];
       };
       search_markets_any_token: {
         Args: { tokens: string[] };

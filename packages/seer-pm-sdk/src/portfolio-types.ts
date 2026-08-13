@@ -40,6 +40,8 @@ export type PortfolioPnLData = {
   tradingCollateralNetOut?: number;
   startTime: number;
   endTime: number;
+  /** Snapshot write time when the value came from `pnl_leaderboard`. */
+  updatedAt?: string | null;
 };
 
 /** Portfolio / activity transaction row (split, merge, redeem, swap, LP). */

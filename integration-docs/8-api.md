@@ -353,7 +353,10 @@ Current portfolio value and ~24h mark-to-market change (outcome positions only; 
 
 ## get-portfolio-pl
 
-Period P/L for an account (outcome MTM + router collateral legs − swap cashflow). Cached ~2h when `debug` is not set.
+Period P/L for an account (outcome MTM + router collateral legs − swap/LP cashflow). **Generic markets only** — Futarchy is excluded so non-primary notional (PNK/GNO, …) is not mixed into the profile’s primary units. `get-portfolio` still lists Futarchy positions.
+
+- **Global** (no `marketId` / `marketIds`): reads materialized rows from Supabase `pnl_leaderboard` (`app_id = all`). No live compute; miss → zeros.
+- **Market-scoped** (`marketId` or `marketIds`): computes live via `computePortfolioPlAllPeriods`. Futarchy ids → 404.
 
 | Field | Detail |
 |-------|--------|
@@ -368,14 +371,37 @@ Period P/L for an account (outcome MTM + router collateral legs − swap cashflo
 | `chainId` | Yes | Chain ID (number). |
 | `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `1d`). |
 | `marketId` | No | Restrict to one market. |
-| `collateralProfile` | No | Registered profile name (see `get-portfolio`). |
-| `debug` | No | `1` or `true` for breakdown (skips cache). |
+| `marketIds` | No | Comma-separated market IDs (same chain). Provide `marketId` or `marketIds`, not both. |
+| `collateralProfile` | No | Registered profile name (see `get-portfolio`). Market-scoped only. |
+| `debug` | No | `1` or `true` for formula breakdown on market-scoped requests (ignored on the global path). |
 
 `@seer-pm/sdk` `fetchPortfolioPnL` / `fetchPortfolioValue` send `collateralProfile` from `getActiveCollateralProfileName()` after `configureCollateral` — see [Collateral profiles](9-collateral-profiles.md).
 
 ---
 
-## markets-charts
+## get-pnl-leaderboard
+
+Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`). Data is **materialized** by `scheduled-refresh-pnl-leaderboard` / `refresh-pnl-leaderboard-background` into Supabase `pnl_leaderboard` (apply `web/supabase/sql/pnl_leaderboard.sql` first). The refresh considers every wallet with analytics activity (not a top-N by tx count) and rotates a stale/missing batch each run.
+
+| Field | Detail |
+|-------|--------|
+| **Method** | `GET` |
+| **URL** | `https://app.seer.pm/.netlify/functions/get-pnl-leaderboard` |
+| **CORS** | `*` (dashboard / external UIs) |
+
+### Query params
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `app` | No | `all` (protocol-wide: every market on the chain, including those not in any app) \| `foresight` \| `opportunity` \| `deepfund` \| `futarchy` (default `all`). |
+| `chainId` | No | Chain id, or `all` to sum USD across chains (default Gnosis `100`). |
+| `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `all`). |
+| `limit` / `offset` | No | Pagination (limit max 200). |
+| `search` | No | Substring filter on address. |
+
+All rankings use **USD** (`pnl_usd` from materialization: native collateral PnL × spot collateral USD). Per-chain filters still return USD so ranks stay comparable; `chainId=all` sums `pnl_usd` across chains. App filter `all` is independent of `SEER_APPS` market lists.
+
+---## markets-charts
 
 Returns chart data (hourly price/volume) for markets. If IDs are provided, only those markets; if omitted, all cached chart data.
 
@@ -424,7 +450,8 @@ type MarketsChartsResponse = Record<`0x${string}`, ChartDataSeries>;
 | get-transactions | GET | `account`, `chainId`, opt. `eventType`, `startTime`, `endTime` | Wallet transaction history |
 | get-portfolio | GET | `account`, `chainId`, opt. `collateralProfile` | Wallet positions (filtered by profile) |
 | get-portfolio-value | GET | `account`, `chainId`, opt. `collateralProfile` | Portfolio value + 24h delta |
-| get-portfolio-pl | GET | `account`, `chainId`, opt. `collateralProfile`, `period` | Period P/L |
+| get-portfolio-pl | GET | `account`, `chainId`, opt. `collateralProfile`, `period`, `marketId` / `marketIds` | Period P/L |
+| get-pnl-leaderboard | GET | `app`, `chainId` or `all`, `period` | App-scoped P/L rankings |
 | markets-charts | GET | opt. `ids` (market IDs) | Price/volume charts per market |
 
 All responses are JSON. Errors return `{ "error": "message" }` with the appropriate HTTP status code.

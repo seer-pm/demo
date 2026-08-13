@@ -5,8 +5,8 @@ import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import type { Address } from "viem";
 import { Database } from "../supabase";
+import { withRetry } from "../withRetry";
 import { START_TIME } from "./constants";
-import { withRetry } from "./utils";
 
 const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.SUPABASE_PROJECT_URL!,

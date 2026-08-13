@@ -1,12 +1,58 @@
 import { type MarketDataMapping, type SupportedChain, type TransactionData, getMappings } from "@seer-pm/sdk";
+import type { Market } from "@seer-pm/sdk/market-types";
 import type { Address } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "./utils/config";
-import { searchMarkets } from "./utils/markets";
+import { searchAllMarkets } from "./utils/markets";
 import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
 import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./utils/transactions/getSwapEvents";
+
+const MARKETS_MAPPINGS_TTL_MS = 15 * 60 * 1000;
+
+type MarketsMappingsCacheEntry = {
+  markets: Market[];
+  mappings: MarketDataMapping | null;
+  expiresAt: number;
+};
+
+const marketsMappingsByChain = new Map<number, MarketsMappingsCacheEntry>();
+const marketsMappingsInflight = new Map<number, Promise<MarketsMappingsCacheEntry>>();
+
+async function getMarketsAndMappings(chainId: SupportedChain): Promise<{
+  markets: Market[];
+  mappings: MarketDataMapping | null;
+}> {
+  const cached = marketsMappingsByChain.get(chainId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return { markets: cached.markets, mappings: cached.mappings };
+  }
+
+  let inflight = marketsMappingsInflight.get(chainId);
+  if (!inflight) {
+    inflight = (async () => {
+      const { markets } = await searchAllMarkets({ chainIds: [chainId] });
+      const mappings =
+        markets.length === 0 ? null : await getMappings(getPublicClientByChainId(chainId), markets, chainId);
+      const entry: MarketsMappingsCacheEntry = {
+        markets,
+        mappings,
+        expiresAt: Date.now() + MARKETS_MAPPINGS_TTL_MS,
+      };
+      if (markets.length > 0) {
+        marketsMappingsByChain.set(chainId, entry);
+      }
+      return entry;
+    })().finally(() => {
+      marketsMappingsInflight.delete(chainId);
+    });
+    marketsMappingsInflight.set(chainId, inflight);
+  }
+
+  const entry = await inflight;
+  return { markets: entry.markets, mappings: entry.mappings };
+}
 
 async function getBlockTimestamp(chainId: SupportedChain, initialBlockNumber: number) {
   let blockNumber = initialBlockNumber;
@@ -76,13 +122,11 @@ async function getTransactions(
   endTime?: number,
   eventType?: string,
 ) {
-  const { markets } = await searchMarkets({ chainIds: [chainId] });
+  const { markets, mappings } = await getMarketsAndMappings(chainId);
 
-  if (markets.length === 0) {
+  if (markets.length === 0 || !mappings) {
     return [];
   }
-
-  const mappings = await getMappings(getPublicClientByChainId(chainId), markets, chainId);
 
   const { tokenIdToTokenSymbolMapping } = mappings;
 

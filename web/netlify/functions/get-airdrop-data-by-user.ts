@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
 import { gnosis, mainnet } from "viem/chains";
-import { withRetry } from "./utils/airdropCalculation/utils";
 import { Database } from "./utils/supabase";
+import { withRetry } from "./utils/withRetry";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
