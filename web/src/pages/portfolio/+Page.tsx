@@ -1,6 +1,8 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
+import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
+import { CopyButton } from "@/components/CopyButton";
 import AirdropTab from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
@@ -8,10 +10,11 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
 import { formatUsd } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { useState } from "react";
-import { Address } from "viem";
+import { Address, getAddress, isAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
@@ -137,12 +140,27 @@ function PortfolioPage() {
       <Breadcrumb links={[{ title: "Portfolio" }]} />
       <div className="mt-8 space-y-4">
         <ChainFilterChips value={chainId} onChange={setChainId} />
-        <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex gap-4 items-start justify-between">
-          <div className="flex gap-4">
-            <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center">
+        <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
+          <div className="flex gap-4 min-w-0">
+            <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center shrink-0">
               <Union />
             </div>
-            <PortfolioValueVariation account={account} chainId={chainId} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 min-w-0 mb-2">
+                <h1 className="text-[18px] font-semibold text-base-content truncate">
+                  <AddressOrName address={account} />
+                </h1>
+                <CopyButton
+                  textToCopy={isAddress(account) ? getAddress(account) : account}
+                  size={16}
+                  className="shrink-0 !p-1 text-black-secondary"
+                />
+                {isTwoStringsEqual(connectedAccount, account) ? (
+                  <span className="text-xs text-purple-primary font-medium shrink-0">You</span>
+                ) : null}
+              </div>
+              <PortfolioValueVariation account={account} chainId={chainId} />
+            </div>
           </div>
 
           <PortfolioPnLHistory account={account} chainId={chainId} />
