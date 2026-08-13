@@ -33,20 +33,6 @@ Analytics matview RPC `refresh_market_outcome_tokens` lives in
 (same DB). `scheduled-markets-import` calls it when new market ids are upserted. Apply that
 function in the SQL editor before relying on the auto-refresh.
 
-## Deployment order (usernames)
-
-Before deploying the matching application code:
-
-1. Apply `users_username.sql`.
-2. From `web/`, run `npx tsx scripts/backfill-usernames.ts` with `SUPABASE_PROJECT_URL` and a
-   service-role `SUPABASE_API_KEY` capable of updating every user.
-3. Immediately apply `users_username_not_null.sql`. If an old sign-in creates another user between
-   steps 2 and 3, rerun the backfill and this statement.
-4. Deploy the matching application code. Old sign-ins will fail after step 3, so keep steps 2–4
-   together to minimize the interruption.
-
-The matching functions expect the finalized schema and should only be deployed after the migration completes.
-
 ## Apply for PnL leaderboard / portfolio fixes
 
 After pulling these changes, run in the Supabase SQL editor (in order):
