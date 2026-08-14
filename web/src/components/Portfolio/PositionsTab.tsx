@@ -21,7 +21,12 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
 
   const renderTable = () => {
     if (isLoading) {
-      return <div className="shimmer-container w-full h-[200px]" aria-hidden />;
+      return (
+        <div aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading positions</span>
+          <div className="shimmer-container w-full h-[200px]" aria-hidden />
+        </div>
+      );
     }
     if (!filteredPositions.length && filterMarketName) {
       return (

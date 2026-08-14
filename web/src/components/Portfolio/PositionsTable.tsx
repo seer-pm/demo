@@ -268,16 +268,17 @@ function PositionsTableInner({
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
+    enableMultiSort: true,
     state: {
       pagination,
     },
     initialState: {
-      sorting: [
-        {
-          id: showRedeemColumn ? "marketStatus" : "marketName",
-          desc: false,
-        },
-      ],
+      sorting: showRedeemColumn
+        ? [
+            { id: "marketStatus", desc: false },
+            { id: "tokenValue", desc: true },
+          ]
+        : [{ id: "tokenValue", desc: true }],
     },
   });
 

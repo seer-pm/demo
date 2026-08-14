@@ -59,7 +59,7 @@ function MetricGroup({
           : undefined
       }
     >
-      <h2 className={`text-sm font-semibold ${accent ? "text-purple-primary" : "text-base-content"}`}>{title}</h2>
+      <h3 className={`text-sm font-semibold ${accent ? "text-purple-primary" : "text-base-content"}`}>{title}</h3>
       <p className="text-sm text-black-primary mt-1 mb-4 max-w-prose">{description}</p>
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">{children}</dl>
     </section>
@@ -140,7 +140,7 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
         <Figure label="Holdings" value={seerValue(row.monthlyEstimate)} />
       </MetricGroup>
 
-      <MetricGroup title="Liquidity" description="sER LP token balances, not SEER. Separate from the estimate above.">
+      <MetricGroup title="Liquidity" description="SER LP token balances, not SEER. Separate from the estimate above.">
         <Figure label="Ethereum" value={formatSeer(row.serLppMainnet)} />
         <Figure label="Gnosis" value={formatSeer(row.serLppGnosis)} />
       </MetricGroup>

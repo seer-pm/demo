@@ -13,7 +13,7 @@ import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
-import type { KeyboardEvent } from "react";
+import { type KeyboardEvent, useRef } from "react";
 import { Address, getAddress, isAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -27,10 +27,10 @@ const TABS = [
 type PortfolioTab = (typeof TABS)[number]["id"];
 
 const PNL_PERIODS: { id: PortfolioPnLPeriod; label: string; aria: string; hint: string }[] = [
-  { id: "1d", label: "1D", aria: "Last day", hint: "Last day" },
-  { id: "1w", label: "1W", aria: "Last week", hint: "Last week" },
-  { id: "1m", label: "1M", aria: "Last month", hint: "Last month" },
-  { id: "all", label: "All", aria: "All time", hint: "All time" },
+  { id: "1d", label: "1D", aria: "Trading P&L last day", hint: "Last day" },
+  { id: "1w", label: "1W", aria: "Trading P&L last week", hint: "Last week" },
+  { id: "1m", label: "1M", aria: "Trading P&L last month", hint: "Last month" },
+  { id: "all", label: "All", aria: "Trading P&L all time", hint: "All time" },
 ];
 
 function parsePortfolioTab(raw: string | null): PortfolioTab {
@@ -53,7 +53,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
   if (error) {
     return (
       <div>
-        <p className="text-sm font-medium text-black-primary">Total</p>
+        <p className="text-sm font-medium text-black-primary">Current value</p>
         <p className="text-sm text-[#B42318] mt-1">Couldn't load current value.</p>
         <button
           type="button"
@@ -69,32 +69,37 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
 
   return (
     <div>
-      <p className="text-sm font-medium text-black-primary">Total</p>
-      {isLoading ? (
-        <div className="mt-2 shimmer-container h-8 w-[220px] max-w-full" aria-hidden />
-      ) : (
-        <p className="text-[32px] leading-tight text-base-content font-semibold">
-          {formatUsd(Number(currentPortfolioValue))}
-        </p>
-      )}
-      {isLoading ? (
-        <div className="mt-2 shimmer-container h-5 w-[180px] max-w-full" aria-hidden />
-      ) : tone === "flat" ? (
-        <p className="text-sm text-black-primary mt-1">No change today</p>
-      ) : (
-        <p className={`${SIGNED_TONE_CLASS[tone]} flex items-center gap-1 mt-1 text-sm`}>
-          <span aria-hidden>
-            {tone === "up" ? (
-              <ArrowDropUp fill={SIGNED_TONE_FILL.up} />
-            ) : (
-              <ArrowDropDown fill={SIGNED_TONE_FILL.down} />
-            )}
-          </span>
-          {formatUsd(delta, { signed: true })}
-          {percentLabel ? ` (${percentLabel})` : ""} today
-        </p>
-      )}
-      <p className="text-sm text-black-primary mt-1">Outcomes and collateral · USD</p>
+      <p className="text-sm font-medium text-black-primary">Current value</p>
+      <div aria-live="polite" aria-atomic="true">
+        {isLoading ? (
+          <>
+            <span className="sr-only">Loading current value</span>
+            <div className="mt-2 shimmer-container h-8 w-[220px] max-w-full" aria-hidden />
+          </>
+        ) : (
+          <p className="text-[32px] leading-tight text-base-content font-semibold">
+            {formatUsd(Number(currentPortfolioValue))}
+          </p>
+        )}
+        {isLoading ? (
+          <div className="mt-2 shimmer-container h-5 w-[180px] max-w-full" aria-hidden />
+        ) : tone === "flat" ? (
+          <p className="text-sm text-black-primary mt-1">No value change today</p>
+        ) : (
+          <p className={`${SIGNED_TONE_CLASS[tone]} flex items-center gap-1 mt-1 text-sm`}>
+            <span aria-hidden>
+              {tone === "up" ? (
+                <ArrowDropUp fill={SIGNED_TONE_FILL.up} />
+              ) : (
+                <ArrowDropDown fill={SIGNED_TONE_FILL.down} />
+              )}
+            </span>
+            {formatUsd(delta, { signed: true })}
+            {percentLabel ? ` (${percentLabel})` : ""} value change today
+          </p>
+        )}
+      </div>
+      <p className="text-sm text-black-primary mt-1">USD · mark-to-market of outcomes and collateral</p>
     </div>
   );
 }
@@ -118,7 +123,7 @@ function PortfolioPnLHistory({
   return (
     <div className="flex flex-col items-start sm:items-end gap-2 min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-medium text-black-primary">Profit/Loss</p>
+        <p className="text-sm font-medium text-black-primary">Trading P&L</p>
         <div className="join">
           {PNL_PERIODS.map((p) => (
             <button
@@ -134,23 +139,28 @@ function PortfolioPnLHistory({
           ))}
         </div>
       </div>
-      {isLoading ? (
-        <div className="shimmer-container h-7 w-[140px]" aria-hidden />
-      ) : error ? (
-        <div className="text-right">
-          <p className="text-sm text-[#B42318]">Couldn't load profit/loss.</p>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm min-h-11 mt-1 px-3"
-            disabled={isFetching}
-            onClick={() => refetch()}
-          >
-            {isFetching ? "Retrying…" : "Try again"}
-          </button>
-        </div>
-      ) : (
-        <p className={`text-2xl font-semibold ${SIGNED_TONE_CLASS[tone]}`}>{formatUsd(pnl, { signed: true })}</p>
-      )}
+      <div aria-live="polite" aria-atomic="true">
+        {isLoading ? (
+          <>
+            <span className="sr-only">Loading trading P&L</span>
+            <div className="shimmer-container h-7 w-[140px]" aria-hidden />
+          </>
+        ) : error ? (
+          <div className="text-right">
+            <p className="text-sm text-[#B42318]">Couldn't load trading P&L.</p>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm min-h-11 mt-1 px-3"
+              disabled={isFetching}
+              onClick={() => refetch()}
+            >
+              {isFetching ? "Retrying…" : "Try again"}
+            </button>
+          </div>
+        ) : (
+          <p className={`text-2xl font-semibold ${SIGNED_TONE_CLASS[tone]}`}>{formatUsd(pnl, { signed: true })}</p>
+        )}
+      </div>
       <p className="text-sm text-black-primary">{periodMeta.hint}</p>
     </div>
   );
@@ -160,6 +170,7 @@ function PortfolioPage() {
   const { address: connectedAccount } = useAccount();
   const { routeParams } = usePageContext();
   const account = (routeParams?.id || connectedAccount) as Address | undefined;
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -167,6 +178,7 @@ function PortfolioPage() {
   const chainId = parsePortfolioChainParam(searchParams.get("chain"));
   const plPeriod = parsePnLPeriod(searchParams.get("pl"));
   const showChainFilter = activeTab !== "airdrop";
+  const activeTabMeta = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
 
   const setTab = (tab: PortfolioTab) => {
     setSearchParams((prev) => {
@@ -192,15 +204,23 @@ function PortfolioPage() {
     });
   };
 
+  const selectTab = (index: number, focus = false) => {
+    const nextIndex = (index + TABS.length) % TABS.length;
+    setTab(TABS[nextIndex].id);
+    if (focus) {
+      requestAnimationFrame(() => tabRefs.current[nextIndex]?.focus());
+    }
+  };
+
   const onTabListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = TABS.findIndex((tab) => tab.id === activeTab);
     if (index < 0) return;
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      setTab(TABS[(index + 1) % TABS.length].id);
+      selectTab(index + 1, true);
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
-      setTab(TABS[(index - 1 + TABS.length) % TABS.length].id);
+      selectTab(index - 1, true);
     }
   };
 
@@ -251,7 +271,7 @@ function PortfolioPage() {
         </div>
         {showChainFilter ? (
           <p className="text-sm text-black-primary">
-            Prices and values in the table use each chain's collateral (sDAI, sUSDS, and others).
+            Price and Value in the table are in each chain's collateral (sDAI, sUSDS, and others), not USD.
           </p>
         ) : null}
       </div>
@@ -263,7 +283,7 @@ function PortfolioPage() {
           className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[600px] mb-6"
           onKeyDown={onTabListKeyDown}
         >
-          {TABS.map((tab) => {
+          {TABS.map((tab, index) => {
             const selected = activeTab === tab.id;
             return (
               <button
@@ -274,7 +294,10 @@ function PortfolioPage() {
                 aria-selected={selected}
                 aria-controls={tab.panelId}
                 tabIndex={selected ? 0 : -1}
-                className={`tab min-h-11 ${selected ? "tab-active" : ""}`}
+                ref={(el) => {
+                  tabRefs.current[index] = el;
+                }}
+                className={`tab min-h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary ${selected ? "tab-active" : ""}`}
                 onClick={() => setTab(tab.id)}
               >
                 {tab.label}
@@ -282,11 +305,8 @@ function PortfolioPage() {
             );
           })}
         </div>
-        <div
-          role="tabpanel"
-          id={TABS.find((tab) => tab.id === activeTab)?.panelId}
-          aria-labelledby={`portfolio-tab-${activeTab}`}
-        >
+        <div role="tabpanel" id={activeTabMeta.panelId} aria-labelledby={`portfolio-tab-${activeTab}`}>
+          <h2 className="sr-only">{activeTabMeta.label}</h2>
           {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} />}
           {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
           {activeTab === "airdrop" && <AirdropTab account={account} />}

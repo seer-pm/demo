@@ -8,16 +8,22 @@ interface CopyButtonProps {
 
 export const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, className = "", size = 24 }) => {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(textToCopy);
+      setFailed(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy text:", err);
+    } catch {
+      setCopied(false);
+      setFailed(true);
+      setTimeout(() => setFailed(false), 2000);
     }
   };
+
+  const status = failed ? "Couldn't copy" : copied ? "Copied" : "Copy to clipboard";
 
   return (
     <button
@@ -29,10 +35,13 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, className = 
         hover:bg-gray-100
         ${className}
       `}
-      title={copied ? "Copied" : "Copy to clipboard"}
-      aria-label={copied ? "Copied" : "Copy to clipboard"}
+      title={status}
+      aria-label={status}
       type="button"
     >
+      <span className="sr-only" aria-live="polite">
+        {copied || failed ? status : ""}
+      </span>
       {copied ? (
         <svg
           width={size}

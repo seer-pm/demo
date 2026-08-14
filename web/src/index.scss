@@ -177,6 +177,11 @@ body {
   --tab-color: var(--black);
   font-weight: 600;
 
+  &:focus-visible {
+    outline: 2px solid oklch(var(--purple-primary));
+    outline-offset: 2px;
+  }
+
   &.tab-active:not(.tab-disabled):not([disabled]),
   &:is(input:checked) {
     --bc: var(--purple-primary);

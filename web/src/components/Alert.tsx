@@ -28,7 +28,7 @@ interface AlertProps {
 export function Alert({ type, title, children, className = "" }: AlertProps) {
   return (
     <div
-      role={type === "error" ? "alert" : type === "success" ? "status" : undefined}
+      role={type === "error" || type === "warning" ? "alert" : "status"}
       className={clsx("alert", CLASSES[type], className)}
     >
       {ICONS[type]}
