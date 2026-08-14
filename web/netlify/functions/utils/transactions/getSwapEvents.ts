@@ -17,7 +17,7 @@ import { type Address, parseUnits } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "../config";
 import { getCollateralFromDexTx } from "../markets";
-import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
+import { type EventFetchOptions, hitLimit, paginateByTimestampId } from "./subgraphTimestampIdPagination";
 
 const COWSWAP_OWNER_TRADES_STORE = "cowswap-owner-trades";
 /** Permanent historical CoW trades snapshot per chain + owner (Netlify Blobs). Filter by markets on read. */
@@ -235,10 +235,39 @@ async function attachBlockTimestamps(
   }));
 }
 
+/**
+ * Resolve timestamps, restrict to the requested window, then take the newest `limit`.
+ *
+ * The blob snapshot holds the account's whole CoW history with no timestamps, so the window can
+ * only be applied after `attachBlockTimestamps`. Filtering before the cap matters: trades newer
+ * than `endTime` would otherwise sort to the front and consume the row budget, pushing genuinely
+ * in-window rows out of the response.
+ */
+async function finalizeCowSwaps(
+  partial: Omit<TransactionData, "timestamp">[],
+  chainId: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+  options?: EventFetchOptions,
+): Promise<TransactionData[]> {
+  const withTimestamps = await attachBlockTimestamps(partial, chainId);
+  const inWindow = withTimestamps.filter(
+    (s) => (startTime === undefined || s.timestamp >= startTime) && (endTime === undefined || s.timestamp <= endTime),
+  );
+  const sorted = inWindow.sort((a, b) => b.blockNumber - a.blockNumber);
+
+  const limit = options?.limit;
+  if (options && hitLimit(sorted, limit)) options.truncated = true;
+  return limit !== undefined && limit > 0 ? sorted.slice(0, limit) : sorted;
+}
+
 async function getCowswapSwapsCached(
   mappings: MarketDataMapping,
   chainId: SupportedChain,
   account: Address,
+  startTime?: number,
+  endTime?: number,
+  options?: EventFetchOptions,
 ): Promise<TransactionData[]> {
   // CoW Order Book has no API base URL for some Seer chains (e.g. Optimism); skip to avoid
   // `undefined/api/v1/trades` fetch failures that would reject the whole getSwapEvents Promise.all.
@@ -258,12 +287,19 @@ async function getCowswapSwapsCached(
 
     if (cached && Array.isArray(cached.trades)) {
       const cowSwapsPartial = mapTradesToCowSwaps(cached.trades, mappings, chainId, account);
-      return await attachBlockTimestamps(cowSwapsPartial, chainId);
+      return await finalizeCowSwaps(cowSwapsPartial, chainId, startTime, endTime, options);
     }
 
     // Legacy filtered snapshot: avoid mass CoW refetch on deploy. New writes use `trades`.
     if (cached && Array.isArray(cached.cowSwaps)) {
-      return cached.cowSwaps;
+      // Already carries timestamps, so window + cap can be applied directly.
+      const inWindow = cached.cowSwaps.filter(
+        (s) =>
+          (startTime === undefined || s.timestamp >= startTime) && (endTime === undefined || s.timestamp <= endTime),
+      );
+      const sorted = inWindow.sort((a, b) => b.blockNumber - a.blockNumber);
+      if (options && hitLimit(sorted, options.limit)) options.truncated = true;
+      return options?.limit !== undefined && options.limit > 0 ? sorted.slice(0, options.limit) : sorted;
     }
 
     if (isCowTradesCircuitOpen()) {
@@ -279,7 +315,7 @@ async function getCowswapSwapsCached(
     await store.setJSON(cacheKey, { cachedAt: Date.now(), trades } satisfies CowswapTradesCachePayload);
 
     const cowSwapsPartial = mapTradesToCowSwaps(trades, mappings, chainId, account);
-    return await attachBlockTimestamps(cowSwapsPartial, chainId);
+    return await finalizeCowSwaps(cowSwapsPartial, chainId, startTime, endTime, options);
   } catch (error) {
     // Don't fail getSwapEvents / DEX legs when CoW is unavailable.
     console.warn("cow-trades: fetch failed, continuing without CoW swaps", {
@@ -291,7 +327,13 @@ async function getCowswapSwapsCached(
   }
 }
 
-async function fetchSwapsFromSubgraph(account: string, chainId: SupportedChain, startTime?: number, endTime?: number) {
+async function fetchSwapsFromSubgraph(
+  account: string,
+  chainId: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+  maxRows?: number,
+) {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
@@ -305,6 +347,7 @@ async function fetchSwapsFromSubgraph(account: string, chainId: SupportedChain, 
   return paginateByTimestampId<GetSwapsQuery["swaps"][number]>({
     startTime,
     endTime,
+    maxRows,
     accountFilters: [{ origin: accountLc }, { recipient: accountLc }],
     fetchPage: async (where, first) => {
       const data = await graphQLSdk(graphQLClient).GetSwaps({
@@ -327,6 +370,7 @@ export async function getSwapEvents(
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
+  options?: EventFetchOptions,
 ) {
   const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
   if (outcomeTokenToCollateral.size === 0) {
@@ -334,9 +378,10 @@ export async function getSwapEvents(
   }
 
   const [dexSwaps, cowSwaps] = await Promise.all([
-    fetchSwapsFromSubgraph(account, chainId, startTime, endTime),
-    getCowswapSwapsCached(mappings, chainId, account),
+    fetchSwapsFromSubgraph(account, chainId, startTime, endTime, options?.limit),
+    getCowswapSwapsCached(mappings, chainId, account, startTime, endTime, options),
   ]);
+  if (options && hitLimit(dexSwaps, options.limit)) options.truncated = true;
 
   const swapsFromSubgraph = dexSwaps.reduce((acc, swap) => {
     const amount0 = parseUnits(swap.amount0.replace("-", ""), Number(swap.token0.decimals));

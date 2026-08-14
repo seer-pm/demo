@@ -213,7 +213,9 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         header: "Transaction Hash",
       },
     ],
-    [],
+    // Cells close over `chainId` for market links and explorer URLs — without it here a chain
+    // switch keeps rendering the previous chain's links.
+    [chainId],
   );
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,

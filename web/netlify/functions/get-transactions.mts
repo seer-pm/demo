@@ -8,8 +8,16 @@ import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
 import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./utils/transactions/getSwapEvents";
+import type { EventFetchOptions } from "./utils/transactions/subgraphTimestampIdPagination";
 
 const MARKETS_MAPPINGS_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Rows returned when the caller doesn't pass `limit`. Latency scales with row count, not with the
+ * date window, so this is what bounds the work for a heavy account. Pass `limit=0` for the full
+ * uncapped history (what the date picker's "All" preset relies on).
+ */
+const DEFAULT_LIMIT = 250;
 
 type MarketsMappingsCacheEntry = {
   markets: Market[];
@@ -83,31 +91,32 @@ async function getEvents(
   startTime?: number,
   endTime?: number,
   eventType?: string,
+  options?: EventFetchOptions,
 ) {
   let events: TransactionData[][] = [];
 
   // If no eventType specified or invalid, return all events
   if (!eventType || !["swap", "lp", "ctf"].includes(eventType)) {
     events = await Promise.all([
-      getSwapEvents(mappings, account, chainId, startTime, endTime),
-      getLiquidityEvents(mappings, account, chainId, startTime, endTime),
-      getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
-      getSplitMergeRedeemEvents(account, chainId),
+      getSwapEvents(mappings, account, chainId, startTime, endTime, options),
+      getLiquidityEvents(mappings, account, chainId, startTime, endTime, options),
+      getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime, options),
+      getSplitMergeRedeemEvents(account, chainId, startTime, endTime, options),
     ]);
   } else {
     // Filter events based on eventType
     switch (eventType) {
       case "swap":
-        events = [await getSwapEvents(mappings, account, chainId, startTime, endTime)];
+        events = [await getSwapEvents(mappings, account, chainId, startTime, endTime, options)];
         break;
       case "lp":
         events = await Promise.all([
-          getLiquidityEvents(mappings, account, chainId, startTime, endTime),
-          getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime),
+          getLiquidityEvents(mappings, account, chainId, startTime, endTime, options),
+          getLiquidityWithdrawEvents(mappings, account, chainId, startTime, endTime, options),
         ]);
         break;
       case "ctf":
-        events = [await getSplitMergeRedeemEvents(account, chainId)];
+        events = [await getSplitMergeRedeemEvents(account, chainId, startTime, endTime, options)];
         break;
     }
   }
@@ -121,21 +130,26 @@ async function getTransactions(
   startTime?: number,
   endTime?: number,
   eventType?: string,
-) {
+  limit?: number,
+): Promise<{ transactions: TransactionData[]; truncated: boolean }> {
   const { markets, mappings } = await getMarketsAndMappings(chainId);
 
   if (markets.length === 0 || !mappings) {
-    return [];
+    return { transactions: [], truncated: false };
   }
 
   const { tokenIdToTokenSymbolMapping } = mappings;
 
-  const data = await getEvents(mappings, account, chainId, startTime, endTime, eventType);
+  // Each leg is capped independently, then the merged set is trimmed. Correct by construction:
+  // any row in the global newest-`limit` must also be in its own leg's newest-`limit`, so no
+  // event type is starved by a noisier one.
+  const fetchOptions: EventFetchOptions = { limit };
+  const data = await getEvents(mappings, account, chainId, startTime, endTime, eventType, fetchOptions);
 
   // get timestamp
   const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(chainId, x.blockNumber)));
 
-  return data
+  const mapped = data
     .map((x, index) => {
       function parseSymbol(tokenAddress?: string) {
         return tokenAddress ? tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()] : undefined;
@@ -151,6 +165,12 @@ async function getTransactions(
       };
     })
     .sort((a, b) => b.blockNumber - a.blockNumber);
+
+  if (limit !== undefined && limit > 0 && mapped.length > limit) {
+    return { transactions: mapped.slice(0, limit), truncated: true };
+  }
+
+  return { transactions: mapped, truncated: Boolean(fetchOptions.truncated) };
 }
 
 export default async (req: Request) => {
@@ -161,6 +181,7 @@ export default async (req: Request) => {
     const startTime = url.searchParams.get("startTime");
     const endTime = url.searchParams.get("endTime");
     const eventType = url.searchParams.get("eventType");
+    const limitParam = url.searchParams.get("limit");
 
     // Validate required parameters
     if (!account) {
@@ -225,18 +246,35 @@ export default async (req: Request) => {
       });
     }
 
-    const transactions = await getTransactions(
+    // `limit=0` (or negative) means uncapped — the full-history escape hatch.
+    const limitNum = limitParam === null ? DEFAULT_LIMIT : Number.parseInt(limitParam, 10);
+    if (limitParam !== null && Number.isNaN(limitNum)) {
+      return new Response(JSON.stringify({ error: "limit must be a valid number" }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    const { transactions, truncated } = await getTransactions(
       account as Address,
       chainIdNum as SupportedChain,
       startTimeNum,
       endTimeNum,
       eventType || undefined,
+      limitNum,
     );
 
     return new Response(JSON.stringify(transactions), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        // Response stays a bare array (documented in integration-docs/8-api.md); truncation
+        // rides on a header so the shape doesn't break for existing consumers.
+        "X-History-Truncated": truncated ? "true" : "false",
+        "Access-Control-Expose-Headers": "X-History-Truncated",
+        "Cache-Control": "public, max-age=60",
       },
     });
   } catch (e) {

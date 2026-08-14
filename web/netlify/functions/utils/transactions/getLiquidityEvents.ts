@@ -6,9 +6,15 @@ import { type GetMintsQuery, Mint_OrderBy, OrderDirection, getSdk as getSwaprSdk
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import { type Address, parseUnits } from "viem";
 import { getCollateralFromDexTx } from "../markets";
-import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
+import { type EventFetchOptions, hitLimit, paginateByTimestampId } from "./subgraphTimestampIdPagination";
 
-async function fetchMintsFromSubgraph(account: string, chainId: SupportedChain, startTime?: number, endTime?: number) {
+async function fetchMintsFromSubgraph(
+  account: string,
+  chainId: SupportedChain,
+  startTime?: number,
+  endTime?: number,
+  maxRows?: number,
+) {
   const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
 
   if (!graphQLClient) {
@@ -22,6 +28,7 @@ async function fetchMintsFromSubgraph(account: string, chainId: SupportedChain, 
   return paginateByTimestampId<GetMintsQuery["mints"][number]>({
     startTime,
     endTime,
+    maxRows,
     accountFilters: [{ origin: accountLc }],
     fetchPage: async (where, first) => {
       const data = await graphQLSdk(graphQLClient).GetMints({
@@ -44,10 +51,12 @@ export async function getLiquidityEvents(
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
+  options?: EventFetchOptions,
 ) {
   const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
   if (outcomeTokenToCollateral.size === 0) return [];
-  const total = await fetchMintsFromSubgraph(account, chainId, startTime, endTime);
+  const total = await fetchMintsFromSubgraph(account, chainId, startTime, endTime, options?.limit);
+  if (options && hitLimit(total, options.limit)) options.truncated = true;
   return total.reduce((acc, swap) => {
     const amount0 = parseUnits(swap.amount0.replace("-", ""), Number(swap.token0.decimals));
     const amount1 = parseUnits(swap.amount1.replace("-", ""), Number(swap.token1.decimals));

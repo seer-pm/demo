@@ -227,6 +227,20 @@ Transaction history for an account on a chain: swaps, liquidity (LP add/remove),
 | `startTime` | No | Unix timestamp start (number). |
 | `endTime` | No | Unix timestamp end (number). |
 | `eventType` | No | `swap` \| `lp` \| `ctf`. If omitted, all event types are returned. |
+| `limit` | No | Max rows to return. Defaults to `250`. Pass `0` for the full uncapped history. |
+
+### Pagination and `limit`
+
+Latency scales with the number of rows returned, not with the width of the time window — an
+account that traded heavily inside a narrow window is just as expensive as a wide one. `limit`
+is therefore what bounds the work.
+
+The cap is applied per event source and the merged set is then trimmed, so the response is
+always the globally newest `limit` rows and no event type is starved by a noisier one.
+
+Responses carry an `X-History-Truncated` header (`true` / `false`) indicating whether older rows
+exist beyond the cap. Callers that need everything should pass `limit=0` and expect the request
+to take proportionally longer.
 
 ### Response 200
 
@@ -270,7 +284,7 @@ interface TransactionData {
 
 ### Errors
 
-- **400** – Missing `account` or `chainId`, invalid `eventType`, or non-numeric `startTime`/`endTime`.
+- **400** – Missing `account` or `chainId`, invalid `eventType`, or non-numeric `startTime`/`endTime`/`limit`.
 - **500** – Internal server error.
 
 ---
