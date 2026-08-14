@@ -1,4 +1,3 @@
-import { gnosis } from "@/lib/chains";
 import {
   ALL_SUPPORTED_CHAIN_IDS,
   OrderBookApi,
@@ -10,17 +9,18 @@ import { getStore } from "@netlify/blobs";
 import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk/collateral";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { type GetSwapsQuery, OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
+import { type GetSwapsQuery, Swap_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
 import { type Address, parseUnits } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "../config";
 import { getCollateralFromDexTx } from "../markets";
-import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
+import { mappingTokenIds, paginateDexByTimestampId } from "./dexSubgraph";
 
 const COWSWAP_OWNER_TRADES_STORE = "cowswap-owner-trades";
-/** Permanent historical CoW trades snapshot per chain + owner (Netlify Blobs). Filter by markets on read. */
+/**
+ * Intentionally never invalidated. CoW is unused on the site; this blob is a historical
+ * snapshot per chain + owner. Do not refetch or TTL-expire it. Filter by markets on read.
+ */
 
 const COW_ORDER_BOOK_CHAIN_IDS = new Set<number>(ALL_SUPPORTED_CHAIN_IDS);
 
@@ -47,13 +47,17 @@ let cowTradesCircuitOpenUntilMs = 0;
 let cowTradesChain: Promise<unknown> = Promise.resolve();
 const orderBookApiByChain = new Map<SupportedChainId, OrderBookApi>();
 
-/** Blob payload: prefer raw `trades` (filter on read). Legacy `cowSwaps` kept for backward compat. */
 type CowswapTradesCachePayload = {
   cachedAt: number;
-  trades?: Trade[];
-  /** @deprecated Filtered rows from older writers; used only when `trades` is absent. */
-  cowSwaps?: TransactionData[];
+  trades: Trade[];
+  timestampByBlock: Record<string, number>;
 };
+
+function isCowCacheComplete(value: unknown): value is CowswapTradesCachePayload {
+  if (!value || typeof value !== "object") return false;
+  const cached = value as CowswapTradesCachePayload;
+  return Array.isArray(cached.trades) && cached.timestampByBlock != null && typeof cached.timestampByBlock === "object";
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -217,22 +221,46 @@ function mapTradesToCowSwaps(
   );
 }
 
-async function attachBlockTimestamps(
-  cowSwapsPartial: Omit<TransactionData, "timestamp">[],
-  chainId: SupportedChain,
-): Promise<TransactionData[]> {
-  const uniqueBlocks = [...new Set(cowSwapsPartial.map((s) => s.blockNumber))];
+async function fetchTimestampByBlock(blockNumbers: number[], chainId: SupportedChain): Promise<Record<string, number>> {
+  const uniqueBlocks = [...new Set(blockNumbers)];
+  if (uniqueBlocks.length === 0) return {};
   const client = getPublicClientByChainId(chainId);
-  const pairs = await mapPool(uniqueBlocks, BLOCK_TIMESTAMP_CONCURRENCY, async (bn) => {
-    const block = await getBlock(client, { blockNumber: BigInt(bn) });
-    return [bn, Number(block.timestamp)] as const;
-  });
-  const timestampByBlock = new Map<number, number>(pairs);
 
-  return cowSwapsPartial.map((s) => ({
-    ...s,
-    timestamp: timestampByBlock.get(s.blockNumber) ?? 0,
-  }));
+  async function lookup(bn: number): Promise<[string, number] | null> {
+    try {
+      const block = await getBlock(client, { blockNumber: BigInt(bn) });
+      const ts = Number(block.timestamp);
+      if (!Number.isFinite(ts) || ts <= 0) return null;
+      return [String(bn), ts];
+    } catch {
+      return null;
+    }
+  }
+
+  const first = await mapPool(uniqueBlocks, BLOCK_TIMESTAMP_CONCURRENCY, lookup);
+  const missing = uniqueBlocks.filter((_, i) => first[i] == null);
+  const retry = missing.length > 0 ? await mapPool(missing, BLOCK_TIMESTAMP_CONCURRENCY, lookup) : [];
+  const retryByBlock = new Map(missing.map((bn, i) => [bn, retry[i]]));
+
+  const out: Record<string, number> = {};
+  for (let i = 0; i < uniqueBlocks.length; i++) {
+    const pair = first[i] ?? retryByBlock.get(uniqueBlocks[i]) ?? null;
+    if (pair) out[pair[0]] = pair[1];
+  }
+  return out;
+}
+
+function withCowTimestamps(
+  cowSwapsPartial: Omit<TransactionData, "timestamp">[],
+  timestampByBlock: Record<string, number>,
+): TransactionData[] {
+  const out: TransactionData[] = [];
+  for (const s of cowSwapsPartial) {
+    const timestamp = timestampByBlock[String(s.blockNumber)];
+    if (timestamp == null || !Number.isFinite(timestamp) || timestamp <= 0) continue;
+    out.push({ ...s, timestamp });
+  }
+  return out;
 }
 
 async function getCowswapSwapsCached(
@@ -254,16 +282,10 @@ async function getCowswapSwapsCached(
       siteID: process.env.NETLIFY_SITE_ID,
       token: process.env.NETLIFY_BLOBS_TOKEN,
     });
-    const cached = (await store.get(cacheKey, { type: "json" })) as CowswapTradesCachePayload | null;
+    const cached = await store.get(cacheKey, { type: "json" });
 
-    if (cached && Array.isArray(cached.trades)) {
-      const cowSwapsPartial = mapTradesToCowSwaps(cached.trades, mappings, chainId, account);
-      return await attachBlockTimestamps(cowSwapsPartial, chainId);
-    }
-
-    // Legacy filtered snapshot: avoid mass CoW refetch on deploy. New writes use `trades`.
-    if (cached && Array.isArray(cached.cowSwaps)) {
-      return cached.cowSwaps;
+    if (isCowCacheComplete(cached)) {
+      return withCowTimestamps(mapTradesToCowSwaps(cached.trades, mappings, chainId, account), cached.timestampByBlock);
     }
 
     if (isCowTradesCircuitOpen()) {
@@ -276,10 +298,17 @@ async function getCowswapSwapsCached(
     }
 
     const trades = await getTradesWithRetry(account, chainId as SupportedChainId);
-    await store.setJSON(cacheKey, { cachedAt: Date.now(), trades } satisfies CowswapTradesCachePayload);
+    const timestampByBlock = await fetchTimestampByBlock(
+      trades.map((t) => t.blockNumber),
+      chainId,
+    );
+    await store.setJSON(cacheKey, {
+      cachedAt: Date.now(),
+      trades,
+      timestampByBlock,
+    } satisfies CowswapTradesCachePayload);
 
-    const cowSwapsPartial = mapTradesToCowSwaps(trades, mappings, chainId, account);
-    return await attachBlockTimestamps(cowSwapsPartial, chainId);
+    return withCowTimestamps(mapTradesToCowSwaps(trades, mappings, chainId, account), timestampByBlock);
   } catch (error) {
     // Don't fail getSwapEvents / DEX legs when CoW is unavailable.
     console.warn("cow-trades: fetch failed, continuing without CoW swaps", {
@@ -291,33 +320,23 @@ async function getCowswapSwapsCached(
   }
 }
 
-async function fetchSwapsFromSubgraph(account: string, chainId: SupportedChain, startTime?: number, endTime?: number) {
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+async function fetchSwapsFromSubgraph(
+  account: string,
+  chainId: SupportedChain,
+  tokenIds: string[],
+  startTime?: number,
+  endTime?: number,
+) {
   const accountLc = account.toLowerCase() as Address;
-
-  // Single stream: origin OR recipient, with (timestamp, id) cursor via shared helper.
-  return paginateByTimestampId<GetSwapsQuery["swaps"][number]>({
+  return paginateDexByTimestampId<GetSwapsQuery["swaps"][number]>({
+    chainId,
     startTime,
     endTime,
+    tokenIds,
     accountFilters: [{ origin: accountLc }, { recipient: accountLc }],
-    fetchPage: async (where, first) => {
-      const data = await graphQLSdk(graphQLClient).GetSwaps({
-        first,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderBy: Swap_OrderBy.Timestamp as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderDirection: OrderDirection.Desc as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        where: where as any,
-      });
-      return data.swaps as GetSwapsQuery["swaps"];
-    },
+    orderBy: Swap_OrderBy.Timestamp,
+    resultKey: "swaps",
+    query: (sdk, vars) => sdk.GetSwaps(vars),
   });
 }
 
@@ -329,12 +348,13 @@ export async function getSwapEvents(
   endTime?: number,
 ) {
   const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
-  if (outcomeTokenToCollateral.size === 0) {
+  const tokenIds = mappingTokenIds(mappings);
+  if (outcomeTokenToCollateral.size === 0 || tokenIds.length === 0) {
     return [];
   }
 
   const [dexSwaps, cowSwaps] = await Promise.all([
-    fetchSwapsFromSubgraph(account, chainId, startTime, endTime),
+    fetchSwapsFromSubgraph(account, chainId, tokenIds, startTime, endTime),
     getCowswapSwapsCached(mappings, chainId, account),
   ]);
 

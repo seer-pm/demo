@@ -13,6 +13,8 @@ export interface ModalProps {
 
 export const Modal = forwardRef<HTMLDialogElement, ModalProps>(
   ({ title, content, id, open, className, titleClassName }, ref) => {
+    if (!open) return null;
+
     return (
       <>
         {createPortal(

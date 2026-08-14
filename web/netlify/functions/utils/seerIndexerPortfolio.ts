@@ -1,4 +1,6 @@
+import { DEFAULT_CHAIN } from "@/lib/chains";
 import type { PortfolioPosition, SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
+import { unescapeJson } from "@seer-pm/sdk/market";
 import { Order_By } from "@seer-pm/sdk/subgraph/seer";
 import { type Address, formatUnits } from "viem";
 import { seerEnvioSdk } from "./envioClient";
@@ -31,6 +33,18 @@ export type AccountActivityRow = {
   transferCount: number;
 };
 
+function mapAccountActivityRow(row: {
+  earliestTransferTimestamp: string;
+  lastTransferTimestamp: string;
+  transferCount: string;
+}): AccountActivityRow {
+  return {
+    earliestTransferTimestamp: Number(row.earliestTransferTimestamp),
+    lastTransferTimestamp: Number(row.lastTransferTimestamp),
+    transferCount: Number(row.transferCount),
+  };
+}
+
 export async function fetchAccountActivity(
   account: Address,
   chainId: SupportedChain,
@@ -39,11 +53,15 @@ export async function fetchAccountActivity(
     id: accountActivityEntityId(chainId, account),
   });
   if (!accountActivity) return null;
-  return {
-    earliestTransferTimestamp: Number(accountActivity.earliestTransferTimestamp),
-    lastTransferTimestamp: Number(accountActivity.lastTransferTimestamp),
-    transferCount: Number(accountActivity.transferCount),
-  };
+  return mapAccountActivityRow(accountActivity);
+}
+
+/** All chain rows for an account from the shared HyperIndex (one HTTP call). */
+export async function fetchAccountActivities(account: Address): Promise<AccountActivityRow[]> {
+  const { AccountActivity: rows } = await seerEnvioSdk(DEFAULT_CHAIN).GetAccountActivities({
+    account: account.toLowerCase(),
+  });
+  return rows.map(mapAccountActivityRow);
 }
 
 /**
@@ -295,12 +313,19 @@ export type ConditionalEventRow = {
 export async function fetchConditionalEventsForAccount(
   account: Address,
   chainId: SupportedChain,
-  opts: { startTime: number; endTime: number; marketAddress?: Address },
+  opts?: { startTime?: number; endTime?: number; marketAddress?: Address },
 ): Promise<ConditionalEventRow[]> {
   const sdk = seerEnvioSdk(chainId);
   const accountLc = account.toLowerCase();
   const out: ConditionalEventRow[] = [];
   let offset = 0;
+  const timestampFilter =
+    opts?.startTime != null || opts?.endTime != null
+      ? {
+          ...(opts?.startTime != null ? { _gt: String(opts.startTime) } : {}),
+          ...(opts?.endTime != null ? { _lte: String(opts.endTime) } : {}),
+        }
+      : undefined;
   for (;;) {
     const { ConditionalEvent: rows } = await sdk.GetConditionalEvents({
       limit: PAGE,
@@ -309,15 +334,15 @@ export async function fetchConditionalEventsForAccount(
       where: {
         chainId: { _eq: String(chainId) },
         accountId: { _eq: accountLc },
-        timestamp: { _gt: String(opts.startTime), _lte: String(opts.endTime) },
-        ...(opts.marketAddress ? { market: { address: { _eq: opts.marketAddress.toLowerCase() } } } : {}),
+        ...(timestampFilter ? { timestamp: timestampFilter } : {}),
+        ...(opts?.marketAddress ? { market: { address: { _eq: opts.marketAddress.toLowerCase() } } } : {}),
       },
     });
     for (const row of rows) {
       if (!row.market) continue;
       out.push({
         marketId: row.market.address,
-        marketName: row.market.marketName,
+        marketName: unescapeJson(row.market.marketName),
         eventType: row.eventType as "split" | "merge" | "redeem",
         amount: BigInt(row.amount),
         collateral: row.collateral as Address,
@@ -332,25 +357,8 @@ export async function fetchConditionalEventsForAccount(
   return out;
 }
 
-/**
- * Net primary collateral for the user from ConditionalEvents:
- * split → −amount, merge/redeem → +amount (only legs whose collateral matches primary).
- */
-export function routerPrimaryNetFromConditionalEvents(
-  events: ConditionalEventRow[],
-  primaryCollateral: Token,
-): { netHuman: number; transactionEvents: TransactionData[] } {
-  const primaryLc = primaryCollateral.address.toLowerCase();
-  let netWei = 0n;
-  const transactionEvents: TransactionData[] = [];
-
-  for (const ev of events) {
-    if (ev.collateral.toLowerCase() !== primaryLc) continue;
-    if (ev.eventType === "split") {
-      netWei -= ev.amount;
-    } else {
-      netWei += ev.amount;
-    }
+export function conditionalEventsToTransactions(events: ConditionalEventRow[]): TransactionData[] {
+  return events.map((ev) => {
     const base = {
       marketName: ev.marketName,
       marketId: ev.marketId,
@@ -360,16 +368,33 @@ export function routerPrimaryNetFromConditionalEvents(
       transactionHash: ev.transactionHash,
       timestamp: ev.timestamp,
     };
-    if (ev.eventType === "redeem") {
-      transactionEvents.push({ ...base, payout: ev.amount.toString() });
+    return ev.eventType === "redeem"
+      ? { ...base, payout: ev.amount.toString() }
+      : { ...base, amount: ev.amount.toString() };
+  });
+}
+
+/**
+ * Net primary collateral for the user from ConditionalEvents:
+ * split → −amount, merge/redeem → +amount (only legs whose collateral matches primary).
+ */
+export function routerPrimaryNetFromConditionalEvents(
+  events: ConditionalEventRow[],
+  primaryCollateral: Token,
+): { netHuman: number; transactionEvents: TransactionData[] } {
+  const primaryLc = primaryCollateral.address.toLowerCase();
+  const matching = events.filter((ev) => ev.collateral.toLowerCase() === primaryLc);
+  let netWei = 0n;
+  for (const ev of matching) {
+    if (ev.eventType === "split") {
+      netWei -= ev.amount;
     } else {
-      transactionEvents.push({ ...base, amount: ev.amount.toString() });
+      netWei += ev.amount;
     }
   }
-
   return {
     netHuman: Number(formatUnits(netWei, primaryCollateral.decimals)),
-    transactionEvents,
+    transactionEvents: conditionalEventsToTransactions(matching),
   };
 }
 

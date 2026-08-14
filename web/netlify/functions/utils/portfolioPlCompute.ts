@@ -31,7 +31,7 @@ export { PORTFOLIO_PL_PERIODS };
 
 export type PortfolioPlPeriodSnapshot = {
   account: string;
-  chainId: number;
+  chainId: number | "all";
   period: PortfolioPlPeriod;
   marketIds?: string[];
   /** EOD window start; null for global `period=all` leaderboard reads (no fabricated earliest). */
@@ -51,6 +51,8 @@ export type PortfolioPlPeriodSnapshot = {
   routerPrimaryCollateralNetInWindow?: number;
   events?: unknown[];
   pnl: number;
+  /** Set on the global leaderboard path; `pnl` / value fields are USD. */
+  unit?: "USD";
 };
 
 function positionRowValueAtReference(

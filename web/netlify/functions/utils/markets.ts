@@ -420,6 +420,61 @@ export async function searchAllMarkets(
   return { markets };
 }
 
+const ID_IN_CHUNK = 100;
+
+function chunkIds<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(items.slice(i, i + size));
+  }
+  return out;
+}
+
+/** Market ids whose wrapped tokens include any of `tokens` (chain-scoped). */
+export async function fetchMarketIdsByTokens(chainId: SupportedChain, tokens: string[]): Promise<string[]> {
+  if (tokens.length === 0) return [];
+  const ids = new Set<string>();
+  for (const batch of chunkIds(
+    tokens.map((t) => t.toLowerCase()),
+    ID_IN_CHUNK,
+  )) {
+    const { data, error } = await supabase.rpc("search_markets_any_token", { tokens: batch });
+    if (error) throw error;
+    for (const row of data ?? []) {
+      if (row.chain_id === chainId && row.market_id) ids.add(row.market_id.toLowerCase());
+    }
+  }
+  return [...ids];
+}
+
+/** Load markets by id from the `markets` table (no `markets_search` view). */
+export async function loadMarketsByIds(chainId: SupportedChain, ids: string[]): Promise<Market[]> {
+  const unique = [...new Set(ids.map((id) => id.toLowerCase()))];
+  if (unique.length === 0) return [];
+
+  const markets: Market[] = [];
+  for (const batch of chunkIds(unique, ID_IN_CHUNK)) {
+    const { data, error } = await supabase
+      .from("markets")
+      .select(MARKET_DB_FIELDS)
+      .eq("chain_id", chainId)
+      .not("subgraph_data", "is", null)
+      .in("id", batch);
+    if (error) throw error;
+    for (const row of data ?? []) {
+      try {
+        markets.push(mapGraphMarketFromDbResult(row.subgraph_data as LegacySubgraphMarket, row));
+      } catch (e) {
+        console.warn("loadMarketsByIds: skipped malformed row", {
+          id: row.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+  return markets;
+}
+
 export async function searchMarkets({
   chainIds,
   type,

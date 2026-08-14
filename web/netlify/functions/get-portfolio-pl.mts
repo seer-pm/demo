@@ -2,6 +2,7 @@ import { SEER_APP_ALL_ID } from "@/lib/apps";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
+import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
 import {
   type PortfolioPlPeriod,
   type PortfolioPlPeriodSnapshot,
@@ -29,8 +30,9 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   Futarchy ids → 404.
  *
  * Global response shape
- * - Snapshot fields from the table: `pnl`, `valueStart`, `valueEnd`, `tradingCollateralNetOut`,
- *   `volume`, `marketCount`, plus request `account` / `chainId` / `period`.
+ * - USD from materialization: `pnl` is `pnl_usd`; `valueStart` / `valueEnd` / net-out / `volume`
+ *   are native fields × `collateral_price_usd` (or `volume_usd`). `unit` is `"USD"`.
+ * - `chainId=all` sums those USD fields across chains for the wallet.
  * - `endTime` / `startTime` (for 1d, 1w, 1m) are derived from the row's `updated_at`, not request-time now.
  * - `updatedAt` is that snapshot timestamp. `period=all` keeps `startTime` null.
  * - May be stale until the next successful refresh; wallets never selected as candidates
@@ -43,30 +45,40 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 
 type Period = PortfolioPlPeriod;
 
-/** Global P/L from `pnl_leaderboard` (`app_id = all`). Miss → zeros. */
+type LeaderboardUsdRow = {
+  pnl_usd: number;
+  value_start: number;
+  value_end: number;
+  trading_collateral_net_out: number;
+  lp_collateral_net_out: number;
+  volume_usd: number;
+  collateral_price_usd: number;
+  market_count: number;
+  updated_at: string;
+};
+
+function usdFromLeaderboardRow(row: LeaderboardUsdRow) {
+  const price = Number(row.collateral_price_usd) || 0;
+  return {
+    pnl: Number(row.pnl_usd) || 0,
+    valueStart: (Number(row.value_start) || 0) * price,
+    valueEnd: (Number(row.value_end) || 0) * price,
+    tradingCollateralNetOut: (Number(row.trading_collateral_net_out) || 0) * price,
+    lpCollateralNetOut: (Number(row.lp_collateral_net_out) || 0) * price,
+    volume: Number(row.volume_usd) || 0,
+    marketCount: Number(row.market_count) || 0,
+  };
+}
+
+/** Global P/L from `pnl_leaderboard` (`app_id = all`), in USD. Miss → zeros. */
 async function portfolioPlFromLeaderboard(args: {
   account: Address;
-  chainId: number;
+  chainId: number | "all";
   period: Period;
   endTime: number;
 }): Promise<PortfolioPlPeriodSnapshot> {
   const { account, chainId, period, endTime } = args;
   const accountLc = account.toLowerCase();
-
-  const { data, error } = await supabase
-    .from("pnl_leaderboard")
-    .select(
-      "pnl, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume, market_count, updated_at",
-    )
-    .eq("app_id", SEER_APP_ALL_ID)
-    .eq("chain_id", chainId)
-    .eq("address", accountLc)
-    .eq("period", period)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`portfolio-pl leaderboard read failed: ${error.message}`);
-  }
 
   const zeros = (windowEnd: number, startTime: number | null, updatedAt: string | null): PortfolioPlPeriodSnapshot => ({
     account: accountLc,
@@ -82,15 +94,64 @@ async function portfolioPlFromLeaderboard(args: {
     marketCount: 0,
     pnl: 0,
     updatedAt,
+    unit: "USD",
   });
 
-  if (!data) {
+  let query = supabase
+    .from("pnl_leaderboard")
+    .select(
+      "pnl_usd, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume_usd, collateral_price_usd, market_count, updated_at",
+    )
+    .eq("app_id", SEER_APP_ALL_ID)
+    .eq("address", accountLc)
+    .eq("period", period);
+
+  if (chainId !== "all") {
+    query = query.eq("chain_id", chainId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`portfolio-pl leaderboard read failed: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as LeaderboardUsdRow[];
+  if (rows.length === 0) {
     const startTime = period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
     return zeros(endTime, startTime, null);
   }
 
-  const parsed = Date.parse(data.updated_at);
-  const snapshotEnd = Number.isFinite(parsed) ? Math.floor(parsed / 1000) : endTime;
+  let latestUpdatedAt: string | null = null;
+  let snapshotEnd = endTime;
+  const summed = {
+    pnl: 0,
+    valueStart: 0,
+    valueEnd: 0,
+    tradingCollateralNetOut: 0,
+    lpCollateralNetOut: 0,
+    volume: 0,
+    marketCount: 0,
+  };
+
+  for (const row of rows) {
+    const usd = usdFromLeaderboardRow(row);
+    summed.pnl += usd.pnl;
+    summed.valueStart += usd.valueStart;
+    summed.valueEnd += usd.valueEnd;
+    summed.tradingCollateralNetOut += usd.tradingCollateralNetOut;
+    summed.lpCollateralNetOut += usd.lpCollateralNetOut;
+    summed.volume += usd.volume;
+    summed.marketCount += usd.marketCount;
+    if (!latestUpdatedAt || row.updated_at > latestUpdatedAt) {
+      latestUpdatedAt = row.updated_at;
+      const parsed = Date.parse(row.updated_at);
+      if (Number.isFinite(parsed)) {
+        snapshotEnd = Math.floor(parsed / 1000);
+      }
+    }
+  }
+
   const startTime = period === "all" ? null : eodStartTimesForPeriods(snapshotEnd, null)[period];
 
   return {
@@ -99,14 +160,9 @@ async function portfolioPlFromLeaderboard(args: {
     period,
     startTime,
     endTime: snapshotEnd,
-    valueStart: Number(data.value_start) || 0,
-    valueEnd: Number(data.value_end) || 0,
-    tradingCollateralNetOut: Number(data.trading_collateral_net_out) || 0,
-    lpCollateralNetOut: Number(data.lp_collateral_net_out) || 0,
-    volume: Number(data.volume) || 0,
-    marketCount: Number(data.market_count) || 0,
-    pnl: Number(data.pnl) || 0,
-    updatedAt: data.updated_at,
+    ...summed,
+    updatedAt: latestUpdatedAt,
+    unit: "USD",
   };
 }
 
@@ -152,12 +208,6 @@ export default async (req: Request) => {
       });
     }
     const account = accountParam as Address;
-    if (!chainId) {
-      return new Response(JSON.stringify({ error: "ChainId parameter is required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
     if (!["1d", "1w", "1m", "all"].includes(period)) {
       return new Response(JSON.stringify({ error: "period must be one of: 1d, 1w, 1m, all" }), {
         status: 400,
@@ -165,15 +215,13 @@ export default async (req: Request) => {
       });
     }
 
-    const chainIdNum = Number(chainId);
-    if (!Number.isInteger(chainIdNum)) {
-      return new Response(JSON.stringify({ error: "chainId must be a valid number" }), {
+    const chainParsed = parseChainIdQueryParam(chainId, { allowAll: true });
+    if ("error" in chainParsed) {
+      return new Response(JSON.stringify({ error: chainParsed.error }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    const supportedChain = chainIdNum as SupportedChain;
 
     const marketsParsed = parseMarketIds(url);
     if (marketsParsed.error) {
@@ -185,11 +233,11 @@ export default async (req: Request) => {
     const marketIds = marketsParsed.marketIds;
     const endTime = Math.floor(Date.now() / 1000);
 
-    // Global: materialized leaderboard only (no live compute).
+    // Global: materialized leaderboard only (no live compute). USD.
     if (!marketIds?.length) {
       const snapshot = await portfolioPlFromLeaderboard({
         account,
-        chainId: chainIdNum,
+        chainId: chainParsed.chainId,
         period,
         endTime,
       });
@@ -201,6 +249,16 @@ export default async (req: Request) => {
         },
       });
     }
+
+    if (chainParsed.chainId === "all") {
+      return new Response(JSON.stringify({ error: "chainId=all is not supported with marketId / marketIds" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const chainIdNum = chainParsed.chainId;
+    const supportedChain = chainIdNum as SupportedChain;
 
     // Market-scoped: live compute.
     const collateralResolved = parseCollateralProfileQueryParam(

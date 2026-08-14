@@ -42,11 +42,17 @@ export async function getDexScreenerPriceUSD(token: Address, chainId: SupportedC
     return fetchSUSDSPriceFromContract(chainId);
   }
 
-  const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`).then((res) => res.json())) as {
-    pairs: { chainId: string; priceUsd: string }[];
-  };
-  const priceString = data.pairs?.find(
-    (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism", 8453: "base" }[chainId],
-  )?.priceUsd;
-  return priceString ? Number(priceString) : 0;
+  try {
+    const data = (await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`, {
+      signal: AbortSignal.timeout(8_000),
+    }).then((res) => res.json())) as {
+      pairs: { chainId: string; priceUsd: string }[];
+    };
+    const priceString = data.pairs?.find(
+      (x) => x.chainId === { 1: "ethereum", 100: "gnosischain", 10: "optimism", 8453: "base" }[chainId],
+    )?.priceUsd;
+    return priceString ? Number(priceString) : 0;
+  } catch {
+    return 0;
+  }
 }
