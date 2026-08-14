@@ -1,6 +1,6 @@
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
-import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
+import { EnsBadge } from "@/components/EnsBadge";
 import { TraderScoreBadge, type TraderScoreBreakdown } from "@/components/TraderScoreBadge";
 import { TraderScoreLegend } from "@/components/TraderScoreLegend";
 import {
@@ -21,11 +21,12 @@ import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Filter } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { SCORE_UNAVAILABLE, type ScoreUnavailable } from "@/lib/traderScore";
+import { shortenAddress } from "@/lib/utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useEnsName } from "wagmi";
 
 type Period = "1d" | "1w" | "1m" | "all";
 type SortKey = "pnl" | "volume" | "roi" | "markets" | "score";
@@ -45,6 +46,7 @@ type LeaderboardApiResponse = {
   rows: {
     rank: number;
     address: string;
+    username?: string;
     pnl: number;
     volume: number;
     roi: number | null;
@@ -131,6 +133,38 @@ function sortStatusText(sort: SortKey, dir: SortDir) {
 
 function appHasMarkets(appId: SeerAppId, chainIds: number[]) {
   return chainIds.some((id) => (marketsForAppFilter(appId, id)?.length ?? 0) > 0);
+}
+
+/** Displays the Seer identity for a ranked wallet and its verified primary ENS name. */
+function LeaderboardAccount({
+  address,
+  isConnected,
+  username,
+}: {
+  address: Address;
+  isConnected: boolean;
+  username?: string;
+}) {
+  const normalizedAddress = address.toLowerCase() as Address;
+  const { data: ensName } = useEnsName({ address: normalizedAddress, chainId: 1 });
+  const profileHref = username ? paths.portfolioUsername(username) : `/portfolio/${normalizedAddress}`;
+
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
+      <a className="truncate text-sm font-medium hover:text-purple-primary hover:underline" href={profileHref}>
+        {username ? `@${username}` : shortenAddress(normalizedAddress)}
+      </a>
+      {ensName ? (
+        <>
+          <span className="text-black-secondary" aria-hidden="true">
+            ·
+          </span>
+          <EnsBadge name={ensName} />
+        </>
+      ) : null}
+      {isConnected ? <span className="text-xs text-purple-primary font-medium">You</span> : null}
+    </span>
+  );
 }
 
 async function fetchPnlLeaderboard(params: {
@@ -484,7 +518,7 @@ function LeaderboardPage() {
             <input
               type="search"
               className="input input-bordered input-sm w-full sm:w-72"
-              placeholder="Search by address"
+              placeholder="Search by username or address"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -697,12 +731,11 @@ function LeaderboardPage() {
                     >
                       <td className="font-medium">{row.rank}</td>
                       <td>
-                        <a className="text-sm hover:text-purple-primary" href={`/portfolio/${row.address}`}>
-                          <AddressOrName address={row.address as Address} />
-                          {isConnectedRow ? (
-                            <span className="ml-2 text-xs text-purple-primary font-medium">You</span>
-                          ) : null}
-                        </a>
+                        <LeaderboardAccount
+                          address={row.address as Address}
+                          isConnected={isConnectedRow}
+                          username={row.username}
+                        />
                       </td>
                       <td className="text-right">
                         <TraderScoreBadge
