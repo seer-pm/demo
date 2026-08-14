@@ -41,6 +41,10 @@
 
   --white: 100% 0 0;
 
+  /* Signed P&L: AA on white. Dark remaps to Seer neon / lifted red. */
+  --signed-up: #007A26;
+  --signed-down: #B42318;
+
   --toastify-toast-width: 422px;
   --toastify-color-light: oklch(var(--purple-primary));
   --toastify-text-color-light: oklch(var(--white));
@@ -48,6 +52,13 @@
   --toastify-icon-color-success: oklch(var(--white));
   --toastify-icon-color-warning: oklch(var(--white));
   --toastify-icon-color-error: oklch(var(--white));
+}
+
+:root:root[data-theme="dark"] {
+  /* Invert Seer body/muted roles; daisyUI already remaps --bc. */
+  --black-primary: 91.5% 0 0; /* #E5E5E5 */
+  --signed-up: #00C42B;
+  --signed-down: #FF6B7A;
 }
 
 #root {
@@ -176,6 +187,10 @@ body {
   --tab-border: 0px;
   --tab-color: var(--black);
   font-weight: 600;
+
+  :root[data-theme="dark"] & {
+    --tab-color: var(--bc);
+  }
 
   &:focus-visible {
     outline: 2px solid oklch(var(--purple-primary));
@@ -397,7 +412,7 @@ body {
 }
 
 .simple-table th {
-  @apply text-purple-primary;
+  @apply text-purple-primary dark:text-purple-secondary;
   text-align: left;
   font-size: 14px;
   font-weight: normal;
@@ -412,7 +427,7 @@ body {
     position: absolute;
     width: 100%;
     height: 2px;
-    background-color: #e5e5e5;
+    background-color: var(--separator-100);
     top: 56px;
     left: 0;
     z-index: 1;

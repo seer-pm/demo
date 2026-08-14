@@ -37,6 +37,8 @@ export default {
       'warning-light': 'oklch(var(--warning-light) / <alpha-value>)',
       'error-primary': 'oklch(var(--error-primary) / <alpha-value>)',
       'error-light': 'oklch(var(--error-light) / <alpha-value>)',
+      'signed-up': 'var(--signed-up)',
+      'signed-down': 'var(--signed-down)',
       'tint-blue-primary': 'oklch(var(--tint-blue-primary) / <alpha-value>)',
       'tint-blue-light': 'oklch(var(--tint-blue-light) / <alpha-value>)',
       'gray-light': 'oklch(var(--gray-light) / <alpha-value>)',

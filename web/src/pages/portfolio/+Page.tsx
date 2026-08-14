@@ -9,7 +9,7 @@ import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolioTabs";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
-import { SIGNED_TONE_CLASS, SIGNED_TONE_FILL, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
+import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
@@ -55,7 +55,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
     return (
       <div>
         <p className="text-sm font-medium text-black-primary">Current value</p>
-        <p className="text-sm text-[#B42318] mt-1">Couldn't load current value.</p>
+        <p className="text-sm text-signed-down mt-1">Couldn't load current value.</p>
         <button
           type="button"
           className="btn btn-ghost btn-sm min-h-11 mt-1 px-3"
@@ -89,11 +89,7 @@ function PortfolioValueVariation({ account, chainId }: { account: Address; chain
         ) : (
           <p className={`${SIGNED_TONE_CLASS[tone]} flex items-center gap-1 mt-1 text-sm`}>
             <span aria-hidden>
-              {tone === "up" ? (
-                <ArrowDropUp fill={SIGNED_TONE_FILL.up} />
-              ) : (
-                <ArrowDropDown fill={SIGNED_TONE_FILL.down} />
-              )}
+              {tone === "up" ? <ArrowDropUp fill="currentColor" /> : <ArrowDropDown fill="currentColor" />}
             </span>
             {formatUsd(delta, { signed: true })}
             {percentLabel ? ` (${percentLabel})` : ""} value change today
@@ -125,14 +121,14 @@ function PortfolioPnLHistory({
     <div className="flex flex-col items-start sm:items-end gap-2 min-w-0">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm font-medium text-black-primary">Trading P&L</p>
-        <div className="join">
+        <div className="flex flex-wrap gap-2">
           {PNL_PERIODS.map((p) => (
             <button
               key={p.id}
               type="button"
               aria-pressed={period === p.id}
               aria-label={p.aria}
-              className={`btn join-item min-h-11 min-w-11 px-3 ${period === p.id ? "btn-active" : "btn-ghost"}`}
+              className={`btn btn-sm min-h-11 min-w-11 px-3 ${period === p.id ? "btn-primary" : "btn-ghost border border-separator-100"}`}
               onClick={() => onPeriodChange(p.id)}
             >
               {p.label}
@@ -148,7 +144,7 @@ function PortfolioPnLHistory({
           </>
         ) : error ? (
           <div className="text-right">
-            <p className="text-sm text-[#B42318]">Couldn't load trading P&L.</p>
+            <p className="text-sm text-signed-down">Couldn't load trading P&L.</p>
             <button
               type="button"
               className="btn btn-ghost btn-sm min-h-11 mt-1 px-3"

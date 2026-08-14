@@ -17,8 +17,10 @@ function Figure({
   const poh = tone === "poh";
   return (
     <div className="min-w-0">
-      <dt className={`text-sm font-medium ${poh ? "text-purple-primary" : "text-black-primary"}`}>{label}</dt>
-      <dd className={`mt-1 text-lg font-semibold tabular-nums ${poh ? "text-purple-primary" : "text-base-content"}`}>
+      <dt className="text-sm font-medium text-black-primary">{label}</dt>
+      <dd
+        className={`mt-1 text-lg font-semibold tabular-nums ${poh ? "text-purple-primary dark:text-purple-secondary" : "text-base-content"}`}
+      >
         {value}
       </dd>
     </div>
@@ -40,7 +42,7 @@ function MetricGroup({
     <section
       className={
         accent
-          ? "bg-purple-medium dark:bg-base-200 rounded-[3px] px-4 py-5 sm:px-5 border border-purple-primary/20"
+          ? "bg-purple-medium dark:bg-neutral rounded-[3px] px-4 py-5 sm:px-5 border border-purple-primary/20 dark:border-purple-primary/40"
           : undefined
       }
     >
@@ -53,7 +55,7 @@ function MetricGroup({
 
 function PohRegisterCallout({ href }: { href: string }) {
   return (
-    <div className="bg-purple-medium dark:bg-base-200 rounded-[3px] px-4 py-5 sm:px-5 space-y-3">
+    <div className="bg-purple-medium dark:bg-neutral rounded-[3px] px-4 py-5 sm:px-5 space-y-3 border border-transparent dark:border-purple-primary/40">
       <p className="text-sm text-black-primary">
         Proof of Humanity verifies you are a unique person. Register for additional SEER.
       </p>

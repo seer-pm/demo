@@ -159,7 +159,7 @@ function PositionsTableInner({
                     className="w-[24px] h-[24px] rounded-full shrink-0"
                   />
                   <p className="text-[14px] truncate min-w-0">
-                    <span className="text-purple-primary font-semibold">
+                    <span className="text-purple-primary dark:text-purple-secondary font-semibold">
                       {formatSmallNumber(position.tokenBalance)}{" "}
                     </span>
                     <span title={position.outcome}>{position.outcome}</span>
@@ -174,7 +174,7 @@ function PositionsTableInner({
                   ) : null}
                 </div>
                 <a
-                  className="flex gap-2 items-start mt-1 text-[13px] text-black-primary hover:underline cursor-pointer min-w-0"
+                  className="flex gap-2 items-start mt-1 text-[13px] text-base-content hover:underline cursor-pointer min-w-0"
                   href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
                   target="_blank"
                   rel="noopener noreferrer"

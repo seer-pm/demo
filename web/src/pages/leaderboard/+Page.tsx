@@ -10,7 +10,7 @@ import {
   marketsForAppFilter,
 } from "@/lib/apps";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { formatUsd } from "@/lib/formatUsd";
+import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
 import { Filter } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useQuery } from "@tanstack/react-query";
@@ -434,8 +434,6 @@ function LeaderboardPage() {
                 </tr>
               ) : (
                 query.data!.rows.map((row) => {
-                  const positive = row.pnl >= 0;
-                  const roiPositive = row.roi != null && row.roi >= 0;
                   const rowAddress = row.address.toLowerCase();
                   const connectedLc = connectedAddress?.toLowerCase();
                   const highlightLc = highlightAddress?.toLowerCase();
@@ -457,13 +455,13 @@ function LeaderboardPage() {
                           ) : null}
                         </a>
                       </td>
-                      <td className={`text-right font-semibold ${positive ? "text-[#00C42B]" : "text-[#c40000]"}`}>
+                      <td className={`text-right font-semibold ${SIGNED_TONE_CLASS[signedTone(row.pnl)]}`}>
                         {formatPnlUsd(row.pnl)}
                       </td>
                       <td className="text-right">{formatVolumeUsd(row.volume)}</td>
                       <td
                         className={`text-right font-medium ${
-                          row.roi == null ? "text-black-secondary" : roiPositive ? "text-[#00C42B]" : "text-[#c40000]"
+                          row.roi == null ? "text-black-secondary" : SIGNED_TONE_CLASS[signedTone(row.roi)]
                         }`}
                       >
                         {formatRoi(row.roi)}

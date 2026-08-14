@@ -23,17 +23,11 @@ export function signedTone(value: number, epsilon = 0.005): SignedTone {
   return value > 0 ? "up" : "down";
 }
 
-/** WCAG AA on white: #00C42B / #F60C36 fail 4.5:1; these pass. */
+/** Theme-aware via --signed-up / --signed-down. Light is AA on white; dark is Seer neon. */
 export const SIGNED_TONE_CLASS: Record<SignedTone, string> = {
-  up: "text-[#007A26]",
-  down: "text-[#B42318]",
+  up: "text-signed-up",
+  down: "text-signed-down",
   flat: "text-black-primary",
-};
-
-export const SIGNED_TONE_FILL: Record<SignedTone, string> = {
-  up: "#007A26",
-  down: "#B42318",
-  flat: "currentColor",
 };
 
 /** Hide percent when the prior value was ~0 and the ratio explodes. */

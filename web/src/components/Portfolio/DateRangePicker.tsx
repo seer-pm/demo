@@ -71,18 +71,18 @@ function DateRangePicker({
     }
   };
   return (
-    <div ref={rootRef} className="bg-base-100 w-fit border border-[rgb(224,224,224)] rounded-[1px] shadow-md">
-      <div className="flex border-b border-[rgb(224,224,224)]">
-        <div className="border-r border-[rgb(224,224,224)]">
+    <div ref={rootRef} className="bg-base-100 w-fit border border-separator-100 rounded-[1px] shadow-md">
+      <div className="flex border-b border-separator-100">
+        <div className="border-r border-separator-100">
           {defaultRanges.map((range) => {
             return (
               <button
                 type="button"
                 key={range}
                 className={clsx(
-                  "text-[14px] whitespace-nowrap cursor-pointer flex px-3 py-2 min-h-11 w-full text-left border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary",
+                  "text-[14px] whitespace-nowrap cursor-pointer flex px-3 py-2 min-h-11 w-full text-left border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary",
                   getDefaultRangeFromDates() === range &&
-                    "active border-l-[3px] border-l-purple-primary bg-purple-medium",
+                    "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
                 )}
                 aria-pressed={getDefaultRangeFromDates() === range}
                 onClick={() => {

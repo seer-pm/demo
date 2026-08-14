@@ -17,7 +17,7 @@ export function AirdropHero({ account }: { account: Address }) {
     );
   }
   return (
-    <p className="text-[32px] leading-tight font-semibold text-purple-primary tabular-nums sm:text-right min-w-0">
+    <p className="text-[32px] leading-tight font-semibold text-purple-primary dark:text-purple-secondary tabular-nums sm:text-right min-w-0">
       {formatSeer(data.totalAllocation)} <span className="text-lg font-medium">SEER</span>
     </p>
   );
