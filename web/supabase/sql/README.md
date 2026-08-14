@@ -22,17 +22,19 @@ multi-statement scripts in one, so run those statements individually.
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
 | `users_username.sql` | Adds the unique wallet-linked username column and validation constraints. |
 | `users_username_not_null.sql` | Makes usernames required after existing users have been backfilled. |
-| `pnl_leaderboard.sql` | Table + indexes + all-chains RPCs (`pnl_leaderboard_all_chains`, `pnl_leaderboard_all_chains_rank`) + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). |
+| `pnl_leaderboard.sql` | Table + indexes + leaderboard RPCs (`pnl_leaderboard_single_chain`, `pnl_leaderboard_all_chains`, `pnl_leaderboard_all_chains_rank`) + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `dex_pool_hour_prices_latest_for_pairs.sql` | RPC: latest pool hour row per (token0, token1) pair (replaces flat-token latest RPC). |
 
 ## Apply for PnL leaderboard / portfolio fixes
 
+Apply `users_username.sql` before `pnl_leaderboard.sql`; the username-aware leaderboard RPCs join that column.
+
 After pulling these changes, run in the Supabase SQL editor (in order):
 
 1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
 2. `dex_pool_hour_prices_latest_for_pairs.sql`
-3. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `roi`, the refresh cursor table, and all-chains RPCs)
+3. `pnl_leaderboard.sql` (re-run to pick up `volume` / `volume_usd` / `roi`, the refresh cursor table, and username-aware leaderboard RPCs)
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

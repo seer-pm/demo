@@ -830,6 +830,26 @@ export type Database = {
           total: number;
         }[];
       };
+      pnl_leaderboard_single_chain: {
+        Args: {
+          p_app_id: string;
+          p_chain_id: number;
+          p_limit?: number;
+          p_offset?: number;
+          p_period: string;
+          p_search?: string | null;
+        };
+        Returns: {
+          address: string;
+          market_count: number;
+          pnl_usd: number;
+          roi: number | null;
+          total_count: number;
+          updated_at: string;
+          username: string | null;
+          volume_usd: number;
+        }[];
+      };
       search_markets_any_token: {
         Args: { tokens: string[] };
         Returns: {

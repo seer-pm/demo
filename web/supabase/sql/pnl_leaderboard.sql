@@ -68,6 +68,63 @@ CREATE TABLE IF NOT EXISTS public.pnl_leaderboard_refresh_cursor (
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pnl_leaderboard_refresh_cursor TO service_role;
 
+-- Single-chain leaderboard with optional address or username search.
+create or replace function public.pnl_leaderboard_single_chain(
+  p_app_id text,
+  p_chain_id integer,
+  p_period text,
+  p_search text default null,
+  p_limit integer default 50,
+  p_offset integer default 0
+)
+returns table (
+  address text,
+  username text,
+  pnl_usd numeric,
+  volume_usd numeric,
+  roi numeric,
+  market_count integer,
+  updated_at timestamptz,
+  total_count bigint
+)
+language sql
+stable
+parallel safe
+security invoker
+set search_path = public
+as $$
+  select
+    l.address,
+    u.username,
+    l.pnl_usd,
+    l.volume_usd,
+    l.roi,
+    l.market_count,
+    l.updated_at,
+    (count(*) over ())::bigint as total_count
+  from public.pnl_leaderboard l
+  left join public.users u on u.id = l.address
+  where l.app_id = p_app_id
+    and l.chain_id = p_chain_id
+    and l.period = p_period
+    and (
+      p_search is null
+      or p_search = ''
+      or l.address ilike
+        '%' || replace(replace(replace(p_search, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+        escape '\'
+      or u.username ilike
+        '%' || replace(replace(replace(p_search, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+        escape '\'
+    )
+  order by l.pnl_usd desc, l.address
+  limit greatest(coalesce(p_limit, 50), 0)
+  offset greatest(p_offset, 0);
+$$;
+
+grant execute on function public.pnl_leaderboard_single_chain(text, integer, text, text, integer, integer)
+  to anon, authenticated, service_role;
+
 -- All-chains leaderboard: group by address (capital summed per chain row, then across chains).
 -- capital_usd = value_start * price + greatest((volume + trading_collateral_net_out) / 2, 0) * price
 create or replace function public.pnl_leaderboard_all_chains(
@@ -105,12 +162,16 @@ as $$
       sum(l.market_count)::bigint as market_count,
       max(l.updated_at) as updated_at
     from public.pnl_leaderboard l
+    left join public.users u on u.id = l.address
     where l.app_id = p_app_id
       and l.period = p_period
       and (
         p_search is null
         or p_search = ''
         or l.address ilike
+          '%' || replace(replace(replace(p_search, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+          escape '\'
+        or u.username ilike
           '%' || replace(replace(replace(p_search, '\', '\\'), '%', '\%'), '_', '\_') || '%'
           escape '\'
       )
