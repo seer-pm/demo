@@ -1,4 +1,8 @@
 import type { Address } from "viem";
+import type { SupportedChain } from "./chains";
+
+/** Chain id or aggregated `all` (USD) for portfolio value / global P/L. */
+export type PortfolioChainId = SupportedChain | "all";
 
 /** A row in the portfolio positions table / get-portfolio API. */
 export interface PortfolioPosition {
@@ -12,6 +16,7 @@ export interface PortfolioPosition {
   tokenValue: number;
   tokenPrice: number;
   outcome: string;
+  chainId: SupportedChain;
   collateralToken: Address;
   parentMarketId?: Address;
   parentMarketName?: string;
@@ -28,6 +33,7 @@ export type PortfolioValueApiResponse = {
   historyTimestamp: number;
   delta: number;
   deltaPercent: number;
+  unit: "USD";
 };
 
 export type PortfolioPnLPeriod = "1d" | "1w" | "1m" | "all";
@@ -38,10 +44,12 @@ export type PortfolioPnLData = {
   valueEnd: number;
   /** Net primary collateral spent on indexed outcome swaps (DEX + CoW) over the window; subtracted from naive Δ(value) for `pnl`. */
   tradingCollateralNetOut?: number;
-  startTime: number;
+  startTime: number | null;
   endTime: number;
   /** Snapshot write time when the value came from `pnl_leaderboard`. */
   updatedAt?: string | null;
+  /** Present on the global (leaderboard) path; values are USD. Market-scoped live compute omits this (native collateral). */
+  unit?: "USD";
 };
 
 /** Portfolio / activity transaction row (split, merge, redeem, swap, LP). */
@@ -50,6 +58,8 @@ export interface TransactionData {
   marketId: string;
   type: "split" | "merge" | "redeem" | "swap" | "lp" | "lp-burn" | "bought" | "sold";
   blockNumber: number;
+  /** Present on `get-transactions` rows. */
+  chainId?: SupportedChain;
   collateral: Address;
   collateralSymbol?: string;
   timestamp: number;

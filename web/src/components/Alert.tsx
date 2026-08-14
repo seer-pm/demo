@@ -27,7 +27,10 @@ interface AlertProps {
 
 export function Alert({ type, title, children, className = "" }: AlertProps) {
   return (
-    <div className={clsx("alert", CLASSES[type], className)}>
+    <div
+      role={type === "error" || type === "warning" ? "alert" : "status"}
+      className={clsx("alert", CLASSES[type], className)}
+    >
       {ICONS[type]}
       <div>
         {title && <div className="text-[16px] font-semibold alert-title">{title}</div>}

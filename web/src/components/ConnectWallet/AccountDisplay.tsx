@@ -10,9 +10,10 @@ import { useAccount, useEnsName } from "wagmi";
 
 interface IAddressOrName {
   address?: `0x${string}`;
+  className?: string;
 }
 
-export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress }) => {
+export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress, className }) => {
   const { address: defaultAddress } = useAccount();
   const address = propAddress || defaultAddress;
 
@@ -25,7 +26,11 @@ export const AddressOrName: React.FC<IAddressOrName> = ({ address: propAddress }
     return null;
   }
 
-  return <div>{data ?? (isAddress(address) ? shortenAddress(address) : address)}</div>;
+  return (
+    <span className={className} title={address}>
+      {data ?? (isAddress(address) ? shortenAddress(address) : address)}
+    </span>
+  );
 };
 
 export const CollateralBalance: React.FC<{ chainId: SupportedChain; address?: Address }> = ({

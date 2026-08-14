@@ -196,3 +196,14 @@ query GetAccountActivity($id: String!) {
     transferCount
   }
 }
+
+query GetAccountActivities($account: String!) {
+  AccountActivity(where: { account: { _eq: $account } }) {
+    id
+    chainId
+    account
+    earliestTransferTimestamp
+    lastTransferTimestamp
+    transferCount
+  }
+}

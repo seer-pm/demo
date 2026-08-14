@@ -1,4 +1,4 @@
-import type { SupportedChain, SupportedChains as SupportedChainsBase } from "@seer-pm/sdk";
+import type { PortfolioChainId, SupportedChain, SupportedChains as SupportedChainsBase } from "@seer-pm/sdk";
 import { Chain, gnosis as _gnosis, mainnet as _mainnet, base, hardhat, optimism, sepolia } from "wagmi/chains";
 import SEER_ENV from "./env";
 
@@ -24,4 +24,13 @@ export const DEFAULT_CHAIN: SupportedChain = gnosis.id;
 
 export function filterChain(chainId: number | undefined): SupportedChain {
   return chainId && chainId in SUPPORTED_CHAINS ? (chainId as SupportedChain) : DEFAULT_CHAIN;
+}
+
+export function parsePortfolioChainParam(raw: string | null): PortfolioChainId {
+  if (!raw || raw === "all") return "all";
+  const n = Number(raw);
+  if (Number.isInteger(n) && n in SUPPORTED_CHAINS) {
+    return n as SupportedChain;
+  }
+  return "all";
 }

@@ -1,19 +1,12 @@
 import React, { useState } from "react";
 
 import { useModal } from "@/hooks/useModal";
-import {
-  ArrowDropDown,
-  ArrowDropUp,
-  ArrowSwap,
-  CloseIcon,
-  ConditionalMarketIcon,
-  QuestionIcon,
-  SubDirArrowRight,
-} from "@/lib/icons";
+import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
+import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { CloseIcon, ConditionalMarketIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useMarket } from "@seer-pm/react";
-import type { PortfolioPosition } from "@seer-pm/sdk";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { MarketStatus } from "@seer-pm/sdk";
 import {
@@ -25,7 +18,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import clsx from "clsx";
 import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -34,6 +26,7 @@ import MarketsPagination from "../Market/MarketsPagination";
 import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
 import Popover from "../Popover";
+import { SortableColumnHeader } from "./SortableColumnHeader";
 
 function RedeemModalContent({
   account,
@@ -68,12 +61,14 @@ function PositionsTableInner({
   showRedeemColumn,
 }: {
   data: PortfolioPosition[];
-  chainId: SupportedChain;
+  chainId: PortfolioChainId;
   account: Address | undefined;
   showRedeemColumn: boolean;
 }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
+  const [selectedChainId, setSelectedChainId] = useState<SupportedChain>(chainId === "all" ? DEFAULT_CHAIN : chainId);
+  const showChain = chainId === "all";
   function formatSmallNumber(n: number | undefined) {
     if (typeof n !== "number") return "-";
     if (n === 0) return "0";
@@ -83,7 +78,7 @@ function PositionsTableInner({
 
     return n.toFixed(2);
   }
-  const primarySymbol = getActiveCollateralProfile(chainId).primary.symbol;
+  const singleChainSymbol = chainId === "all" ? null : getActiveCollateralProfile(chainId).primary.symbol;
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
     const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",
@@ -93,9 +88,10 @@ function PositionsTableInner({
           return (
             <button
               type="button"
-              className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
+              className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11"
               onClick={() => {
                 setSelectedMarketId(position.marketId);
+                setSelectedChainId(position.chainId);
                 openModal();
               }}
             >
@@ -124,6 +120,8 @@ function PositionsTableInner({
         accessorKey: "marketName",
         cell: (info) => {
           const position = info.row.original;
+          const rowChainId = position.chainId;
+          const chainName = SUPPORTED_CHAINS[rowChainId as keyof typeof SUPPORTED_CHAINS]?.name;
           return (
             <div className="w-[100%] flex gap-1">
               {position.parentMarketId && (
@@ -142,7 +140,7 @@ function PositionsTableInner({
                         className="inline text-purple-primary cursor-pointer hover:underline"
                         href={`${paths.market(
                           position.parentMarketId!,
-                          chainId,
+                          rowChainId,
                         )}?outcome=${encodeURIComponent(position.parentOutcome!)}`}
                       >
                         "{position.parentMarketName}"
@@ -152,50 +150,63 @@ function PositionsTableInner({
                   }
                 />
               )}
-              <div className="w-[100%]">
-                <a
-                  className="flex gap-2 items-center text-[13px] hover:underline cursor-pointer"
-                  href={`${paths.market(position.marketId, chainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MarketImage marketAddress={position.marketId} chainId={chainId as SupportedChain} />
-                  <p title={info.getValue<string>()} className="truncate">
-                    {info.getValue<string>()}
-                  </p>
-                </a>
-                <div className="flex items-center gap-2">
-                  <div className="flex-shrink-0">
-                    <SubDirArrowRight />
-                  </div>
+              <div className="min-w-0 w-full text-left">
+                <div className="flex items-center gap-2 min-w-0">
                   <OutcomeImage
                     image={position.outcomeImage}
                     title={position.outcome}
                     isInvalidOutcome={position.isInvalidOutcome}
-                    className="w-[24px] h-[24px] rounded-full"
+                    className="w-[24px] h-[24px] rounded-full shrink-0"
                   />
-                  <p className="text-[13px] truncate">
-                    <span className="text-purple-primary font-semibold">
+                  <p className="text-[14px] truncate min-w-0">
+                    <span className="text-purple-primary dark:text-purple-secondary font-semibold">
                       {formatSmallNumber(position.tokenBalance)}{" "}
                     </span>
                     <span title={position.outcome}>{position.outcome}</span>
                   </p>
+                  {showChain && NETWORK_ICON_MAPPING[rowChainId] ? (
+                    <img
+                      alt={chainName ?? String(rowChainId)}
+                      title={chainName}
+                      className="w-4 h-4 rounded-full shrink-0"
+                      src={NETWORK_ICON_MAPPING[rowChainId]}
+                    />
+                  ) : null}
                 </div>
+                <a
+                  className="flex gap-2 items-start mt-1 text-[13px] text-base-content hover:underline cursor-pointer min-w-0"
+                  href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="flex-shrink-0 mt-0.5" aria-hidden>
+                    <SubDirArrowRight />
+                  </span>
+                  <MarketImage marketAddress={position.marketId} chainId={rowChainId} />
+                  <p title={info.getValue<string>()} className="line-clamp-2 text-left min-w-0">
+                    {info.getValue<string>()}
+                  </p>
+                </a>
               </div>
             </div>
           );
         },
-        header: "Market",
+        header: "Position",
       },
 
       {
         accessorKey: "tokenPrice",
         cell: (info) => {
           const position = info.row.original;
+          const symbol = getActiveCollateralProfile(position.chainId).primary.symbol;
+          const suffix = showChain ? ` ${symbol}` : "";
           if (position.redeemedPrice) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
-                <p>{formatSmallNumber(position.redeemedPrice)}</p>
+                <p>
+                  {formatSmallNumber(position.redeemedPrice)}
+                  {suffix}
+                </p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
                   <QuestionIcon fill="#9747FF" />
@@ -206,31 +217,46 @@ function PositionsTableInner({
           if (position.parentMarketId) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
-                <p>{formatSmallNumber(info.getValue<number>())}</p>
+                <p>
+                  {formatSmallNumber(info.getValue<number>())}
+                  {suffix}
+                </p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
-                    = relative price to parent outcome &times; parent's {primarySymbol} price
+                    = relative price to parent outcome &times; parent's {symbol} price
                   </p>
                   <QuestionIcon fill="#9747FF" />
                 </span>
               </div>
             );
           }
-          return <p className="font-semibold text-[14px] text-center">{formatSmallNumber(info.getValue<number>())}</p>;
+          return (
+            <p className="font-semibold text-[14px] text-center">
+              {formatSmallNumber(info.getValue<number>())}
+              {suffix}
+            </p>
+          );
         },
-        header: `Price (${primarySymbol})`,
+        header: singleChainSymbol ? `Price (${singleChainSymbol})` : "Price",
       },
 
       {
         accessorKey: "tokenValue",
-        cell: (info) => (
-          <p className="font-semibold text-[14px] text-center">{formatSmallNumber(info.getValue<number>())}</p>
-        ),
-        header: `Value (${primarySymbol})`,
+        cell: (info) => {
+          const position = info.row.original;
+          const symbol = showChain ? ` ${getActiveCollateralProfile(position.chainId).primary.symbol}` : "";
+          return (
+            <p className="font-semibold text-[14px] text-center">
+              {formatSmallNumber(info.getValue<number>())}
+              {symbol}
+            </p>
+          );
+        },
+        header: singleChainSymbol ? `Value (${singleChainSymbol})` : "Value",
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
     ];
-  }, [chainId, primarySymbol, showRedeemColumn]);
+  }, [showChain, showRedeemColumn, singleChainSymbol]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -242,16 +268,17 @@ function PositionsTableInner({
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
+    enableMultiSort: true,
     state: {
       pagination,
     },
     initialState: {
-      sorting: [
-        {
-          id: showRedeemColumn ? "marketStatus" : "marketName",
-          desc: false,
-        },
-      ],
+      sorting: showRedeemColumn
+        ? [
+            { id: "marketStatus", desc: false },
+            { id: "tokenValue", desc: true },
+          ]
+        : [{ id: "tokenValue", desc: true }],
     },
   });
 
@@ -274,7 +301,7 @@ function PositionsTableInner({
                 <RedeemModalContent
                   account={account}
                   marketId={selectedMarketId as Address}
-                  chainId={chainId}
+                  chainId={selectedChainId}
                   closeModal={closeModal}
                 />
               </div>
@@ -305,34 +332,7 @@ function PositionsTableInner({
                 {headerGroup.headers.map((header, index) => {
                   return (
                     <th key={header.id} colSpan={header.colSpan} className={index > 0 ? "text-center" : ""}>
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={clsx(
-                            header.column.getCanSort() ? "cursor-pointer select-none" : "",
-                            "flex items-center gap-2",
-                            index > 0 ? "justify-center" : "",
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                          title={
-                            header.column.getCanSort()
-                              ? header.column.getNextSortingOrder() === "asc"
-                                ? "Sort ascending"
-                                : header.column.getNextSortingOrder() === "desc"
-                                  ? "Sort descending"
-                                  : "Clear sort"
-                              : undefined
-                          }
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          <div className="flex-shrink-0">
-                            {{
-                              asc: <ArrowDropUp fill="currentColor" />,
-                              desc: <ArrowDropDown fill="currentColor" />,
-                              false: header.column.getCanSort() && <ArrowSwap />,
-                            }[header.column.getIsSorted() as string] ?? null}
-                          </div>
-                        </div>
-                      )}
+                      <SortableColumnHeader header={header} align={index > 0 ? "center" : "left"} />
                     </th>
                   );
                 })}
@@ -345,7 +345,7 @@ function PositionsTableInner({
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => {
                     return (
-                      <td className="text-center" key={cell.id}>
+                      <td className={cell.column.id === "marketName" ? "text-left" : "text-center"} key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     );
@@ -371,7 +371,7 @@ export default function PositionsTable({
   account,
 }: {
   data: PortfolioPosition[];
-  chainId: SupportedChain;
+  chainId: PortfolioChainId;
   account: Address | undefined;
 }) {
   const { address: connectedAddress } = useAccount();

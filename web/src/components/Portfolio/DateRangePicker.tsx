@@ -1,11 +1,11 @@
 import clsx from "clsx";
-import { compareAsc, startOfDay, subDays, subMonths, subWeeks, subYears } from "date-fns";
-import { useEffect, useState } from "react";
+import { compareAsc, startOfDay, subMonths, subWeeks } from "date-fns";
+import { useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
 import Button from "../Form/Button";
 
-const defaultRanges = ["Today", "Yesterday", "Last Week", "Last Month", "Last 3 Months", "Last Year", "All"] as const;
-type DefaultRange = "Today" | "Yesterday" | "Last Week" | "Last Month" | "Last 3 Months" | "Last Year" | "All";
+const defaultRanges = ["Today", "Last Week", "Last Month", "All"] as const;
+type DefaultRange = (typeof defaultRanges)[number];
 function DateRangePicker({
   startDate: initialStartDate,
   endDate: initialEndDate,
@@ -17,6 +17,7 @@ function DateRangePicker({
   onChange: (dates: (Date | null)[]) => void;
   onClose: () => void;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
 
@@ -28,16 +29,19 @@ function DateRangePicker({
     setEndDate(initialEndDate);
   }, [initialEndDate]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   const getDatesFromDefaultRange = (defaultRange: DefaultRange) => {
     let start: Date = startOfDay(new Date());
     let end: Date = start;
     switch (defaultRange) {
       case "Today": {
-        end = start;
-        break;
-      }
-      case "Yesterday": {
-        start = subDays(start, 1);
         end = start;
         break;
       }
@@ -49,12 +53,7 @@ function DateRangePicker({
         start = subMonths(start, 1);
         break;
       }
-      case "Last 3 Months": {
-        start = subMonths(start, 3);
-        break;
-      }
-      case "Last Year": {
-        start = subYears(start, 1);
+      case "All": {
         break;
       }
     }
@@ -64,6 +63,7 @@ function DateRangePicker({
     if (!startDate && !endDate) return "All";
     if (!startDate || !endDate) return "";
     for (const range of defaultRanges) {
+      if (range === "All") continue;
       const [start, end] = getDatesFromDefaultRange(range);
       if (compareAsc(start, startDate) === 0 && compareAsc(end, endDate) === 0) {
         return range;
@@ -71,31 +71,33 @@ function DateRangePicker({
     }
   };
   return (
-    <div className="bg-base-100 w-fit border border-[rgb(224,224,224)] rounded-[1px] shadow-md">
-      <div className="flex border-b border-[rgb(224,224,224)]">
-        <div className="border-r border-[rgb(224,224,224)]">
+    <div ref={rootRef} className="bg-base-100 w-fit border border-separator-100 rounded-[1px] shadow-md">
+      <div className="flex border-b border-separator-100">
+        <div className="border-r border-separator-100">
           {defaultRanges.map((range) => {
             return (
-              <div
+              <button
+                type="button"
                 key={range}
                 className={clsx(
-                  "text-[14px] whitespace-nowrap cursor-pointer flex px-2 py-2 border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary",
+                  "text-[14px] whitespace-nowrap cursor-pointer flex px-3 py-2 min-h-11 w-full text-left border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary",
                   getDefaultRangeFromDates() === range &&
-                    "active border-l-[3px] border-l-purple-primary bg-purple-medium",
+                    "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
                 )}
+                aria-pressed={getDefaultRangeFromDates() === range}
                 onClick={() => {
                   if (range === "All") {
                     setStartDate(undefined);
                     setEndDate(undefined);
                     return;
                   }
-                  const [startDate, endDate] = getDatesFromDefaultRange(range);
-                  setStartDate(startDate);
-                  setEndDate(endDate);
+                  const [nextStart, nextEnd] = getDatesFromDefaultRange(range);
+                  setStartDate(nextStart);
+                  setEndDate(nextEnd);
                 }}
               >
                 {range}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -118,14 +120,14 @@ function DateRangePicker({
           type="button"
           variant="secondary"
           text="Cancel"
-          className="!min-w-[60px] !min-h-[35px] !h-[35px] !text-[14px]"
+          className="min-w-[60px] min-h-11"
           onClick={() => onClose()}
         />
         <Button
           variant="primary"
           type="button"
           text="Save"
-          className="!min-w-[60px] !min-h-[35px] !h-[35px] !text-[14px]"
+          className="min-w-[60px] min-h-11"
           onClick={() => {
             onChange([startDate ?? null, endDate ?? null]);
             onClose();

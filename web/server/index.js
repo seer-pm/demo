@@ -50,12 +50,16 @@ async function startServer() {
       });
 
       const data = await response.text();
-      res.set('Content-Type', response.headers.get('Content-Type'));
-      res.status(response.status);
-      res.send(data);
+      const contentType = response.headers.get('Content-Type');
+      if (contentType) {
+        res.set('Content-Type', contentType);
+      }
+      res.status(response.status).send(data);
     } catch (error) {
-      console.log(error)
-      res.status(500).json({ error: error.message });
+      console.error(error);
+      if (res.headersSent) return;
+      res.removeHeader('Content-Type');
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
   // Vike middleware. It should always be our last middleware (because it's a

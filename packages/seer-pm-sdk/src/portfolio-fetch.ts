@@ -1,6 +1,6 @@
 import type { Address } from "viem";
-import type { SupportedChain } from "./chains";
 import type {
+  PortfolioChainId,
   PortfolioPnLData,
   PortfolioPnLPeriod,
   PortfolioPosition,
@@ -10,7 +10,7 @@ import { getApiHost } from "./subgraph/app-subgraph";
 
 export async function fetchPortfolioPositions(
   account: Address,
-  chainId: SupportedChain,
+  chainId: PortfolioChainId,
   collateralProfile: string,
 ): Promise<PortfolioPosition[]> {
   const params = new URLSearchParams({
@@ -28,7 +28,7 @@ export async function fetchPortfolioPositions(
 
 export async function fetchPortfolioValue(
   account: Address,
-  chainId: SupportedChain,
+  chainId: PortfolioChainId,
   collateralProfile: string,
 ): Promise<PortfolioValueApiResponse> {
   const params = new URLSearchParams({
@@ -46,7 +46,7 @@ export async function fetchPortfolioValue(
 
 export async function fetchPortfolioPnL(
   account: Address,
-  chainId: SupportedChain,
+  chainId: PortfolioChainId,
   period: PortfolioPnLPeriod,
   collateralProfile: string,
   marketId?: Address,

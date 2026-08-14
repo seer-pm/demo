@@ -95,6 +95,7 @@ export async function buildPortfolioPositionsCore(
       marketStatus,
       marketFinalizeTs: market.finalizeTs,
       outcome: market.outcomes[outcomeIndex],
+      chainId,
       collateralToken: getCollateralByIndex(market, tokenIndex),
       parentMarketName: parentMarket?.marketName,
       parentMarketId: parentMarket?.id,
@@ -110,6 +111,29 @@ export async function buildPortfolioPositionsCore(
 
   const currentPrices = await getCurrentTokensPricesForPortfolio(supabase, positions, chainId);
   return enrichPositionsWithTokenValues(positions, currentPrices);
+}
+
+/** Re-price cached positions (DEX prices change even when balances do not). */
+export async function repricePortfolioPositions(
+  supabase: SupabaseClient<Database>,
+  positions: PortfolioPosition[],
+): Promise<PortfolioPosition[]> {
+  if (positions.length === 0) return positions;
+
+  const byChain = new Map<SupportedChain, PortfolioPosition[]>();
+  for (const position of positions) {
+    const list = byChain.get(position.chainId) ?? [];
+    list.push(position);
+    byChain.set(position.chainId, list);
+  }
+
+  const priced = await Promise.all(
+    [...byChain.entries()].map(async ([chainId, subset]) => {
+      const prices = await getCurrentTokensPricesForPortfolio(supabase, subset, chainId);
+      return enrichPositionsWithTokenValues(subset, prices);
+    }),
+  );
+  return priced.flat();
 }
 
 /**
