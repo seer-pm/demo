@@ -60,7 +60,8 @@ async function addUsernames(rows: PnlLeaderboardRow[]): Promise<PnlLeaderboardRo
   if (rows.length === 0) return rows;
 
   const addresses = [...new Set(rows.map((row) => row.address.toLowerCase()))];
-  const { data, error } = await supabase.from("users").select("id, username").in("id", addresses);
+  const addressFilter = addresses.map((address) => `id.ilike.${address}`).join(",");
+  const { data, error } = await supabase.from("users").select("id, username").or(addressFilter);
   if (error) {
     console.error("Unable to load leaderboard usernames:", error);
     return rows;

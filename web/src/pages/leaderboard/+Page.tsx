@@ -340,6 +340,7 @@ function LeaderboardPage() {
           >
             <input
               type="search"
+              aria-label="Search leaderboard by username or address"
               className="input input-bordered input-sm w-full sm:w-72"
               placeholder="Search by username or address"
               value={searchInput}

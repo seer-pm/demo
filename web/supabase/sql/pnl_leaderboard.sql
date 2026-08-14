@@ -103,7 +103,7 @@ as $$
     l.updated_at,
     (count(*) over ())::bigint as total_count
   from public.pnl_leaderboard l
-  left join public.users u on u.id = l.address
+  left join public.users u on lower(u.id) = lower(l.address)
   where l.app_id = p_app_id
     and l.chain_id = p_chain_id
     and l.period = p_period
@@ -162,7 +162,7 @@ as $$
       sum(l.market_count)::bigint as market_count,
       max(l.updated_at) as updated_at
     from public.pnl_leaderboard l
-    left join public.users u on u.id = l.address
+    left join public.users u on lower(u.id) = lower(l.address)
     where l.app_id = p_app_id
       and l.period = p_period
       and (
