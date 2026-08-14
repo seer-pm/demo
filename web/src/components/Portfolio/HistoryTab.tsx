@@ -19,7 +19,7 @@ function txTimestampSeconds(timestamp: number | undefined): number | undefined {
 function HistoryTab({ account, chainId }: { account: Address | undefined; chainId: PortfolioChainId }) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const { data: historyTransactions, error } = useHistoryTransactions(account);
+  const { data: historyTransactions, error, refetch, isFetching } = useHistoryTransactions(account);
 
   const [isShowDateRangePicker, setShowDateRangePicker] = useState(false);
   const onChangeDate = (dates: (Date | null)[]) => {
@@ -28,9 +28,6 @@ function HistoryTab({ account, chainId }: { account: Address | undefined; chainI
     setEndDate(end ?? undefined);
   };
   const [filterMarketName, setFilterMarketName] = useState("");
-  const marketNameCallback = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    setFilterMarketName((event.target as HTMLInputElement).value);
-  };
   const filteredTransactions =
     historyTransactions?.filter((tx) => {
       if (chainId !== "all" && tx.chainId !== chainId) return false;
@@ -41,40 +38,74 @@ function HistoryTab({ account, chainId }: { account: Address | undefined; chainI
       const endDateFilter = endDate ? ts <= Math.floor(endOfDay(endDate).getTime() / 1000) : true;
       return nameFilter && startDateFilter && endDateFilter;
     }) ?? [];
+  const hasActiveFilters = Boolean(filterMarketName || startDate || endDate);
+
   const renderTable = () => {
     if (isUndefined(historyTransactions)) {
-      return <div className="shimmer-container w-full h-[200px]" />;
+      return <div className="shimmer-container w-full h-[200px]" aria-hidden />;
     }
-    return !filteredTransactions.length ? (
-      <Alert type="warning">No transactions found.</Alert>
-    ) : (
-      <HistoryTable chainId={chainId} data={filteredTransactions} />
-    );
+    if (!filteredTransactions.length && hasActiveFilters) {
+      return (
+        <Alert type="info" title="No matching activity">
+          Nothing matches this search or date range. Clear filters to see all activity.
+        </Alert>
+      );
+    }
+    if (!filteredTransactions.length) {
+      return (
+        <Alert type="info" title="No activity">
+          This profile has no trades, splits, merges, or redemptions on the selected chain.
+        </Alert>
+      );
+    }
+    return <HistoryTable chainId={chainId} data={filteredTransactions} />;
   };
   if (error) {
-    return <Alert type="error">{error.message}</Alert>;
+    return (
+      <Alert type="error" title="Couldn't load activity">
+        <div className="space-y-3">
+          <p>Try again in a moment.</p>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary min-h-11"
+            disabled={isFetching}
+            onClick={() => refetch()}
+          >
+            {isFetching ? "Retrying…" : "Try again"}
+          </button>
+        </div>
+      </Alert>
+    );
   }
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6">
-        <div className="grow">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
+        <div className="grow min-w-0">
+          <label className="sr-only" htmlFor="history-search">
+            Search by market
+          </label>
           <Input
-            placeholder="Search by Market Name"
+            id="history-search"
+            placeholder="Search by market"
             className="w-full"
             icon={<SearchIcon />}
-            onKeyUp={marketNameCallback}
+            value={filterMarketName}
+            isClearable
+            onClear={() => setFilterMarketName("")}
+            onChange={(event) => setFilterMarketName(event.target.value)}
           />
         </div>
-        <div className="relative">
+        <div className="relative shrink-0">
           <Button
             type="button"
             variant="secondary"
+            aria-expanded={isShowDateRangePicker}
             text={
               !startDate && !endDate
-                ? "Filter By Date"
-                : `${startDate ? format(startDate, "MMM d, yyyy") : "_"} - ${
-                    endDate ? format(endDate, "MMM d, yyyy") : "_"
+                ? "Filter by date"
+                : `${startDate ? format(startDate, "MMM d, yyyy") : "…"} – ${
+                    endDate ? format(endDate, "MMM d, yyyy") : "…"
                   }`
             }
             onClick={() => setShowDateRangePicker((state) => !state)}

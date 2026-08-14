@@ -76,13 +76,15 @@ function DateRangePicker({
         <div className="border-r border-[rgb(224,224,224)]">
           {defaultRanges.map((range) => {
             return (
-              <div
+              <button
+                type="button"
                 key={range}
                 className={clsx(
-                  "text-[14px] whitespace-nowrap cursor-pointer flex px-2 py-2 border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary",
+                  "text-[14px] whitespace-nowrap cursor-pointer flex px-3 py-2 min-h-11 w-full text-left border-l-[3px] border-transparent hover:bg-purple-medium hover:border-l-purple-primary",
                   getDefaultRangeFromDates() === range &&
                     "active border-l-[3px] border-l-purple-primary bg-purple-medium",
                 )}
+                aria-pressed={getDefaultRangeFromDates() === range}
                 onClick={() => {
                   if (range === "All") {
                     setStartDate(undefined);
@@ -95,7 +97,7 @@ function DateRangePicker({
                 }}
               >
                 {range}
-              </div>
+              </button>
             );
           })}
         </div>

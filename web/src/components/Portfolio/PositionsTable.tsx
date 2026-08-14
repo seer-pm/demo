@@ -3,15 +3,7 @@ import React, { useState } from "react";
 import { useModal } from "@/hooks/useModal";
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import {
-  ArrowDropDown,
-  ArrowDropUp,
-  ArrowSwap,
-  CloseIcon,
-  ConditionalMarketIcon,
-  QuestionIcon,
-  SubDirArrowRight,
-} from "@/lib/icons";
+import { CloseIcon, ConditionalMarketIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { useMarket } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
@@ -26,7 +18,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import clsx from "clsx";
 import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -35,6 +26,7 @@ import MarketsPagination from "../Market/MarketsPagination";
 import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
 import Popover from "../Popover";
+import { SortableColumnHeader } from "./SortableColumnHeader";
 
 function RedeemModalContent({
   account,
@@ -96,7 +88,7 @@ function PositionsTableInner({
           return (
             <button
               type="button"
-              className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[6px]"
+              className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11"
               onClick={() => {
                 setSelectedMarketId(position.marketId);
                 setSelectedChainId(position.chainId);
@@ -158,48 +150,48 @@ function PositionsTableInner({
                   }
                 />
               )}
-              <div className="w-[100%]">
-                <a
-                  className="flex gap-2 items-center text-[13px] hover:underline cursor-pointer"
-                  href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MarketImage marketAddress={position.marketId} chainId={rowChainId} />
-                  <p title={info.getValue<string>()} className="truncate">
-                    {info.getValue<string>()}
-                  </p>
-                  {showChain && NETWORK_ICON_MAPPING[rowChainId] ? (
-                    <img
-                      alt={chainName ?? String(rowChainId)}
-                      title={chainName}
-                      className="w-4 h-4 rounded-full flex-shrink-0"
-                      src={NETWORK_ICON_MAPPING[rowChainId]}
-                    />
-                  ) : null}
-                </a>
-                <div className="flex items-center gap-2">
-                  <div className="flex-shrink-0">
-                    <SubDirArrowRight />
-                  </div>
+              <div className="min-w-0 w-full text-left">
+                <div className="flex items-center gap-2 min-w-0">
                   <OutcomeImage
                     image={position.outcomeImage}
                     title={position.outcome}
                     isInvalidOutcome={position.isInvalidOutcome}
-                    className="w-[24px] h-[24px] rounded-full"
+                    className="w-[24px] h-[24px] rounded-full shrink-0"
                   />
-                  <p className="text-[13px] truncate">
+                  <p className="text-[14px] truncate min-w-0">
                     <span className="text-purple-primary font-semibold">
                       {formatSmallNumber(position.tokenBalance)}{" "}
                     </span>
                     <span title={position.outcome}>{position.outcome}</span>
                   </p>
+                  {showChain && NETWORK_ICON_MAPPING[rowChainId] ? (
+                    <img
+                      alt={chainName ?? String(rowChainId)}
+                      title={chainName}
+                      className="w-4 h-4 rounded-full shrink-0"
+                      src={NETWORK_ICON_MAPPING[rowChainId]}
+                    />
+                  ) : null}
                 </div>
+                <a
+                  className="flex gap-2 items-start mt-1 text-[13px] text-black-primary hover:underline cursor-pointer min-w-0"
+                  href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="flex-shrink-0 mt-0.5" aria-hidden>
+                    <SubDirArrowRight />
+                  </span>
+                  <MarketImage marketAddress={position.marketId} chainId={rowChainId} />
+                  <p title={info.getValue<string>()} className="line-clamp-2 text-left min-w-0">
+                    {info.getValue<string>()}
+                  </p>
+                </a>
               </div>
             </div>
           );
         },
-        header: "Market",
+        header: "Position",
       },
 
       {
@@ -339,34 +331,7 @@ function PositionsTableInner({
                 {headerGroup.headers.map((header, index) => {
                   return (
                     <th key={header.id} colSpan={header.colSpan} className={index > 0 ? "text-center" : ""}>
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={clsx(
-                            header.column.getCanSort() ? "cursor-pointer select-none" : "",
-                            "flex items-center gap-2",
-                            index > 0 ? "justify-center" : "",
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                          title={
-                            header.column.getCanSort()
-                              ? header.column.getNextSortingOrder() === "asc"
-                                ? "Sort ascending"
-                                : header.column.getNextSortingOrder() === "desc"
-                                  ? "Sort descending"
-                                  : "Clear sort"
-                              : undefined
-                          }
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          <div className="flex-shrink-0">
-                            {{
-                              asc: <ArrowDropUp fill="currentColor" />,
-                              desc: <ArrowDropDown fill="currentColor" />,
-                              false: header.column.getCanSort() && <ArrowSwap />,
-                            }[header.column.getIsSorted() as string] ?? null}
-                          </div>
-                        </div>
-                      )}
+                      <SortableColumnHeader header={header} align={index > 0 ? "center" : "left"} />
                     </th>
                   );
                 })}
@@ -379,7 +344,7 @@ function PositionsTableInner({
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => {
                     return (
-                      <td className="text-center" key={cell.id}>
+                      <td className={cell.column.id === "marketName" ? "text-left" : "text-center"} key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     );

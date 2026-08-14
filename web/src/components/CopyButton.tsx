@@ -13,7 +13,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, className = 
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
-      setTimeout(() => setCopied(false), 500);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy text:", err);
     }
@@ -29,8 +29,8 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, className = 
         hover:bg-gray-100
         ${className}
       `}
-      title={copied ? "Copied!" : "Copy to clipboard"}
-      aria-label="Copy to clipboard"
+      title={copied ? "Copied" : "Copy to clipboard"}
+      aria-label={copied ? "Copied" : "Copy to clipboard"}
       type="button"
     >
       {copied ? (
