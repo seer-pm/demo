@@ -14,6 +14,7 @@
     "noImplicitAny": true,
     "paths": {
       "@/*": ["../src/*"],
+      "@seer-pm/sdk/collateral": ["../../packages/seer-pm-sdk/src/collateral.ts"],
       "@seer-pm/sdk": ["../../packages/seer-pm-sdk/src/index.ts"],
       "@seer-pm/sdk/sign-in": ["../../packages/seer-pm-sdk/src/sign-in.ts"],
       "@seer-pm/react": ["../../packages/seer-pm-react/src/index.ts"],

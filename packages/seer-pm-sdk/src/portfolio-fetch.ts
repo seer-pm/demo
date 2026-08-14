@@ -10,16 +10,14 @@ import { getApiHost } from "./subgraph/app-subgraph";
 
 export async function fetchPortfolioPositions(
   account: Address,
+  chainId: PortfolioChainId,
   collateralProfile: string,
-  chainId?: PortfolioChainId,
 ): Promise<PortfolioPosition[]> {
   const params = new URLSearchParams({
     account,
+    chainId: String(chainId),
     collateralProfile,
   });
-  if (chainId !== undefined) {
-    params.set("chainId", String(chainId));
-  }
   const res = await fetch(`${getApiHost()}/.netlify/functions/get-portfolio?${params.toString()}`);
   if (!res.ok) {
     const text = await res.text();

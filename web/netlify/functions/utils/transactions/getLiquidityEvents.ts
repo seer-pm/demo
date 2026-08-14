@@ -1,10 +1,9 @@
 import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
-import { type GetMintsQuery, Mint_OrderBy, OrderDirection } from "@seer-pm/sdk/subgraph/swapr";
+import { type GetMintsQuery, Mint_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
 import { type Address, parseUnits } from "viem";
 import { getCollateralFromDexTx } from "../markets";
-import { getDexSubgraph, mappingTokenIds } from "./dexSubgraph";
-import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
+import { mappingTokenIds, paginateDexByTimestampId } from "./dexSubgraph";
 
 async function fetchMintsFromSubgraph(
   account: string,
@@ -13,26 +12,16 @@ async function fetchMintsFromSubgraph(
   startTime?: number,
   endTime?: number,
 ) {
-  const { client, sdk } = getDexSubgraph(chainId);
   const accountLc = account.toLowerCase() as Address;
-
-  return paginateByTimestampId<GetMintsQuery["mints"][number]>({
+  return paginateDexByTimestampId<GetMintsQuery["mints"][number]>({
+    chainId,
     startTime,
     endTime,
     tokenIds,
     accountFilters: [{ origin: accountLc }],
-    fetchPage: async (where, first) => {
-      const data = await sdk(client).GetMints({
-        first,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderBy: Mint_OrderBy.Timestamp as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderDirection: OrderDirection.Desc as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        where: where as any,
-      });
-      return data.mints as GetMintsQuery["mints"];
-    },
+    orderBy: Mint_OrderBy.Timestamp,
+    resultKey: "mints",
+    query: (sdk, vars) => sdk.GetMints(vars),
   });
 }
 

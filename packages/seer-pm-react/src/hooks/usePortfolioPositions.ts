@@ -11,7 +11,7 @@ export function usePortfolioPositions(address: Address | undefined, chainId: Por
   const query = useQuery<PortfolioPosition[], Error>({
     enabled: !!address,
     queryKey: ["usePortfolioPositions", address, profile],
-    queryFn: () => fetchPortfolioPositions(address!, profile),
+    queryFn: () => fetchPortfolioPositions(address!, "all", profile),
   });
   const data = useMemo(() => {
     if (!query.data) return query.data;

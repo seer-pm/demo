@@ -20,13 +20,17 @@ const PORTFOLIO_TRANSACTIONS_STORE = "portfolio-transactions";
 
 type TransactionsCachePayload = ActivityCachedPayload<{ transactions: TransactionData[] }>;
 
-type EventTypeFilter = "swap" | "lp" | "ctf";
-
-const EVENT_TYPE_GROUPS: Record<EventTypeFilter, ReadonlySet<TransactionData["type"]>> = {
-  swap: new Set(["swap", "bought", "sold"]),
-  lp: new Set(["lp", "lp-burn"]),
-  ctf: new Set(["split", "merge", "redeem"]),
+const EVENT_TYPE_GROUPS = {
+  swap: new Set<TransactionData["type"]>(["swap", "bought", "sold"]),
+  lp: new Set<TransactionData["type"]>(["lp", "lp-burn"]),
+  ctf: new Set<TransactionData["type"]>(["split", "merge", "redeem"]),
 };
+
+type EventTypeFilter = keyof typeof EVENT_TYPE_GROUPS;
+
+function isEventTypeFilter(value: string): value is EventTypeFilter {
+  return value in EVENT_TYPE_GROUPS;
+}
 
 function jsonError(error: string, status: number) {
   return new Response(JSON.stringify({ error }), {
@@ -43,13 +47,33 @@ function jsonOk(body: unknown) {
 }
 
 async function getEvents(mappings: MarketDataMapping | null, account: Address, chainId: SupportedChain) {
-  const events = await Promise.all([
-    mappings ? getSwapEvents(mappings, account, chainId) : Promise.resolve([]),
-    mappings ? getLiquidityEvents(mappings, account, chainId) : Promise.resolve([]),
-    mappings ? getLiquidityWithdrawEvents(mappings, account, chainId) : Promise.resolve([]),
-    fetchConditionalEventsForAccount(account, chainId).then(conditionalEventsToTransactions),
-  ]);
-  return events.flat();
+  const sources: { name: string; promise: Promise<TransactionData[]> }[] = [
+    { name: "swap", promise: mappings ? getSwapEvents(mappings, account, chainId) : Promise.resolve([]) },
+    { name: "liquidity", promise: mappings ? getLiquidityEvents(mappings, account, chainId) : Promise.resolve([]) },
+    {
+      name: "liquidity-withdraw",
+      promise: mappings ? getLiquidityWithdrawEvents(mappings, account, chainId) : Promise.resolve([]),
+    },
+    {
+      name: "conditional",
+      promise: fetchConditionalEventsForAccount(account, chainId).then(conditionalEventsToTransactions),
+    },
+  ];
+  const results = await Promise.allSettled(sources.map((s) => s.promise));
+  const events: TransactionData[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === "fulfilled") {
+      events.push(...result.value);
+    } else {
+      console.warn("get-transactions: event source failed", {
+        source: sources[i].name,
+        chainId,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+    }
+  }
+  return events;
 }
 
 async function getTransactions(account: Address, chainId: SupportedChain): Promise<TransactionData[]> {
@@ -90,7 +114,9 @@ function sortTransactions(transactions: TransactionData[]): TransactionData[] {
   return [...transactions].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0) || b.blockNumber - a.blockNumber);
 }
 
-async function computeAllChainTransactions(account: Address): Promise<TransactionData[]> {
+async function computeAllChainTransactions(
+  account: Address,
+): Promise<{ transactions: TransactionData[]; failures: number }> {
   const results = await Promise.allSettled(supportedChainIds().map((id) => getTransactions(account, id)));
   const transactions: TransactionData[] = [];
   let failures = 0;
@@ -105,7 +131,7 @@ async function computeAllChainTransactions(account: Address): Promise<Transactio
   if (failures === results.length) {
     throw new Error("Failed to load transactions on all chains");
   }
-  return sortTransactions(transactions);
+  return { transactions: sortTransactions(transactions), failures };
 }
 
 function filterTransactions(
@@ -148,8 +174,8 @@ export default async (req: Request) => {
       return jsonError(chainParsed.error, 400);
     }
 
-    if (eventType && !["swap", "lp", "ctf"].includes(eventType)) {
-      return jsonError("eventType must be one of: swap, lp, ctf", 400);
+    if (eventType && !isEventTypeFilter(eventType)) {
+      return jsonError(`eventType must be one of: ${Object.keys(EVENT_TYPE_GROUPS).join(", ")}`, 400);
     }
 
     const startTimeNum = startTime ? Number.parseInt(startTime, 10) : undefined;
@@ -163,21 +189,32 @@ export default async (req: Request) => {
     }
 
     const cacheKey = account.toLowerCase();
-    const [cached, lastActivityTs] = await Promise.all([
-      readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey),
-      fetchLastActivityTimestamp(account),
-    ]);
+    const cached = await readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey);
+    let lastActivityTs: number | undefined;
+    try {
+      lastActivityTs = await fetchLastActivityTimestamp(account);
+    } catch (e) {
+      console.warn("get-transactions: last activity lookup failed", e);
+    }
 
+    const activityTsForFreshness = lastActivityTs ?? cached?.lastActivityTs;
     let transactions: TransactionData[];
-    if (isActivityCacheFresh(cached, lastActivityTs) && Array.isArray(cached.transactions)) {
+    if (
+      activityTsForFreshness !== undefined &&
+      isActivityCacheFresh(cached, activityTsForFreshness) &&
+      Array.isArray(cached.transactions)
+    ) {
       transactions = cached.transactions;
     } else {
-      transactions = await computeAllChainTransactions(account);
-      await writeJsonBlob(PORTFOLIO_TRANSACTIONS_STORE, cacheKey, {
-        cachedAt: Date.now(),
-        lastActivityTs,
-        transactions,
-      } satisfies TransactionsCachePayload);
+      const computed = await computeAllChainTransactions(account);
+      transactions = computed.transactions;
+      if (computed.failures === 0 && lastActivityTs !== undefined) {
+        await writeJsonBlob(PORTFOLIO_TRANSACTIONS_STORE, cacheKey, {
+          cachedAt: Date.now(),
+          lastActivityTs,
+          transactions,
+        } satisfies TransactionsCachePayload);
+      }
     }
 
     return jsonOk(
@@ -185,7 +222,7 @@ export default async (req: Request) => {
         chainId: chainParsed.chainId,
         startTime: startTimeNum,
         endTime: endTimeNum,
-        eventType: (eventType as EventTypeFilter | null) || undefined,
+        eventType: eventType && isEventTypeFilter(eventType) ? eventType : undefined,
       }),
     );
   } catch (e) {

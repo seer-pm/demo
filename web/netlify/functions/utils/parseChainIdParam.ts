@@ -10,9 +10,8 @@ export function parseChainIdQueryParam(
   if (opts?.allowAll && chainId.toLowerCase() === "all") {
     return { chainId: "all" };
   }
-  const n = Number(chainId);
-  if (!Number.isInteger(n)) {
+  if (!/^[1-9]\d*$/.test(chainId)) {
     return { error: opts?.allowAll ? "chainId must be a number or 'all'" : "chainId must be a valid number" };
   }
-  return { chainId: n };
+  return { chainId: Number.parseInt(chainId, 10) };
 }

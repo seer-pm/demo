@@ -1,10 +1,9 @@
 import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
-import { Burn_OrderBy, type GetBurnsQuery, OrderDirection } from "@seer-pm/sdk/subgraph/swapr";
+import { Burn_OrderBy, type GetBurnsQuery } from "@seer-pm/sdk/subgraph/swapr";
 import { type Address, parseUnits } from "viem";
 import { getCollateralFromDexTx } from "../markets";
-import { getDexSubgraph, mappingTokenIds } from "./dexSubgraph";
-import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
+import { mappingTokenIds, paginateDexByTimestampId } from "./dexSubgraph";
 
 async function fetchBurnsFromSubgraph(
   account: string,
@@ -13,26 +12,16 @@ async function fetchBurnsFromSubgraph(
   startTime?: number,
   endTime?: number,
 ) {
-  const { client, sdk } = getDexSubgraph(chainId);
   const accountLc = account.toLowerCase() as Address;
-
-  return paginateByTimestampId<GetBurnsQuery["burns"][number]>({
+  return paginateDexByTimestampId<GetBurnsQuery["burns"][number]>({
+    chainId,
     startTime,
     endTime,
     tokenIds,
     accountFilters: [{ origin: accountLc }],
-    fetchPage: async (where, first) => {
-      const data = await sdk(client).GetBurns({
-        first,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderBy: Burn_OrderBy.Timestamp as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderDirection: OrderDirection.Desc as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        where: where as any,
-      });
-      return data.burns as GetBurnsQuery["burns"];
-    },
+    orderBy: Burn_OrderBy.Timestamp,
+    resultKey: "burns",
+    query: (sdk, vars) => sdk.GetBurns(vars),
   });
 }
 

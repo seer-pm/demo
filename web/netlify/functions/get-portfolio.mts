@@ -1,4 +1,5 @@
-import { DEFAULT_COLLATERAL_PROFILE, type PortfolioPosition } from "@seer-pm/sdk";
+import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
+import { DEFAULT_COLLATERAL_PROFILE } from "@seer-pm/sdk/collateral";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
 import { fetchLastActivityTimestamp, supportedChainIds } from "./utils/accountLastActivity";
@@ -19,6 +20,8 @@ const PORTFOLIO_POSITIONS_STORE = "portfolio-positions";
 
 type PositionsCachePayload = ActivityCachedPayload<{ positions: PortfolioPosition[] }>;
 
+type ResolvedChain = { chainId: SupportedChain; profileName: string };
+
 function jsonError(error: string, status: number) {
   return new Response(JSON.stringify({ error }), {
     status,
@@ -38,16 +41,12 @@ function filterPositionsByChain(positions: PortfolioPosition[], chainId: number 
   return positions.filter((p) => p.chainId === chainId);
 }
 
-async function computeAllChainPositions(account: Address, profileParam: string | null): Promise<PortfolioPosition[]> {
+async function computeAllChainPositions(
+  account: Address,
+  chains: ResolvedChain[],
+): Promise<{ positions: PortfolioPosition[]; failures: number }> {
   const results = await Promise.allSettled(
-    supportedChainIds().map(async (chainId) => {
-      const collateralResolved = parseCollateralProfileQueryParam(chainId, profileParam);
-      if ("error" in collateralResolved) {
-        console.warn(`get-portfolio: skip chain ${chainId}: ${collateralResolved.error}`);
-        return [] as PortfolioPosition[];
-      }
-      return buildCurrentPortfolioPositions(supabase, account, chainId, collateralResolved.profileName);
-    }),
+    chains.map(({ chainId, profileName }) => buildCurrentPortfolioPositions(supabase, account, chainId, profileName)),
   );
 
   const positions: PortfolioPosition[] = [];
@@ -63,7 +62,7 @@ async function computeAllChainPositions(account: Address, profileParam: string |
   if (failures === results.length) {
     throw new Error("Failed to load portfolio positions on all chains");
   }
-  return positions;
+  return { positions, failures };
 }
 
 export default async (req: Request) => {
@@ -82,11 +81,19 @@ export default async (req: Request) => {
 
     const profileParam = url.searchParams.get("collateralProfile");
     const profileName = profileParam?.trim() || DEFAULT_COLLATERAL_PROFILE;
-    const chainIds = supportedChainIds();
-    const resolvableChains = chainIds.filter((id) => !("error" in parseCollateralProfileQueryParam(id, profileParam)));
-    if (resolvableChains.length === 0) {
-      const first = parseCollateralProfileQueryParam(chainIds[0], profileParam);
-      return jsonError("error" in first ? first.error : "Invalid collateral profile", 400);
+    const resolvedChains: ResolvedChain[] = [];
+    let firstProfileError: string | undefined;
+    for (const chainId of supportedChainIds()) {
+      const collateralResolved = parseCollateralProfileQueryParam(chainId, profileParam);
+      if ("error" in collateralResolved) {
+        firstProfileError ??= collateralResolved.error;
+        console.warn(`get-portfolio: skip chain ${chainId}: ${collateralResolved.error}`);
+        continue;
+      }
+      resolvedChains.push({ chainId, profileName: collateralResolved.profileName });
+    }
+    if (resolvedChains.length === 0) {
+      return jsonError(firstProfileError ?? "Invalid collateral profile", 400);
     }
 
     const cacheKey = `${account.toLowerCase()}:${profileName}`;
@@ -103,13 +110,15 @@ export default async (req: Request) => {
         filterPositionsByChain(cached.positions, chainParsed.chainId),
       );
     } else {
-      positions = await computeAllChainPositions(account, profileParam);
-      await writeJsonBlob(PORTFOLIO_POSITIONS_STORE, cacheKey, {
-        cachedAt: Date.now(),
-        lastActivityTs,
-        positions,
-      } satisfies PositionsCachePayload);
-      positions = filterPositionsByChain(positions, chainParsed.chainId);
+      const computed = await computeAllChainPositions(account, resolvedChains);
+      if (computed.failures === 0) {
+        await writeJsonBlob(PORTFOLIO_POSITIONS_STORE, cacheKey, {
+          cachedAt: Date.now(),
+          lastActivityTs,
+          positions: computed.positions,
+        } satisfies PositionsCachePayload);
+      }
+      positions = filterPositionsByChain(computed.positions, chainParsed.chainId);
     }
 
     return jsonOk(positions);

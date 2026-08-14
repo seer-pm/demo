@@ -1,11 +1,18 @@
+const usdFormatter = new Intl.NumberFormat(undefined, {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export function formatUsd(value: number, opts?: { signed?: boolean }) {
-  const abs = Math.abs(value);
-  const formatted = abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!Number.isFinite(value)) return "—";
+  const formatted = usdFormatter.format(Math.abs(value));
   if (opts?.signed) {
     const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-    return `${sign}$${formatted}`;
+    return `${sign}${formatted}`;
   }
-  return `$${formatted}`;
+  return formatted;
 }
 
 export type SignedTone = "up" | "down" | "flat";

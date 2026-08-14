@@ -38,7 +38,9 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
     if (!filteredPositions.length) {
       return (
         <Alert type="info" title="No positions">
-          This profile has no outcome tokens on the selected chain.
+          {chainId === "all"
+            ? "This profile has no outcome tokens on any chain."
+            : "This profile has no outcome tokens on the selected chain."}
         </Alert>
       );
     }
@@ -80,6 +82,9 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
           onChange={(event) => setFilterMarketName(event.target.value)}
         />
       </div>
+      <p className="text-sm text-black-primary mb-4">
+        Price and Value in the table are in each chain's collateral (sDAI, sUSDS, and others), not USD.
+      </p>
       {renderTable()}
     </div>
   );

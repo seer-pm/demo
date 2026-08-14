@@ -67,12 +67,12 @@ async function portfolioValueUsdForChain(args: {
 
   const currentNative = sumPortfolioValueCurrent(positions);
   const historyNative = sumPortfolioValueAtReference(positions, historyPrices, historyTimestamp);
-  let priceUsd = await getDexScreenerPriceUSD(collateralResolved.primaryCollateral.address, chainId);
+  const priceUsd = await getDexScreenerPriceUSD(collateralResolved.primaryCollateral.address, chainId);
   if (!(priceUsd > 0)) {
     console.warn(
-      `get-portfolio-value: chain ${chainId} collateral USD price is ${priceUsd} (token ${collateralResolved.primaryCollateral.address}); falling back to 1`,
+      `get-portfolio-value: chain ${chainId} collateral USD price is ${priceUsd} (token ${collateralResolved.primaryCollateral.address})`,
     );
-    priceUsd = 1;
+    return null;
   }
 
   return {
@@ -111,6 +111,13 @@ export default async (req: Request) => {
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
     const historyTimestamp = Math.floor(oneDayAgo.getTime() / 1000);
     const profileParam = url.searchParams.get("collateralProfile");
+
+    if (chainParsed.chainId !== "all" && !(chainParsed.chainId in SUPPORTED_CHAINS)) {
+      return new Response(JSON.stringify({ error: "Unsupported chainId" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     const chainIds: SupportedChain[] =
       chainParsed.chainId === "all"

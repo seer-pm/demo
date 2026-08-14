@@ -9,16 +9,18 @@ import { getStore } from "@netlify/blobs";
 import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk/collateral";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
-import { type GetSwapsQuery, OrderDirection, Swap_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
+import { type GetSwapsQuery, Swap_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
 import { type Address, parseUnits } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "../config";
 import { getCollateralFromDexTx } from "../markets";
-import { getDexSubgraph, mappingTokenIds } from "./dexSubgraph";
-import { paginateByTimestampId } from "./subgraphTimestampIdPagination";
+import { mappingTokenIds, paginateDexByTimestampId } from "./dexSubgraph";
 
 const COWSWAP_OWNER_TRADES_STORE = "cowswap-owner-trades";
-/** Permanent CoW trades snapshot per chain + owner. Filter by markets on read. */
+/**
+ * Intentionally never invalidated. CoW is unused on the site; this blob is a historical
+ * snapshot per chain + owner. Do not refetch or TTL-expire it. Filter by markets on read.
+ */
 
 const COW_ORDER_BOOK_CHAIN_IDS = new Set<number>(ALL_SUPPORTED_CHAIN_IDS);
 
@@ -223,21 +225,42 @@ async function fetchTimestampByBlock(blockNumbers: number[], chainId: SupportedC
   const uniqueBlocks = [...new Set(blockNumbers)];
   if (uniqueBlocks.length === 0) return {};
   const client = getPublicClientByChainId(chainId);
-  const pairs = await mapPool(uniqueBlocks, BLOCK_TIMESTAMP_CONCURRENCY, async (bn) => {
-    const block = await getBlock(client, { blockNumber: BigInt(bn) });
-    return [String(bn), Number(block.timestamp)] as const;
-  });
-  return Object.fromEntries(pairs);
+
+  async function lookup(bn: number): Promise<[string, number] | null> {
+    try {
+      const block = await getBlock(client, { blockNumber: BigInt(bn) });
+      const ts = Number(block.timestamp);
+      if (!Number.isFinite(ts) || ts <= 0) return null;
+      return [String(bn), ts];
+    } catch {
+      return null;
+    }
+  }
+
+  const first = await mapPool(uniqueBlocks, BLOCK_TIMESTAMP_CONCURRENCY, lookup);
+  const missing = uniqueBlocks.filter((_, i) => first[i] == null);
+  const retry = missing.length > 0 ? await mapPool(missing, BLOCK_TIMESTAMP_CONCURRENCY, lookup) : [];
+  const retryByBlock = new Map(missing.map((bn, i) => [bn, retry[i]]));
+
+  const out: Record<string, number> = {};
+  for (let i = 0; i < uniqueBlocks.length; i++) {
+    const pair = first[i] ?? retryByBlock.get(uniqueBlocks[i]) ?? null;
+    if (pair) out[pair[0]] = pair[1];
+  }
+  return out;
 }
 
 function withCowTimestamps(
   cowSwapsPartial: Omit<TransactionData, "timestamp">[],
   timestampByBlock: Record<string, number>,
 ): TransactionData[] {
-  return cowSwapsPartial.map((s) => ({
-    ...s,
-    timestamp: timestampByBlock[String(s.blockNumber)] ?? 0,
-  }));
+  const out: TransactionData[] = [];
+  for (const s of cowSwapsPartial) {
+    const timestamp = timestampByBlock[String(s.blockNumber)];
+    if (timestamp == null || !Number.isFinite(timestamp) || timestamp <= 0) continue;
+    out.push({ ...s, timestamp });
+  }
+  return out;
 }
 
 async function getCowswapSwapsCached(
@@ -304,26 +327,16 @@ async function fetchSwapsFromSubgraph(
   startTime?: number,
   endTime?: number,
 ) {
-  const { client, sdk } = getDexSubgraph(chainId);
   const accountLc = account.toLowerCase() as Address;
-
-  return paginateByTimestampId<GetSwapsQuery["swaps"][number]>({
+  return paginateDexByTimestampId<GetSwapsQuery["swaps"][number]>({
+    chainId,
     startTime,
     endTime,
     tokenIds,
     accountFilters: [{ origin: accountLc }, { recipient: accountLc }],
-    fetchPage: async (where, first) => {
-      const data = await sdk(client).GetSwaps({
-        first,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderBy: Swap_OrderBy.Timestamp as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        orderDirection: OrderDirection.Desc as any,
-        // biome-ignore lint/suspicious/noExplicitAny:
-        where: where as any,
-      });
-      return data.swaps as GetSwapsQuery["swaps"];
-    },
+    orderBy: Swap_OrderBy.Timestamp,
+    resultKey: "swaps",
+    query: (sdk, vars) => sdk.GetSwaps(vars),
   });
 }
 

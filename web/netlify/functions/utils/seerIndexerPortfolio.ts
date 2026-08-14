@@ -383,35 +383,18 @@ export function routerPrimaryNetFromConditionalEvents(
   primaryCollateral: Token,
 ): { netHuman: number; transactionEvents: TransactionData[] } {
   const primaryLc = primaryCollateral.address.toLowerCase();
+  const matching = events.filter((ev) => ev.collateral.toLowerCase() === primaryLc);
   let netWei = 0n;
-  const transactionEvents: TransactionData[] = [];
-
-  for (const ev of events) {
-    if (ev.collateral.toLowerCase() !== primaryLc) continue;
+  for (const ev of matching) {
     if (ev.eventType === "split") {
       netWei -= ev.amount;
     } else {
       netWei += ev.amount;
     }
-    const base = {
-      marketName: ev.marketName,
-      marketId: ev.marketId,
-      type: ev.eventType,
-      blockNumber: ev.blockNumber,
-      collateral: ev.collateral,
-      transactionHash: ev.transactionHash,
-      timestamp: ev.timestamp,
-    };
-    if (ev.eventType === "redeem") {
-      transactionEvents.push({ ...base, payout: ev.amount.toString() });
-    } else {
-      transactionEvents.push({ ...base, amount: ev.amount.toString() });
-    }
   }
-
   return {
     netHuman: Number(formatUnits(netWei, primaryCollateral.decimals)),
-    transactionEvents,
+    transactionEvents: conditionalEventsToTransactions(matching),
   };
 }
 

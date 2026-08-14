@@ -101,20 +101,17 @@ async function paginateOneStream<T extends TimestampIdPageItem>(args: {
     pages += 1;
     if (page.length === 0) break;
 
-    let added = 0;
     for (const item of page) {
       if (args.seen.has(item.id)) continue;
       args.seen.add(item.id);
       args.out.push(item);
-      added += 1;
     }
 
     const last = page[page.length - 1];
     const nextCursor: TimestampIdCursor = { timestamp: last.timestamp, id: last.id };
     if (
       page.length < args.pageSize ||
-      (cursor && cursor.timestamp === nextCursor.timestamp && cursor.id === nextCursor.id) ||
-      added === 0
+      (cursor && cursor.timestamp === nextCursor.timestamp && cursor.id === nextCursor.id)
     ) {
       break;
     }
@@ -147,13 +144,11 @@ export async function paginateByTimestampId<T extends TimestampIdPageItem>(args:
       ? chunkIds([...new Set(args.tokenIds.map((t) => t.toLowerCase()))], TOKEN_IN_CHUNK)
       : [undefined];
 
-  let pagesUsed = 0;
-  for (const tokenIds of tokenChunks) {
-    const remaining = maxPages - pagesUsed;
-    if (remaining <= 0) break;
-    pagesUsed += await paginateOneStream({
+  for (let i = 0; i < tokenChunks.length; i++) {
+    const tokenIds = tokenChunks[i];
+    const pages = await paginateOneStream({
       pageSize,
-      maxPages: remaining,
+      maxPages,
       fetchPage: args.fetchPage,
       accountFilters: args.accountFilters,
       tokenIds,
@@ -162,6 +157,16 @@ export async function paginateByTimestampId<T extends TimestampIdPageItem>(args:
       seen,
       out,
     });
+    if (pages >= maxPages) {
+      console.warn("dex subgraph pagination stopped early for token chunk", {
+        chunkIndex: i,
+        chunkCount: tokenChunks.length,
+        pages,
+        maxPages,
+        rows: out.length,
+        tokenCount: tokenIds?.length,
+      });
+    }
   }
 
   return out;

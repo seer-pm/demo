@@ -3,29 +3,15 @@ import { isTwoStringsEqual } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-
-function formatSeer(value: number | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
-  return value.toLocaleString(undefined, { maximumFractionDigits: 3 });
-}
-
-function seerValue(value: number | undefined) {
-  return `${formatSeer(value)} SEER`;
-}
-
-function hasAmount(value: number | undefined) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0;
-}
+import { formatSeer, hasAmount, seerValue } from "./airdropFormat";
 
 function Figure({
   label,
   value,
-  hint,
   tone = "neutral",
 }: {
   label: string;
   value: ReactNode;
-  hint?: ReactNode;
   tone?: "neutral" | "poh";
 }) {
   const poh = tone === "poh";
@@ -35,7 +21,6 @@ function Figure({
       <dd className={`mt-1 text-lg font-semibold tabular-nums ${poh ? "text-purple-primary" : "text-base-content"}`}>
         {value}
       </dd>
-      {hint ? <p className="mt-1 text-sm text-black-primary">{hint}</p> : null}
     </div>
   );
 }
@@ -84,26 +69,24 @@ function PohRegisterCallout({ href }: { href: string }) {
   );
 }
 
-export default function AirdropTable({ data, account }: { data: AirdropDataByUser[]; account?: Address }) {
+export default function AirdropTable({ data, account }: { data: AirdropDataByUser; account?: Address }) {
   const { address: connectedAccount } = useAccount();
-  const row = data[0];
-  if (!row) return null;
 
   const isOwnProfile = isTwoStringsEqual(connectedAccount, account);
-  const hasPoh = hasAmount(row.pohUserAllocation) || hasAmount(row.monthlyEstimatePoH);
+  const hasPoh = hasAmount(data.pohUserAllocation) || hasAmount(data.monthlyEstimatePoH);
   const isEmpty = [
-    row.totalAllocation,
-    row.monthlyEstimate,
-    row.monthlyEstimatePoH,
-    row.outcomeTokenHoldingAllocation,
-    row.pohUserAllocation,
-    row.serLppMainnet,
-    row.serLppGnosis,
+    data.totalAllocation,
+    data.monthlyEstimate,
+    data.monthlyEstimatePoH,
+    data.outcomeTokenHoldingAllocation,
+    data.pohUserAllocation,
+    data.serLppMainnet,
+    data.serLppGnosis,
   ].every((value) => !hasAmount(value));
 
   const pohShare =
-    hasAmount(row.totalAllocation) && hasAmount(row.pohUserAllocation)
-      ? Math.round((row.pohUserAllocation / row.totalAllocation) * 100)
+    hasAmount(data.totalAllocation) && hasAmount(data.pohUserAllocation)
+      ? Math.round((data.pohUserAllocation / data.totalAllocation) * 100)
       : null;
 
   const pohRegisterHref = connectedAccount
@@ -129,20 +112,20 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
       </p>
 
       <MetricGroup title="To date" description="These two add up to the total." accent>
-        <Figure tone="poh" label="Proof of Humanity" value={seerValue(row.pohUserAllocation)} />
-        <Figure label="Holdings" value={seerValue(row.outcomeTokenHoldingAllocation)} />
+        <Figure tone="poh" label="Proof of Humanity" value={seerValue(data.pohUserAllocation)} />
+        <Figure label="Holdings" value={seerValue(data.outcomeTokenHoldingAllocation)} />
       </MetricGroup>
 
       {isOwnProfile && !hasPoh ? <PohRegisterCallout href={pohRegisterHref} /> : null}
 
       <MetricGroup title="30-day estimate" description="Projected from the latest snapshot. Not part of the total.">
-        <Figure tone="poh" label="Proof of Humanity" value={seerValue(row.monthlyEstimatePoH)} />
-        <Figure label="Holdings" value={seerValue(row.monthlyEstimate)} />
+        <Figure tone="poh" label="Proof of Humanity" value={seerValue(data.monthlyEstimatePoH)} />
+        <Figure label="Holdings" value={seerValue(data.monthlyEstimate)} />
       </MetricGroup>
 
       <MetricGroup title="Liquidity" description="SER LP token balances, not SEER. Separate from the estimate above.">
-        <Figure label="Ethereum" value={formatSeer(row.serLppMainnet)} />
-        <Figure label="Gnosis" value={formatSeer(row.serLppGnosis)} />
+        <Figure label="Ethereum" value={formatSeer(data.serLppMainnet)} />
+        <Figure label="Gnosis" value={formatSeer(data.serLppGnosis)} />
       </MetricGroup>
     </div>
   );

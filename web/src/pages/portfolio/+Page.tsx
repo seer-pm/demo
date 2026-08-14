@@ -6,6 +6,7 @@ import { CopyButton } from "@/components/CopyButton";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
+import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolioTabs";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, SIGNED_TONE_FILL, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
@@ -118,7 +119,7 @@ function PortfolioPnLHistory({
   const { data: plData, isLoading, error, refetch, isFetching } = usePortfolioPnL(account, chainId, period);
   const pnl = plData?.pnl ?? 0;
   const tone = signedTone(pnl);
-  const periodMeta = PNL_PERIODS.find((p) => p.id === period) ?? PNL_PERIODS[3];
+  const periodMeta = PNL_PERIODS.find((p) => p.id === period) ?? PNL_PERIODS.find((p) => p.id === "all")!;
 
   return (
     <div className="flex flex-col items-start sm:items-end gap-2 min-w-0">
@@ -169,7 +170,8 @@ function PortfolioPnLHistory({
 function PortfolioPage() {
   const { address: connectedAccount } = useAccount();
   const { routeParams } = usePageContext();
-  const account = (routeParams?.id || connectedAccount) as Address | undefined;
+  const routeAccount = routeParams?.id && isAddress(routeParams.id) ? getAddress(routeParams.id) : undefined;
+  const account = routeAccount ?? connectedAccount;
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -177,7 +179,7 @@ function PortfolioPage() {
   const activeTab = parsePortfolioTab(searchParams.get("tab"));
   const chainId = parsePortfolioChainParam(searchParams.get("chain"));
   const plPeriod = parsePnLPeriod(searchParams.get("pl"));
-  const showChainFilter = activeTab !== "airdrop";
+  usePrefetchPortfolioTabs(account, chainId);
   const activeTabMeta = TABS.find((tab) => tab.id === activeTab) ?? TABS[0];
 
   const setTab = (tab: PortfolioTab) => {
@@ -221,6 +223,12 @@ function PortfolioPage() {
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
       selectTab(index - 1, true);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      selectTab(0, true);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      selectTab(TABS.length - 1, true);
     }
   };
 
@@ -239,7 +247,7 @@ function PortfolioPage() {
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Portfolio" }]} />
       <div className="mt-8 space-y-4">
-        {showChainFilter ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
+        {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
         <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
           <div className="flex gap-4 min-w-0">
             <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center shrink-0">
@@ -250,11 +258,7 @@ function PortfolioPage() {
                 <h1 className="text-[18px] font-semibold text-base-content truncate">
                   <AddressOrName address={account} />
                 </h1>
-                <CopyButton
-                  textToCopy={isAddress(account) ? getAddress(account) : account}
-                  size={16}
-                  className="shrink-0 min-h-11 min-w-11 text-black-primary"
-                />
+                <CopyButton textToCopy={account} size={16} className="shrink-0 min-h-11 min-w-11 text-black-primary" />
                 {isTwoStringsEqual(connectedAccount, account) ? (
                   <span className="text-xs text-purple-primary font-medium shrink-0">You</span>
                 ) : null}
@@ -269,11 +273,6 @@ function PortfolioPage() {
             <PortfolioPnLHistory account={account} chainId={chainId} period={plPeriod} onPeriodChange={setPlPeriod} />
           )}
         </div>
-        {showChainFilter ? (
-          <p className="text-sm text-black-primary">
-            Price and Value in the table are in each chain's collateral (sDAI, sUSDS, and others), not USD.
-          </p>
-        ) : null}
       </div>
 
       <div>

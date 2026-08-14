@@ -464,8 +464,11 @@ export async function loadMarketsByIds(chainId: SupportedChain, ids: string[]): 
     for (const row of data ?? []) {
       try {
         markets.push(mapGraphMarketFromDbResult(row.subgraph_data as LegacySubgraphMarket, row));
-      } catch {
-        /* skip malformed rows */
+      } catch (e) {
+        console.warn("loadMarketsByIds: skipped malformed row", {
+          id: row.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
   }

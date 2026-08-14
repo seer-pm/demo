@@ -7,7 +7,6 @@ export const useHistoryTransactions = (address: Address | undefined) => {
     enabled: !!address,
     queryKey: ["useHistoryTransactions", address],
     gcTime: 1000 * 60 * 60 * 24,
-    staleTime: 0,
     retry: false,
     queryFn: async () => {
       const response = await fetch(`/.netlify/functions/get-transactions?account=${address}`);

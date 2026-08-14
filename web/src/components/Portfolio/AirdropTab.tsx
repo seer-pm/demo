@@ -4,11 +4,7 @@ import { isUndefined } from "@/lib/utils";
 import { useGetAirdropDataByUser } from "@/hooks/airdrop/useGetAirdropDataByUser";
 import { Address } from "viem";
 import AirdropTable from "./AirdropTable";
-
-function formatSeer(value: number | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
-  return value.toLocaleString(undefined, { maximumFractionDigits: 3 });
-}
+import { formatSeer } from "./airdropFormat";
 
 export function AirdropHero({ account }: { account: Address }) {
   const { data, isPending, isError } = useGetAirdropDataByUser(account);
@@ -66,7 +62,7 @@ function AirdropTab({ account }: { account: Address | undefined }) {
       </div>
     );
   }
-  return <AirdropTable data={[airdrop]} account={account} />;
+  return <AirdropTable data={airdrop} account={account} />;
 }
 
 export default AirdropTab;

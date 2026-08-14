@@ -22,37 +22,150 @@ import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 import { SortableColumnHeader } from "./SortableColumnHeader";
 
-const TYPE_LABELS: Record<string, string> = {
-  split: "Split",
-  merge: "Merge",
-  redeem: "Redeem",
-  swap: "Swap",
-  lp: "Add liquidity",
-  "lp-burn": "Remove liquidity",
-  bought: "Bought",
-  sold: "Sold",
-};
-
 function txChainId(tx: TransactionData, filter: PortfolioChainId): SupportedChain {
   if (tx.chainId) return tx.chainId;
   if (filter !== "all") return filter;
   return DEFAULT_CHAIN;
 }
 
+function txExplorerHref(tx: TransactionData, filter: PortfolioChainId): string | undefined {
+  if (!tx.transactionHash) return undefined;
+  const explorerUrl = SUPPORTED_CHAINS[txChainId(tx, filter)]?.blockExplorers?.default?.url;
+  return explorerUrl ? `${explorerUrl}/tx/${tx.transactionHash}` : undefined;
+}
+
+function TxDescriptionBody({ tx }: { tx: TransactionData }) {
+  switch (tx.type) {
+    case "split": {
+      return tx.collateralSymbol ? (
+        <span>
+          Split from{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amount ?? "0n"), 18)} {tx.collateralSymbol}
+          </span>{" "}
+          to outcome tokens
+        </span>
+      ) : (
+        <span>
+          Split to <span className="font-semibold">{displayBalance(BigInt(tx.amount ?? "0n"), 18)}</span> outcome tokens
+        </span>
+      );
+    }
+    case "merge": {
+      return (
+        <span>
+          Merge <span className="font-semibold">{displayBalance(BigInt(tx.amount ?? "0n"), 18)}</span> outcome tokens
+          {tx.collateralSymbol ? ` to ${tx.collateralSymbol}` : ""}
+        </span>
+      );
+    }
+    case "redeem": {
+      return (
+        <span>
+          Redeem <span className="font-semibold">{displayBalance(BigInt(tx.payout ?? "0n"), 18)}</span>{" "}
+          {tx.collateralSymbol ?? ""}
+        </span>
+      );
+    }
+    case "swap": {
+      return (
+        <span>
+          Swap{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amountIn ?? "0n"), 18)} {tx.tokenInSymbol}
+          </span>{" "}
+          for{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amountOut ?? "0n"), 18)} {tx.tokenOutSymbol}
+          </span>
+        </span>
+      );
+    }
+    case "lp": {
+      return (
+        <span>
+          Add{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amount0 ?? "0n"), 18)} {tx.token0Symbol}
+          </span>{" "}
+          and{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amount1 ?? "0n"), 18)} {tx.token1Symbol}
+          </span>{" "}
+          to the pool
+        </span>
+      );
+    }
+    case "lp-burn": {
+      return (
+        <span>
+          Remove{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amount0 ?? "0n"), 18)} {tx.token0Symbol}
+          </span>{" "}
+          and{" "}
+          <span className="font-semibold">
+            {displayBalance(BigInt(tx.amount1 ?? "0n"), 18)} {tx.token1Symbol}
+          </span>{" "}
+          from the pool
+        </span>
+      );
+    }
+    case "bought": {
+      return (
+        <span>
+          Bought{" "}
+          <span className="font-semibold">{displayBalance(parseUnits((tx.amount ?? "0") as `${string}`, 18), 18)}</span>{" "}
+          outcome tokens
+        </span>
+      );
+    }
+    case "sold": {
+      return (
+        <span>
+          Sold{" "}
+          <span className="font-semibold">{displayBalance(parseUnits((tx.amount ?? "0") as `${string}`, 18), 18)}</span>{" "}
+          outcome tokens
+        </span>
+      );
+    }
+    default:
+      return "—";
+  }
+}
+
+function TxDescription({ tx, chainId }: { tx: TransactionData; chainId: PortfolioChainId }) {
+  const href = txExplorerHref(tx, chainId);
+  const body = (
+    <>
+      <TxDescriptionBody tx={tx} />
+    </>
+  );
+
+  if (!href) {
+    return <p className="text-[14px] text-pretty max-w-[28rem]">{body}</p>;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-start gap-1.5 text-[14px] text-pretty max-w-[28rem] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary"
+    >
+      {body}
+      <span className="sr-only"> View on block explorer</span>
+      <span className="text-purple-primary shrink-0 mt-0.5" aria-hidden>
+        <ExternalLinkIcon fill="currentColor" />
+      </span>
+    </a>
+  );
+}
+
 export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: PortfolioChainId }) {
   const showChain = chainId === "all";
   const columns = React.useMemo<ColumnDef<TransactionData>[]>(
     () => [
-      {
-        accessorKey: "type",
-        cell: (info) => {
-          const type = info.getValue<string>();
-          return (
-            <p className="font-semibold text-[14px] whitespace-nowrap">{type ? (TYPE_LABELS[type] ?? type) : "—"}</p>
-          );
-        },
-        header: "Type",
-      },
       {
         accessorKey: "marketName",
         cell: (info) => {
@@ -84,116 +197,10 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         header: "Market",
       },
       {
-        cell: (info) => {
-          const data = info.row.original;
-          const body = (() => {
-            switch (data.type) {
-              case "split": {
-                return data.collateralSymbol ? (
-                  <span>
-                    Split from{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amount ?? "0n"), 18)} {data.collateralSymbol}
-                    </span>{" "}
-                    to outcome tokens
-                  </span>
-                ) : (
-                  <span>
-                    Split to <span className="font-semibold">{displayBalance(BigInt(data.amount ?? "0n"), 18)}</span>{" "}
-                    outcome tokens
-                  </span>
-                );
-              }
-              case "merge": {
-                return (
-                  <span>
-                    Merge <span className="font-semibold">{displayBalance(BigInt(data.amount ?? "0n"), 18)}</span>{" "}
-                    outcome tokens
-                    {data.collateralSymbol ? ` to ${data.collateralSymbol}` : ""}
-                  </span>
-                );
-              }
-              case "redeem": {
-                return (
-                  <span>
-                    Redeem <span className="font-semibold">{displayBalance(BigInt(data.payout ?? "0n"), 18)}</span>{" "}
-                    {data.collateralSymbol ?? ""}
-                  </span>
-                );
-              }
-              case "swap": {
-                return (
-                  <span>
-                    Swap{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amountIn ?? "0n"), 18)} {data.tokenInSymbol}
-                    </span>{" "}
-                    for{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amountOut ?? "0n"), 18)} {data.tokenOutSymbol}
-                    </span>
-                  </span>
-                );
-              }
-              case "lp": {
-                return (
-                  <span>
-                    Add{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amount0 ?? "0n"), 18)} {data.token0Symbol}
-                    </span>{" "}
-                    and{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amount1 ?? "0n"), 18)} {data.token1Symbol}
-                    </span>{" "}
-                    to the pool
-                  </span>
-                );
-              }
-              case "lp-burn": {
-                return (
-                  <span>
-                    Remove{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amount0 ?? "0n"), 18)} {data.token0Symbol}
-                    </span>{" "}
-                    and{" "}
-                    <span className="font-semibold">
-                      {displayBalance(BigInt(data.amount1 ?? "0n"), 18)} {data.token1Symbol}
-                    </span>{" "}
-                    from the pool
-                  </span>
-                );
-              }
-              case "bought": {
-                return (
-                  <span>
-                    Bought{" "}
-                    <span className="font-semibold">
-                      {displayBalance(parseUnits((data.amount ?? "0") as `${string}`, 18), 18)}
-                    </span>{" "}
-                    outcome tokens
-                  </span>
-                );
-              }
-              case "sold": {
-                return (
-                  <span>
-                    Sold{" "}
-                    <span className="font-semibold">
-                      {displayBalance(parseUnits((data.amount ?? "0") as `${string}`, 18), 18)}
-                    </span>{" "}
-                    outcome tokens
-                  </span>
-                );
-              }
-              default:
-                return "—";
-            }
-          })();
-          return <p className="text-[14px] text-pretty max-w-[28rem]">{body}.</p>;
-        },
+        id: "description",
+        cell: (info) => <TxDescription tx={info.row.original} chainId={chainId} />,
         header: "Description",
+        enableSorting: false,
       },
       {
         accessorKey: "timestamp",
@@ -209,29 +216,6 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
           );
         },
         header: "Date",
-      },
-      {
-        accessorKey: "transactionHash",
-        cell: (info) => {
-          const data = info.row.original;
-          const rowChainId = txChainId(data, chainId);
-          const blockExplorerUrl = SUPPORTED_CHAINS?.[rowChainId]?.blockExplorers?.default?.url;
-          if (!data.transactionHash) return "—";
-          return (
-            <a
-              href={blockExplorerUrl ? `${blockExplorerUrl}/tx/${data.transactionHash}` : undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center min-h-11 min-w-11 text-purple-primary"
-              aria-label="View transaction"
-              title={data.transactionHash}
-            >
-              <ExternalLinkIcon fill="currentColor" />
-            </a>
-          );
-        },
-        header: "Tx",
-        enableSorting: false,
       },
     ],
     [chainId, showChain],
