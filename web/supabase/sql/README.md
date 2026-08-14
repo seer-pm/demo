@@ -28,13 +28,24 @@ multi-statement scripts in one, so run those statements individually.
 
 ## Apply for PnL leaderboard / portfolio fixes
 
-Apply `users_username.sql` before `pnl_leaderboard.sql`; the username-aware leaderboard RPCs join that column.
-
-After pulling these changes, run in the Supabase SQL editor (in order):
+Apply in this order:
 
 1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
 2. `dex_pool_hour_prices_latest_for_pairs.sql`
-3. `pnl_leaderboard.sql` (re-run to pick up `volume` / `volume_usd` / `roi`, the refresh cursor table, and username-aware leaderboard RPCs)
+3. Put the app into maintenance mode so sign-ins and user creation stop.
+4. Run `users_username.sql` to add the nullable username column.
+5. From the repository root, backfill existing users with the production Supabase service-role key:
+
+   ```bash
+   SUPABASE_PROJECT_URL="https://PROJECT.supabase.co" \
+   SUPABASE_API_KEY="SERVICE_ROLE_KEY" \
+   yarn --cwd web tsx scripts/backfill-usernames.ts
+   ```
+
+6. Verify `select count(*) from public.users where username is null;` returns `0`.
+7. Run `users_username_not_null.sql`.
+8. Run `pnl_leaderboard.sql` to install the username-aware leaderboard RPCs.
+9. Deploy the new build, restore the app, and smoke-test sign-in, profiles, comments, and leaderboard search.
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,
