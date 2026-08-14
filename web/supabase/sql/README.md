@@ -62,6 +62,22 @@ drop function if exists public.pnl_leaderboard_all_chains_rank(text, text, text)
    applied an earlier copy, the re-run picks up the `market_id` column the MTM sweep's scan cursor
    needs (`alter table ... add column if not exists`).
 
+## Apply for usernames
+
+1. Put the app into maintenance mode so sign-ins and user creation stop.
+2. Run `users_username.sql` to add the nullable username column.
+3. From the repository root, backfill existing users with the production Supabase service-role key:
+
+   ```bash
+   SUPABASE_PROJECT_URL="https://PROJECT.supabase.co" \
+   SUPABASE_API_KEY="SERVICE_ROLE_KEY" \
+   yarn --cwd web tsx scripts/backfill-usernames.ts
+   ```
+
+4. Verify `select count(*) from public.users where username is null;` returns `0`.
+5. Run `users_username_not_null.sql`.
+6. Deploy the new build, restore the app, and smoke-test sign-in, profiles, comments, and leaderboard search.
+
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,
 `earliest_user_transfer_timestamp`), nor the latest-hour price RPCs
