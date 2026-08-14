@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import type { PortfolioPosition, SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
+import { unescapeJson } from "@seer-pm/sdk/market";
 import { Order_By } from "@seer-pm/sdk/subgraph/seer";
 import { type Address, formatUnits } from "viem";
 import { seerEnvioSdk } from "./envioClient";
@@ -312,12 +313,19 @@ export type ConditionalEventRow = {
 export async function fetchConditionalEventsForAccount(
   account: Address,
   chainId: SupportedChain,
-  opts: { startTime: number; endTime: number; marketAddress?: Address },
+  opts?: { startTime?: number; endTime?: number; marketAddress?: Address },
 ): Promise<ConditionalEventRow[]> {
   const sdk = seerEnvioSdk(chainId);
   const accountLc = account.toLowerCase();
   const out: ConditionalEventRow[] = [];
   let offset = 0;
+  const timestampFilter =
+    opts?.startTime != null || opts?.endTime != null
+      ? {
+          ...(opts?.startTime != null ? { _gt: String(opts.startTime) } : {}),
+          ...(opts?.endTime != null ? { _lte: String(opts.endTime) } : {}),
+        }
+      : undefined;
   for (;;) {
     const { ConditionalEvent: rows } = await sdk.GetConditionalEvents({
       limit: PAGE,
@@ -326,15 +334,15 @@ export async function fetchConditionalEventsForAccount(
       where: {
         chainId: { _eq: String(chainId) },
         accountId: { _eq: accountLc },
-        timestamp: { _gt: String(opts.startTime), _lte: String(opts.endTime) },
-        ...(opts.marketAddress ? { market: { address: { _eq: opts.marketAddress.toLowerCase() } } } : {}),
+        ...(timestampFilter ? { timestamp: timestampFilter } : {}),
+        ...(opts?.marketAddress ? { market: { address: { _eq: opts.marketAddress.toLowerCase() } } } : {}),
       },
     });
     for (const row of rows) {
       if (!row.market) continue;
       out.push({
         marketId: row.market.address,
-        marketName: row.market.marketName,
+        marketName: unescapeJson(row.market.marketName),
         eventType: row.eventType as "split" | "merge" | "redeem",
         amount: BigInt(row.amount),
         collateral: row.collateral as Address,
@@ -347,6 +355,23 @@ export async function fetchConditionalEventsForAccount(
     offset += PAGE;
   }
   return out;
+}
+
+export function conditionalEventsToTransactions(events: ConditionalEventRow[]): TransactionData[] {
+  return events.map((ev) => {
+    const base = {
+      marketName: ev.marketName,
+      marketId: ev.marketId,
+      type: ev.eventType,
+      blockNumber: ev.blockNumber,
+      collateral: ev.collateral,
+      transactionHash: ev.transactionHash,
+      timestamp: ev.timestamp,
+    };
+    return ev.eventType === "redeem"
+      ? { ...base, payout: ev.amount.toString() }
+      : { ...base, amount: ev.amount.toString() };
+  });
 }
 
 /**

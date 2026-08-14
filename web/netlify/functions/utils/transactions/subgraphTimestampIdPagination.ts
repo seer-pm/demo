@@ -13,9 +13,22 @@ export type TimestampIdPageItem = {
   timestamp: string;
 };
 
-/** Build `and` clauses for address match + time window + optional (timestamp, id) cursor. */
+const DEFAULT_PAGE_SIZE = 1000;
+const DEFAULT_MAX_PAGES = 20;
+const TOKEN_IN_CHUNK = 100;
+
+function chunkIds(ids: string[], size: number): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) {
+    out.push(ids.slice(i, i + size));
+  }
+  return out;
+}
+
+/** Build `and` clauses for address match + optional Seer tokens + time window + cursor. */
 export function buildTimestampIdPageWhere(args: {
   accountFilters: Record<string, unknown>[];
+  tokenIds?: string[];
   startTime?: number;
   /** Inclusive upper bound for the first page (typically endTime). */
   endInclusive?: string;
@@ -27,6 +40,10 @@ export function buildTimestampIdPageWhere(args: {
     and.push(args.accountFilters[0]);
   } else if (args.accountFilters.length > 1) {
     and.push({ or: args.accountFilters });
+  }
+
+  if (args.tokenIds && args.tokenIds.length > 0) {
+    and.push({ or: [{ token0_in: args.tokenIds }, { token1_in: args.tokenIds }] });
   }
 
   if (args.startTime != null) {
@@ -47,51 +64,104 @@ export function buildTimestampIdPageWhere(args: {
   return { and };
 }
 
-/**
- * Paginate with timestamp+id cursor until exhausted. Dedupes by `id`.
- */
-export async function paginateByTimestampId<T extends TimestampIdPageItem>(args: {
-  pageSize?: number;
+async function paginateOneStream<T extends TimestampIdPageItem>(args: {
+  pageSize: number;
+  maxPages: number;
   fetchPage: (where: Record<string, unknown>, first: number) => Promise<T[]>;
   accountFilters: Record<string, unknown>[];
+  tokenIds?: string[];
   startTime?: number;
   endTime?: number;
-}): Promise<T[]> {
-  const pageSize = args.pageSize ?? 1000;
-  const out: T[] = [];
-  const seen = new Set<string>();
+  seen: Set<string>;
+  out: T[];
+}): Promise<number> {
   let cursor: TimestampIdCursor | undefined;
   const endInclusive = args.endTime?.toString();
+  let pages = 0;
 
   for (;;) {
+    if (pages >= args.maxPages) {
+      console.warn("dex subgraph pagination hit page cap", {
+        pages,
+        rows: args.out.length,
+        tokenCount: args.tokenIds?.length,
+      });
+      break;
+    }
+
     const where = buildTimestampIdPageWhere({
       accountFilters: args.accountFilters,
+      tokenIds: args.tokenIds,
       startTime: args.startTime,
       endInclusive: cursor ? undefined : endInclusive,
       cursor,
     });
 
-    const page = await args.fetchPage(where, pageSize);
+    const page = await args.fetchPage(where, args.pageSize);
+    pages += 1;
     if (page.length === 0) break;
 
     let added = 0;
     for (const item of page) {
-      if (seen.has(item.id)) continue;
-      seen.add(item.id);
-      out.push(item);
+      if (args.seen.has(item.id)) continue;
+      args.seen.add(item.id);
+      args.out.push(item);
       added += 1;
     }
 
     const last = page[page.length - 1];
     const nextCursor: TimestampIdCursor = { timestamp: last.timestamp, id: last.id };
     if (
-      page.length < pageSize ||
+      page.length < args.pageSize ||
       (cursor && cursor.timestamp === nextCursor.timestamp && cursor.id === nextCursor.id) ||
       added === 0
     ) {
       break;
     }
     cursor = nextCursor;
+  }
+
+  return pages;
+}
+
+/**
+ * Paginate with timestamp+id cursor until exhausted. Dedupes by `id`.
+ * When `tokenIds` is set, filters `token0_in`/`token1_in` (chunked) so we don't scan the wallet's full DEX history.
+ */
+export async function paginateByTimestampId<T extends TimestampIdPageItem>(args: {
+  pageSize?: number;
+  maxPages?: number;
+  fetchPage: (where: Record<string, unknown>, first: number) => Promise<T[]>;
+  accountFilters: Record<string, unknown>[];
+  tokenIds?: string[];
+  startTime?: number;
+  endTime?: number;
+}): Promise<T[]> {
+  const pageSize = args.pageSize ?? DEFAULT_PAGE_SIZE;
+  const maxPages = args.maxPages ?? DEFAULT_MAX_PAGES;
+  const out: T[] = [];
+  const seen = new Set<string>();
+
+  const tokenChunks =
+    args.tokenIds && args.tokenIds.length > 0
+      ? chunkIds([...new Set(args.tokenIds.map((t) => t.toLowerCase()))], TOKEN_IN_CHUNK)
+      : [undefined];
+
+  let pagesUsed = 0;
+  for (const tokenIds of tokenChunks) {
+    const remaining = maxPages - pagesUsed;
+    if (remaining <= 0) break;
+    pagesUsed += await paginateOneStream({
+      pageSize,
+      maxPages: remaining,
+      fetchPage: args.fetchPage,
+      accountFilters: args.accountFilters,
+      tokenIds,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      seen,
+      out,
+    });
   }
 
   return out;

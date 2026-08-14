@@ -1,10 +1,9 @@
-import { type MarketDataMapping, type SupportedChain, type TransactionData, getMappings } from "@seer-pm/sdk";
-import type { Market } from "@seer-pm/sdk/market-types";
+import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { type Address, isAddress } from "viem";
-import { getBlock } from "viem/actions";
 import { fetchLastActivityTimestamp, supportedChainIds } from "./utils/accountLastActivity";
+import { loadAccountMarkets } from "./utils/accountMarkets";
 import { getPublicClientByChainId } from "./utils/config";
-import { searchAllMarkets } from "./utils/markets";
+import { getMappingsCached } from "./utils/mappingsCache";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
 import {
   type ActivityCachedPayload,
@@ -12,12 +11,11 @@ import {
   readJsonBlob,
   writeJsonBlob,
 } from "./utils/portfolioBlobCache";
+import { conditionalEventsToTransactions, fetchConditionalEventsForAccount } from "./utils/seerIndexerPortfolio";
 import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
 import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
-import { getSplitMergeRedeemEvents } from "./utils/transactions/getSplitMergeRedeemEvents";
 import { getSwapEvents } from "./utils/transactions/getSwapEvents";
 
-const MARKETS_MAPPINGS_TTL_MS = 15 * 60 * 1000;
 const PORTFOLIO_TRANSACTIONS_STORE = "portfolio-transactions";
 
 type TransactionsCachePayload = ActivityCachedPayload<{ transactions: TransactionData[] }>;
@@ -29,15 +27,6 @@ const EVENT_TYPE_GROUPS: Record<EventTypeFilter, ReadonlySet<TransactionData["ty
   lp: new Set(["lp", "lp-burn"]),
   ctf: new Set(["split", "merge", "redeem"]),
 };
-
-type MarketsMappingsCacheEntry = {
-  markets: Market[];
-  mappings: MarketDataMapping | null;
-  expiresAt: number;
-};
-
-const marketsMappingsByChain = new Map<number, MarketsMappingsCacheEntry>();
-const marketsMappingsInflight = new Map<number, Promise<MarketsMappingsCacheEntry>>();
 
 function jsonError(error: string, status: number) {
   return new Response(JSON.stringify({ error }), {
@@ -53,90 +42,41 @@ function jsonOk(body: unknown) {
   });
 }
 
-async function getMarketsAndMappings(chainId: SupportedChain): Promise<{
-  markets: Market[];
-  mappings: MarketDataMapping | null;
-}> {
-  const cached = marketsMappingsByChain.get(chainId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return { markets: cached.markets, mappings: cached.mappings };
-  }
-
-  let inflight = marketsMappingsInflight.get(chainId);
-  if (!inflight) {
-    inflight = (async () => {
-      const { markets } = await searchAllMarkets({ chainIds: [chainId] });
-      const mappings =
-        markets.length === 0 ? null : await getMappings(getPublicClientByChainId(chainId), markets, chainId);
-      const entry: MarketsMappingsCacheEntry = {
-        markets,
-        mappings,
-        expiresAt: Date.now() + MARKETS_MAPPINGS_TTL_MS,
-      };
-      if (markets.length > 0) {
-        marketsMappingsByChain.set(chainId, entry);
-      }
-      return entry;
-    })().finally(() => {
-      marketsMappingsInflight.delete(chainId);
-    });
-    marketsMappingsInflight.set(chainId, inflight);
-  }
-
-  const entry = await inflight;
-  return { markets: entry.markets, mappings: entry.mappings };
-}
-
-async function getBlockTimestamp(chainId: SupportedChain, initialBlockNumber: number) {
-  let blockNumber = initialBlockNumber;
-  const maxAttempts = 10;
-  let attempts = 0;
-  const client = getPublicClientByChainId(chainId);
-
-  while (attempts < maxAttempts) {
-    try {
-      const block = await getBlock(client, { blockNumber: BigInt(blockNumber) });
-      if (block.timestamp) {
-        return Number(block.timestamp);
-      }
-      blockNumber++;
-      attempts++;
-    } catch {
-      blockNumber++;
-      attempts++;
-    }
-  }
-}
-
-async function getEvents(mappings: MarketDataMapping, account: Address, chainId: SupportedChain) {
+async function getEvents(mappings: MarketDataMapping | null, account: Address, chainId: SupportedChain) {
   const events = await Promise.all([
-    getSwapEvents(mappings, account, chainId),
-    getLiquidityEvents(mappings, account, chainId),
-    getLiquidityWithdrawEvents(mappings, account, chainId),
-    getSplitMergeRedeemEvents(account, chainId),
+    mappings ? getSwapEvents(mappings, account, chainId) : Promise.resolve([]),
+    mappings ? getLiquidityEvents(mappings, account, chainId) : Promise.resolve([]),
+    mappings ? getLiquidityWithdrawEvents(mappings, account, chainId) : Promise.resolve([]),
+    fetchConditionalEventsForAccount(account, chainId).then(conditionalEventsToTransactions),
   ]);
   return events.flat();
 }
 
 async function getTransactions(account: Address, chainId: SupportedChain): Promise<TransactionData[]> {
-  const { markets, mappings } = await getMarketsAndMappings(chainId);
+  const started = Date.now();
+  const markets = await loadAccountMarkets(account, chainId);
+  const mappings =
+    markets.length === 0 ? null : await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
 
-  if (markets.length === 0 || !mappings) {
-    return [];
-  }
-
-  const { tokenIdToTokenSymbolMapping } = mappings;
   const data = await getEvents(mappings, account, chainId);
-  const timestamps = await Promise.all(data.map((x) => x.timestamp ?? getBlockTimestamp(chainId, x.blockNumber)));
 
-  return data.map((x, index) => {
+  console.log("get-transactions: chain", {
+    chainId,
+    ms: Date.now() - started,
+    markets: markets.length,
+    rows: data.length,
+  });
+
+  const tokenIdToTokenSymbolMapping = mappings?.tokenIdToTokenSymbolMapping;
+  return data.map((x) => {
     function parseSymbol(tokenAddress?: string) {
-      return tokenAddress ? tokenIdToTokenSymbolMapping[tokenAddress.toLocaleLowerCase()] : undefined;
+      return tokenAddress && tokenIdToTokenSymbolMapping
+        ? tokenIdToTokenSymbolMapping[tokenAddress.toLowerCase()]
+        : undefined;
     }
     return {
       ...x,
       chainId,
-      timestamp: timestamps[index],
       collateralSymbol: parseSymbol(x.collateral),
       token0Symbol: x.token0Symbol ?? parseSymbol(x.token0),
       token1Symbol: x.token1Symbol ?? parseSymbol(x.token1),
