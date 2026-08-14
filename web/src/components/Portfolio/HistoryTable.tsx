@@ -2,6 +2,7 @@ import React from "react";
 
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { formatRawTxAmount, tokenDecimals } from "@/lib/history-tx-amount";
 import { ExternalLinkIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
@@ -34,27 +35,31 @@ function txExplorerHref(tx: TransactionData, filter: PortfolioChainId): string |
   return explorerUrl ? `${explorerUrl}/tx/${tx.transactionHash}` : undefined;
 }
 
-function TxDescriptionBody({ tx }: { tx: TransactionData }) {
+function TxDescriptionBody({ tx, chainId }: { tx: TransactionData; chainId: PortfolioChainId }) {
+  const chain = txChainId(tx, chainId);
   switch (tx.type) {
     case "split": {
+      const amount = formatRawTxAmount(tx.amount, tokenDecimals(chain, tx.collateral));
       return tx.collateralSymbol ? (
         <span>
           Split from{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amount ?? "0n"), 18)} {tx.collateralSymbol}
+            {amount} {tx.collateralSymbol}
           </span>{" "}
           to outcome tokens
         </span>
       ) : (
         <span>
-          Split to <span className="font-semibold">{displayBalance(BigInt(tx.amount ?? "0n"), 18)}</span> outcome tokens
+          Split to <span className="font-semibold">{amount}</span> outcome tokens
         </span>
       );
     }
     case "merge": {
       return (
         <span>
-          Merge <span className="font-semibold">{displayBalance(BigInt(tx.amount ?? "0n"), 18)}</span> outcome tokens
+          Merge{" "}
+          <span className="font-semibold">{formatRawTxAmount(tx.amount, tokenDecimals(chain, tx.collateral))}</span>{" "}
+          outcome tokens
           {tx.collateralSymbol ? ` to ${tx.collateralSymbol}` : ""}
         </span>
       );
@@ -62,7 +67,8 @@ function TxDescriptionBody({ tx }: { tx: TransactionData }) {
     case "redeem": {
       return (
         <span>
-          Redeem <span className="font-semibold">{displayBalance(BigInt(tx.payout ?? "0n"), 18)}</span>{" "}
+          Redeem{" "}
+          <span className="font-semibold">{formatRawTxAmount(tx.payout, tokenDecimals(chain, tx.collateral))}</span>{" "}
           {tx.collateralSymbol ?? ""}
         </span>
       );
@@ -72,11 +78,11 @@ function TxDescriptionBody({ tx }: { tx: TransactionData }) {
         <span>
           Swap{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amountIn ?? "0n"), 18)} {tx.tokenInSymbol}
+            {formatRawTxAmount(tx.amountIn, tokenDecimals(chain, tx.tokenIn))} {tx.tokenInSymbol}
           </span>{" "}
           for{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amountOut ?? "0n"), 18)} {tx.tokenOutSymbol}
+            {formatRawTxAmount(tx.amountOut, tokenDecimals(chain, tx.tokenOut))} {tx.tokenOutSymbol}
           </span>
         </span>
       );
@@ -86,11 +92,11 @@ function TxDescriptionBody({ tx }: { tx: TransactionData }) {
         <span>
           Add{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amount0 ?? "0n"), 18)} {tx.token0Symbol}
+            {formatRawTxAmount(tx.amount0, tokenDecimals(chain, tx.token0))} {tx.token0Symbol}
           </span>{" "}
           and{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amount1 ?? "0n"), 18)} {tx.token1Symbol}
+            {formatRawTxAmount(tx.amount1, tokenDecimals(chain, tx.token1))} {tx.token1Symbol}
           </span>{" "}
           to the pool
         </span>
@@ -101,11 +107,11 @@ function TxDescriptionBody({ tx }: { tx: TransactionData }) {
         <span>
           Remove{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amount0 ?? "0n"), 18)} {tx.token0Symbol}
+            {formatRawTxAmount(tx.amount0, tokenDecimals(chain, tx.token0))} {tx.token0Symbol}
           </span>{" "}
           and{" "}
           <span className="font-semibold">
-            {displayBalance(BigInt(tx.amount1 ?? "0n"), 18)} {tx.token1Symbol}
+            {formatRawTxAmount(tx.amount1, tokenDecimals(chain, tx.token1))} {tx.token1Symbol}
           </span>{" "}
           from the pool
         </span>
@@ -138,7 +144,7 @@ function TxDescription({ tx, chainId }: { tx: TransactionData; chainId: Portfoli
   const href = txExplorerHref(tx, chainId);
   const body = (
     <>
-      <TxDescriptionBody tx={tx} />
+      <TxDescriptionBody tx={tx} chainId={chainId} />
     </>
   );
 
