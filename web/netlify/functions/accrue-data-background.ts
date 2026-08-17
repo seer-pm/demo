@@ -6,10 +6,10 @@ import type { Market } from "@seer-pm/sdk/market-types";
 import { fetchMarkets } from "@seer-pm/sdk/markets-fetch";
 import type { Address } from "viem";
 import { getAllTransfers, getHoldersAtTimestamp } from "./utils/airdropCalculation/getAllTransfers";
-import { fetchPools } from "./utils/fetchPools";
+import { fetchPools, midsFromSubgraphPools } from "./utils/fetchPools";
 import { getMainCollateralPriceByChainMapping } from "./utils/getMarketsLiquidity";
 import { getMarketsMappings } from "./utils/markets";
-import { getTokenPricesMapping } from "./utils/portfolio";
+import { mapOutcomePrices } from "./utils/outcomePrices";
 
 async function getTopPredictors(markets: Market[], chainId: SupportedChain) {
   const transfers = await getAllTransfers(chainId);
@@ -107,7 +107,7 @@ async function getMarketsVolume(markets: Market[], chainId: SupportedChain, main
     tokens.map((x) => getToken0Token1(x.tokenId, x.collateralToken)),
   );
 
-  const tokenPriceMapping = getTokenPricesMapping(tokens, pools);
+  const tokenPriceMapping = mapOutcomePrices(tokens, midsFromSubgraphPools(chainId, pools));
   const defaultCollateralAddress = getDefaultCollateralProfile(chainId).primary.address;
   const marketsVolume = markets.map((market) => {
     let totalVolume = 0;

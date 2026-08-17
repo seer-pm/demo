@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
 import { buildCurrentPortfolioPositions } from "./utils/buildPortfolioPositions";
 import { getDexScreenerPriceUSD } from "./utils/common";
-import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolPricesFromDb";
+import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolHourPrices";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
@@ -21,8 +21,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * - We intentionally **do not** include “idle” primary collateral in wallet in these totals.
  *
  * Prices
- * - Current and historical outcome prices come from DEX subgraphs via `dexPoolPricesFromDb` and `portfolioValuation.ts`
- *   (`redeemedPrice` rules match the UI).
+ * - Current outcome prices are read from the pools at request time (`onchainOutcomePrices`); the historical
+ *   side uses hour candles (`dexPoolHourPrices`) and `portfolioValuation.ts` (`redeemedPrice` rules match the UI).
  * - Totals are converted to **USD** with `getDexScreenerPriceUSD` on the profile primary (same spot source as the
  *   PnL leaderboard). `chainId=all` sums USD across `SUPPORTED_CHAINS`.
  *
@@ -61,7 +61,7 @@ async function portfolioValueUsdForChain(args: {
     return null;
   }
 
-  const positions = await buildCurrentPortfolioPositions(supabase, account, chainId, collateralResolved.profileName);
+  const positions = await buildCurrentPortfolioPositions(account, chainId, collateralResolved.profileName);
 
   const historyPrices = await getHistoryTokensPricesForPortfolio(supabase, positions, chainId, historyTimestamp);
 
