@@ -1,6 +1,5 @@
 import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE } from "@seer-pm/sdk/collateral";
-import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
 import { fetchLastActivityTimestamp, supportedChainIds } from "./utils/accountLastActivity";
 import { buildCurrentPortfolioPositions, repricePortfolioPositions } from "./utils/buildPortfolioPositions";
@@ -12,9 +11,6 @@ import {
   writeJsonBlob,
 } from "./utils/portfolioBlobCache";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
-import type { Database } from "./utils/supabase";
-
-const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 const PORTFOLIO_POSITIONS_STORE = "portfolio-positions";
 
@@ -46,7 +42,7 @@ async function computeAllChainPositions(
   chains: ResolvedChain[],
 ): Promise<{ positions: PortfolioPosition[]; failures: number }> {
   const results = await Promise.allSettled(
-    chains.map(({ chainId, profileName }) => buildCurrentPortfolioPositions(supabase, account, chainId, profileName)),
+    chains.map(({ chainId, profileName }) => buildCurrentPortfolioPositions(account, chainId, profileName)),
   );
 
   const positions: PortfolioPosition[] = [];
@@ -105,10 +101,7 @@ export default async (req: Request) => {
 
     let positions: PortfolioPosition[];
     if (isActivityCacheFresh(cached, lastActivityTs) && Array.isArray(cached.positions)) {
-      positions = await repricePortfolioPositions(
-        supabase,
-        filterPositionsByChain(cached.positions, chainParsed.chainId),
-      );
+      positions = await repricePortfolioPositions(filterPositionsByChain(cached.positions, chainParsed.chainId));
     } else {
       const computed = await computeAllChainPositions(account, resolvedChains);
       if (computed.failures === 0) {

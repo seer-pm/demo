@@ -11,6 +11,7 @@ import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph"
 import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
 import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
 import pLimit from "p-limit";
+import { type PairMids, setPairMid } from "./outcomePrices.ts";
 
 interface SubgraphPool {
   id: string;
@@ -182,6 +183,28 @@ export function getSubgraphPoolTokenPrices(
     return { token0Price: String(p0), token1Price: String(p1) };
   }
   return { token0Price: pool.token0Price, token1Price: pool.token1Price };
+}
+
+/** Pair mids from indexed pools; the deepest pool wins when a pair has several fee tiers. */
+export function midsFromSubgraphPools(chainId: SupportedChain, pools: SubgraphPool[]): PairMids {
+  const deepestByPair = new Map<string, SubgraphPool>();
+  for (const pool of pools) {
+    const key = getTokensPairKey(pool.token0.id, pool.token1.id);
+    const current = deepestByPair.get(key);
+    if (!current || BigInt(pool.liquidity ?? 0) > BigInt(current.liquidity ?? 0)) {
+      deepestByPair.set(key, pool);
+    }
+  }
+
+  const mids: PairMids = new Map();
+  for (const pool of deepestByPair.values()) {
+    const { token0Price, token1Price } = getSubgraphPoolTokenPrices(chainId, pool);
+    setPairMid(mids, pool.token0.id, pool.token1.id, {
+      token0PerToken1: Number(token0Price),
+      token1PerToken0: Number(token1Price),
+    });
+  }
+  return mids;
 }
 
 export async function getAllMarketPools(markets: Market[]) {

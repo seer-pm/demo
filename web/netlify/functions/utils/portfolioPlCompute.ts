@@ -3,7 +3,7 @@ import type { Market } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits } from "viem";
 import { buildPortfolioPositionsFromBalances } from "./buildPortfolioPositions";
-import { getHistoryTokensPricesForPortfolio } from "./dexPoolPricesFromDb";
+import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
 import { computeLpPrimaryCollateralNetOutForPeriods } from "./lpPrimaryCollateralFlow";
 import { searchAllMarkets } from "./markets";
 import {
@@ -75,7 +75,6 @@ function searchGenericMarkets(
 }
 
 async function getMarketsAndPositions(
-  supabase: SupabaseClient<Database>,
   chainId: SupportedChain,
   marketIds: Address[] | undefined,
   collateralProfile: string,
@@ -92,7 +91,7 @@ async function getMarketsAndPositions(
     const relevantTokens = [
       ...new Set(markets.flatMap((m) => (m.wrappedTokens ?? []).map((w) => String(w).toLowerCase()))),
     ] as Address[];
-    const positions = await buildPortfolioPositionsFromBalances(supabase, chainId, markets, relevantTokens, holdings);
+    const positions = await buildPortfolioPositionsFromBalances(chainId, markets, relevantTokens, holdings);
     return { markets, positions };
   }
 
@@ -122,7 +121,7 @@ async function getMarketsAndPositions(
     }
   }
 
-  const positions = await buildPortfolioPositionsFromBalances(supabase, chainId, markets, distinctTokens, holdings);
+  const positions = await buildPortfolioPositionsFromBalances(chainId, markets, distinctTokens, holdings);
   return { markets, positions };
 }
 
@@ -214,8 +213,8 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  * - Balances / activity / CTF: HyperIndex (`TokenBalance`, `TokenBalanceDaily`, account
  *   activity, `ConditionalEvent`, `router_collateral` transfers).
  * - Markets + historical DEX prices: Supabase (`searchAllMarkets` with `type: Generic`,
- *   `dex_pool_hour_prices` via `dexPoolPricesFromDb`). Current outcome prices come from
- *   position building.
+ *   `dex_pool_hour_prices` via `dexPoolHourPrices`). Current outcome prices come from
+ *   position building, which reads the pools on-chain.
  * - Swap cashflow: DEX subgraphs + CoW fills via `getSwapEvents` /
  *   `computeNetPrimaryCollateralSwapFlowForPeriods` (same semantics as `/get-transactions`
  *   swap rows).
@@ -293,7 +292,6 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   const holdings = await fetchTokenBalances(account, chainId);
   const historicalMarketIds = isMarketScoped ? [] : await fetchMarketIdsFromAccountTransfers(account, chainId, endTime);
   const marketsAndPositions = await getMarketsAndPositions(
-    supabase,
     chainId,
     scopedMarketIds,
     collateralProfile,
