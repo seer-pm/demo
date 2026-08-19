@@ -2,6 +2,10 @@ import type { ComponentType, ReactNode } from "react";
 
 export type DiscussionUser = {
   address: string;
+  /** Seer username resolved by the host API. */
+  username: string;
+  /** Host-owned route to this user's profile. */
+  profileHref?: string | null;
 };
 
 export type DiscussionButtonProps = {

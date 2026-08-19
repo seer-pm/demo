@@ -399,11 +399,15 @@ Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`)
 | `chainId` | No | Chain id, or `all` to sum USD across chains (default Gnosis `100`). |
 | `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `all`). |
 | `limit` / `offset` | No | Pagination (limit max 200). |
-| `search` | No | Substring filter on address. |
+| `search` | No | Case-insensitive substring filter on username or address. A leading `@` is optional. |
+| `rankFor` | No | `0x`-prefixed wallet address. Returns `{ app, chainId, period, address, rank, total }` instead of leaderboard rows. |
 
 All rankings use **USD** (`pnl_usd` from materialization: native collateral PnL × spot collateral USD). Per-chain filters still return USD so ranks stay comparable; `chainId=all` sums `pnl_usd` across chains. App filter `all` is independent of `SEER_APPS` market lists.
+Each row includes an optional `username` when the wallet has a Seer profile.
 
----## markets-charts
+---
+
+## markets-charts
 
 Returns chart data (hourly price/volume) for markets. If IDs are provided, only those markets; if omitted, all cached chart data.
 

@@ -1,10 +1,13 @@
+import { Alert } from "@/components/Alert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import Tooltip from "@/components/Tooltip";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
+import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSignIn } from "@/hooks/useSignIn";
+import { paths } from "@/lib/paths";
 import { displayBalance, getAppUrl, isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
 import {
   Discussion,
@@ -66,37 +69,47 @@ function PositionBadge({ positions }: { positions: OutcomePosition[] }) {
   if (positions.length === 1) {
     const [position] = positions;
     return (
-      <span className={pillClassName} title={formatPositionLabel(position)}>
-        {position.outcome} {displayBalance(position.balance, 18, true)}
-      </span>
+      <>
+        <span className="sd-position-separator shrink-0 text-sd-color-secondary" aria-hidden="true">
+          ·
+        </span>
+        <span className={pillClassName} title={formatPositionLabel(position)}>
+          {position.outcome} {displayBalance(position.balance, 18, true)}
+        </span>
+      </>
     );
   }
 
   return (
-    <Tooltip
-      trigger={
-        <button
-          type="button"
-          className={`${pillClassName} cursor-help`}
-          aria-label={`Multiple positions: ${positions.map(formatPositionLabel).join(", ")}`}
-        >
-          Multiple Positions
-        </button>
-      }
-      content={
-        <div className="min-w-40">
-          <p className="m-0 mb-1.5 text-xs font-semibold">Positions held</p>
-          <ul className="m-0 list-none space-y-1 p-0">
-            {positions.map(({ tokenId, outcome, balance }) => (
-              <li key={tokenId} className="flex items-center justify-between gap-4 font-normal">
-                <span>{outcome}</span>
-                <span className="tabular-nums">{displayBalance(balance, 18, true)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      }
-    />
+    <>
+      <span className="sd-position-separator shrink-0 text-sd-color-secondary" aria-hidden="true">
+        ·
+      </span>
+      <Tooltip
+        trigger={
+          <button
+            type="button"
+            className={`${pillClassName} cursor-help`}
+            aria-label={`Multiple positions: ${positions.map(formatPositionLabel).join(", ")}`}
+          >
+            Multiple Positions
+          </button>
+        }
+        content={
+          <div className="min-w-40">
+            <p className="m-0 mb-1.5 text-xs font-semibold">Positions held</p>
+            <ul className="m-0 list-none space-y-1 p-0">
+              {positions.map(({ tokenId, outcome, balance }) => (
+                <li key={tokenId} className="flex items-center justify-between gap-4 font-normal">
+                  <span>{outcome}</span>
+                  <span className="tabular-nums">{displayBalance(balance, 18, true)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        }
+      />
+    </>
   );
 }
 
@@ -107,12 +120,20 @@ function Comments({ market }: { market: Market }) {
   const signIn = useSignIn();
   const { open } = useWeb3Modal();
   const { data: marketHolders } = useMarketHolders(market);
+  const {
+    data: currentUser,
+    isPending: isCurrentUserPending,
+    isFetching: isCurrentUserFetching,
+    error: currentUserError,
+    refetch: refetchCurrentUser,
+  } = usePublicUser(isSignedIn && address ? { address } : null);
 
   const client = useMemo(
     () =>
       createDiscussionsClient({
         baseUrl: getAppUrl(),
         marketId: market.id,
+        getProfileHref: ({ username }) => paths.portfolioUsername(username),
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;
@@ -121,7 +142,10 @@ function Comments({ market }: { market: Market }) {
     [market.id],
   );
 
-  const user = isSignedIn && address ? userFromAddress(address) : null;
+  const user =
+    isSignedIn && address && !isCurrentUserPending && currentUser
+      ? userFromAddress(address, currentUser.username, paths.portfolioUsername(currentUser.username))
+      : null;
 
   const positionsByUserAddress = useMemo(() => {
     const positionsByAddress = new Map<string, OutcomePosition[]>();
@@ -163,6 +187,25 @@ function Comments({ market }: { market: Market }) {
     // toastify already reports the failure; swallow so onRequestConnect never rejects
     await signIn.mutateAsync({ address, chainId }).catch(() => undefined);
   };
+
+  if (isSignedIn && address && isCurrentUserPending) {
+    return <div className="shimmer-container h-48 w-full" />;
+  }
+
+  if (isSignedIn && address && (currentUserError || !currentUser)) {
+    return (
+      <Alert type="error" title="Unable to load your discussion profile">
+        <div className="mt-2">
+          <Button
+            text="Try again"
+            size="small"
+            isLoading={isCurrentUserFetching}
+            onClick={() => void refetchCurrentUser()}
+          />
+        </div>
+      </Alert>
+    );
+  }
 
   return (
     <ErrorBoundary fallback={<p>Something went wrong.</p>}>

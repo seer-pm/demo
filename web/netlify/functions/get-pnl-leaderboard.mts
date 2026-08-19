@@ -12,6 +12,7 @@ type Period = "1d" | "1w" | "1m" | "all";
 export type PnlLeaderboardRow = {
   rank: number;
   address: string;
+  username?: string;
   /** Always USD (collateral converted at materialization time). */
   pnl: number;
   /** Gross swap volume in USD. */
@@ -28,16 +29,9 @@ export type PnlLeaderboardRow = {
   updatedAt: string | null;
 };
 
-type AddressSearch = { kind: "none" } | { kind: "fragment"; hex: string };
-
-/** Lowercase hex address fragment for ilike search. */
-function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invalid" } {
-  if (raw == null) return { kind: "none" };
-  const trimmed = raw.trim().toLowerCase();
-  if (!trimmed) return { kind: "none" };
-  const hex = trimmed.startsWith("0x") ? trimmed.slice(2) : trimmed;
-  if (!/^[0-9a-f]+$/.test(hex)) return { kind: "invalid" };
-  return { kind: "fragment", hex };
+/** Normalizes a username or address search while allowing an optional @ prefix. */
+function normalizeSearch(raw: string | null): string {
+  return (raw ?? "").trim().toLowerCase().replace(/^@/, "");
 }
 
 function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>) {
@@ -61,6 +55,25 @@ function latestUpdatedAt(rows: { updatedAt: string | null }[]): string | null {
   );
 }
 
+/** Adds Seer usernames to leaderboard rows without requiring a profile for every ranked wallet. */
+async function addUsernames(rows: PnlLeaderboardRow[]): Promise<PnlLeaderboardRow[]> {
+  if (rows.length === 0) return rows;
+
+  const addresses = [...new Set(rows.map((row) => row.address.toLowerCase()))];
+  const addressFilter = addresses.map((address) => `id.ilike.${address}`).join(",");
+  const { data, error } = await supabase.from("users").select("id, username").or(addressFilter);
+  if (error) {
+    console.error("Unable to load leaderboard usernames:", error);
+    return rows;
+  }
+
+  const usernames = new Map((data ?? []).map((user) => [user.id.toLowerCase(), user.username]));
+  return rows.map((row) => {
+    const username = usernames.get(row.address.toLowerCase());
+    return username ? { ...row, username } : row;
+  });
+}
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
@@ -73,11 +86,7 @@ export default async (req: Request) => {
     const chainIdParam = (url.searchParams.get("chainId") ?? String(DEFAULT_CHAIN)).toLowerCase();
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50) || 50, 1), 200);
     const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
-    const searchParsed = parseAddressSearch(url.searchParams.get("search"));
-    if (searchParsed.kind === "invalid") {
-      return jsonResponse({ error: "search must be a hex address fragment" }, 400);
-    }
-    const search = searchParsed.kind === "fragment" ? searchParsed.hex : "";
+    const search = normalizeSearch(url.searchParams.get("search"));
 
     if (!isSeerAppFilterId(appParam)) {
       return jsonResponse(
@@ -250,32 +259,44 @@ async function serveSingleChainUsd(args: {
 }) {
   const { app, period, chainId, limit, offset, search } = args;
 
-  let query = supabase
-    .from("pnl_leaderboard")
-    .select("address, pnl_usd, volume_usd, roi, market_count, updated_at, chain_id", { count: "exact" })
-    .eq("app_id", app)
-    .eq("chain_id", chainId)
-    .eq("period", period)
-    .order("pnl_usd", { ascending: false })
-    .order("address", { ascending: true });
-
-  if (search) {
-    query = query.ilike("address", `%${search}%`);
-  }
-
-  const { data, error, count } = await query.range(offset, offset + limit - 1);
+  const { data, error } = await supabase.rpc("pnl_leaderboard_single_chain", {
+    p_app_id: app,
+    p_chain_id: chainId,
+    p_period: period,
+    p_search: search || null,
+    p_limit: limit,
+    p_offset: offset,
+  });
   if (error) {
     throw new Error(error.message);
   }
 
-  const rows: PnlLeaderboardRow[] = (data ?? []).map((row, i) => ({
+  const page = data ?? [];
+  let total = Number(page[0]?.total_count) || 0;
+  if (page.length === 0 && offset > 0) {
+    const { data: head, error: headError } = await supabase.rpc("pnl_leaderboard_single_chain", {
+      p_app_id: app,
+      p_chain_id: chainId,
+      p_period: period,
+      p_search: search || null,
+      p_limit: 1,
+      p_offset: 0,
+    });
+    if (headError) {
+      throw new Error(headError.message);
+    }
+    total = Number(head?.[0]?.total_count) || 0;
+  }
+
+  const rows: PnlLeaderboardRow[] = page.map((row, i) => ({
     rank: offset + i + 1,
     address: row.address,
+    ...(row.username ? { username: row.username } : {}),
     pnl: Number(row.pnl_usd) || 0,
     volume: Number(row.volume_usd) || 0,
     roi: row.roi == null ? null : Number(row.roi),
     unit: "USD",
-    chainId: row.chain_id,
+    chainId,
     marketCount: row.market_count ?? 0,
     updatedAt: row.updated_at,
   }));
@@ -287,7 +308,7 @@ async function serveSingleChainUsd(args: {
       period,
       unit: "USD",
       updatedAt: latestUpdatedAt(rows),
-      total: count ?? rows.length,
+      total,
       limit,
       offset,
       rows,
@@ -333,7 +354,7 @@ async function serveAllChainsUsd(args: {
     }
     total = Number(head?.[0]?.total_count) || 0;
   }
-  const rows: PnlLeaderboardRow[] = page.map((r, i) => {
+  const rowsWithoutUsernames: PnlLeaderboardRow[] = page.map((r, i) => {
     const pnlUsd = Number(r.pnl_usd) || 0;
     const capitalUsd = Number(r.capital_usd) || 0;
     return {
@@ -347,6 +368,7 @@ async function serveAllChainsUsd(args: {
       updatedAt: r.updated_at ?? null,
     };
   });
+  const rows = await addUsernames(rowsWithoutUsernames);
 
   return jsonResponse(
     {
