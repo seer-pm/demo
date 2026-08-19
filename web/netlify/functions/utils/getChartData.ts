@@ -1,7 +1,6 @@
 import type { Market, PoolHourDatasSets, SupportedChain, Token0Token1 } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk/liquidity-utils";
 import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
 import {
   type GetPoolHourDatasQuery,
   type GetSwapsQuery,
@@ -9,16 +8,13 @@ import {
   PoolHourData_OrderBy,
   Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
-  getSdk as getSwaprSdk,
 } from "@seer-pm/sdk/subgraph/swapr";
-import {
-  GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
-  getSdk as getUniswapSdk,
-} from "@seer-pm/sdk/subgraph/uniswap";
+import { GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument } from "@seer-pm/sdk/subgraph/uniswap";
 import { TickMath } from "@uniswap/v3-sdk";
 import combineQuery from "graphql-combine-query";
 import pLimit from "p-limit";
 import { gnosis } from "viem/chains";
+import { getDexGraphQLClient, getDexSubgraphSdk, runGoldskyDexRequest } from "./goldskyClient.ts";
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -29,11 +25,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 }
 
 async function fetchBatch(poolsPairs: Token0Token1[], chainId: SupportedChain, startTime: number) {
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
+  const graphQLClient = getDexGraphQLClient(chainId);
 
   const GetPoolHourDatasDocument =
     chainId === gnosis.id ? SwaprGetPoolHourDatasDocument : UniswapGetPoolHourDatasDocument;
@@ -57,10 +49,14 @@ async function fetchBatch(poolsPairs: Token0Token1[], chainId: SupportedChain, s
     })),
   );
 
-  // biome-ignore lint/suspicious/noExplicitAny: _
-  const result = Object.values(await graphQLClient.request<Record<string, any>>(document, variables));
+  const result = Object.values(
+    await runGoldskyDexRequest(
+      () => graphQLClient.request<Record<string, { periodStartUnix?: string }[]>>(document, variables),
+      "GetPoolHourDatasBatch",
+    ),
+  );
 
-  return result.map((x) => x[0]?.periodStartUnix);
+  return result.map((x) => (x[0]?.periodStartUnix != null ? Number(x[0].periodStartUnix) : undefined));
 }
 
 async function getLastNotEmptyStartTime(poolsPairs: Token0Token1[], chainId: SupportedChain, startTime: number) {
@@ -86,20 +82,14 @@ async function getSwapsByToken(
   initialStartTime: number,
   chainId: SupportedChain,
 ): Promise<GetSwapsQuery["swaps"]> {
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+  const graphQLSdk = getDexSubgraphSdk(chainId);
   let total: GetSwapsQuery["swaps"] = [];
   const maxAttempts = 20;
   let attempt = 1;
   let startTime = initialStartTime;
   while (attempt < maxAttempts) {
     const dateOperator = attempt === 1 ? "timestamp_gte" : "timestamp_gt";
-    const { swaps } = await graphQLSdk(graphQLClient).GetSwaps({
+    const { swaps } = await graphQLSdk.GetSwaps({
       first: 1000,
       // biome-ignore lint/suspicious/noExplicitAny:
       orderBy: Swap_OrderBy.Timestamp as any,
@@ -129,20 +119,14 @@ async function getPoolHourDatasByToken(
   initialStartTime: number,
   chainId: SupportedChain,
 ): Promise<GetPoolHourDatasQuery["poolHourDatas"]> {
-  const graphQLClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-
-  if (!graphQLClient) {
-    throw new Error("Subgraph not available");
-  }
-
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+  const graphQLSdk = getDexSubgraphSdk(chainId);
   let total: GetPoolHourDatasQuery["poolHourDatas"] = [];
   const maxAttempts = 20;
   let attempt = 1;
   let startTime = initialStartTime;
   while (attempt < maxAttempts) {
     const dateOperator = attempt === 1 ? "periodStartUnix_gte" : "periodStartUnix_gt";
-    const { poolHourDatas } = await graphQLSdk(graphQLClient).GetPoolHourDatas({
+    const { poolHourDatas } = await graphQLSdk.GetPoolHourDatas({
       first: 1000,
       // biome-ignore lint/suspicious/noExplicitAny:
       orderBy: PoolHourData_OrderBy.PeriodStartUnix as any,

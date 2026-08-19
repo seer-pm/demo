@@ -2,11 +2,11 @@ import { gnosis } from "@/lib/chains";
 import { type SupportedChain, getMappings } from "@seer-pm/sdk";
 import { getDefaultCollateralProfile } from "@seer-pm/sdk/collateral";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
-import { swaprGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { OrderDirection, Swap_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { OrderDirection, Swap_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
 import type { Address } from "viem";
 import { getAddress, isAddress } from "viem";
 import { getPublicClientByChainId } from "./utils/config";
+import { getDexSubgraphSdk } from "./utils/goldskyClient";
 import { searchAllMarkets } from "./utils/markets";
 
 /** Only count swaps on or after 2026-06-17 00:00:00 UTC (Unix seconds). */
@@ -70,12 +70,7 @@ async function fetchSeerOutcomePrimaryCollateralVolume(account: Address): Promis
 
   const poolOrFilters = poolPairs.map((pair) => ({ pool_: pair }));
 
-  const graphQLClient = swaprGraphQLClient(chainId, "algebra");
-  if (!graphQLClient) {
-    throw new Error("Swapr subgraph not available for this chain");
-  }
-
-  const sdk = getSwaprSdk(graphQLClient);
+  const sdk = getDexSubgraphSdk(chainId);
   let timestamp: string | undefined;
   let volumeInTokenUnits = 0;
 

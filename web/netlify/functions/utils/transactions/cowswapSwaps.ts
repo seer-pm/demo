@@ -9,12 +9,10 @@ import { getStore } from "@netlify/blobs";
 import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import { getCollateralSymbol, getCollateralTokenForSwap } from "@seer-pm/sdk/collateral";
 import { getTokensPairKey } from "@seer-pm/sdk/market-pools";
-import { type GetSwapsQuery, Swap_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
-import { type Address, parseUnits } from "viem";
+import { type Address } from "viem";
 import { getBlock } from "viem/actions";
 import { getPublicClientByChainId } from "../config";
 import { getCollateralFromDexTx } from "../markets";
-import { mappingTokenIds, paginateDexByTimestampId } from "./dexSubgraph";
 
 const COWSWAP_OWNER_TRADES_STORE = "cowswap-owner-trades";
 /**
@@ -90,10 +88,8 @@ function getOrderBookApi(chainId: SupportedChainId): OrderBookApi {
 }
 
 function isCowRateLimitError(error: unknown): boolean {
-  if (error instanceof OrderBookApiError) {
-    return error.response.status === 429;
-  }
-  // biome-ignore lint/suspicious/noExplicitAny: fallback for non-instanceof SDK errors across bundles
+  if (error instanceof OrderBookApiError) return error.response.status === 429;
+  // biome-ignore lint/suspicious/noExplicitAny: graphql-request ClientError shape varies across bundles
   return (error as any)?.response?.status === 429;
 }
 
@@ -106,9 +102,7 @@ function parseRetryAfterMs(error: unknown): number {
     header = (error as any)?.response?.headers?.get?.("retry-after");
   }
   const seconds = header != null ? Number(header) : Number.NaN;
-  if (!Number.isFinite(seconds) || seconds <= 0) {
-    return COW_RETRY_AFTER_DEFAULT_MS;
-  }
+  if (!Number.isFinite(seconds) || seconds <= 0) return COW_RETRY_AFTER_DEFAULT_MS;
   return Math.min(COW_RETRY_AFTER_MAX_MS, Math.max(COW_RETRY_AFTER_MIN_MS, Math.ceil(seconds * 1000)));
 }
 
@@ -141,11 +135,7 @@ function openCowTradesCircuit(reason: string): void {
     Date.now() + COW_CIRCUIT_OPEN_MS,
     cowTradesCooldownUntilMs,
   );
-  console.warn("cow-trades: opening circuit", {
-    reason,
-    openUntilMs: cowTradesCircuitOpenUntilMs,
-    skipForMs: cowTradesCircuitOpenUntilMs - Date.now(),
-  });
+  console.warn("cow-trades: opening circuit", { reason, skipForMs: cowTradesCircuitOpenUntilMs - Date.now() });
 }
 
 async function getTradesWithRetry(owner: Address, chainId: SupportedChainId): Promise<Trade[]> {
@@ -158,15 +148,12 @@ async function getTradesWithRetry(owner: Address, chainId: SupportedChainId): Pr
       openCowTradesCircuit("wall-clock budget exceeded");
       throw lastError instanceof Error ? lastError : new Error("cow-trades: wall-clock budget exceeded");
     }
-
     await acquireCowTradesSlot();
     try {
       return await api.getTrades({ owner });
     } catch (error) {
       lastError = error;
-      if (!isCowRateLimitError(error)) {
-        throw error;
-      }
+      if (!isCowRateLimitError(error)) throw error;
       const retryAfterMs = parseRetryAfterMs(error);
       extendCowTradesCooldown(retryAfterMs);
       console.warn("cow-trades: rate limited", { owner, chainId, retryAfterMs, attempt });
@@ -181,7 +168,6 @@ async function getTradesWithRetry(owner: Address, chainId: SupportedChainId): Pr
       // Slot acquisition on the next attempt honors the extended cooldown.
     }
   }
-
   throw lastError;
 }
 
@@ -263,16 +249,15 @@ function withCowTimestamps(
   return out;
 }
 
-async function getCowswapSwapsCached(
+/** CoW Order Book fills mapped to swap `TransactionData` (not Goldsky — separate rate limits). */
+export async function getCowswapSwapsCached(
   mappings: MarketDataMapping,
   chainId: SupportedChain,
   account: Address,
 ): Promise<TransactionData[]> {
   // CoW Order Book has no API base URL for some Seer chains (e.g. Optimism); skip to avoid
-  // `undefined/api/v1/trades` fetch failures that would reject the whole getSwapEvents Promise.all.
-  if (!COW_ORDER_BOOK_CHAIN_IDS.has(chainId)) {
-    return [];
-  }
+  // `undefined/api/v1/trades` fetch failures that would reject the whole fetchAccountDexEvents Promise.all.
+  if (!COW_ORDER_BOOK_CHAIN_IDS.has(chainId)) return [];
 
   const cacheKey = `${chainId}:${account.toLowerCase()}`;
 
@@ -289,11 +274,7 @@ async function getCowswapSwapsCached(
     }
 
     if (isCowTradesCircuitOpen()) {
-      console.warn("cow-trades: circuit open, skipping API (DEX swaps still returned)", {
-        owner: account,
-        chainId,
-        skipForMs: cowTradesCircuitOpenUntilMs - Date.now(),
-      });
+      console.warn("cow-trades: circuit open, skipping API", { owner: account, chainId });
       return [];
     }
 
@@ -310,7 +291,7 @@ async function getCowswapSwapsCached(
 
     return withCowTimestamps(mapTradesToCowSwaps(trades, mappings, chainId, account), timestampByBlock);
   } catch (error) {
-    // Don't fail getSwapEvents / DEX legs when CoW is unavailable.
+    // Don't fail DEX legs when CoW is unavailable.
     console.warn("cow-trades: fetch failed, continuing without CoW swaps", {
       owner: account,
       chainId,
@@ -318,73 +299,4 @@ async function getCowswapSwapsCached(
     });
     return [];
   }
-}
-
-async function fetchSwapsFromSubgraph(
-  account: string,
-  chainId: SupportedChain,
-  tokenIds: string[],
-  startTime?: number,
-  endTime?: number,
-) {
-  const accountLc = account.toLowerCase() as Address;
-  return paginateDexByTimestampId<GetSwapsQuery["swaps"][number]>({
-    chainId,
-    startTime,
-    endTime,
-    tokenIds,
-    accountFilters: [{ origin: accountLc }, { recipient: accountLc }],
-    orderBy: Swap_OrderBy.Timestamp,
-    resultKey: "swaps",
-    query: (sdk, vars) => sdk.GetSwaps(vars),
-  });
-}
-
-export async function getSwapEvents(
-  mappings: MarketDataMapping,
-  account: Address,
-  chainId: SupportedChain,
-  startTime?: number,
-  endTime?: number,
-) {
-  const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
-  const tokenIds = mappingTokenIds(mappings);
-  if (outcomeTokenToCollateral.size === 0 || tokenIds.length === 0) {
-    return [];
-  }
-
-  const [dexSwaps, cowSwaps] = await Promise.all([
-    fetchSwapsFromSubgraph(account, chainId, tokenIds, startTime, endTime),
-    getCowswapSwapsCached(mappings, chainId, account),
-  ]);
-
-  const swapsFromSubgraph = dexSwaps.reduce((acc, swap) => {
-    const amount0 = parseUnits(swap.amount0.replace("-", ""), Number(swap.token0.decimals));
-    const amount1 = parseUnits(swap.amount1.replace("-", ""), Number(swap.token1.decimals));
-    const tokenIn = Number(swap.amount1) < 0 ? swap.token0.id : swap.token1.id;
-    const tokenOut = Number(swap.amount1) < 0 ? swap.token1.id : swap.token0.id;
-    const market = tokenPairToMarketMapping[getTokensPairKey(tokenIn, tokenOut)];
-    if (market) {
-      acc.push({
-        tokenIn,
-        tokenOut,
-        amountIn: tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase() ? amount1.toString() : amount0.toString(),
-        amountOut: tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase() ? amount0.toString() : amount1.toString(),
-        tokenInSymbol:
-          tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase() ? swap.token1.symbol : swap.token0.symbol,
-        tokenOutSymbol:
-          tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase() ? swap.token0.symbol : swap.token1.symbol,
-        blockNumber: Number(swap.transaction.blockNumber),
-        timestamp: Number(swap.timestamp),
-        marketName: market.marketName,
-        marketId: market.id,
-        type: "swap",
-        collateral: getCollateralFromDexTx(market, tokenIn as Address, tokenOut as Address),
-        transactionHash: swap.transaction.id,
-      });
-    }
-    return acc;
-  }, [] as TransactionData[]);
-
-  return swapsFromSubgraph.concat(cowSwaps);
 }

@@ -3,13 +3,12 @@ import type { Market } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits } from "viem";
 import { buildPortfolioPositionsFromBalances } from "./buildPortfolioPositions";
+import { getPublicClientByChainId } from "./config";
 import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
-import { computeLpPrimaryCollateralNetOutForPeriods } from "./lpPrimaryCollateralFlow";
+import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
+import { getMappingsCached } from "./mappingsCache";
 import { searchAllMarkets } from "./markets";
-import {
-  computeNetPrimaryCollateralSwapFlow,
-  computeNetPrimaryCollateralSwapFlowForPeriods,
-} from "./netPrimaryCollateralSwapFlow";
+import { computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents } from "./netPrimaryCollateralSwapFlow";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
 import {
   PORTFOLIO_PL_PERIODS,
@@ -25,6 +24,7 @@ import {
   routerPrimaryNetFromConditionalEvents,
 } from "./seerIndexerPortfolio";
 import type { Database } from "./supabase";
+import { fetchAccountDexEvents } from "./transactions/fetchAccountDexEvents";
 
 export type { PortfolioPlPeriod };
 export { PORTFOLIO_PL_PERIODS };
@@ -215,9 +215,9 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  * - Markets + historical DEX prices: Supabase (`searchAllMarkets` with `type: Generic`,
  *   `dex_pool_hour_prices` via `dexPoolHourPrices`). Current outcome prices come from
  *   position building, which reads the pools on-chain.
- * - Swap cashflow: DEX subgraphs + CoW fills via `getSwapEvents` /
- *   `computeNetPrimaryCollateralSwapFlowForPeriods` (same semantics as `/get-transactions`
- *   swap rows).
+ * - Swap cashflow: DEX subgraphs + CoW fills via `fetchAccountDexEvents` /
+ *   `computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents` (same semantics as
+ *   `/get-transactions` swap rows).
  *
  * Prices
  * - Historical at each `startTime`: latest pool-hour snapshot at/before that time.
@@ -255,7 +255,7 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  * Limits (documented)
  * - P2P ERC20 transfers of outcome tokens affect indexed balances / EOD snapshots but are
  *   excluded from swap cashflow — assumed rare.
- * - Swaps counted only through venues indexed in `getSwapEvents` (pool subgraph + CoW
+ * - Swaps counted only through venues indexed in `fetchAccountDexEvents` (pool subgraph + CoW
  *   owner trades).
  * - When this runs inside the leaderboard job: wallets with analytics activity are
  *   refreshed in stale/missing batches under the Netlify time budget; other wallets
@@ -326,13 +326,34 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   const swapVolumeByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapMarketCountByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   let swapFlowFailed = false;
+  let lpFlowFailed = false;
+
+  const minDexStart = Math.min(...startTimes);
+  // One Goldsky pass per wallet: swaps + mints + burns (+ CoW in parallel inside fetchAccountDexEvents).
+  let dexEvents: Awaited<ReturnType<typeof fetchAccountDexEvents>> | null = null;
+  if (markets.length > 0) {
+    try {
+      const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
+      dexEvents = await fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime);
+    } catch (err) {
+      swapFlowFailed = true;
+      lpFlowFailed = true;
+      console.error("portfolio-pl: failed to fetch account DEX events; using zero swap/LP cashflow", {
+        account: account.toLowerCase(),
+        chainId: chainIdNum,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   try {
-    const flow = await computeNetPrimaryCollateralSwapFlowForPeriods(
-      account,
-      chainId,
+    if (!dexEvents) {
+      throw new Error("DEX events unavailable");
+    }
+    const flow = computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
+      dexEvents.swaps,
       startTimes,
       endTime,
-      markets,
       primaryCollateral,
       singleMarketIdForSwapFilter,
       { limitRows: 0 },
@@ -354,14 +375,15 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   }
 
   const lpNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
-  let lpFlowFailed = false;
   try {
-    const lpFlow = await computeLpPrimaryCollateralNetOutForPeriods(
-      account,
-      chainId,
+    if (!dexEvents) {
+      throw new Error("DEX events unavailable");
+    }
+    const lpFlow = computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
+      dexEvents.mints,
+      dexEvents.burns,
       startTimes,
       endTime,
-      markets,
       primaryCollateral,
     );
     for (const p of PORTFOLIO_PL_PERIODS) {
@@ -473,38 +495,38 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
       | { primary: unknown; netOut: number; volume: number; rowCount: number; rows: unknown[] }
       | undefined;
     try {
-      const flow = await computeNetPrimaryCollateralSwapFlow(
-        account,
-        chainId,
-        st,
-        endTime,
-        markets,
-        primaryCollateral,
-        singleMarketIdForSwapFilter,
-        { limitRows: 300 },
-      );
-      const primaryDecimals = flow.primary.decimals;
-      const absWei = (weiStr: string) => {
-        const w = BigInt(weiStr);
-        return w < 0n ? -w : w;
-      };
-      const rows = [...flow.rows]
-        .map((r) => ({
-          ...r,
-          countedPrimaryNetOutHuman: formatUnits(BigInt(r.countedPrimaryNetOutWei), primaryDecimals),
-          countedPrimaryVolumeHuman: formatUnits(BigInt(r.countedPrimaryVolumeWei), primaryDecimals),
-        }))
-        .sort((a, b) => {
-          const cmp = absWei(b.countedPrimaryNetOutWei) - absWei(a.countedPrimaryNetOutWei);
-          return cmp > 0n ? 1 : cmp < 0n ? -1 : 0;
-        });
-      swapFlowDebug = {
-        primary: flow.primary,
-        netOut: flow.netOut,
-        volume: flow.volume,
-        rowCount: flow.rows.length,
-        rows,
-      };
+      if (dexEvents) {
+        const flow = computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
+          dexEvents.swaps,
+          [st],
+          endTime,
+          primaryCollateral,
+          singleMarketIdForSwapFilter,
+          { limitRows: 300 },
+        );
+        const primaryDecimals = flow.primary.decimals;
+        const absWei = (weiStr: string) => {
+          const w = BigInt(weiStr);
+          return w < 0n ? -w : w;
+        };
+        const rows = [...(flow.rowsByStartTime.get(st) ?? [])]
+          .map((r) => ({
+            ...r,
+            countedPrimaryNetOutHuman: formatUnits(BigInt(r.countedPrimaryNetOutWei), primaryDecimals),
+            countedPrimaryVolumeHuman: formatUnits(BigInt(r.countedPrimaryVolumeWei), primaryDecimals),
+          }))
+          .sort((a, b) => {
+            const cmp = absWei(b.countedPrimaryNetOutWei) - absWei(a.countedPrimaryNetOutWei);
+            return cmp > 0n ? 1 : cmp < 0n ? -1 : 0;
+          });
+        swapFlowDebug = {
+          primary: flow.primary,
+          netOut: flow.netOutByStartTime.get(st) ?? 0,
+          volume: flow.volumeByStartTime.get(st) ?? 0,
+          rowCount: (flow.rowsByStartTime.get(st) ?? []).length,
+          rows,
+        };
+      }
     } catch (err) {
       console.error("portfolio-pl: failed to compute primary collateral swap net flow (debug rows)", err);
     }

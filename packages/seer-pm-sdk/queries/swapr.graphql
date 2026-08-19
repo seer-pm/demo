@@ -280,6 +280,112 @@ query GetBurns(
   }
 }
 
+query GetAccountDexEvents(
+  $first: Int
+  $swapWhere: Swap_filter
+  $mintWhere: Mint_filter
+  $burnWhere: Burn_filter
+  $orderDirection: OrderDirection
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  swaps(
+    first: $first
+    orderBy: timestamp
+    orderDirection: $orderDirection
+    where: $swapWhere
+    subgraphError: $subgraphError
+  ) {
+    id
+    sender
+    recipient
+    origin
+    amount0
+    amount1
+    token0 {
+      id
+      symbol
+      decimals
+    }
+    token1 {
+      id
+      symbol
+      decimals
+    }
+    timestamp
+    transaction {
+      id
+      blockNumber
+    }
+    tick
+    pool {
+      id
+      liquidity
+      token0 {
+        id
+        name
+      }
+      token1 {
+        id
+        name
+      }
+    }
+  }
+  mints(
+    first: $first
+    orderBy: timestamp
+    orderDirection: $orderDirection
+    where: $mintWhere
+    subgraphError: $subgraphError
+  ) {
+    id
+    owner
+    amount0
+    amount1
+    token0 {
+      id
+      symbol
+      decimals
+    }
+    token1 {
+      id
+      symbol
+      decimals
+    }
+    timestamp
+    transaction {
+      id
+      blockNumber
+    }
+  }
+  burns(
+    first: $first
+    orderBy: timestamp
+    orderDirection: $orderDirection
+    where: $burnWhere
+    subgraphError: $subgraphError
+  ) {
+    id
+    owner
+    amount0
+    amount1
+    token0 {
+      id
+      symbol
+      decimals
+    }
+    token1 {
+      id
+      symbol
+      decimals
+    }
+    timestamp
+    transaction {
+      id
+      blockNumber
+    }
+  }
+}
+
 query GetTicks(
   $skip: Int = 0
   $first: Int

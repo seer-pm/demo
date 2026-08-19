@@ -7,10 +7,9 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { getMarketPoolsPairs, getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "@seer-pm/sdk/subgraph/swapr";
-import { getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
+import { OrderDirection, Pool_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
 import pLimit from "p-limit";
+import { getDexSubgraphSdk } from "./goldskyClient.ts";
 import { type PairMids, setPairMid } from "./outcomePrices.ts";
 
 interface SubgraphPool {
@@ -69,17 +68,13 @@ export async function fetchTokenBalances(
 }
 
 async function fetchPoolsByTokenPairs(chainId: SupportedChain, tokenPairs: Token0Token1[]) {
-  const subgraphClient = chainId === gnosis.id ? swaprGraphQLClient(chainId, "algebra") : uniswapGraphQLClient(chainId);
-  if (!subgraphClient) {
-    return [];
-  }
-  const graphQLSdk = chainId === gnosis.id ? getSwaprSdk : getUniswapSdk;
+  const graphQLSdk = getDexSubgraphSdk(chainId);
   const maxAttempts = 20;
   let attempt = 0;
   let id = undefined;
   let total: SubgraphPool[] = [];
   while (attempt < maxAttempts) {
-    const { pools }: { pools: SubgraphPool[] } = await graphQLSdk(subgraphClient).GetPools({
+    const { pools }: { pools: SubgraphPool[] } = await graphQLSdk.GetPools({
       where: {
         and: [
           {
