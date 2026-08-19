@@ -1,8 +1,8 @@
-import { swaprGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { EternalFarming_OrderBy, OrderDirection, getSdk } from "@seer-pm/sdk/subgraph/swapr";
+import { EternalFarming_OrderBy, OrderDirection } from "@seer-pm/sdk/subgraph/swapr";
 import { type Address, formatUnits } from "viem";
 import { gnosis } from "viem/chains";
 import type { Pool } from "./fetchPools.ts";
+import { getSwaprAlgebraFarmingSdk } from "./goldskyClient.ts";
 
 interface EternalFarming {
   id: string;
@@ -21,15 +21,11 @@ async function fetchEternalFarmings(poolIds: Address[]): Promise<EternalFarming[
   const maxAttempts = 20;
   let attempt = 0;
   let allFarmings: EternalFarming[] = [];
-  const algebraFarmingClient = swaprGraphQLClient(gnosis.id, "algebrafarming");
-
-  if (!algebraFarmingClient) {
-    throw new Error("Subgraph not available");
-  }
+  const algebraFarmingSdk = getSwaprAlgebraFarmingSdk();
 
   let id = undefined;
   while (attempt < maxAttempts) {
-    const { eternalFarmings: farmings } = await getSdk(algebraFarmingClient).GetEternalFarmings({
+    const { eternalFarmings: farmings } = await algebraFarmingSdk.GetEternalFarmings({
       where: { pool_in: poolIds, id_lt: id },
       first: 1000,
       orderBy: EternalFarming_OrderBy.Id,

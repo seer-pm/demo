@@ -1,9 +1,5 @@
-import type { SupportedChain, Token } from "@seer-pm/sdk";
-import type { Market } from "@seer-pm/sdk/market-types";
+import type { Token, TransactionData } from "@seer-pm/sdk";
 import { type Address, formatUnits } from "viem";
-import { getPublicClientByChainId } from "./config";
-import { getMappingsCached } from "./mappingsCache";
-import { getSwapEvents } from "./transactions/getSwapEvents";
 
 export type PrimaryCollateralSwapFlowDebugRow = {
   marketId: string;
@@ -36,93 +32,15 @@ export type PrimaryCollateralSwapFlowByPeriod = {
   primary: { address: string; decimals: number };
 };
 
-/**
- * Net **primary collateral** (e.g. sDAI on Gnosis) spent on outcome **DEX/Cowswap** swaps in `(startTime, endTime]`,
- * in human units (same decimals as chain primary collateral).
- *
- * Positive = user sent more primary than they received (typical net cost of buying).
- * Also returns gross primary **volume** (sum of primary as tokenIn + primary as tokenOut).
- *
- * Sources: same as transaction history (`getSwapEvents`). Does not include split/merge/redeem —
- * those are handled separately in portfolio P/L: global path via HyperIndex
- * `router_collateral` transfers (`computeCollateralPortfolioValuesForPeriods`); market-scoped
- * via HyperIndex `ConditionalEvent` (`routerPrimaryCollateralNetInWindow`).
- *
- * `markets` must be pre-scoped to Generic + the request collateral profile
- * (P/L compute uses `searchAllMarkets` with `type: Generic` and `collateralProfile`).
- */
-export async function computeNetPrimaryCollateralSwapFlow(
-  account: Address,
-  chainId: SupportedChain,
-  startTime: number,
-  endTime: number,
-  markets: Market[],
-  primaryCollateral: Token,
-  marketId?: Address,
-  opts?: CollateralSwapFlowOpts,
-): Promise<{
-  netOut: number;
-  volume: number;
-  rows: PrimaryCollateralSwapFlowDebugRow[];
-  primary: { address: string; decimals: number };
-}> {
-  const primaryAddr = primaryCollateral.address.toLowerCase();
-  const decimals = primaryCollateral.decimals;
-
-  if (markets.length === 0) {
-    return { netOut: 0, volume: 0, rows: [], primary: { address: primaryAddr, decimals } };
-  }
-
-  const { netOutByStartTime, volumeByStartTime, rowsByStartTime } = await computeNetPrimaryCollateralSwapFlowForPeriods(
-    account,
-    chainId,
-    [startTime],
-    endTime,
-    markets,
-    primaryCollateral,
-    marketId,
-    opts,
-  );
-
-  return {
-    netOut: netOutByStartTime.get(startTime) ?? 0,
-    volume: volumeByStartTime.get(startTime) ?? 0,
-    rows: rowsByStartTime.get(startTime) ?? [],
-    primary: { address: primaryAddr, decimals },
-  };
-}
-
-/**
- * Single `getSwapEvents` over `(min(startTimes), endTime]`, then net primary collateral out and
- * gross primary volume per window `(startTime, endTime]` for each `startTime`.
- */
-export async function computeNetPrimaryCollateralSwapFlowForPeriods(
-  account: Address,
-  chainId: SupportedChain,
+function aggregateSwapFlowForPeriods(
+  swaps: TransactionData[],
   startTimes: number[],
   endTime: number,
-  markets: Market[],
-  primaryCollateral: Token,
+  primaryAddr: string,
+  decimals: number,
   marketId?: Address,
   opts?: CollateralSwapFlowOpts,
-): Promise<PrimaryCollateralSwapFlowByPeriod> {
-  const primaryAddr = primaryCollateral.address.toLowerCase();
-  const decimals = primaryCollateral.decimals;
-
-  if (markets.length === 0 || startTimes.length === 0) {
-    return {
-      netOutByStartTime: new Map(startTimes.map((s) => [s, 0])),
-      volumeByStartTime: new Map(startTimes.map((s) => [s, 0])),
-      marketCountByStartTime: new Map(startTimes.map((s) => [s, 0])),
-      rowsByStartTime: new Map(startTimes.map((s) => [s, [] as PrimaryCollateralSwapFlowDebugRow[]])),
-      primary: { address: primaryAddr, decimals },
-    };
-  }
-
-  const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
-  const minStart = Math.min(...startTimes);
-  const swaps = await getSwapEvents(mappings, account, chainId, minStart, endTime);
-
+): PrimaryCollateralSwapFlowByPeriod {
   const netOutWeiByStart = new Map<number, bigint>();
   const volumeWeiByStart = new Map<number, bigint>();
   const marketsByStart = new Map<number, Set<string>>();
@@ -137,13 +55,9 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
   const rowLimit = Math.max(0, opts?.limitRows ?? 200);
 
   for (const s of swaps) {
-    if (marketId && (s.marketId ?? "").toLowerCase() !== marketId.toLowerCase()) {
-      continue;
-    }
+    if (marketId && (s.marketId ?? "").toLowerCase() !== marketId.toLowerCase()) continue;
     const ts = Number(s.timestamp ?? 0);
-    if (ts > endTime) {
-      continue;
-    }
+    if (ts > endTime) continue;
 
     const tin = (s.tokenIn ?? "").toLowerCase();
     const tout = (s.tokenOut ?? "").toLowerCase();
@@ -169,9 +83,7 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
       if (ts <= startTime || ts > endTime) continue;
       netOutWeiByStart.set(startTime, (netOutWeiByStart.get(startTime) ?? 0n) + netCounted);
       volumeWeiByStart.set(startTime, (volumeWeiByStart.get(startTime) ?? 0n) + volumeCounted);
-      if (swapMarketId) {
-        marketsByStart.get(startTime)?.add(swapMarketId);
-      }
+      if (swapMarketId) marketsByStart.get(startTime)?.add(swapMarketId);
       if (rowLimit > 0) {
         const rows = rowsByStart.get(startTime) ?? [];
         if (rows.length < rowLimit) {
@@ -212,4 +124,42 @@ export async function computeNetPrimaryCollateralSwapFlowForPeriods(
     rowsByStartTime: rowsByStart,
     primary: { address: primaryAddr, decimals },
   };
+}
+
+/**
+ * Net **primary collateral** (e.g. sDAI on Gnosis) spent on outcome **DEX/Cowswap** swaps in `(startTime, endTime]`,
+ * in human units (same decimals as chain primary collateral).
+ *
+ * Positive = user sent more primary than they received (typical net cost of buying).
+ * Also returns gross primary **volume** (sum of primary as tokenIn + primary as tokenOut).
+ *
+ * Sources: same as transaction history (`fetchAccountDexEvents`). Does not include split/merge/redeem —
+ * those are handled separately in portfolio P/L: global path via HyperIndex
+ * `router_collateral` transfers (`computeCollateralPortfolioValuesForPeriods`); market-scoped
+ * via HyperIndex `ConditionalEvent` (`routerPrimaryCollateralNetInWindow`).
+ *
+ * Expects swaps from a prior `fetchAccountDexEvents` call (portfolio P/L uses one Goldsky pass per wallet).
+ */
+export function computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
+  swaps: TransactionData[],
+  startTimes: number[],
+  endTime: number,
+  primaryCollateral: Token,
+  marketId?: Address,
+  opts?: CollateralSwapFlowOpts,
+): PrimaryCollateralSwapFlowByPeriod {
+  const primaryAddr = primaryCollateral.address.toLowerCase();
+  const decimals = primaryCollateral.decimals;
+
+  if (startTimes.length === 0) {
+    return {
+      netOutByStartTime: new Map(),
+      volumeByStartTime: new Map(),
+      marketCountByStartTime: new Map(),
+      rowsByStartTime: new Map(),
+      primary: { address: primaryAddr, decimals },
+    };
+  }
+
+  return aggregateSwapFlowForPeriods(swaps, startTimes, endTime, primaryAddr, decimals, marketId, opts);
 }

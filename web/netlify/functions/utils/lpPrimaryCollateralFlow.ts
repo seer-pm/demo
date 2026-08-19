@@ -1,10 +1,5 @@
-import type { SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
-import type { Market } from "@seer-pm/sdk/market-types";
-import { type Address, formatUnits } from "viem";
-import { getPublicClientByChainId } from "./config";
-import { getMappingsCached } from "./mappingsCache";
-import { getLiquidityEvents } from "./transactions/getLiquidityEvents";
-import { getLiquidityWithdrawEvents } from "./transactions/getLiquidityWithdrawEvents";
+import type { Token, TransactionData } from "@seer-pm/sdk";
+import { formatUnits } from "viem";
 
 export type LpPrimaryCollateralFlowByPeriod = {
   /** Net primary into LP pools per window start (mints − burns). Positive = capital locked in LP. */
@@ -19,38 +14,14 @@ function primaryAmountWei(ev: TransactionData, primaryAddr: string): bigint {
   return 0n;
 }
 
-/**
- * Net **primary collateral** deposited into outcome/collateral Uniswap/Swapr pools via LP mint/burn
- * in each window `(startTime, endTime]`, human units of `primaryCollateral`.
- *
- * Positive = more primary minted into pools than burned (typical LP capital out).
- * Same subgraph sources as `/get-transactions` LP rows.
- */
-export async function computeLpPrimaryCollateralNetOutForPeriods(
-  account: Address,
-  chainId: SupportedChain,
+function aggregateLpFlowForPeriods(
+  mints: TransactionData[],
+  burns: TransactionData[],
   startTimes: number[],
   endTime: number,
-  markets: Market[],
-  primaryCollateral: Token,
-): Promise<LpPrimaryCollateralFlowByPeriod> {
-  const primaryAddr = primaryCollateral.address.toLowerCase();
-  const decimals = primaryCollateral.decimals;
-
-  if (markets.length === 0 || startTimes.length === 0) {
-    return {
-      netOutByStartTime: new Map(startTimes.map((s) => [s, 0])),
-      primary: { address: primaryAddr, decimals },
-    };
-  }
-
-  const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
-  const minStart = Math.min(...startTimes);
-  const [mints, burns] = await Promise.all([
-    getLiquidityEvents(mappings, account, chainId, minStart, endTime),
-    getLiquidityWithdrawEvents(mappings, account, chainId, minStart, endTime),
-  ]);
-
+  primaryAddr: string,
+  decimals: number,
+): LpPrimaryCollateralFlowByPeriod {
   const netOutWeiByStart = new Map<number, bigint>();
   for (const s of startTimes) netOutWeiByStart.set(s, 0n);
 
@@ -77,4 +48,31 @@ export async function computeLpPrimaryCollateralNetOutForPeriods(
     netOutByStartTime,
     primary: { address: primaryAddr, decimals },
   };
+}
+
+/**
+ * Net **primary collateral** deposited into outcome/collateral Uniswap/Swapr pools via LP mint/burn
+ * in each window `(startTime, endTime]`, human units of `primaryCollateral`.
+ *
+ * Positive = more primary minted into pools than burned (typical LP capital out).
+ * Same subgraph sources as `/get-transactions` LP rows.
+ */
+export function computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
+  mints: TransactionData[],
+  burns: TransactionData[],
+  startTimes: number[],
+  endTime: number,
+  primaryCollateral: Token,
+): LpPrimaryCollateralFlowByPeriod {
+  const primaryAddr = primaryCollateral.address.toLowerCase();
+  const decimals = primaryCollateral.decimals;
+
+  if (startTimes.length === 0) {
+    return {
+      netOutByStartTime: new Map(),
+      primary: { address: primaryAddr, decimals },
+    };
+  }
+
+  return aggregateLpFlowForPeriods(mints, burns, startTimes, endTime, primaryAddr, decimals);
 }

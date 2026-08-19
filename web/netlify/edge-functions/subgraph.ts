@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+function isGraphqlResultBody(body: unknown): body is { data?: unknown; errors?: unknown } {
+  if (!body || typeof body !== "object") return false;
+  return "data" in body || "errors" in body;
+}
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -47,7 +52,8 @@ export default async (req: Request) => {
             status: response.status,
           }),
           {
-            status: 502,
+            // Upstream returned HTML/text with 200 — treat as bad gateway, not success.
+            status: response.ok ? 502 : response.status,
             headers: {
               "Content-Type": "application/json; charset=utf-8",
               ...corsHeaders,
@@ -58,8 +64,31 @@ export default async (req: Request) => {
 
       const body = await response.json();
 
+      // Preserve upstream 4xx/5xx (e.g. Goldsky 429) — do not coerce to 200 when body lacks `errors`.
+      if (!response.ok) {
+        return new Response(JSON.stringify(body), {
+          status: response.status,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...corsHeaders,
+          },
+        });
+      }
+
+      if (!isGraphqlResultBody(body)) {
+        // Rate-limit / timeout payloads like `{ message: "..." }` are not GraphQL results.
+        console.error("Subgraph returned non-GraphQL JSON:", body);
+        return new Response(JSON.stringify(body), {
+          status: 502,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...corsHeaders,
+          },
+        });
+      }
+
       return new Response(JSON.stringify(body), {
-        status: body?.errors ? 500 : 200,
+        status: Array.isArray(body.errors) && body.errors.length > 0 ? 500 : 200,
         headers: {
           "Content-Type": "application/json; charset=utf-8",
           ...corsHeaders,

@@ -12,9 +12,7 @@ import {
   writeJsonBlob,
 } from "./utils/portfolioBlobCache";
 import { conditionalEventsToTransactions, fetchConditionalEventsForAccount } from "./utils/seerIndexerPortfolio";
-import { getLiquidityEvents } from "./utils/transactions/getLiquidityEvents";
-import { getLiquidityWithdrawEvents } from "./utils/transactions/getLiquidityWithdrawEvents";
-import { getSwapEvents } from "./utils/transactions/getSwapEvents";
+import { fetchAccountDexTransactions } from "./utils/transactions/fetchAccountDexEvents";
 
 const PORTFOLIO_TRANSACTIONS_STORE = "portfolio-transactions";
 
@@ -48,11 +46,9 @@ function jsonOk(body: unknown) {
 
 async function getEvents(mappings: MarketDataMapping | null, account: Address, chainId: SupportedChain) {
   const sources: { name: string; promise: Promise<TransactionData[]> }[] = [
-    { name: "swap", promise: mappings ? getSwapEvents(mappings, account, chainId) : Promise.resolve([]) },
-    { name: "liquidity", promise: mappings ? getLiquidityEvents(mappings, account, chainId) : Promise.resolve([]) },
     {
-      name: "liquidity-withdraw",
-      promise: mappings ? getLiquidityWithdrawEvents(mappings, account, chainId) : Promise.resolve([]),
+      name: "dex",
+      promise: mappings ? fetchAccountDexTransactions(mappings, account, chainId) : Promise.resolve([]),
     },
     {
       name: "conditional",
