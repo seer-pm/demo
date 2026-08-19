@@ -2,7 +2,16 @@ import { SEER_APP_ALL_ID, type SeerAppFilterId, isSeerAppFilterId, listSeerApps 
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { createClient } from "@supabase/supabase-js";
 import { CORS_HEADERS } from "./utils/common";
-import { roiFromCapitalUsd } from "./utils/pnlLeaderboard";
+import { TRADE_EXECUTOR_CHAIN_ID, canonicalAddress, readOwnerMap } from "./utils/executorOwners";
+import { roiFromCapitalUsd } from "./utils/pnlLeaderboardMetrics";
+import {
+  type MaterializedLeaderboardRow,
+  type RolledUpLeaderboardRow,
+  aggregateRowsAcrossChains,
+  matchesAddressSearch,
+  rankForAddress,
+  rollUpRows,
+} from "./utils/pnlLeaderboardRollup";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -26,9 +35,13 @@ export type PnlLeaderboardRow = {
   chainId?: number;
   marketCount: number;
   updatedAt: string | null;
+  /** Extra wallets merged into this row (TradeExecutor → owner on Optimism). */
+  mergedWallets?: string[];
 };
 
 type AddressSearch = { kind: "none" } | { kind: "fragment"; hex: string };
+
+const LOAD_PAGE_SIZE = 1000;
 
 /** Lowercase hex address fragment for ilike search. */
 function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invalid" } {
@@ -59,6 +72,140 @@ function latestUpdatedAt(rows: { updatedAt: string | null }[]): string | null {
       return latest;
     }, null) ?? null
   );
+}
+
+function mapDbRow(row: {
+  address: string;
+  chain_id: number;
+  pnl_usd: number | string | null;
+  volume_usd: number | string | null;
+  volume: number | string | null;
+  value_start: number | string | null;
+  trading_collateral_net_out: number | string | null;
+  collateral_price_usd: number | string | null;
+  market_count: number | null;
+  updated_at: string | null;
+}): MaterializedLeaderboardRow {
+  return {
+    address: row.address.toLowerCase(),
+    chainId: row.chain_id,
+    pnlUsd: Number(row.pnl_usd) || 0,
+    volumeUsd: Number(row.volume_usd) || 0,
+    volume: Number(row.volume) || 0,
+    valueStart: Number(row.value_start) || 0,
+    tradingCollateralNetOut: Number(row.trading_collateral_net_out) || 0,
+    collateralPriceUsd: Number(row.collateral_price_usd) || 0,
+    marketCount: row.market_count ?? 0,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function loadMaterializedRows(args: {
+  app: SeerAppFilterId;
+  period: Period;
+  chainId?: number;
+}): Promise<MaterializedLeaderboardRow[]> {
+  const rows: MaterializedLeaderboardRow[] = [];
+  for (let offset = 0; ; offset += LOAD_PAGE_SIZE) {
+    let query = supabase
+      .from("pnl_leaderboard")
+      .select(
+        "address, chain_id, pnl_usd, volume_usd, volume, value_start, trading_collateral_net_out, collateral_price_usd, market_count, updated_at",
+      )
+      .eq("app_id", args.app)
+      .eq("period", args.period)
+      .order("address", { ascending: true })
+      .range(offset, offset + LOAD_PAGE_SIZE - 1);
+
+    if (args.chainId != null) {
+      query = query.eq("chain_id", args.chainId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const page = data ?? [];
+    for (const row of page) {
+      rows.push(mapDbRow(row));
+    }
+    if (page.length < LOAD_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
+function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeaderboardRow {
+  const capitalUsd =
+    (Number(row.valueStart) || 0) * (Number(row.collateralPriceUsd) || 0) +
+    Math.max(((Number(row.volume) || 0) + (Number(row.tradingCollateralNetOut) || 0)) / 2, 0) *
+      (Number(row.collateralPriceUsd) || 0);
+
+  return {
+    address: row.address,
+    pnlUsd: row.pnlUsd,
+    volumeUsd: row.volumeUsd,
+    capitalUsd,
+    marketCount: row.marketCount,
+    updatedAt: row.updatedAt,
+    roi: roiFromCapitalUsd(row.pnlUsd, capitalUsd),
+    members: [row.address],
+  };
+}
+
+async function buildPublicLeaderboard(args: {
+  app: SeerAppFilterId;
+  period: Period;
+  chainId?: number;
+}): Promise<RolledUpLeaderboardRow[]> {
+  const materialized = await loadMaterializedRows(args);
+  const owners = await readOwnerMap().catch(() => ({}) as Record<string, string>);
+
+  const optimismRows = materialized.filter((row) => row.chainId === TRADE_EXECUTOR_CHAIN_ID);
+  const otherRows = materialized.filter((row) => row.chainId !== TRADE_EXECUTOR_CHAIN_ID);
+
+  const rolledOptimism = rollUpRows(optimismRows, owners);
+  const rolledOther = otherRows
+    .map(materializedToRolledUp)
+    .sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
+
+  if (args.chainId != null) {
+    return args.chainId === TRADE_EXECUTOR_CHAIN_ID ? rolledOptimism : rolledOther;
+  }
+
+  return aggregateRowsAcrossChains([...rolledOptimism, ...rolledOther]);
+}
+
+function toApiRow(row: RolledUpLeaderboardRow, rank: number, chainId?: number | "all"): PnlLeaderboardRow {
+  const merged = row.members.filter((member) => member !== row.address);
+  return {
+    rank,
+    address: row.address,
+    pnl: row.pnlUsd,
+    volume: row.volumeUsd,
+    roi: row.roi,
+    unit: "USD",
+    ...(chainId != null && chainId !== "all" ? { chainId } : {}),
+    marketCount: row.marketCount,
+    updatedAt: row.updatedAt,
+    ...(merged.length > 0 ? { mergedWallets: merged } : {}),
+  };
+}
+
+function paginateRows(args: {
+  rows: RolledUpLeaderboardRow[];
+  limit: number;
+  offset: number;
+  search: string;
+  chainId?: number | "all";
+}): { total: number; rows: PnlLeaderboardRow[] } {
+  const ranked = args.rows.map((row, index) => ({ row, rank: index + 1 }));
+  const filtered = args.search ? ranked.filter(({ row }) => matchesAddressSearch(row, args.search)) : ranked;
+
+  return {
+    total: filtered.length,
+    rows: filtered
+      .slice(args.offset, args.offset + args.limit)
+      .map(({ row, rank }) => toApiRow(row, rank, args.chainId)),
+  };
 }
 
 export default async (req: Request) => {
@@ -103,264 +250,66 @@ export default async (req: Request) => {
       }
     }
 
-    const rankFor = (url.searchParams.get("rankFor") ?? "").trim().toLowerCase();
-    if (rankFor) {
-      if (!/^0x[a-f0-9]{40}$/.test(rankFor)) {
+    const rankForRaw = (url.searchParams.get("rankFor") ?? "").trim().toLowerCase();
+    if (rankForRaw) {
+      if (!/^0x[a-f0-9]{40}$/.test(rankForRaw)) {
         return jsonResponse({ error: "rankFor must be a 0x-prefixed address" }, 400);
       }
-      if (isAllChains) {
-        return await serveRankForAllChainsUsd({ app, period, address: rankFor });
-      }
-      return await serveRankForSingleChainUsd({ app, period, chainId: chainId!, address: rankFor });
+
+      const rows = await buildPublicLeaderboard({
+        app,
+        period,
+        chainId: isAllChains ? undefined : chainId,
+      });
+      const owners = await readOwnerMap().catch(() => ({}) as Record<string, string>);
+      const canonical = canonicalAddress(rankForRaw, owners);
+      const result = rankForAddress(rows, canonical);
+
+      return jsonResponse(
+        {
+          app,
+          chainId: isAllChains ? "all" : chainId,
+          period,
+          address: canonical,
+          rank: result.rank,
+          total: result.total,
+        },
+        200,
+        { "Cache-Control": "public, max-age=60" },
+      );
     }
 
-    if (isAllChains) {
-      return await serveAllChainsUsd({ app, period, limit, offset, search });
-    }
-
-    return await serveSingleChainUsd({
+    const rows = await buildPublicLeaderboard({
       app,
       period,
-      chainId: chainId!,
+      chainId: isAllChains ? undefined : chainId,
+    });
+
+    const page = paginateRows({
+      rows,
       limit,
       offset,
       search,
+      chainId: isAllChains ? "all" : chainId,
     });
+
+    return jsonResponse(
+      {
+        app,
+        chainId: isAllChains ? "all" : chainId,
+        period,
+        unit: "USD",
+        updatedAt: latestUpdatedAt(page.rows),
+        total: page.total,
+        limit,
+        offset,
+        rows: page.rows,
+      },
+      200,
+      { "Cache-Control": "public, max-age=120" },
+    );
   } catch (e) {
     console.error("get-pnl-leaderboard", e);
     return jsonResponse({ error: (e as Error)?.message || "Internal server error" }, 500);
   }
 };
-
-async function serveRankForSingleChainUsd(args: {
-  app: SeerAppFilterId;
-  period: Period;
-  chainId: number;
-  address: string;
-}) {
-  const { app, period, chainId, address } = args;
-
-  const { data: row, error: rowError } = await supabase
-    .from("pnl_leaderboard")
-    .select("address, pnl_usd")
-    .eq("app_id", app)
-    .eq("chain_id", chainId)
-    .eq("period", period)
-    .eq("address", address)
-    .maybeSingle();
-
-  if (rowError) {
-    throw new Error(rowError.message);
-  }
-
-  const { count: total, error: totalError } = await supabase
-    .from("pnl_leaderboard")
-    .select("address", { count: "exact", head: true })
-    .eq("app_id", app)
-    .eq("chain_id", chainId)
-    .eq("period", period);
-
-  if (totalError) {
-    throw new Error(totalError.message);
-  }
-
-  if (!row) {
-    return jsonResponse({ app, chainId, period, address, rank: null, total: total ?? 0 }, 200, {
-      "Cache-Control": "public, max-age=60",
-    });
-  }
-
-  const pnlUsd = Number(row.pnl_usd) || 0;
-  // Ahead = higher pnl_usd, or same pnl_usd with lexicographically smaller address (matches list order).
-  const { count: aheadHigher, error: aheadHigherError } = await supabase
-    .from("pnl_leaderboard")
-    .select("address", { count: "exact", head: true })
-    .eq("app_id", app)
-    .eq("chain_id", chainId)
-    .eq("period", period)
-    .gt("pnl_usd", pnlUsd);
-
-  if (aheadHigherError) {
-    throw new Error(aheadHigherError.message);
-  }
-
-  const { count: aheadTie, error: aheadTieError } = await supabase
-    .from("pnl_leaderboard")
-    .select("address", { count: "exact", head: true })
-    .eq("app_id", app)
-    .eq("chain_id", chainId)
-    .eq("period", period)
-    .eq("pnl_usd", pnlUsd)
-    .lt("address", address);
-
-  if (aheadTieError) {
-    throw new Error(aheadTieError.message);
-  }
-
-  return jsonResponse(
-    {
-      app,
-      chainId,
-      period,
-      address,
-      rank: (aheadHigher ?? 0) + (aheadTie ?? 0) + 1,
-      total: total ?? 0,
-    },
-    200,
-    { "Cache-Control": "public, max-age=60" },
-  );
-}
-
-async function serveRankForAllChainsUsd(args: { app: SeerAppFilterId; period: Period; address: string }) {
-  const { app, period, address } = args;
-
-  const { data, error } = await supabase.rpc("pnl_leaderboard_all_chains_rank", {
-    p_app_id: app,
-    p_period: period,
-    p_address: address,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const row = data?.[0];
-  return jsonResponse(
-    {
-      app,
-      chainId: "all",
-      period,
-      address,
-      rank: row?.rank == null ? null : Number(row.rank),
-      total: Number(row?.total) || 0,
-    },
-    200,
-    { "Cache-Control": "public, max-age=60" },
-  );
-}
-
-/** Per-chain ranking still uses USD so ranks stay comparable across chains. */
-async function serveSingleChainUsd(args: {
-  app: SeerAppFilterId;
-  period: Period;
-  chainId: number;
-  limit: number;
-  offset: number;
-  search: string;
-}) {
-  const { app, period, chainId, limit, offset, search } = args;
-
-  let query = supabase
-    .from("pnl_leaderboard")
-    .select("address, pnl_usd, volume_usd, roi, market_count, updated_at, chain_id", { count: "exact" })
-    .eq("app_id", app)
-    .eq("chain_id", chainId)
-    .eq("period", period)
-    .order("pnl_usd", { ascending: false })
-    .order("address", { ascending: true });
-
-  if (search) {
-    query = query.ilike("address", `%${search}%`);
-  }
-
-  const { data, error, count } = await query.range(offset, offset + limit - 1);
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const rows: PnlLeaderboardRow[] = (data ?? []).map((row, i) => ({
-    rank: offset + i + 1,
-    address: row.address,
-    pnl: Number(row.pnl_usd) || 0,
-    volume: Number(row.volume_usd) || 0,
-    roi: row.roi == null ? null : Number(row.roi),
-    unit: "USD",
-    chainId: row.chain_id,
-    marketCount: row.market_count ?? 0,
-    updatedAt: row.updated_at,
-  }));
-
-  return jsonResponse(
-    {
-      app,
-      chainId,
-      period,
-      unit: "USD",
-      updatedAt: latestUpdatedAt(rows),
-      total: count ?? rows.length,
-      limit,
-      offset,
-      rows,
-    },
-    200,
-    { "Cache-Control": "public, max-age=120" },
-  );
-}
-
-async function serveAllChainsUsd(args: {
-  app: SeerAppFilterId;
-  period: Period;
-  limit: number;
-  offset: number;
-  search: string;
-}) {
-  const { app, period, limit, offset, search } = args;
-
-  const { data, error } = await supabase.rpc("pnl_leaderboard_all_chains", {
-    p_app_id: app,
-    p_period: period,
-    p_search: search || null,
-    p_limit: limit,
-    p_offset: offset,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const page = data ?? [];
-  let total = Number(page[0]?.total_count) || 0;
-  if (page.length === 0 && offset > 0) {
-    const { data: head, error: headError } = await supabase.rpc("pnl_leaderboard_all_chains", {
-      p_app_id: app,
-      p_period: period,
-      p_search: search || null,
-      p_limit: 1,
-      p_offset: 0,
-    });
-    if (headError) {
-      throw new Error(headError.message);
-    }
-    total = Number(head?.[0]?.total_count) || 0;
-  }
-  const rows: PnlLeaderboardRow[] = page.map((r, i) => {
-    const pnlUsd = Number(r.pnl_usd) || 0;
-    const capitalUsd = Number(r.capital_usd) || 0;
-    return {
-      rank: offset + i + 1,
-      address: r.address,
-      pnl: pnlUsd,
-      volume: Number(r.volume_usd) || 0,
-      roi: roiFromCapitalUsd(pnlUsd, capitalUsd),
-      unit: "USD",
-      marketCount: Number(r.market_count) || 0,
-      updatedAt: r.updated_at ?? null,
-    };
-  });
-
-  return jsonResponse(
-    {
-      app,
-      chainId: "all",
-      period,
-      unit: "USD",
-      updatedAt: latestUpdatedAt(rows),
-      total,
-      limit,
-      offset,
-      rows,
-    },
-    200,
-    { "Cache-Control": "public, max-age=120" },
-  );
-}

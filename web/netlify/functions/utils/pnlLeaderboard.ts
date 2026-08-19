@@ -5,7 +5,10 @@ import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { getDexScreenerPriceUSD } from "./common";
+import { TRADE_EXECUTOR_CHAIN_ID, readOwnerMap, refreshOwnerMap } from "./executorOwners";
 import { searchAllMarkets } from "./markets";
+import { computeRoiUsd } from "./pnlLeaderboardMetrics";
+import { type LeaderboardCandidate, withExecutors } from "./pnlLeaderboardRollup";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
 import type { Database, TablesInsert } from "./supabase";
 
@@ -21,9 +24,7 @@ export const PNL_LEADERBOARD_REFRESH_BUDGET_MS = 13 * 60 * 1000;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const DAY_SECONDS = 86_400;
 
-export type LeaderboardCandidate = {
-  address: string;
-};
+export type { LeaderboardCandidate } from "./pnlLeaderboardRollup";
 
 export type RefreshJob = {
   appId: SeerAppFilterId;
@@ -34,58 +35,12 @@ export type RefreshJob = {
 
 type PnlLeaderboardInsert = TablesInsert<"pnl_leaderboard">;
 
-/** Capital dust in USD below which ROI is undefined. */
-export const ROI_CAPITAL_DUST_USD = 0.01;
-
-/**
- * Deployed capital in USD for ROI:
- *   capital_usd = value_start_usd + buys_usd
- *
- * where buys (primary as tokenIn) is recovered from stored swap aggregates:
- *   volume = primary_in + primary_out
- *   trading_collateral_net_out = primary_in - primary_out
- *   ⇒ buys = (volume + trading_collateral_net_out) / 2
- *
- * We use max(buys, 0) — not max(net_out, 0) — so round-trip / net-seller wallets with large
- * PnL and volume still get a defined ROI (net ≤ 0 would otherwise make capital 0), without
- * inventing negative capital from sell-only legs.
- */
-export function capitalUsdFromRow(args: {
-  valueStart: number;
-  volume: number;
-  tradingCollateralNetOut: number;
-  collateralPriceUsd: number;
-}): number {
-  const price = Number(args.collateralPriceUsd) || 0;
-  const buys = ((Number(args.volume) || 0) + (Number(args.tradingCollateralNetOut) || 0)) / 2;
-  return (Number(args.valueStart) || 0) * price + Math.max(buys, 0) * price;
-}
-
-/**
- * ROI in USD space.
- *
- *   roi = pnl_usd / capital_usd
- *
- * Returns null when capital_usd < $0.01 (avoids ÷0 / “infinite” ROI); typical when
- * there is no starting value and no buys (e.g. only sold transferred tokens).
- */
-export function computeRoiUsd(args: {
-  pnlUsd: number;
-  valueStart: number;
-  volume: number;
-  tradingCollateralNetOut: number;
-  collateralPriceUsd: number;
-}): number | null {
-  const capitalUsd = capitalUsdFromRow(args);
-  if (capitalUsd < ROI_CAPITAL_DUST_USD) return null;
-  return args.pnlUsd / capitalUsd;
-}
-
-/** Same dust rule as `computeRoiUsd`, for already-aggregated capital across chains. */
-export function roiFromCapitalUsd(pnlUsd: number, capitalUsd: number): number | null {
-  if (capitalUsd < ROI_CAPITAL_DUST_USD) return null;
-  return pnlUsd / capitalUsd;
-}
+export {
+  ROI_CAPITAL_DUST_USD,
+  capitalUsdFromRow,
+  computeRoiUsd,
+  roiFromCapitalUsd,
+} from "./pnlLeaderboardMetrics";
 
 /** UTC midnight of the first day included in the recent-activity window. */
 export function recentActivityCutoffDay(
@@ -426,10 +381,34 @@ export async function refreshPnlLeaderboardForAppChain(
   let skippedStale: number;
   if (opts?.candidates) {
     candidates = opts.candidates;
+    if (chainId === TRADE_EXECUTOR_CHAIN_ID) {
+      const candidateAddresses = candidates.map((candidate) => candidate.address);
+      let owners = {};
+      try {
+        owners = await refreshOwnerMap(candidateAddresses);
+      } catch (e) {
+        console.error("pnl-leaderboard: owner map refresh failed", e instanceof Error ? e.message : e);
+        owners = await readOwnerMap().catch(() => ({}));
+      }
+      candidates = withExecutors(candidates, owners);
+    }
     batch = candidates;
     skippedStale = 0;
   } else {
     candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds);
+
+    if (chainId === TRADE_EXECUTOR_CHAIN_ID) {
+      const candidateAddresses = candidates.map((candidate) => candidate.address);
+      let owners = {};
+      try {
+        owners = await refreshOwnerMap(candidateAddresses);
+      } catch (e) {
+        console.error("pnl-leaderboard: owner map refresh failed", e instanceof Error ? e.message : e);
+        owners = await readOwnerMap().catch(() => ({}));
+      }
+      candidates = withExecutors(candidates, owners);
+    }
+
     batch = await selectStaleLeaderboardBatch(supabase, appId, chainId, candidates, batchSize);
     skippedStale = Math.max(0, candidates.length - batch.length);
   }
