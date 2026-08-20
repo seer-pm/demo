@@ -2,12 +2,17 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import {
+  SEER_APPS,
   SEER_APP_ALL_ID,
   type SeerAppFilterId,
+  type SeerAppId,
   chainIdsForAppFilter,
+  childScopes,
   isGlobalAppFilter,
   listSeerApps,
+  marketScopeFilterId,
   marketsForAppFilter,
+  parentAppId,
 } from "@/lib/apps";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
@@ -73,7 +78,7 @@ function formatRoi(roi: number | null) {
   return `${sign}${pct.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
-function appHasMarkets(appId: Exclude<SeerAppFilterId, typeof SEER_APP_ALL_ID>, chainIds: number[]) {
+function appHasMarkets(appId: SeerAppId, chainIds: number[]) {
   return chainIds.some((id) => (marketsForAppFilter(appId, id)?.length ?? 0) > 0);
 }
 
@@ -137,6 +142,11 @@ function LeaderboardPage() {
 
   const supportedChainIds = useMemo(() => Object.values(SUPPORTED_CHAINS).map((c) => c.id), []);
   const availableChains = useMemo(() => chainIdsForAppFilter(app, supportedChainIds), [app, supportedChainIds]);
+  const selectedParentAppId = useMemo(() => parentAppId(app), [app]);
+  const nestedMarkets = useMemo(
+    () => (selectedParentAppId ? childScopes(selectedParentAppId) : []),
+    [selectedParentAppId],
+  );
 
   // Keep chain selection valid when app filter changes.
   const effectiveChainId: ChainFilter = useMemo(() => {
@@ -154,7 +164,8 @@ function LeaderboardPage() {
   // Drop a selected app that has no markets for the current chain scope.
   useEffect(() => {
     if (isGlobalAppFilter(app)) return;
-    if (!appsWithMarkets.some((a) => a.id === app)) {
+    const parent = parentAppId(app);
+    if (!parent || !appsWithMarkets.some((a) => a.id === parent)) {
       setApp(SEER_APP_ALL_ID);
       setPage(0);
     }
@@ -187,8 +198,13 @@ function LeaderboardPage() {
 
   const selectedAppLabel = useMemo(() => {
     if (isGlobalAppFilter(app)) return null;
-    return listSeerApps().find((a) => a.id === app)?.label ?? app;
-  }, [app]);
+    const parent = parentAppId(app);
+    if (!parent) return app;
+    const parentLabel = SEER_APPS[parent].label;
+    if (app === parent) return parentLabel;
+    const market = nestedMarkets.find((m) => marketScopeFilterId(parent, m.id) === app);
+    return market ? `${parentLabel} · ${market.label}` : parentLabel;
+  }, [app, nestedMarkets]);
 
   const selectedChainLabel = useMemo(() => {
     if (effectiveChainId === "all") return null;
@@ -231,6 +247,12 @@ function LeaderboardPage() {
     }
   };
 
+  const resetPaging = () => {
+    setPage(0);
+    setHighlightAddress(undefined);
+    setRankStatus("idle");
+  };
+
   const chipClass = (active: boolean) =>
     clsx("btn btn-sm", active ? "btn-primary" : "btn-ghost border border-separator-100");
 
@@ -242,7 +264,8 @@ function LeaderboardPage() {
         <h1 className="text-[28px] lg:text-[36px] font-semibold text-base-content">Profit &amp; Loss Leaderboard</h1>
         <p className="text-black-secondary max-w-2xl">
           Rankings of wallets by trading P/L in USD. <strong>All</strong> covers every Seer market on a chain (including
-          markets not assigned to an app). App filters scope to that app&apos;s configured markets.
+          markets not assigned to an app). App filters scope to that app&apos;s configured markets; Deepfunding and
+          Foresight also offer per-market boards.
         </p>
       </div>
 
@@ -257,9 +280,7 @@ function LeaderboardPage() {
                 className={clsx("btn btn-sm join-item", period === p ? "btn-primary" : "btn-ghost")}
                 onClick={() => {
                   setPeriod(p);
-                  setPage(0);
-                  setHighlightAddress(undefined);
-                  setRankStatus("idle");
+                  resetPaging();
                 }}
               >
                 {PERIOD_LABELS[p]}
@@ -299,9 +320,7 @@ function LeaderboardPage() {
             onSubmit={(e) => {
               e.preventDefault();
               setSearch(searchInput.trim());
-              setPage(0);
-              setHighlightAddress(undefined);
-              setRankStatus("idle");
+              resetPaging();
             }}
           >
             <input
@@ -350,9 +369,7 @@ function LeaderboardPage() {
               className={chipClass(app === SEER_APP_ALL_ID)}
               onClick={() => {
                 setApp(SEER_APP_ALL_ID);
-                setPage(0);
-                setHighlightAddress(undefined);
-                setRankStatus("idle");
+                resetPaging();
               }}
             >
               All
@@ -361,12 +378,10 @@ function LeaderboardPage() {
               <button
                 key={a.id}
                 type="button"
-                className={clsx(chipClass(app === a.id), "gap-2")}
+                className={clsx(chipClass(selectedParentAppId === a.id), "gap-2")}
                 onClick={() => {
                   setApp(a.id);
-                  setPage(0);
-                  setHighlightAddress(undefined);
-                  setRankStatus("idle");
+                  resetPaging();
                 }}
               >
                 {paths.logoImage(a.logoKey) ? (
@@ -377,14 +392,44 @@ function LeaderboardPage() {
             ))}
           </div>
 
+          {selectedParentAppId && nestedMarkets.length > 0 ? (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-black-secondary mr-1">Market</span>
+              <button
+                type="button"
+                className={chipClass(app === selectedParentAppId)}
+                onClick={() => {
+                  setApp(selectedParentAppId);
+                  resetPaging();
+                }}
+              >
+                All
+              </button>
+              {nestedMarkets.map((market) => {
+                const scopeId = marketScopeFilterId(selectedParentAppId, market.id);
+                return (
+                  <button
+                    key={scopeId}
+                    type="button"
+                    className={chipClass(app === scopeId)}
+                    onClick={() => {
+                      setApp(scopeId);
+                      resetPaging();
+                    }}
+                  >
+                    {market.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
           <ChainFilterChips
             value={effectiveChainId}
             chains={availableChains.length > 0 ? availableChains : supportedChainIds}
             onChange={(id) => {
               setChainId(id);
-              setPage(0);
-              setHighlightAddress(undefined);
-              setRankStatus("idle");
+              resetPaging();
             }}
           />
         </div>

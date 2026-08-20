@@ -4,19 +4,25 @@ import { getPublicClientByChainId } from "./config";
 import { type OwnerMapRecord, isOwnerMapStale, parseOwnerMapRecord, unknownOwnerCandidates } from "./ownerMapRecord";
 import type { Database, Json } from "./supabase";
 import {
-  EXECUTOR_BYTECODES,
-  OWNER_MAP_KEY,
   type OwnerMap,
-  TRADE_EXECUTOR_CHAIN_ID,
-  predictExecutorAddress,
+  type TradeExecutorChainConfig,
+  getTradeExecutorConfig,
+  ownerMapKey,
+  predictedExecutorsForOwner,
 } from "./tradeExecutorOwnersCore";
 
 export {
-  OWNER_MAP_KEY,
-  TRADE_EXECUTOR_CHAIN_ID,
+  TRADE_EXECUTOR_CHAIN_IDS,
+  TRADE_EXECUTOR_CHAINS,
   canonicalAddress,
+  getTradeExecutorConfig,
+  hasTradeExecutorConfig,
+  jobUsesTradeExecutors,
+  ownerMapKey,
   predictExecutorAddress,
+  predictedExecutorsForOwner,
   type OwnerMap,
+  type TradeExecutorChainConfig,
 } from "./tradeExecutorOwnersCore";
 
 export {
@@ -42,17 +48,22 @@ const OWNER_ABI = [
   },
 ] as const;
 
-export async function readOwnerMapRecord(): Promise<OwnerMapRecord> {
-  const { data, error } = await supabase.from("key_value").select("value").eq("key", OWNER_MAP_KEY).maybeSingle();
+export async function readOwnerMapRecord(chainId: number): Promise<OwnerMapRecord> {
+  const { data, error } = await supabase
+    .from("key_value")
+    .select("value")
+    .eq("key", ownerMapKey(chainId))
+    .maybeSingle();
   if (error) throw error;
   return parseOwnerMapRecord(data?.value);
 }
 
-export async function readOwnerMap(): Promise<OwnerMap> {
-  return (await readOwnerMapRecord()).owners;
+export async function readOwnerMap(chainId: number): Promise<OwnerMap> {
+  if (!getTradeExecutorConfig(chainId)) return {};
+  return (await readOwnerMapRecord(chainId)).owners;
 }
 
-async function writeOwnerMapRecord(owners: OwnerMap, scannedOwners: string[]): Promise<void> {
+async function writeOwnerMapRecord(chainId: number, owners: OwnerMap, scannedOwners: string[]): Promise<void> {
   const value = {
     updatedAt: new Date().toISOString(),
     owners,
@@ -60,7 +71,7 @@ async function writeOwnerMapRecord(owners: OwnerMap, scannedOwners: string[]): P
   };
   const { error } = await supabase
     .from("key_value")
-    .upsert({ key: OWNER_MAP_KEY, value: value as Json }, { onConflict: "key" });
+    .upsert({ key: ownerMapKey(chainId), value: value as Json }, { onConflict: "key" });
   if (error) throw error;
 }
 
@@ -81,28 +92,22 @@ async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T) => P
   return results;
 }
 
-function predictedExecutorsFor(owner: string): string[] {
-  const ownerLc = owner.toLowerCase();
-  const out: string[] = [];
-  for (const bytecode of EXECUTOR_BYTECODES) {
-    const executor = predictExecutorAddress(ownerLc as Address, bytecode).toLowerCase();
-    if (executor !== ownerLc) out.push(executor);
-  }
-  return out;
-}
-
 type ProbedOwnerMap = {
   owners: OwnerMap;
   deployedCount: number;
   otherContracts: number;
 };
 
-async function probeOwnerMap(unique: string[]): Promise<ProbedOwnerMap> {
-  const client = getPublicClientByChainId(TRADE_EXECUTOR_CHAIN_ID);
+async function probeOwnerMap(
+  chainId: number,
+  config: TradeExecutorChainConfig,
+  unique: string[],
+): Promise<ProbedOwnerMap> {
+  const client = getPublicClientByChainId(chainId);
 
   const candidates: { executor: string; owner: string }[] = [];
   for (const owner of unique) {
-    for (const executor of predictedExecutorsFor(owner)) {
+    for (const executor of predictedExecutorsForOwner(owner, config)) {
       candidates.push({ executor, owner });
     }
   }
@@ -160,12 +165,17 @@ async function probeOwnerMap(unique: string[]): Promise<ProbedOwnerMap> {
   return { owners, deployedCount: deployed.length, otherContracts: contracts.length };
 }
 
-function mergeProbedOwnerMap(existing: OwnerMapRecord, unique: string[], probed: OwnerMap): OwnerMapRecord {
+function mergeProbedOwnerMap(
+  config: TradeExecutorChainConfig,
+  existing: OwnerMapRecord,
+  unique: string[],
+  probed: OwnerMap,
+): OwnerMapRecord {
   const owners = { ...existing.owners };
   const scanned = new Set(existing.scannedOwners);
   for (const owner of unique) {
     scanned.add(owner);
-    for (const executor of predictedExecutorsFor(owner)) {
+    for (const executor of predictedExecutorsForOwner(owner, config)) {
       if (owners[executor] === owner) delete owners[executor];
     }
   }
@@ -187,20 +197,23 @@ function mergeProbedOwnerMap(existing: OwnerMapRecord, unique: string[], probed:
  * Derive each address's executor addresses, keep the ones that have bytecode, and confirm
  * ownership with `owner()`. Addresses whose own code is a 7702 delegation are left alone.
  */
-export async function refreshOwnerMap(addresses: string[]): Promise<OwnerMap> {
+export async function refreshOwnerMap(chainId: number, addresses: string[]): Promise<OwnerMap> {
+  const config = getTradeExecutorConfig(chainId);
+  if (!config) return {};
+
   const refreshStartedMs = Date.now();
   const unique = [...new Set(addresses.map((address) => address.toLowerCase()))];
   if (unique.length === 0) {
-    const existing = await readOwnerMapRecord();
+    const existing = await readOwnerMapRecord(chainId);
     return existing.owners;
   }
 
-  const existing = await readOwnerMapRecord();
-  const probed = await probeOwnerMap(unique);
-  const merged = mergeProbedOwnerMap(existing, unique, probed.owners);
-  await writeOwnerMapRecord(merged.owners, merged.scannedOwners);
+  const existing = await readOwnerMapRecord(chainId);
+  const probed = await probeOwnerMap(chainId, config, unique);
+  const merged = mergeProbedOwnerMap(config, existing, unique, probed.owners);
+  await writeOwnerMapRecord(chainId, merged.owners, merged.scannedOwners);
   console.log(
-    `executorOwners: ${unique.length} owners, ${probed.deployedCount} derived executors, ` +
+    `executorOwners[${chainId}]: ${unique.length} owners, ${probed.deployedCount} derived executors, ` +
       `${probed.otherContracts} other contracts, ${Object.keys(merged.owners).length} rolled up ` +
       `+${Date.now() - refreshStartedMs}ms`,
   );
@@ -210,19 +223,21 @@ export async function refreshOwnerMap(addresses: string[]): Promise<OwnerMap> {
 /**
  * Prefer the KV map. RPC only when it is empty/stale or the candidate list has unseen addresses.
  */
-export async function resolveOwnerMap(addresses: string[]): Promise<OwnerMap> {
-  const record = await readOwnerMapRecord();
+export async function resolveOwnerMap(chainId: number, addresses: string[]): Promise<OwnerMap> {
+  if (!getTradeExecutorConfig(chainId)) return {};
+
+  const record = await readOwnerMapRecord(chainId);
   if (isOwnerMapStale(record)) {
-    return refreshOwnerMap(addresses);
+    return refreshOwnerMap(chainId, addresses);
   }
   const unknown = unknownOwnerCandidates(addresses, record);
   if (unknown.length === 0) {
     console.log(
-      `executorOwners: cache hit scanned=${record.scannedOwners.length} rolled=${Object.keys(record.owners).length}`,
+      `executorOwners[${chainId}]: cache hit scanned=${record.scannedOwners.length} rolled=${Object.keys(record.owners).length}`,
     );
     return record.owners;
   }
-  return refreshOwnerMap(unknown);
+  return refreshOwnerMap(chainId, unknown);
 }
 
 /** Every executor address in the map — the wallets that must also be scored. */

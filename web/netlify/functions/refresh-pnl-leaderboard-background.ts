@@ -17,7 +17,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * Triggered by `scheduled-refresh-pnl-leaderboard` (or manually).
  *
  * Always refreshes protocol-wide `app=all` per supported chain (every market, including those
- * not assigned to any app). App-scoped jobs run only when `SEER_APPS` lists markets.
+ * not assigned to any app). App-scoped jobs come from `leaderboardJobsFromApps` (per-market
+ * when `splitLeaderboard`, else one union board per app×chain).
  *
  * Each job refreshes a stale/missing batch among wallets with analytics activity;
  * a global time budget aborts cleanly before Netlify's ~15m background limit so the next

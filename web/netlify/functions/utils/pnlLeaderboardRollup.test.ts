@@ -1,10 +1,19 @@
 import type { Address } from "viem";
+import { gnosis, optimism } from "viem/chains";
 import { describe, expect, it } from "vitest";
 import type { MaterializedLeaderboardRow } from "./pnlLeaderboardRollup";
 import { matchesAddressSearch, rankForAddress, rollUpRows, withExecutors } from "./pnlLeaderboardRollup";
 import type { LeaderboardCandidate } from "./pnlLeaderboardRollup";
 import { OldTradeExecutorBytecode, TradeExecutorBytecode, formatBytecode } from "./tradeExecutorBytecode";
-import { canonicalAddress, predictExecutorAddress } from "./tradeExecutorOwnersCore";
+import {
+  GNOSIS_TRADE_EXECUTOR_FACTORY,
+  OPTIMISM_TRADE_EXECUTOR_FACTORY,
+  TRADE_EXECUTOR_CHAINS,
+  canonicalAddress,
+  jobUsesTradeExecutors,
+  predictExecutorAddress,
+  predictedExecutorsForOwner,
+} from "./tradeExecutorOwnersCore";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
 const EXECUTOR = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -87,6 +96,20 @@ describe("rollUpRows", () => {
     expect(rolled[0].pnlUsd).toBe(200);
     expect(rolled[0].members).toEqual([EXECUTOR]);
   });
+
+  it("rolls up Gnosis foresight rows the same way as Optimism", () => {
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const rolled = rollUpRows(
+      [
+        row({ chainId: gnosis.id, address: OWNER.toLowerCase(), pnlUsd: 10 }),
+        row({ chainId: gnosis.id, address: EXECUTOR, pnlUsd: 40 }),
+      ],
+      owners,
+    );
+    expect(rolled).toHaveLength(1);
+    expect(rolled[0].pnlUsd).toBe(50);
+    expect(rolled[0].address).toBe(OWNER.toLowerCase());
+  });
 });
 
 describe("matchesAddressSearch and rankForAddress", () => {
@@ -108,15 +131,57 @@ describe("matchesAddressSearch and rankForAddress", () => {
 });
 
 describe("predictExecutorAddress", () => {
-  it("matches CREATE2 derivation for current bytecode", () => {
-    const predicted = predictExecutorAddress(OWNER, formatBytecode(TradeExecutorBytecode));
+  const oldBytecode = formatBytecode(OldTradeExecutorBytecode);
+  const currentBytecode = formatBytecode(TradeExecutorBytecode);
+
+  it("matches CREATE2 derivation for Optimism current bytecode", () => {
+    const predicted = predictExecutorAddress(OWNER, currentBytecode, OPTIMISM_TRADE_EXECUTOR_FACTORY);
     expect(predicted).toMatch(/^0x[a-f0-9]{40}$/);
-    expect(predictExecutorAddress(OWNER, formatBytecode(TradeExecutorBytecode))).toBe(predicted);
+    expect(predictExecutorAddress(OWNER, currentBytecode, OPTIMISM_TRADE_EXECUTOR_FACTORY)).toBe(predicted);
   });
 
-  it("differs between current and deprecated bytecode", () => {
-    const current = predictExecutorAddress(OWNER, formatBytecode(TradeExecutorBytecode));
-    const old = predictExecutorAddress(OWNER, formatBytecode(OldTradeExecutorBytecode));
+  it("differs between current and deprecated bytecode on Optimism", () => {
+    const current = predictExecutorAddress(OWNER, currentBytecode, OPTIMISM_TRADE_EXECUTOR_FACTORY);
+    const old = predictExecutorAddress(OWNER, oldBytecode, OPTIMISM_TRADE_EXECUTOR_FACTORY);
     expect(current).not.toBe(old);
+  });
+
+  it("differs between Optimism and Gnosis factories for the same bytecode", () => {
+    const onOptimism = predictExecutorAddress(OWNER, oldBytecode, OPTIMISM_TRADE_EXECUTOR_FACTORY);
+    const onGnosis = predictExecutorAddress(OWNER, oldBytecode, GNOSIS_TRADE_EXECUTOR_FACTORY);
+    expect(onOptimism).not.toBe(onGnosis);
+    expect(onGnosis).toMatch(/^0x[a-f0-9]{40}$/);
+  });
+
+  it("Gnosis config probes only the old bytecode", () => {
+    const gnosisConfig = TRADE_EXECUTOR_CHAINS[gnosis.id];
+    expect(gnosisConfig.bytecodes).toHaveLength(1);
+    expect(gnosisConfig.bytecodes[0]).toBe(oldBytecode);
+    const predicted = predictedExecutorsForOwner(OWNER, gnosisConfig);
+    expect(predicted).toEqual([
+      predictExecutorAddress(OWNER, oldBytecode, GNOSIS_TRADE_EXECUTOR_FACTORY).toLowerCase(),
+    ]);
+  });
+
+  it("Optimism config probes current and old bytecodes", () => {
+    const optimismConfig = TRADE_EXECUTOR_CHAINS[optimism.id];
+    expect(predictedExecutorsForOwner(OWNER, optimismConfig)).toHaveLength(2);
+  });
+});
+
+describe("jobUsesTradeExecutors", () => {
+  it("enables deepfund, foresight, and all on their TradeExecutor chains", () => {
+    expect(jobUsesTradeExecutors("deepfund:octant", optimism.id)).toBe(true);
+    expect(jobUsesTradeExecutors("foresight:movies-1", gnosis.id)).toBe(true);
+    expect(jobUsesTradeExecutors("all", optimism.id)).toBe(true);
+    expect(jobUsesTradeExecutors("all", gnosis.id)).toBe(true);
+  });
+
+  it("skips opportunity, cross-chain app jobs, and unsupported chains", () => {
+    expect(jobUsesTradeExecutors("opportunity", gnosis.id)).toBe(false);
+    expect(jobUsesTradeExecutors("opportunity", optimism.id)).toBe(false);
+    expect(jobUsesTradeExecutors("deepfund:octant", gnosis.id)).toBe(false);
+    expect(jobUsesTradeExecutors("foresight:movies-1", optimism.id)).toBe(false);
+    expect(jobUsesTradeExecutors("foresight:movies-1", 1)).toBe(false);
   });
 });

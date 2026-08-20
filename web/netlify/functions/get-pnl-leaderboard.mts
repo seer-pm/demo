@@ -1,8 +1,14 @@
-import { SEER_APP_ALL_ID, type SeerAppFilterId, isSeerAppFilterId, listSeerApps } from "@/lib/apps";
+import {
+  SEER_APP_ALL_ID,
+  type SeerAppFilterId,
+  isSeerAppFilterId,
+  listSeerApps,
+  materializedAppIdsForFilter,
+} from "@/lib/apps";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { createClient } from "@supabase/supabase-js";
 import { CORS_HEADERS } from "./utils/common";
-import { TRADE_EXECUTOR_CHAIN_ID, canonicalAddress, readOwnerMap } from "./utils/executorOwners";
+import { type OwnerMap, TRADE_EXECUTOR_CHAIN_IDS, hasTradeExecutorConfig, readOwnerMap } from "./utils/executorOwners";
 import { roiFromCapitalUsd } from "./utils/pnlLeaderboardMetrics";
 import {
   type MaterializedLeaderboardRow,
@@ -35,7 +41,7 @@ export type PnlLeaderboardRow = {
   chainId?: number;
   marketCount: number;
   updatedAt: string | null;
-  /** Extra wallets merged into this row (TradeExecutor → owner on Optimism). */
+  /** Extra wallets merged into this row (TradeExecutor → owner). */
   mergedWallets?: string[];
 };
 
@@ -100,11 +106,18 @@ function mapDbRow(row: {
   };
 }
 
+/**
+ * Load materialized rows for one or more `app_id`s.
+ * Split-app aggregates pass every market-scope id; `rollUpRows` then sums additive
+ * metrics (and recomputes ROI) across contests for the same address.
+ */
 async function loadMaterializedRows(args: {
-  app: SeerAppFilterId;
+  appIds: string[];
   period: Period;
   chainId?: number;
 }): Promise<MaterializedLeaderboardRow[]> {
+  if (args.appIds.length === 0) return [];
+
   const rows: MaterializedLeaderboardRow[] = [];
   for (let offset = 0; ; offset += LOAD_PAGE_SIZE) {
     let query = supabase
@@ -112,7 +125,7 @@ async function loadMaterializedRows(args: {
       .select(
         "address, chain_id, pnl_usd, volume_usd, volume, value_start, trading_collateral_net_out, collateral_price_usd, market_count, updated_at",
       )
-      .eq("app_id", args.app)
+      .in("app_id", args.appIds)
       .eq("period", args.period)
       .order("address", { ascending: true })
       .range(offset, offset + LOAD_PAGE_SIZE - 1);
@@ -151,27 +164,78 @@ function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeader
   };
 }
 
+async function loadOwnerMapsForChains(chainIds: number[]): Promise<Map<number, OwnerMap>> {
+  const maps = new Map<number, OwnerMap>();
+  const unique = [...new Set(chainIds.filter(hasTradeExecutorConfig))];
+  await Promise.all(
+    unique.map(async (chainId) => {
+      const owners = await readOwnerMap(chainId).catch(() => ({}) as OwnerMap);
+      maps.set(chainId, owners);
+    }),
+  );
+  return maps;
+}
+
+/** Prefer an executor→owner hit from any TradeExecutor chain (OP / Gnosis maps are disjoint). */
+function canonicalAcrossOwnerMaps(address: string, maps: Map<number, OwnerMap>): string {
+  const lower = address.toLowerCase();
+  for (const owners of maps.values()) {
+    const mapped = owners[lower];
+    if (mapped) return mapped;
+  }
+  return lower;
+}
+
+/**
+ * Roll up TradeExecutor wallets per chain, then aggregate across market scopes / chains.
+ */
+function rollUpMaterializedRows(
+  materialized: MaterializedLeaderboardRow[],
+  ownerMaps: Map<number, OwnerMap>,
+  aggregateScopes: boolean,
+): RolledUpLeaderboardRow[] {
+  const byChain = new Map<number, MaterializedLeaderboardRow[]>();
+  for (const row of materialized) {
+    const list = byChain.get(row.chainId) ?? [];
+    list.push(row);
+    byChain.set(row.chainId, list);
+  }
+
+  const rolled: RolledUpLeaderboardRow[] = [];
+  for (const [chainId, rows] of byChain) {
+    if (hasTradeExecutorConfig(chainId)) {
+      // rollUpRows also merges duplicate addresses across split market scopes.
+      rolled.push(...rollUpRows(rows, ownerMaps.get(chainId) ?? {}));
+      continue;
+    }
+    const plain = rows
+      .map(materializedToRolledUp)
+      .sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
+    rolled.push(...(aggregateScopes ? aggregateRowsAcrossChains(plain) : plain));
+  }
+
+  if (aggregateScopes || byChain.size > 1) {
+    return aggregateRowsAcrossChains(rolled);
+  }
+  return rolled.sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
+}
+
 async function buildPublicLeaderboard(args: {
   app: SeerAppFilterId;
   period: Period;
   chainId?: number;
 }): Promise<RolledUpLeaderboardRow[]> {
-  const materialized = await loadMaterializedRows(args);
-  const owners = await readOwnerMap().catch(() => ({}) as Record<string, string>);
+  const appIds = materializedAppIdsForFilter(args.app);
+  const materialized = await loadMaterializedRows({
+    appIds,
+    period: args.period,
+    chainId: args.chainId,
+  });
 
-  const optimismRows = materialized.filter((row) => row.chainId === TRADE_EXECUTOR_CHAIN_ID);
-  const otherRows = materialized.filter((row) => row.chainId !== TRADE_EXECUTOR_CHAIN_ID);
+  const chainIds = args.chainId != null ? [args.chainId] : [...new Set(materialized.map((row) => row.chainId))];
+  const ownerMaps = await loadOwnerMapsForChains(chainIds);
 
-  const rolledOptimism = rollUpRows(optimismRows, owners);
-  const rolledOther = otherRows
-    .map(materializedToRolledUp)
-    .sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
-
-  if (args.chainId != null) {
-    return args.chainId === TRADE_EXECUTOR_CHAIN_ID ? rolledOptimism : rolledOther;
-  }
-
-  return aggregateRowsAcrossChains([...rolledOptimism, ...rolledOther]);
+  return rollUpMaterializedRows(materialized, ownerMaps, appIds.length > 1);
 }
 
 function toApiRow(row: RolledUpLeaderboardRow, rank: number, chainId?: number | "all"): PnlLeaderboardRow {
@@ -208,6 +272,17 @@ function paginateRows(args: {
   };
 }
 
+function appFilterErrorMessage(): string {
+  const apps = listSeerApps()
+    .map((a) => {
+      if (!a.splitLeaderboard || a.markets.length === 0) return a.id;
+      const scopes = a.markets.map((m) => `${a.id}:${m.id}`).join(", ");
+      return `${a.id} (or ${scopes})`;
+    })
+    .join(", ");
+  return `app must be one of: all, ${apps}`;
+}
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
@@ -227,14 +302,7 @@ export default async (req: Request) => {
     const search = searchParsed.kind === "fragment" ? searchParsed.hex : "";
 
     if (!isSeerAppFilterId(appParam)) {
-      return jsonResponse(
-        {
-          error: `app must be one of: all, ${listSeerApps()
-            .map((a) => a.id)
-            .join(", ")}`,
-        },
-        400,
-      );
+      return jsonResponse({ error: appFilterErrorMessage() }, 400);
     }
     if (!["1d", "1w", "1m", "all"].includes(period)) {
       return jsonResponse({ error: "period must be one of: 1d, 1w, 1m, all" }, 400);
@@ -261,8 +329,10 @@ export default async (req: Request) => {
         period,
         chainId: isAllChains ? undefined : chainId,
       });
-      const owners = await readOwnerMap().catch(() => ({}) as Record<string, string>);
-      const canonical = canonicalAddress(rankForRaw, owners);
+      const ownerMaps = await loadOwnerMapsForChains(
+        isAllChains ? TRADE_EXECUTOR_CHAIN_IDS : chainId != null ? [chainId] : TRADE_EXECUTOR_CHAIN_IDS,
+      );
+      const canonical = canonicalAcrossOwnerMaps(rankForRaw, ownerMaps);
       const result = rankForAddress(rows, canonical);
 
       return jsonResponse(

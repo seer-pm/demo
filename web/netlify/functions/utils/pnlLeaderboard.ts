@@ -1,11 +1,11 @@
-import { SEER_APP_ALL_ID, type SeerAppFilterId, listSeerApps } from "@/lib/apps";
+import { SEER_APP_ALL_ID, leaderboardJobsFromApps } from "@/lib/apps";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { getDexScreenerPriceUSD } from "./common";
-import { TRADE_EXECUTOR_CHAIN_ID, resolveOwnerMap } from "./executorOwners";
+import { jobUsesTradeExecutors, resolveOwnerMap } from "./executorOwners";
 import { expandMarketIdsWithChildren } from "./expandMarketsCache";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import { type LeaderboardCandidate, withExecutors } from "./pnlLeaderboardRollup";
@@ -27,7 +27,8 @@ const DAY_SECONDS = 86_400;
 export type { LeaderboardCandidate } from "./pnlLeaderboardRollup";
 
 export type RefreshJob = {
-  appId: SeerAppFilterId;
+  /** Materialized `pnl_leaderboard.app_id` (`all`, app id, or `app:market` for split apps). */
+  appId: string;
   chainId: number;
   /** `undefined` = protocol-wide (no market allowlist). */
   marketIds: Address[] | undefined;
@@ -345,13 +346,15 @@ export async function refreshPnlLeaderboardForAppChain(
   let candidates: LeaderboardCandidate[];
   let batch: LeaderboardCandidate[];
   let skippedStale: number;
+  const expandExecutors = jobUsesTradeExecutors(appId, chainId);
+
   if (opts?.candidates) {
     candidates = opts.candidates;
-    if (chainId === TRADE_EXECUTOR_CHAIN_ID) {
+    if (expandExecutors) {
       const candidateAddresses = candidates.map((candidate) => candidate.address);
       let owners = {};
       try {
-        owners = await resolveOwnerMap(candidateAddresses);
+        owners = await resolveOwnerMap(chainId, candidateAddresses);
       } catch (e) {
         console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
       }
@@ -362,11 +365,11 @@ export async function refreshPnlLeaderboardForAppChain(
   } else {
     candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds);
 
-    if (chainId === TRADE_EXECUTOR_CHAIN_ID) {
+    if (expandExecutors) {
       const candidateAddresses = candidates.map((candidate) => candidate.address);
       let owners = {};
       try {
-        owners = await resolveOwnerMap(candidateAddresses);
+        owners = await resolveOwnerMap(chainId, candidateAddresses);
       } catch (e) {
         console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
       }
@@ -480,8 +483,9 @@ export async function refreshPnlLeaderboardForAppChain(
 }
 
 /**
- * Jobs: each configured app × chain (allowlisted root markets; children expanded at refresh),
- * plus protocol-wide `all` × every supported chain (includes markets that belong to no app).
+ * Jobs: protocol-wide `all` × every supported chain, plus app jobs from `leaderboardJobsFromApps`
+ * (one job per market when `splitLeaderboard`, else one union job per app×chain).
+ * Split apps do not materialize an aggregated `app_id` — that board is summed at read time.
  * Background refresh walks this list as a ring from a persisted cursor.
  */
 export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
@@ -491,15 +495,12 @@ export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
     jobs.push({ appId: SEER_APP_ALL_ID, chainId: chain.id, marketIds: undefined });
   }
 
-  for (const app of listSeerApps()) {
-    for (const [chainIdKey, marketIds] of Object.entries(app.markets)) {
-      if (!marketIds || marketIds.length === 0) continue;
-      jobs.push({
-        appId: app.id,
-        chainId: Number(chainIdKey),
-        marketIds: marketIds.map((id) => id.toLowerCase() as Address),
-      });
-    }
+  for (const job of leaderboardJobsFromApps()) {
+    jobs.push({
+      appId: job.appId,
+      chainId: job.chainId,
+      marketIds: job.marketIds,
+    });
   }
 
   return jobs;
