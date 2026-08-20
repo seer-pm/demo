@@ -5,8 +5,8 @@ import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { getDexScreenerPriceUSD } from "./common";
-import { TRADE_EXECUTOR_CHAIN_ID, readOwnerMap, refreshOwnerMap } from "./executorOwners";
-import { searchAllMarkets } from "./markets";
+import { TRADE_EXECUTOR_CHAIN_ID, resolveOwnerMap } from "./executorOwners";
+import { expandMarketIdsWithChildren } from "./expandMarketsCache";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import { type LeaderboardCandidate, withExecutors } from "./pnlLeaderboardRollup";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
@@ -178,10 +178,6 @@ function updatedAtMs(value: string | undefined): number | null {
   return Number.isFinite(ts) ? ts : null;
 }
 
-function isoOrNull(ms: number | null): string | null {
-  return ms == null ? null : new Date(ms).toISOString();
-}
-
 /**
  * Prefer wallets missing from `pnl_leaderboard`, then those with the oldest `updated_at`
  * (period=`all` is the representative row — all periods upsert together).
@@ -229,23 +225,7 @@ export async function selectStaleLeaderboardBatch(
     if (bMs == null) return 1;
     return aMs - bMs;
   });
-  const batch = ranked.slice(0, batchSize);
-
-  const missing = candidates.length - updatedAtByAddress.size;
-  let batchMinMs: number | null = null;
-  let batchMaxMs: number | null = null;
-  for (const candidate of batch) {
-    const ms = updatedAtMs(updatedAtByAddress.get(candidate.address.toLowerCase()));
-    if (ms == null) continue;
-    if (batchMinMs == null || ms < batchMinMs) batchMinMs = ms;
-    if (batchMaxMs == null || ms > batchMaxMs) batchMaxMs = ms;
-  }
-
-  console.log(
-    `pnl-leaderboard: stale lookup app=${appId} chain=${chainId} candidates=${candidates.length} missing=${missing} resolved=${updatedAtByAddress.size} batchMinUpdatedAt=${isoOrNull(batchMinMs)} batchMaxUpdatedAt=${isoOrNull(batchMaxMs)} sample=${JSON.stringify(batch.slice(0, 8).map((c) => c.address))}`,
-  );
-
-  return batch;
+  return ranked.slice(0, batchSize);
 }
 
 export type RefreshAppChainResult = {
@@ -265,26 +245,7 @@ export type RefreshAppChainResult = {
   marketCount?: number;
 };
 
-/**
- * App allowlists often list parent session markets; trading activity lives on conditionals.
- * Expand to parents ∪ children (`parentMarket` = each root id).
- */
-export async function expandMarketIdsWithChildren(chainId: number, marketIds: Address[]): Promise<Address[]> {
-  const roots = [...new Set(marketIds.map((id) => id.toLowerCase() as Address))];
-  if (roots.length === 0) return [];
-
-  const expanded = new Set<Address>(roots);
-  await mapPool(roots, 3, async (parent) => {
-    const { markets } = await searchAllMarkets({
-      chainIds: [chainId as SupportedChain],
-      parentMarket: parent,
-    });
-    for (const market of markets) {
-      expanded.add(market.id.toLowerCase() as Address);
-    }
-  });
-  return [...expanded];
-}
+export { expandMarketIdsWithChildren } from "./expandMarketsCache";
 
 class FatalLeaderboardUpsertError extends Error {
   constructor(message: string) {
@@ -358,7 +319,12 @@ export async function refreshPnlLeaderboardForAppChain(
   const shouldAbort = opts?.deadlineMs != null ? () => Date.now() >= opts.deadlineMs! : undefined;
   const supportedChain = chainId as SupportedChain;
   const isGlobal = marketIds === undefined;
-  const scopedMarketIds = marketIds === undefined ? undefined : await expandMarketIdsWithChildren(chainId, marketIds);
+  let scopedMarketIds: Address[] | undefined;
+  if (marketIds === undefined) {
+    scopedMarketIds = undefined;
+  } else {
+    scopedMarketIds = await expandMarketIdsWithChildren(chainId, marketIds);
+  }
 
   if (shouldAbort?.()) {
     return {
@@ -385,10 +351,9 @@ export async function refreshPnlLeaderboardForAppChain(
       const candidateAddresses = candidates.map((candidate) => candidate.address);
       let owners = {};
       try {
-        owners = await refreshOwnerMap(candidateAddresses);
+        owners = await resolveOwnerMap(candidateAddresses);
       } catch (e) {
-        console.error("pnl-leaderboard: owner map refresh failed", e instanceof Error ? e.message : e);
-        owners = await readOwnerMap().catch(() => ({}));
+        console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
       }
       candidates = withExecutors(candidates, owners);
     }
@@ -401,10 +366,9 @@ export async function refreshPnlLeaderboardForAppChain(
       const candidateAddresses = candidates.map((candidate) => candidate.address);
       let owners = {};
       try {
-        owners = await refreshOwnerMap(candidateAddresses);
+        owners = await resolveOwnerMap(candidateAddresses);
       } catch (e) {
-        console.error("pnl-leaderboard: owner map refresh failed", e instanceof Error ? e.message : e);
-        owners = await readOwnerMap().catch(() => ({}));
+        console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
       }
       candidates = withExecutors(candidates, owners);
     }

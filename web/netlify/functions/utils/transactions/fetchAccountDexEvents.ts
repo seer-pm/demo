@@ -29,6 +29,12 @@ function mappingTokenIds(mappings: MarketDataMapping): string[] {
   return [...mappings.allTokensIds];
 }
 
+/** Intersect mapping tokens with tokens the wallet has actually held (TokenBalance keys). */
+function dexTokenIdsForWallet(mappingTokenIds: Iterable<string>, walletTokenIds: Iterable<string>): string[] {
+  const wallet = new Set([...walletTokenIds].map((id) => id.toLowerCase()));
+  return [...mappingTokenIds].filter((id) => wallet.has(id.toLowerCase()));
+}
+
 function chunkIds(ids: string[], size: number): string[][] {
   const out: string[][] = [];
   for (let i = 0; i < ids.length; i += size) {
@@ -249,9 +255,11 @@ async function fetchDexEventsFromSubgraph(
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
+  walletTokenIds?: Iterable<string>,
 ): Promise<Omit<AccountDexEvents, "swaps"> & { swaps: TransactionData[] }> {
   const { outcomeTokenToCollateral, tokenPairToMarketMapping } = mappings;
-  const tokenIds = mappingTokenIds(mappings);
+  const mappedIds = mappingTokenIds(mappings);
+  const tokenIds = walletTokenIds == null ? mappedIds : dexTokenIdsForWallet(mappedIds, walletTokenIds);
   if (outcomeTokenToCollateral.size === 0 || tokenIds.length === 0) {
     return { swaps: [], mints: [], burns: [] };
   }
@@ -326,9 +334,10 @@ export async function fetchAccountDexEvents(
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
+  opts?: { walletTokenIds?: Iterable<string> },
 ): Promise<AccountDexEvents> {
   const [dex, cowSwaps] = await Promise.all([
-    fetchDexEventsFromSubgraph(mappings, account, chainId, startTime, endTime),
+    fetchDexEventsFromSubgraph(mappings, account, chainId, startTime, endTime, opts?.walletTokenIds),
     getCowswapSwapsCached(mappings, chainId, account),
   ]);
 

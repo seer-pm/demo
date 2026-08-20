@@ -310,15 +310,41 @@ export type ConditionalEventRow = {
   transactionHash: string;
 };
 
+const MARKET_ADDRESS_IN_CHUNK = 100;
+
+function chunkValues<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+/** GraphQL `market.address` filter: single `_eq` or chunked `_in`. */
+export function conditionalEventMarketFilters(
+  marketAddress?: Address,
+  marketAddresses?: Address[],
+): Array<Record<string, unknown>> {
+  if (marketAddresses) {
+    const unique = [...new Set(marketAddresses.map((id) => id.toLowerCase()))];
+    if (unique.length === 0) return [];
+    if (unique.length === 1) return [{ market: { address: { _eq: unique[0] } } }];
+    return chunkValues(unique, MARKET_ADDRESS_IN_CHUNK).map((chunk) => ({
+      market: { address: { _in: chunk } },
+    }));
+  }
+  if (marketAddress) {
+    return [{ market: { address: { _eq: marketAddress.toLowerCase() } } }];
+  }
+  return [{}];
+}
+
 export async function fetchConditionalEventsForAccount(
   account: Address,
   chainId: SupportedChain,
-  opts?: { startTime?: number; endTime?: number; marketAddress?: Address },
+  opts?: { startTime?: number; endTime?: number; marketAddress?: Address; marketAddresses?: Address[] },
 ): Promise<ConditionalEventRow[]> {
   const sdk = seerEnvioSdk(chainId);
   const accountLc = account.toLowerCase();
   const out: ConditionalEventRow[] = [];
-  let offset = 0;
   const timestampFilter =
     opts?.startTime != null || opts?.endTime != null
       ? {
@@ -326,33 +352,39 @@ export async function fetchConditionalEventsForAccount(
           ...(opts?.endTime != null ? { _lte: String(opts.endTime) } : {}),
         }
       : undefined;
-  for (;;) {
-    const { ConditionalEvent: rows } = await sdk.GetConditionalEvents({
-      limit: PAGE,
-      offset,
-      orderBy: [{ timestamp: Order_By.Asc }],
-      where: {
-        chainId: { _eq: String(chainId) },
-        accountId: { _eq: accountLc },
-        ...(timestampFilter ? { timestamp: timestampFilter } : {}),
-        ...(opts?.marketAddress ? { market: { address: { _eq: opts.marketAddress.toLowerCase() } } } : {}),
-      },
-    });
-    for (const row of rows) {
-      if (!row.market) continue;
-      out.push({
-        marketId: row.market.address,
-        marketName: unescapeJson(row.market.marketName),
-        eventType: row.eventType as "split" | "merge" | "redeem",
-        amount: BigInt(row.amount),
-        collateral: row.collateral as Address,
-        timestamp: Number(row.timestamp),
-        blockNumber: Number(row.blockNumber),
-        transactionHash: row.transactionHash,
+  const marketFilters = conditionalEventMarketFilters(opts?.marketAddress, opts?.marketAddresses);
+  if (marketFilters.length === 0) return out;
+
+  for (const marketFilter of marketFilters) {
+    let offset = 0;
+    for (;;) {
+      const { ConditionalEvent: rows } = await sdk.GetConditionalEvents({
+        limit: PAGE,
+        offset,
+        orderBy: [{ timestamp: Order_By.Asc }],
+        where: {
+          chainId: { _eq: String(chainId) },
+          accountId: { _eq: accountLc },
+          ...(timestampFilter ? { timestamp: timestampFilter } : {}),
+          ...marketFilter,
+        },
       });
+      for (const row of rows) {
+        if (!row.market) continue;
+        out.push({
+          marketId: row.market.address,
+          marketName: unescapeJson(row.market.marketName),
+          eventType: row.eventType as "split" | "merge" | "redeem",
+          amount: BigInt(row.amount),
+          collateral: row.collateral as Address,
+          timestamp: Number(row.timestamp),
+          blockNumber: Number(row.blockNumber),
+          transactionHash: row.transactionHash,
+        });
+      }
+      if (rows.length < PAGE) break;
+      offset += PAGE;
     }
-    if (rows.length < PAGE) break;
-    offset += PAGE;
   }
   return out;
 }

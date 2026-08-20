@@ -165,6 +165,7 @@ async function reconstructRouterLegsByPeriod(
   const allEvents = await fetchConditionalEventsForAccount(account, chainId, {
     startTime: minStart,
     endTime,
+    marketAddresses: [...marketSet] as Address[],
   });
   const scoped = allEvents.filter((e) => marketSet.has(e.marketId.toLowerCase()));
 
@@ -188,6 +189,15 @@ export type ComputePortfolioPlAllPeriodsArgs = {
   collateralProfile: string;
   primaryCollateral: Token;
   debugPeriod?: PortfolioPlPeriod;
+};
+
+export type PortfolioPlComputed = {
+  startTimeByPeriod: Record<PortfolioPlPeriod, number>;
+  byPeriod: Record<PortfolioPlPeriod, PortfolioPlPeriodSnapshot>;
+  debugPayload?: Record<string, unknown>;
+  markets: Market[];
+  swapFlowFailed: boolean;
+  lpFlowFailed: boolean;
 };
 
 /**
@@ -262,14 +272,9 @@ export type ComputePortfolioPlAllPeriodsArgs = {
  *   keep prior/zero rows. `marketCount` is always for the period window (not the
  *   candidate activity filter).
  */
-export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPeriodsArgs): Promise<{
-  startTimeByPeriod: Record<PortfolioPlPeriod, number>;
-  byPeriod: Record<PortfolioPlPeriod, PortfolioPlPeriodSnapshot>;
-  debugPayload?: Record<string, unknown>;
-  markets: Market[];
-  swapFlowFailed: boolean;
-  lpFlowFailed: boolean;
-} | null> {
+export async function computePortfolioPlAllPeriods(
+  args: ComputePortfolioPlAllPeriodsArgs,
+): Promise<PortfolioPlComputed | null> {
   const {
     supabase,
     account,
@@ -298,7 +303,9 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
     holdings,
     historicalMarketIds,
   );
-  if (!marketsAndPositions) return null;
+  if (!marketsAndPositions) {
+    return null;
+  }
 
   const { markets, positions } = marketsAndPositions;
   const startTimes = PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]);
@@ -337,7 +344,10 @@ export async function computePortfolioPlAllPeriods(args: ComputePortfolioPlAllPe
   if (markets.length > 0) {
     try {
       const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
-      dexEvents = await fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime);
+      const walletTokenIds = [...holdings.keys(), primaryCollateral.address];
+      dexEvents = await fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime, {
+        walletTokenIds,
+      });
     } catch (err) {
       swapFlowFailed = true;
       lpFlowFailed = true;
