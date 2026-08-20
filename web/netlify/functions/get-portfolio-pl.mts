@@ -27,7 +27,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   Compute is **Generic markets only** (Futarchy excluded).
  * - **Market-scoped** (`marketId` or comma-separated `marketIds`): live
  *   `computePortfolioPlAllPeriods` (see that module for valuation, periods, formula, limits).
- *   Futarchy ids → 404.
+ *   Futarchy ids → 404. Compute outages (RPC / DEX / subgraph) → 200 with zeros so the
+ *   frontend does not break; the leaderboard job still skips the upsert.
  *
  * Global response shape
  * - USD from materialization: `pnl` is `pnl_usd`; `valueStart` / `valueEnd` / net-out / `volume`
@@ -193,61 +194,102 @@ function parseMarketIds(url: URL): { marketIds?: Address[]; error?: string } {
 
 const jsonReplacer = (_: string, v: unknown) => (typeof v === "bigint" ? v.toString() : v);
 
+function emptyPortfolioPlSnapshot(args: {
+  account: Address;
+  chainId: number | "all";
+  period: Period;
+  endTime: number;
+  marketIds?: Address[];
+}): PortfolioPlPeriodSnapshot {
+  const startTime = args.period === "all" ? null : eodStartTimesForPeriods(args.endTime, null)[args.period];
+  const marketScoped = !!args.marketIds?.length;
+  return {
+    account: args.account.toLowerCase(),
+    chainId: args.chainId,
+    period: args.period,
+    ...(marketScoped ? { marketIds: args.marketIds!.map((id) => id.toLowerCase()) } : {}),
+    startTime,
+    endTime: args.endTime,
+    valueStart: 0,
+    valueEnd: 0,
+    tradingCollateralNetOut: 0,
+    lpCollateralNetOut: 0,
+    volume: 0,
+    marketCount: 0,
+    pnl: 0,
+    ...(marketScoped ? {} : { updatedAt: null, unit: "USD" as const }),
+  };
+}
+
+function jsonOk(body: unknown, cacheControl = "public, max-age=60") {
+  return new Response(JSON.stringify(body, jsonReplacer), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": cacheControl,
+    },
+  });
+}
+
 export default async (req: Request) => {
+  const url = new URL(req.url);
+  const accountParam = url.searchParams.get("account");
+  const chainId = url.searchParams.get("chainId");
+  const period = (url.searchParams.get("period") ?? "1d").toLowerCase() as Period;
+  const debug = url.searchParams.get("debug") === "1" || url.searchParams.get("debug") === "true";
+
+  if (!accountParam || !isAddress(accountParam)) {
+    return new Response(JSON.stringify({ error: "Account parameter is required" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const account = accountParam as Address;
+  if (!["1d", "1w", "1m", "all"].includes(period)) {
+    return new Response(JSON.stringify({ error: "period must be one of: 1d, 1w, 1m, all" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const chainParsed = parseChainIdQueryParam(chainId, { allowAll: true });
+  if ("error" in chainParsed) {
+    return new Response(JSON.stringify({ error: chainParsed.error }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const marketsParsed = parseMarketIds(url);
+  if (marketsParsed.error) {
+    return new Response(JSON.stringify({ error: marketsParsed.error }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const marketIds = marketsParsed.marketIds;
+  const endTime = Math.floor(Date.now() / 1000);
+
+  const zeros = () =>
+    emptyPortfolioPlSnapshot({
+      account,
+      chainId: chainParsed.chainId,
+      period,
+      endTime,
+      marketIds,
+    });
+
   try {
-    const url = new URL(req.url);
-    const accountParam = url.searchParams.get("account");
-    const chainId = url.searchParams.get("chainId");
-    const period = (url.searchParams.get("period") ?? "1d").toLowerCase() as Period;
-    const debug = url.searchParams.get("debug") === "1" || url.searchParams.get("debug") === "true";
-
-    if (!accountParam || !isAddress(accountParam)) {
-      return new Response(JSON.stringify({ error: "Account parameter is required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    const account = accountParam as Address;
-    if (!["1d", "1w", "1m", "all"].includes(period)) {
-      return new Response(JSON.stringify({ error: "period must be one of: 1d, 1w, 1m, all" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const chainParsed = parseChainIdQueryParam(chainId, { allowAll: true });
-    if ("error" in chainParsed) {
-      return new Response(JSON.stringify({ error: chainParsed.error }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const marketsParsed = parseMarketIds(url);
-    if (marketsParsed.error) {
-      return new Response(JSON.stringify({ error: marketsParsed.error }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    const marketIds = marketsParsed.marketIds;
-    const endTime = Math.floor(Date.now() / 1000);
-
     // Global: materialized leaderboard only (no live compute). USD.
     if (!marketIds?.length) {
-      const snapshot = await portfolioPlFromLeaderboard({
-        account,
-        chainId: chainParsed.chainId,
-        period,
-        endTime,
-      });
-      return new Response(JSON.stringify(snapshot, jsonReplacer), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=60",
-        },
-      });
+      return jsonOk(
+        await portfolioPlFromLeaderboard({
+          account,
+          chainId: chainParsed.chainId,
+          period,
+          endTime,
+        }),
+      );
     }
 
     if (chainParsed.chainId === "all") {
@@ -291,31 +333,17 @@ export default async (req: Request) => {
       });
     }
 
-    const snapshot = computed.byPeriod[period];
-    if (!snapshot) {
-      return new Response(JSON.stringify({ error: "Unexpected: missing period in computed bundle" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
+    const snapshot = computed.byPeriod[period] ?? zeros();
     const body: Record<string, unknown> = { ...snapshot };
     if (debug && computed.debugPayload) {
       body.debug = computed.debugPayload;
     }
 
-    return new Response(JSON.stringify(body, jsonReplacer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60",
-      },
-    });
+    return jsonOk(body);
   } catch (e) {
-    console.error(e);
-    return new Response(JSON.stringify({ error: (e as Error)?.message || "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    // Fail-closed compute throws so the leaderboard does not upsert; this endpoint is for the
+    // frontend, so return zeros instead of 500. Do not cache — the next request should retry.
+    console.error("get-portfolio-pl: returning zeros after failure", e);
+    return jsonOk(zeros(), "no-store");
   }
 };

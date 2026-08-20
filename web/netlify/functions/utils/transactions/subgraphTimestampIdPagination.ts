@@ -81,12 +81,9 @@ async function paginateOneStream<T extends TimestampIdPageItem>(args: {
 
   for (;;) {
     if (pages >= args.maxPages) {
-      console.warn("dex subgraph pagination hit page cap", {
-        pages,
-        rows: args.out.length,
-        tokenCount: args.tokenIds?.length,
-      });
-      break;
+      throw new Error(
+        `dex subgraph pagination hit page cap (${args.maxPages}): rows=${args.out.length} tokenCount=${args.tokenIds?.length ?? 0}`,
+      );
     }
 
     const where = buildTimestampIdPageWhere({
@@ -144,9 +141,8 @@ export async function paginateByTimestampId<T extends TimestampIdPageItem>(args:
       ? chunkIds([...new Set(args.tokenIds.map((t) => t.toLowerCase()))], TOKEN_IN_CHUNK)
       : [undefined];
 
-  for (let i = 0; i < tokenChunks.length; i++) {
-    const tokenIds = tokenChunks[i];
-    const pages = await paginateOneStream({
+  for (const tokenIds of tokenChunks) {
+    await paginateOneStream({
       pageSize,
       maxPages,
       fetchPage: args.fetchPage,
@@ -157,16 +153,7 @@ export async function paginateByTimestampId<T extends TimestampIdPageItem>(args:
       seen,
       out,
     });
-    if (pages >= maxPages) {
-      console.warn("dex subgraph pagination stopped early for token chunk", {
-        chunkIndex: i,
-        chunkCount: tokenChunks.length,
-        pages,
-        maxPages,
-        rows: out.length,
-        tokenCount: tokenIds?.length,
-      });
-    }
+    // page-cap throws inside paginateOneStream; remaining chunks are not attempted
   }
 
   return out;

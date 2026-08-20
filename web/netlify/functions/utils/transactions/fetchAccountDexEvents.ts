@@ -181,14 +181,9 @@ async function paginateCombinedTokenChunk(args: {
 
   while (!swapDone || !mintDone || !burnDone) {
     if (pages >= args.maxPages) {
-      console.warn("dex subgraph combined pagination hit page cap", {
-        pages: args.maxPages,
-        swaps: swaps.length,
-        mints: mints.length,
-        burns: burns.length,
-        tokenCount: args.tokenIds.length,
-      });
-      break;
+      throw new Error(
+        `dex subgraph combined pagination hit page cap (${args.maxPages}): swaps=${swaps.length} mints=${mints.length} burns=${burns.length} tokenCount=${args.tokenIds.length}`,
+      );
     }
 
     const swapWhere = swapDone

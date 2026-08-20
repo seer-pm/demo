@@ -629,12 +629,11 @@ export async function searchMarkets({
 
   const { data, count, error } = await query;
   if (error) {
-    // If the error is PGRST103 (Requested range not satisfiable), return empty results
+    // PGRST103 = HTTP 416 Range Not Satisfiable: `.range(offset, to)` is past the last row
+    // (searchAllMarkets page 2 when page 1 had exactly `limit` rows and that was the end).
+    // Same as "no more markets". Other PostgREST errors still throw.
     if (error.code === "PGRST103") {
-      return {
-        markets: [],
-        count: 0,
-      };
+      return { markets: [], count: 0 };
     }
     throw error;
   }

@@ -30,7 +30,8 @@ async function mapPool<T>(items: T[], concurrency: number, fn: (item: T) => Prom
 /**
  * App allowlists often list parent session markets; trading activity lives on conditionals.
  * Expand to parents ∪ children (`parentMarket` = each root id).
- * Memoized per process by `(chainId, sorted roots)`.
+ * Memoized per process by `(chainId, sorted roots)` only after a successful full expand —
+ * a failed children query must not cache a parent-only allowlist.
  */
 export async function expandMarketIdsWithChildren(chainId: number, marketIds: Address[]): Promise<Address[]> {
   const roots = [...new Set(marketIds.map((id) => id.toLowerCase() as Address))];

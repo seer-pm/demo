@@ -104,8 +104,9 @@ async function fetchPairMidsOnChain(chainId: SupportedChain, pairs: Token0Token1
     pairs.flatMap((pair) => [pair.token0, pair.token1]),
   );
 
-  // `multicall` reports a dead RPC the same way it reports a pool that was never deployed, so an
-  // outage would otherwise leave every outcome silently at 0.
+  // Per-call `failure` (allowFailure: true) is "no contract / revert" — Algebra CREATE2 addresses
+  // are computed without checking deployment, so every pool can fail when none exist. Price 0.
+  // A dead RPC throws from `multicall` itself; that still fail-closes the caller.
   const unreadable = results.filter((result) => result.status === "failure").length;
   if (unreadable > 0) {
     console.warn(`getCurrentOutcomePrices chain=${chainId} unreadable pools ${unreadable}/${pairPools.length}`);
@@ -135,8 +136,9 @@ async function fetchPairMidsOnChain(chainId: SupportedChain, pairs: Token0Token1
  * Current price of each outcome token, read from the pool at request time.
  *
  * Indexed hour candles are only written when a pool trades, so a quiet pool can be months behind
- * the market — fine for history, wrong for "now". Pools that cannot be read leave the outcome at 0
- * rather than falling back to a stale candle.
+ * the market — fine for history, wrong for "now". Pools that cannot be read (never deployed, revert)
+ * leave that outcome at 0 rather than falling back to a stale candle. A dead RPC still throws
+ * because `multicall` itself fails.
  */
 export async function getCurrentOutcomePrices(
   tokens: OutcomePriceToken[],
@@ -147,12 +149,6 @@ export async function getCurrentOutcomePrices(
     return {};
   }
 
-  let mids: PairMids = new Map();
-  try {
-    mids = await fetchPairMidsOnChain(chainId, pairs);
-  } catch (e) {
-    console.error(`getCurrentOutcomePrices chain=${chainId} pairs=${pairs.length}`, e);
-  }
-
+  const mids = await fetchPairMidsOnChain(chainId, pairs);
   return mapOutcomePrices(tokens, mids);
 }

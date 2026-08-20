@@ -196,8 +196,6 @@ export type PortfolioPlComputed = {
   byPeriod: Record<PortfolioPlPeriod, PortfolioPlPeriodSnapshot>;
   debugPayload?: Record<string, unknown>;
   markets: Market[];
-  swapFlowFailed: boolean;
-  lpFlowFailed: boolean;
 };
 
 /**
@@ -271,6 +269,9 @@ export type PortfolioPlComputed = {
  *   refreshed in stale/missing batches under the Netlify time budget; other wallets
  *   keep prior/zero rows. `marketCount` is always for the period window (not the
  *   candidate activity filter).
+ * - Fail closed: DEX/subgraph/price outages throw. The leaderboard skips the upsert so a
+ *   prior row is kept. Live `get-portfolio-pl` catches that and returns a zeroed snapshot
+ *   (200) so the frontend does not surface a 500.
  */
 export async function computePortfolioPlAllPeriods(
   args: ComputePortfolioPlAllPeriodsArgs,
@@ -332,80 +333,47 @@ export async function computePortfolioPlAllPeriods(
   const swapNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapVolumeByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapMarketCountByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
-  let swapFlowFailed = false;
-  let lpFlowFailed = false;
 
   const minDexStart = Math.min(...startTimes);
   // One Goldsky pass per wallet: swaps + mints + burns (+ CoW in parallel inside fetchAccountDexEvents).
   // Empty Generic markets (e.g. TradeExecutor owner EOA that never held outcome tokens) is a
-  // legitimate zero cashflow — not a DEX failure. Leaderboard must still upsert that row so a
-  // stale owner snapshot is not rolled up with the executor.
+  // legitimate zero cashflow. DEX/subgraph failures throw so callers fail closed (no partial upsert).
   let dexEvents: Awaited<ReturnType<typeof fetchAccountDexEvents>> | null = null;
   if (markets.length > 0) {
-    try {
-      const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
-      const walletTokenIds = [...holdings.keys(), primaryCollateral.address];
-      dexEvents = await fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime, {
-        walletTokenIds,
-      });
-    } catch (err) {
-      swapFlowFailed = true;
-      lpFlowFailed = true;
-      console.error("portfolio-pl: failed to fetch account DEX events; using zero swap/LP cashflow", {
-        account: account.toLowerCase(),
-        chainId: chainIdNum,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+    const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
+    const walletTokenIds = [...holdings.keys(), primaryCollateral.address];
+    dexEvents = await fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime, {
+      walletTokenIds,
+    });
   }
 
   if (dexEvents) {
-    try {
-      const flow = computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
-        dexEvents.swaps,
-        startTimes,
-        endTime,
-        primaryCollateral,
-        singleMarketIdForSwapFilter,
-        { limitRows: 0 },
-      );
-      for (const p of PORTFOLIO_PL_PERIODS) {
-        swapNetByPeriod[p] = flow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
-        swapVolumeByPeriod[p] = flow.volumeByStartTime.get(startTimeByPeriod[p]) ?? 0;
-        swapMarketCountByPeriod[p] = flow.marketCountByStartTime.get(startTimeByPeriod[p]) ?? 0;
-      }
-    } catch (err) {
-      // CoW rate-limit / circuit skips are handled inside getCowswapSwapsCached (returns []).
-      // This catch covers unexpected failures — swap legs stay at 0 for shaping.
-      swapFlowFailed = true;
-      console.error("portfolio-pl: failed to compute primary collateral swap net flow; using zero swap cashflow", {
-        account: account.toLowerCase(),
-        chainId: chainIdNum,
-        error: err instanceof Error ? err.message : String(err),
-      });
+    const flow = computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
+      dexEvents.swaps,
+      startTimes,
+      endTime,
+      primaryCollateral,
+      singleMarketIdForSwapFilter,
+      { limitRows: 0 },
+    );
+    for (const p of PORTFOLIO_PL_PERIODS) {
+      swapNetByPeriod[p] = flow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
+      swapVolumeByPeriod[p] = flow.volumeByStartTime.get(startTimeByPeriod[p]) ?? 0;
+      swapMarketCountByPeriod[p] = flow.marketCountByStartTime.get(startTimeByPeriod[p]) ?? 0;
     }
   }
 
   const lpNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   if (dexEvents) {
-    try {
-      const lpFlow = computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
-        dexEvents.mints,
-        dexEvents.burns,
-        startTimes,
-        endTime,
-        primaryCollateral,
-      );
-      for (const p of PORTFOLIO_PL_PERIODS) {
-        lpNetByPeriod[p] = lpFlow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
-      }
-    } catch (err) {
-      lpFlowFailed = true;
-      console.error("portfolio-pl: failed to compute LP primary collateral net flow; using zero LP cashflow", {
-        account: account.toLowerCase(),
-        chainId: chainIdNum,
-        error: err instanceof Error ? err.message : String(err),
-      });
+    const lpFlow = computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
+      dexEvents.mints,
+      dexEvents.burns,
+      startTimes,
+      endTime,
+      primaryCollateral,
+    );
+    for (const p of PORTFOLIO_PL_PERIODS) {
+      lpNetByPeriod[p] = lpFlow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
     }
   }
 
@@ -591,5 +559,5 @@ export async function computePortfolioPlAllPeriods(
     };
   }
 
-  return { startTimeByPeriod, byPeriod, debugPayload, markets, swapFlowFailed, lpFlowFailed };
+  return { startTimeByPeriod, byPeriod, debugPayload, markets };
 }

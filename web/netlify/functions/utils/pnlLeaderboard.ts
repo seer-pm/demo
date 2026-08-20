@@ -409,7 +409,7 @@ export async function refreshPnlLeaderboardForAppChain(
           collateralProfile: DEFAULT_COLLATERAL_PROFILE,
           primaryCollateral,
         });
-        if (!computed || computed.swapFlowFailed || computed.lpFlowFailed) {
+        if (!computed) {
           failures += 1;
           return;
         }
