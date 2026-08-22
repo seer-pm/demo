@@ -4,6 +4,20 @@ export type DiscussionUser = {
   address: string;
 };
 
+/** Market fields used by Seer's discussion and holder APIs. */
+export type DiscussionMarket = {
+  id: string;
+  chainId: number;
+  outcomes: readonly string[];
+  wrappedTokens: readonly string[];
+};
+
+export type DiscussionPosition = {
+  tokenId: string;
+  outcome: string;
+  balance: bigint;
+};
+
 export type DiscussionButtonProps = {
   children?: ReactNode;
   onClick?: () => void;
@@ -21,6 +35,7 @@ export type DiscussionConnectButtonProps = {
 
 export type DiscussionUserPositionBadgeProps = {
   user: DiscussionUser;
+  positions: readonly DiscussionPosition[];
 };
 
 export type DiscussionComponents = {
@@ -32,7 +47,7 @@ export type DiscussionComponents = {
 export type ResolvedDiscussionComponents = {
   Button: ComponentType<DiscussionButtonProps>;
   ConnectButton?: ComponentType<DiscussionConnectButtonProps>;
-  UserPositionBadge?: ComponentType<DiscussionUserPositionBadgeProps>;
+  UserPositionBadge: ComponentType<DiscussionUserPositionBadgeProps>;
 };
 
 export type Comment = {
@@ -54,6 +69,7 @@ export type CreateCommentInput = {
 export type DiscussionsClient = {
   marketId: string;
   listComments: () => Promise<Comment[]>;
+  listCommenterPositions: (account?: string) => Promise<Map<string, DiscussionPosition[]>>;
   createComment: (input: CreateCommentInput) => Promise<{ id: string }>;
   editComment: (id: string, body: string) => Promise<void>;
   deleteComment: (id: string) => Promise<void>;

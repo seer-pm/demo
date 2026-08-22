@@ -4,12 +4,15 @@ import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { tokensTransfersRowToTransfer } from "./utils/airdropCalculation/getAllTransfers";
+import { CORS_HEADERS } from "./utils/common";
 import { getMarketByChainAndId } from "./utils/markets";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
 import { getTokenHolders } from "./utils/token-transactions";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+const commentsSupabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
+const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
 
 /** Primary-collateral legs for the given tx hashes (list length bounded by `distinctTxCap` in the caller). */
 async function listPrimaryCollateralTransfersForTxHashesAll(
@@ -94,18 +97,22 @@ const RECENT_TRANSFERS_FETCH_LIMIT = 500;
 const RECENT_TRANSFERS_RESPONSE_LIMIT = 100;
 
 export default async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   try {
     const url = new URL(req.url);
     const tokenIdsParam = url.searchParams.get("tokenIds");
     const chainId = url.searchParams.get("chainId");
     const accountParam = url.searchParams.get("account");
+    const holdersOnly = url.searchParams.get("holdersOnly") === "true";
+    const commentersOnly = url.searchParams.get("commentersOnly") === "true";
 
     if (!chainId) {
       return new Response(JSON.stringify({ error: "chainId parameter is required" }), {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: jsonHeaders,
       });
     }
 
@@ -113,9 +120,7 @@ export default async (req: Request) => {
     if (!Number.isInteger(chainIdNum)) {
       return new Response(JSON.stringify({ error: "chainId must be a valid number" }), {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: jsonHeaders,
       });
     }
 
@@ -127,7 +132,7 @@ export default async (req: Request) => {
     if ("error" in collateralResolved) {
       return new Response(JSON.stringify({ error: collateralResolved.error }), {
         status: collateralResolved.status,
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders,
       });
     }
 
@@ -135,9 +140,7 @@ export default async (req: Request) => {
     if (account && !isAddress(account)) {
       return new Response(JSON.stringify({ error: "account must be a valid address" }), {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: jsonHeaders,
       });
     }
 
@@ -171,14 +174,43 @@ export default async (req: Request) => {
         }),
         {
           status: 400,
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: jsonHeaders,
         },
       );
     }
 
-    const topHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds);
+    let ownerAddresses: string[] | undefined;
+    if (commentersOnly) {
+      if (!market) {
+        return new Response(JSON.stringify({ error: "commentersOnly requires a valid marketId" }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+
+      const { data: commenters, error } = await commentsSupabase
+        .from("market_comments")
+        .select("author")
+        .eq("market_id", market.id.toLowerCase())
+        .is("deleted_at", null);
+      if (error) throw error;
+
+      const owners = new Set((commenters ?? []).map(({ author }) => author.toLowerCase()));
+      if (account) owners.add(account.toLowerCase());
+      ownerAddresses = [...owners];
+    }
+
+    const topHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds, undefined, ownerAddresses);
+
+    if (holdersOnly) {
+      return new Response(JSON.stringify({ topHolders }), {
+        status: 200,
+        headers: {
+          ...jsonHeaders,
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    }
 
     const { outcomeBatch, mergedWithPrimary } = await getRecentTransactions(
       effectiveTokenIds,
@@ -224,7 +256,7 @@ export default async (req: Request) => {
       {
         status: 200,
         headers: {
-          "Content-Type": "application/json",
+          ...jsonHeaders,
           "Cache-Control": "public, max-age=300", // Cache for 5 minutes
         },
       },
@@ -237,9 +269,7 @@ export default async (req: Request) => {
       }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: jsonHeaders,
       },
     );
   }

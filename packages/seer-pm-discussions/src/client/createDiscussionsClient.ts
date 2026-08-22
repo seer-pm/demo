@@ -1,13 +1,32 @@
-import type { Comment, CreateCommentInput, DiscussionUser, DiscussionsClient } from "../types";
+import type {
+  Comment,
+  CreateCommentInput,
+  DiscussionMarket,
+  DiscussionPosition,
+  DiscussionUser,
+  DiscussionsClient,
+} from "../types";
 
 export type CreateDiscussionsClientOptions = {
   /** Base URL, e.g. "" or "https://app.seer.pm" */
   baseUrl?: string;
-  /** Market id used as market_id */
-  marketId: string;
+  /** Seer market used for comments and commenter outcome positions. */
+  market: DiscussionMarket;
   /** Returns current Seer JWT, or empty string if signed out */
   getAccessToken: () => string;
 };
+
+type Holder = {
+  address: string;
+  balance: string;
+};
+
+type TokenHoldersResponse = {
+  topHolders?: Record<string, Holder[]>;
+};
+
+const POSITION_REQUEST_ATTEMPTS = 2;
+const POSITION_RETRY_DELAY_MS = 250;
 
 function authHeaders(token: string): HeadersInit {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -24,18 +43,36 @@ async function readError(res: Response): Promise<string> {
   }
 }
 
+async function fetchPositions(url: string): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < POSITION_REQUEST_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(await readError(response));
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt + 1 < POSITION_REQUEST_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, POSITION_RETRY_DELAY_MS));
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Failed to load commenter positions");
+}
+
 /** HTTP client for market discussion comments. */
 export function createDiscussionsClient(options: CreateDiscussionsClientOptions): DiscussionsClient {
   const base = (options.baseUrl ?? "").replace(/\/$/, "");
-  const endpoint = `${base}/.netlify/functions/market-comments`;
-  const marketId = options.marketId.toLowerCase();
+  const commentsEndpoint = `${base}/.netlify/functions/market-comments`;
+  const positionsEndpoint = `${base}/.netlify/functions/get-token-transactions`;
+  const marketId = options.market.id.toLowerCase();
 
   return {
     marketId,
 
     async listComments() {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}?market_id=${encodeURIComponent(marketId)}`, {
+      const res = await fetch(`${commentsEndpoint}?market_id=${encodeURIComponent(marketId)}`, {
         headers: authHeaders(token),
       });
       if (!res.ok) {
@@ -45,9 +82,48 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
       return json.data ?? [];
     },
 
+    async listCommenterPositions(account?: string) {
+      const params = new URLSearchParams({
+        chainId: String(options.market.chainId),
+        marketId,
+        holdersOnly: "true",
+        commentersOnly: "true",
+      });
+      if (account) params.set("account", account.toLowerCase());
+      const res = await fetchPositions(`${positionsEndpoint}?${params}`);
+
+      const json = (await res.json()) as TokenHoldersResponse;
+      const positionsByAddress = new Map<string, DiscussionPosition[]>();
+
+      for (const [tokenId, holders] of Object.entries(json.topHolders ?? {})) {
+        const outcomeIndex = options.market.wrappedTokens.findIndex(
+          (wrappedToken) => wrappedToken.toLowerCase() === tokenId.toLowerCase(),
+        );
+        const outcome = options.market.outcomes[outcomeIndex];
+        if (!outcome) continue;
+
+        for (const holder of holders) {
+          let balance: bigint;
+          try {
+            balance = BigInt(holder.balance);
+          } catch {
+            continue;
+          }
+          if (balance <= 0n) continue;
+
+          const address = holder.address.toLowerCase();
+          const positions = positionsByAddress.get(address) ?? [];
+          positions.push({ tokenId, outcome, balance });
+          positionsByAddress.set(address, positions);
+        }
+      }
+
+      return positionsByAddress;
+    },
+
     async createComment(input: CreateCommentInput) {
       const token = options.getAccessToken();
-      const res = await fetch(endpoint, {
+      const res = await fetch(commentsEndpoint, {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({
@@ -67,7 +143,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
 
     async editComment(id: string, body: string) {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}/${encodeURIComponent(id)}`, {
+      const res = await fetch(`${commentsEndpoint}/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: authHeaders(token),
         body: JSON.stringify({ body }),
@@ -79,7 +155,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
 
     async deleteComment(id: string) {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}/${encodeURIComponent(id)}`, {
+      const res = await fetch(`${commentsEndpoint}/${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: authHeaders(token),
       });
@@ -90,7 +166,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
 
     async setLike(id: string, liked: boolean) {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}/${encodeURIComponent(id)}/like`, {
+      const res = await fetch(`${commentsEndpoint}/${encodeURIComponent(id)}/like`, {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ type: liked ? "like" : "unlike" }),

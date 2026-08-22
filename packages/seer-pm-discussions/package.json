@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/discussions",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Market discussion UI for Seer",
   "license": "MIT",
   "author": "Seer",
@@ -17,6 +17,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./tooltip": {
+      "types": "./dist/tooltip.d.ts",
+      "import": "./dist/tooltip.mjs",
+      "require": "./dist/tooltip.js"
     },
     "./style.css": "./dist/index.css",
     "./tailwind": "./tailwind-preset.cjs"

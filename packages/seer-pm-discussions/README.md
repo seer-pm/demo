@@ -9,12 +9,11 @@ import {
   Discussion,
   createDiscussionsClient,
   userFromAddress,
-  type DiscussionUserPositionBadgeProps,
   type DiscussionButtonProps,
 } from "@seer-pm/discussions";
 
 const client = createDiscussionsClient({
-  marketId,
+  market,
   getAccessToken: () => accessToken,
 });
 
@@ -34,21 +33,17 @@ function DiscussionButton({
   );
 }
 
-function UserPositionBadge({ user }: DiscussionUserPositionBadgeProps) {
-  return <YourBadge address={user.address} />;
-}
-
 <Discussion
   client={client}
   user={address ? userFromAddress(address) : null}
   onRequestConnect={signIn}
-  components={{ Button: DiscussionButton, UserPositionBadge }}
+  components={{ Button: DiscussionButton }}
 />
 ```
 
 Pass your design-system button via `components.Button`. If omitted, CTAs fall back to a plain HTML `<button>` with no package styles. You can also pass `components.ConnectButton` to fully replace the signed-out connect CTA.
 
-Use `components.UserPositionBadge` to render the commenter's position in the current market beside their name.
+The client fetches comments and current outcome-token holdings from the configured Seer API. The package maps holdings to commenters and renders a position badge automatically. To replace its presentation, pass `components.UserPositionBadge`; the override receives both `user` and `positions`.
 
 Author labels resolve primary ENS names via wagmi (`useEnsName`, mainnet). Wrap the tree in a `WagmiProvider` whose config includes mainnet so reverse lookups succeed; without that, addresses fall back to a shortened form.
 
@@ -95,9 +90,10 @@ You can also pass `className` / `style` on `<Discussion />` (including CSS varia
 ## Public API
 
 - `Discussion` — thread UI (`components.Button` / `components.ConnectButton` / `components.UserPositionBadge`)
-- `createDiscussionsClient` — HTTP client (`marketId`, `listComments`, `createComment`, `editComment`, `deleteComment`, `setLike`)
+- `Tooltip` — shared portal tooltip, also available from `@seer-pm/discussions/tooltip`
+- `createDiscussionsClient` — Seer HTTP client for comments and commenter positions (`market`, `listComments`, `listCommenterPositions`, comment mutations)
 - `useDiscussions` — context hook
 - `userFromAddress` — build `DiscussionUser` from a wallet
 - `SD_ROOT_CLASS` — root class name for theming (`"sd-root"`)
 - `@seer-pm/discussions/tailwind` — Tailwind preset (`sd-*` colors)
-- Types: `DiscussionButtonProps`, `DiscussionConnectButtonProps`, `DiscussionUserPositionBadgeProps`, `DiscussionComponents`
+- Types: `DiscussionMarket`, `DiscussionPosition`, `DiscussionButtonProps`, `DiscussionConnectButtonProps`, `DiscussionUserPositionBadgeProps`, `DiscussionComponents`
