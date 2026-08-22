@@ -13,6 +13,7 @@ import {
 } from "@seer-pm/discussions";
 
 const client = createDiscussionsClient({
+  baseUrl: "https://app.seer.pm",
   market,
   getAccessToken: () => accessToken,
 });
@@ -43,7 +44,7 @@ function DiscussionButton({
 
 Pass your design-system button via `components.Button`. If omitted, CTAs fall back to a plain HTML `<button>` with no package styles. You can also pass `components.ConnectButton` to fully replace the signed-out connect CTA.
 
-The client fetches comments and current outcome-token holdings from the configured Seer API. The package maps holdings to commenters and renders a position badge automatically. To replace its presentation, pass `components.UserPositionBadge`; the override receives both `user` and `positions`.
+Set `baseUrl` to the Seer deployment hosting the discussion API functions. The client fetches comments and current outcome-token holdings from that API. The package maps holdings to commenters and renders a position badge automatically. To replace its presentation, pass `components.UserPositionBadge`; the override receives both `user` and `positions`.
 
 Author labels resolve primary ENS names via wagmi (`useEnsName`, mainnet). Wrap the tree in a `WagmiProvider` whose config includes mainnet so reverse lookups succeed; without that, addresses fall back to a shortened form.
 
