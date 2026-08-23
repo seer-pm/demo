@@ -16,20 +16,24 @@ import {
 } from "@/lib/apps";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
-import { Filter } from "@/lib/icons";
+import { ArrowDropDown, ArrowDropUp, Filter } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
 type Period = "1d" | "1w" | "1m" | "all";
+type SortKey = "pnl" | "volume" | "roi" | "markets";
+type SortDir = "asc" | "desc";
 
 type LeaderboardApiResponse = {
   app: string;
   chainId: number | "all";
   period: Period;
+  sort: SortKey;
+  dir: SortDir;
   unit: string;
   updatedAt: string | null;
   total: number;
@@ -63,6 +67,21 @@ const PERIOD_LABELS: Record<Period, string> = {
   all: "ALL",
 };
 
+const SORT_LABELS: Record<SortKey, string> = {
+  pnl: "Profit/Loss",
+  volume: "Volume",
+  roi: "ROI",
+  markets: "Traded Markets",
+};
+
+const SORT_DIR_LABELS: Record<SortDir, string> = {
+  desc: "high to low",
+  asc: "low to high",
+};
+
+const ROI_UNAVAILABLE = "n/a";
+const ROI_UNAVAILABLE_TITLE = "Not enough capital in this period to compute ROI";
+
 function formatPnlUsd(value: number) {
   return formatUsd(value, { signed: true });
 }
@@ -72,10 +91,24 @@ function formatVolumeUsd(value: number) {
 }
 
 function formatRoi(roi: number | null) {
-  if (roi == null || !Number.isFinite(roi)) return "—";
+  if (roi == null || !Number.isFinite(roi)) return ROI_UNAVAILABLE;
   const pct = roi * 100;
   const sign = pct > 0 ? "+" : "";
   return `${sign}${pct.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
+function sortStatusText(sort: SortKey, dir: SortDir) {
+  const ranking = `Sorted by ${SORT_LABELS[sort]}, ${SORT_DIR_LABELS[dir]}`;
+  if (sort === "volume" && dir === "asc") {
+    return `${ranking}. Wallets with no volume in this period rank first.`;
+  }
+  if (sort === "markets" && dir === "asc") {
+    return `${ranking}. Wallets with no traded markets in this period rank first.`;
+  }
+  if (sort === "roi") {
+    return `${ranking}. ${ROI_UNAVAILABLE} means a wallet had under $0.01 of capital.`;
+  }
+  return ranking;
 }
 
 function appHasMarkets(appId: SeerAppId, chainIds: number[]) {
@@ -86,6 +119,8 @@ async function fetchPnlLeaderboard(params: {
   app: SeerAppFilterId;
   chainId: ChainFilter;
   period: Period;
+  sort: SortKey;
+  dir: SortDir;
   search: string;
   limit: number;
   offset: number;
@@ -94,6 +129,8 @@ async function fetchPnlLeaderboard(params: {
     app: params.app,
     chainId: String(params.chainId),
     period: params.period,
+    sort: params.sort,
+    dir: params.dir,
     limit: String(params.limit),
     offset: String(params.offset),
   });
@@ -110,12 +147,16 @@ async function fetchMyRank(params: {
   app: SeerAppFilterId;
   chainId: ChainFilter;
   period: Period;
+  sort: SortKey;
+  dir: SortDir;
   address: string;
 }): Promise<RankForResponse> {
   const qs = new URLSearchParams({
     app: params.app,
     chainId: String(params.chainId),
     period: params.period,
+    sort: params.sort,
+    dir: params.dir,
     rankFor: params.address.toLowerCase(),
   });
   const res = await fetch(`/.netlify/functions/get-pnl-leaderboard?${qs.toString()}`);
@@ -126,11 +167,64 @@ async function fetchMyRank(params: {
   return res.json() as Promise<RankForResponse>;
 }
 
+function SortMark({ active, dir }: { active: boolean; dir: SortDir }) {
+  const Icon = active && dir === "asc" ? ArrowDropUp : ArrowDropDown;
+  return (
+    <span
+      className={clsx(
+        "inline-flex size-4 flex-shrink-0 items-center justify-center [&>svg]:size-4",
+        active ? "opacity-100" : "opacity-45",
+      )}
+      aria-hidden
+    >
+      <Icon fill="currentColor" />
+    </span>
+  );
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeSort,
+  activeDir,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  activeSort: SortKey;
+  activeDir: SortDir;
+  onSort: (key: SortKey) => void;
+}) {
+  const active = activeSort === sortKey;
+  const currentDir = active ? (activeDir === "asc" ? "ascending" : "descending") : "not sorted";
+  const nextDir = !active || activeDir === "asc" ? "descending" : "ascending";
+
+  return (
+    <th className="text-right" aria-sort={active ? (activeDir === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        className={clsx(
+          "inline-flex items-center justify-end gap-1 w-full min-h-11 font-semibold rounded-[1px] hover:text-base-content",
+          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary",
+          active ? "text-base-content" : "text-black-secondary",
+        )}
+        onClick={() => onSort(sortKey)}
+        aria-label={`${label}, ${currentDir}. Activate to sort ${nextDir}.`}
+      >
+        {label}
+        <SortMark active={active} dir={active ? activeDir : "desc"} />
+      </button>
+    </th>
+  );
+}
+
 function LeaderboardPage() {
   const { address: connectedAddress } = useAccount();
   const [app, setApp] = useState<SeerAppFilterId>(SEER_APP_ALL_ID);
   const [chainId, setChainId] = useState<ChainFilter>("all");
   const [period, setPeriod] = useState<Period>("all");
+  const [sort, setSort] = useState<SortKey>("pnl");
+  const [dir, setDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
@@ -180,19 +274,25 @@ function LeaderboardPage() {
   }, [app, availableChains, effectiveChainId]);
 
   const query = useQuery({
-    queryKey: ["pnl-leaderboard", app, effectiveChainId, period, search, page],
+    queryKey: ["pnl-leaderboard", app, effectiveChainId, period, sort, dir, search, page],
     queryFn: () =>
       fetchPnlLeaderboard({
         app,
         chainId: effectiveChainId,
         period,
+        sort,
+        dir,
         search,
         limit: pageSize,
         offset: page * pageSize,
       }),
     enabled: hasMarketsForSelection,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
+  const rows = query.data?.rows ?? [];
+  const isInitialLoad = query.isPending && !query.data;
+  const isRefreshing = query.isFetching && !!query.data;
 
   const totalPages = Math.max(1, Math.ceil((query.data?.total ?? 0) / pageSize));
 
@@ -230,6 +330,8 @@ function LeaderboardPage() {
         app,
         chainId: effectiveChainId,
         period,
+        sort,
+        dir,
         address: connectedAddress,
       });
       if (result.rank == null) {
@@ -251,6 +353,16 @@ function LeaderboardPage() {
     setPage(0);
     setHighlightAddress(undefined);
     setRankStatus("idle");
+  };
+
+  const toggleSort = (key: SortKey) => {
+    if (sort === key) {
+      setDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSort(key);
+      setDir("desc");
+    }
+    resetPaging();
   };
 
   const chipClass = (active: boolean) =>
@@ -442,25 +554,61 @@ function LeaderboardPage() {
         </div>
       ) : (
         <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] overflow-x-auto">
-          <table className="table">
+          {query.error && rows.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-separator-100">
+              <p className="text-sm text-error">{(query.error as Error).message || "Failed to refresh leaderboard"}</p>
+              <button type="button" className="btn btn-sm btn-primary" onClick={() => void query.refetch()}>
+                Retry
+              </button>
+            </div>
+          ) : null}
+          <p id="leaderboard-sort-status" className="text-sm text-black-secondary px-4 pt-3 pb-1" aria-live="polite">
+            {sortStatusText(sort, dir)}
+            {isRefreshing ? " Updating…" : ""}
+          </p>
+          <table className="table" aria-busy={query.isFetching} aria-describedby="leaderboard-sort-status">
             <thead>
               <tr>
                 <th className="w-16">#</th>
                 <th>Account</th>
-                <th className="text-right">Profit/Loss</th>
-                <th className="text-right">Volume</th>
-                <th className="text-right">ROI</th>
-                <th className="text-right">Traded Markets</th>
+                <SortableHeader
+                  label={SORT_LABELS.pnl}
+                  sortKey="pnl"
+                  activeSort={sort}
+                  activeDir={dir}
+                  onSort={toggleSort}
+                />
+                <SortableHeader
+                  label={SORT_LABELS.volume}
+                  sortKey="volume"
+                  activeSort={sort}
+                  activeDir={dir}
+                  onSort={toggleSort}
+                />
+                <SortableHeader
+                  label={SORT_LABELS.roi}
+                  sortKey="roi"
+                  activeSort={sort}
+                  activeDir={dir}
+                  onSort={toggleSort}
+                />
+                <SortableHeader
+                  label={SORT_LABELS.markets}
+                  sortKey="markets"
+                  activeSort={sort}
+                  activeDir={dir}
+                  onSort={toggleSort}
+                />
               </tr>
             </thead>
-            <tbody>
-              {query.isLoading ? (
+            <tbody className={clsx(isRefreshing && "opacity-60")}>
+              {isInitialLoad ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-black-secondary">
                     Loading leaderboard…
                   </td>
                 </tr>
-              ) : query.error ? (
+              ) : query.error && rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10">
                     <div className="space-y-3">
@@ -471,14 +619,14 @@ function LeaderboardPage() {
                     </div>
                   </td>
                 </tr>
-              ) : (query.data?.rows.length ?? 0) === 0 ? (
+              ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-black-secondary">
                     No ranked wallets yet.
                   </td>
                 </tr>
               ) : (
-                query.data!.rows.map((row) => {
+                rows.map((row) => {
                   const rowAddress = row.address.toLowerCase();
                   const connectedLc = connectedAddress?.toLowerCase();
                   const highlightLc = highlightAddress?.toLowerCase();
@@ -500,18 +648,19 @@ function LeaderboardPage() {
                           ) : null}
                         </a>
                       </td>
-                      <td className={`text-right font-semibold ${SIGNED_TONE_CLASS[signedTone(row.pnl)]}`}>
+                      <td className={`text-right font-semibold tabular-nums ${SIGNED_TONE_CLASS[signedTone(row.pnl)]}`}>
                         {formatPnlUsd(row.pnl)}
                       </td>
-                      <td className="text-right">{formatVolumeUsd(row.volume)}</td>
+                      <td className="text-right tabular-nums">{formatVolumeUsd(row.volume)}</td>
                       <td
-                        className={`text-right font-medium ${
+                        className={`text-right font-medium tabular-nums ${
                           row.roi == null ? "text-black-secondary" : SIGNED_TONE_CLASS[signedTone(row.roi)]
                         }`}
+                        title={row.roi == null ? ROI_UNAVAILABLE_TITLE : undefined}
                       >
                         {formatRoi(row.roi)}
                       </td>
-                      <td className="text-right">{row.marketCount}</td>
+                      <td className="text-right tabular-nums">{row.marketCount}</td>
                     </tr>
                   );
                 })

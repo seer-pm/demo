@@ -1,14 +1,18 @@
 import type { PortfolioPosition, SupportedChain, Token } from "@seer-pm/sdk";
+import { getRedeemedPrice } from "@seer-pm/sdk/market";
 import type { Market } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { type Address, formatUnits } from "viem";
+import { type Address, formatUnits, zeroAddress } from "viem";
 import { buildPortfolioPositionsFromBalances } from "./buildPortfolioPositions";
 import { getPublicClientByChainId } from "./config";
 import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
 import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
 import { getMappingsCached } from "./mappingsCache";
-import { searchAllMarkets } from "./markets";
-import { computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents } from "./netPrimaryCollateralSwapFlow";
+import { getMarketsMappings, searchAllMarkets } from "./markets";
+import {
+  type CollateralPriceByMarketId,
+  computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents,
+} from "./netPrimaryCollateralSwapFlow";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
 import {
   PORTFOLIO_PL_PERIODS,
@@ -42,10 +46,18 @@ export type PortfolioPlPeriodSnapshot = {
   tradingCollateralNetOut: number;
   /** Net primary into LP pools in the window (mints − burns). */
   lpCollateralNetOut: number;
-  /** Gross primary-collateral notional of outcome swaps in the window (buy + sell). */
+  /**
+   * Gross swap notional in primary collateral (buy + sell): market-collateral leg × settlement
+   * price for conditional markets. See `netPrimaryCollateralSwapFlow.volumeByStartTime`.
+   */
   volume: number;
-  /** Distinct markets with counted primary-collateral swaps in the window. */
+  /** Distinct markets with a market-collateral swap leg in the window. */
   marketCount: number;
+  /**
+   * Primary put to work in the window: primary spent buying outcomes, plus (market-scoped only)
+   * primary split through the router. ROI denominator — not part of the P/L formula.
+   */
+  capitalDeployed: number;
   /** Snapshot write time from `pnl_leaderboard.updated_at` (global path). */
   updatedAt?: string | null;
   routerPrimaryCollateralNetInWindow?: number;
@@ -65,6 +77,45 @@ function positionRowValueAtReference(
     tokenPrice = p.redeemedPrice || tokenPrice;
   }
   return tokenPrice * p.tokenBalance;
+}
+
+/**
+ * What one unit of each market's collateral token is worth in primary collateral.
+ *
+ * Flat markets collateralised in primary: 1. Conditional markets use a parent outcome token —
+ * valued at settlement (`getRedeemedPrice` on the parent). Lost / unresolved parents price at 0.
+ * Keyed by market id (what a mapped swap carries).
+ */
+function collateralPricesByMarketId(markets: Market[], primaryCollateral: Token): CollateralPriceByMarketId {
+  const primaryLc = primaryCollateral.address.toLowerCase();
+  const { marketIdToMarket } = getMarketsMappings(markets);
+  const byIdLower = new Map(Object.entries(marketIdToMarket).map(([id, m]) => [id.toLowerCase(), m]));
+  const prices: CollateralPriceByMarketId = new Map();
+
+  for (const market of markets) {
+    const parentId = market.parentMarket?.id;
+    const isConditional = !!parentId && parentId.toLowerCase() !== zeroAddress;
+    if (!isConditional) {
+      prices.set(market.id.toLowerCase(), market.collateralToken.toLowerCase() === primaryLc ? 1 : 0);
+      continue;
+    }
+    const parent = byIdLower.get(parentId.toLowerCase());
+    const parentOutcome = Number(market.parentOutcome);
+    prices.set(
+      market.id.toLowerCase(),
+      parent
+        ? getRedeemedPrice(parent, parentOutcome)
+        : payoutShare(market.parentMarket.payoutReported, market.parentMarket.payoutNumerators, parentOutcome),
+    );
+  }
+  return prices;
+}
+
+function payoutShare(payoutReported: boolean, payoutNumerators: readonly bigint[], index: number): number {
+  if (!payoutReported) return 0;
+  const sum = payoutNumerators.reduce((total, numerator) => total + Number(numerator), 0);
+  if (sum === 0) return 0;
+  return Number(payoutNumerators[index] ?? 0n) / sum;
 }
 
 /** P/L is Generic-only: Futarchy (PNK/GNO, …) would mix 1.0 notional into primary-collateral units. */
@@ -146,6 +197,13 @@ async function computePositionsAtStartByPeriod(
   return out;
 }
 
+type RouterLegs = {
+  routerPrimaryCollateralNetInWindow: number;
+  /** Gross primary collateral sent into splits — capital deployed, for ROI. */
+  routerPrimaryCollateralSplitOut: number;
+  events: unknown[];
+};
+
 async function reconstructRouterLegsByPeriod(
   account: Address,
   chainId: SupportedChain,
@@ -153,10 +211,10 @@ async function reconstructRouterLegsByPeriod(
   primaryCollateral: Token,
   startTimeByPeriod: Record<PortfolioPlPeriod, number>,
   endTime: number,
-): Promise<Record<PortfolioPlPeriod, { routerPrimaryCollateralNetInWindow: number; events: unknown[] }>> {
-  const out = {} as Record<PortfolioPlPeriod, { routerPrimaryCollateralNetInWindow: number; events: unknown[] }>;
+): Promise<Record<PortfolioPlPeriod, RouterLegs>> {
+  const out = {} as Record<PortfolioPlPeriod, RouterLegs>;
   for (const p of PORTFOLIO_PL_PERIODS) {
-    out[p] = { routerPrimaryCollateralNetInWindow: 0, events: [] };
+    out[p] = { routerPrimaryCollateralNetInWindow: 0, routerPrimaryCollateralSplitOut: 0, events: [] };
   }
   if (markets.length === 0) return out;
 
@@ -172,8 +230,15 @@ async function reconstructRouterLegsByPeriod(
   for (const p of PORTFOLIO_PL_PERIODS) {
     const start = startTimeByPeriod[p];
     const inWindow = scoped.filter((e) => e.timestamp > start && e.timestamp <= endTime);
-    const { netHuman, transactionEvents } = routerPrimaryNetFromConditionalEvents(inWindow, primaryCollateral);
-    out[p] = { routerPrimaryCollateralNetInWindow: netHuman, events: transactionEvents };
+    const { netHuman, splitOutHuman, transactionEvents } = routerPrimaryNetFromConditionalEvents(
+      inWindow,
+      primaryCollateral,
+    );
+    out[p] = {
+      routerPrimaryCollateralNetInWindow: netHuman,
+      routerPrimaryCollateralSplitOut: splitOutHuman,
+      events: transactionEvents,
+    };
   }
   return out;
 }
@@ -248,12 +313,15 @@ export type PortfolioPlComputed = {
  * - `deltaV = valueEnd − valueStart`.
  * - `tradingCollateralNetOut`: net **primary collateral** spent on outcome swaps in
  *   `(startTime, endTime]` (primary as `tokenIn` minus primary as `tokenOut`). Positive =
- *   typical net cost of buying outcomes.
+ *   typical net cost of buying outcomes. Deliberately primary-only: on a conditional market both
+ *   legs of a swap are positions inside the valued set, so `deltaV` already nets them.
  * - `lpCollateralNetOut`: net primary deposited into outcome/collateral LP pools
  *   (mint − burn) in the window. Positive = capital locked in LP.
- * - `volume`: gross primary notional of those same swaps (primary as `tokenIn` + primary as
- *   `tokenOut`) in the window.
- * - `marketCount`: distinct markets with counted primary-collateral swaps in the window.
+ * - `volume`: each swap's market-collateral leg valued in primary (primary on flat markets;
+ *   parent outcome × settlement price on conditional ones).
+ * - `marketCount`: distinct markets with a market-collateral swap leg in the window.
+ * - `capitalDeployed`: primary spent buying outcomes (`tokenIn` = primary), plus (market-scoped
+ *   only) gross primary split through the router — the ROI denominator, not part of P/L.
  * - **Global**: `pnl = deltaV − tradingCollateralNetOut − lpCollateralNetOut` (`value*` already
  *   includes cumulative router primary collateral).
  * - **Market-scoped**: `pnl = deltaV + routerPrimaryCollateralNetInWindow − tradingCollateralNetOut − lpCollateralNetOut`.
@@ -331,9 +399,11 @@ export async function computePortfolioPlAllPeriods(
   };
 
   const swapNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
+  const swapBuysByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapVolumeByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
   const swapMarketCountByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
 
+  const collateralPrices = collateralPricesByMarketId(markets, primaryCollateral);
   const minDexStart = Math.min(...startTimes);
   // One Goldsky pass per wallet: swaps + mints + burns (+ CoW in parallel inside fetchAccountDexEvents).
   // Empty Generic markets (e.g. TradeExecutor owner EOA that never held outcome tokens) is a
@@ -353,11 +423,13 @@ export async function computePortfolioPlAllPeriods(
       startTimes,
       endTime,
       primaryCollateral,
+      collateralPrices,
       singleMarketIdForSwapFilter,
       { limitRows: 0 },
     );
     for (const p of PORTFOLIO_PL_PERIODS) {
       swapNetByPeriod[p] = flow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
+      swapBuysByPeriod[p] = flow.buysByStartTime.get(startTimeByPeriod[p]) ?? 0;
       swapVolumeByPeriod[p] = flow.volumeByStartTime.get(startTimeByPeriod[p]) ?? 0;
       swapMarketCountByPeriod[p] = flow.marketCountByStartTime.get(startTimeByPeriod[p]) ?? 0;
     }
@@ -377,9 +449,7 @@ export async function computePortfolioPlAllPeriods(
     }
   }
 
-  let reconstructedByPeriod:
-    | Record<PortfolioPlPeriod, { routerPrimaryCollateralNetInWindow: number; events: unknown[] }>
-    | undefined;
+  let reconstructedByPeriod: Record<PortfolioPlPeriod, RouterLegs> | undefined;
   if (isMarketScoped) {
     reconstructedByPeriod = await reconstructRouterLegsByPeriod(
       account,
@@ -423,6 +493,12 @@ export async function computePortfolioPlAllPeriods(
     const routerPrimaryCollateralNetInWindow = isMarketScoped
       ? reconstructedByPeriod![p].routerPrimaryCollateralNetInWindow
       : 0;
+    // Global path folds router legs into `value*` rather than reconstructing them, so swap buys
+    // alone stand in for capital. Scoped path adds gross splits (conditional contests often
+    // enter via split then trade parent-outcome tokens without a primary swap buy).
+    const capitalDeployed =
+      Math.max(swapBuysByPeriod[p], 0) +
+      (isMarketScoped ? Math.max(reconstructedByPeriod![p].routerPrimaryCollateralSplitOut, 0) : 0);
     const pnl = isMarketScoped
       ? deltaV + routerPrimaryCollateralNetInWindow - tradingCollateralNetOut - lpCollateralNetOut
       : deltaV - tradingCollateralNetOut - lpCollateralNetOut;
@@ -440,6 +516,7 @@ export async function computePortfolioPlAllPeriods(
       lpCollateralNetOut,
       volume,
       marketCount,
+      capitalDeployed,
       ...(isMarketScoped
         ? {
             routerPrimaryCollateralNetInWindow,
@@ -471,7 +548,7 @@ export async function computePortfolioPlAllPeriods(
     const tokensStartOnly = sumPortfolioValueAtReference(positionsAtStart, hp, st);
 
     let swapFlowDebug:
-      | { primary: unknown; netOut: number; volume: number; rowCount: number; rows: unknown[] }
+      | { primary: unknown; netOut: number; buys: number; volume: number; rowCount: number; rows: unknown[] }
       | undefined;
     try {
       if (dexEvents) {
@@ -480,6 +557,7 @@ export async function computePortfolioPlAllPeriods(
           [st],
           endTime,
           primaryCollateral,
+          collateralPrices,
           singleMarketIdForSwapFilter,
           { limitRows: 300 },
         );
@@ -492,7 +570,6 @@ export async function computePortfolioPlAllPeriods(
           .map((r) => ({
             ...r,
             countedPrimaryNetOutHuman: formatUnits(BigInt(r.countedPrimaryNetOutWei), primaryDecimals),
-            countedPrimaryVolumeHuman: formatUnits(BigInt(r.countedPrimaryVolumeWei), primaryDecimals),
           }))
           .sort((a, b) => {
             const cmp = absWei(b.countedPrimaryNetOutWei) - absWei(a.countedPrimaryNetOutWei);
@@ -501,6 +578,7 @@ export async function computePortfolioPlAllPeriods(
         swapFlowDebug = {
           primary: flow.primary,
           netOut: flow.netOutByStartTime.get(st) ?? 0,
+          buys: flow.buysByStartTime.get(st) ?? 0,
           volume: flow.volumeByStartTime.get(st) ?? 0,
           rowCount: (flow.rowsByStartTime.get(st) ?? []).length,
           rows,
@@ -548,6 +626,7 @@ export async function computePortfolioPlAllPeriods(
         tradingCollateralNetOut,
         lpCollateralNetOut,
         volume: snap.volume,
+        capitalDeployed: snap.capitalDeployed,
         pnl,
       },
       primaryCollateralSwaps: swapFlowDebug ?? {

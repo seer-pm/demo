@@ -3,30 +3,24 @@ export const ROI_CAPITAL_DUST_USD = 0.01;
 
 /**
  * Deployed capital in USD for ROI:
- *   capital_usd = value_start_usd + buys_usd
+ *   capital_usd = value_start_usd + capital_deployed_usd
  *
- * where buys (primary as tokenIn) is recovered from stored swap aggregates:
- *   volume = primary_in + primary_out
- *   trading_collateral_net_out = primary_in - primary_out
- *   ⇒ buys = (volume + trading_collateral_net_out) / 2
+ * `capitalDeployed` is measured at compute time (primary swap buys + scoped router splits).
  */
 export function capitalUsdFromRow(args: {
   valueStart: number;
-  volume: number;
-  tradingCollateralNetOut: number;
+  capitalDeployed: number;
   collateralPriceUsd: number;
 }): number {
   const price = Number(args.collateralPriceUsd) || 0;
-  const buys = ((Number(args.volume) || 0) + (Number(args.tradingCollateralNetOut) || 0)) / 2;
-  return (Number(args.valueStart) || 0) * price + Math.max(buys, 0) * price;
+  return (Number(args.valueStart) || 0) * price + Math.max(Number(args.capitalDeployed) || 0, 0) * price;
 }
 
 /** ROI in USD space; null when capital is dust. */
 export function computeRoiUsd(args: {
   pnlUsd: number;
   valueStart: number;
-  volume: number;
-  tradingCollateralNetOut: number;
+  capitalDeployed: number;
   collateralPriceUsd: number;
 }): number | null {
   const capitalUsd = capitalUsdFromRow(args);

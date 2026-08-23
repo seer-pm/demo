@@ -423,6 +423,7 @@ export async function refreshPnlLeaderboardForAppChain(
           const tradingCollateralNetOut = Number(snap.tradingCollateralNetOut) || 0;
           const lpCollateralNetOut = Number(snap.lpCollateralNetOut) || 0;
           const volume = Number(snap.volume) || 0;
+          const capitalDeployed = Number(snap.capitalDeployed) || 0;
           return {
             app_id: appId,
             chain_id: chainId,
@@ -437,11 +438,11 @@ export async function refreshPnlLeaderboardForAppChain(
             lp_collateral_net_out: lpCollateralNetOut,
             volume,
             volume_usd: volume * collateralPriceUsd,
+            capital_deployed: capitalDeployed,
             roi: computeRoiUsd({
               pnlUsd,
               valueStart,
-              volume,
-              tradingCollateralNetOut,
+              capitalDeployed,
               collateralPriceUsd,
             }),
             market_count: Number(snap.marketCount) || 0,

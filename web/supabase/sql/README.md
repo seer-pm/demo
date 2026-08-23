@@ -28,7 +28,7 @@ multi-statement scripts in one, so run those statements individually.
 After pulling these changes, run in the Supabase SQL editor (in order):
 
 1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
-2. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `roi`, the refresh cursor table, and all-chains RPCs)
+2. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `capital_deployed` / `roi`, the refresh cursor table, and all-chains RPCs)
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

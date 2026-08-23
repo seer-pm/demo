@@ -1,9 +1,14 @@
 import type { Address } from "viem";
 import { gnosis, optimism } from "viem/chains";
 import { describe, expect, it } from "vitest";
-import type { MaterializedLeaderboardRow } from "./pnlLeaderboardRollup";
-import { matchesAddressSearch, rankForAddress, rollUpRows, withExecutors } from "./pnlLeaderboardRollup";
-import type { LeaderboardCandidate } from "./pnlLeaderboardRollup";
+import type { LeaderboardCandidate, MaterializedLeaderboardRow, RolledUpLeaderboardRow } from "./pnlLeaderboardRollup";
+import {
+  matchesAddressSearch,
+  rankForAddress,
+  rollUpRows,
+  sortLeaderboardRows,
+  withExecutors,
+} from "./pnlLeaderboardRollup";
 import { OldTradeExecutorBytecode, TradeExecutorBytecode, formatBytecode } from "./tradeExecutorBytecode";
 import {
   GNOSIS_TRADE_EXECUTOR_FACTORY,
@@ -17,6 +22,7 @@ import {
 
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
 const EXECUTOR = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const OTHER = "0x2222222222222222222222222222222222222222";
 
 function row(overrides: Partial<MaterializedLeaderboardRow>): MaterializedLeaderboardRow {
   return {
@@ -24,12 +30,26 @@ function row(overrides: Partial<MaterializedLeaderboardRow>): MaterializedLeader
     chainId: 10,
     pnlUsd: 0,
     volumeUsd: 0,
-    volume: 0,
     valueStart: 0,
-    tradingCollateralNetOut: 0,
+    capitalDeployed: 0,
     collateralPriceUsd: 1,
     marketCount: 0,
     updatedAt: null,
+    ...overrides,
+  };
+}
+
+function rolled(overrides: Partial<RolledUpLeaderboardRow>): RolledUpLeaderboardRow {
+  const address = (overrides.address ?? OWNER).toLowerCase();
+  return {
+    address,
+    pnlUsd: 0,
+    volumeUsd: 0,
+    capitalUsd: 100,
+    marketCount: 0,
+    updatedAt: null,
+    roi: 0,
+    members: [address],
     ...overrides,
   };
 }
@@ -57,74 +77,119 @@ describe("withExecutors", () => {
 describe("rollUpRows", () => {
   it("merges executor and owner into one row with summed metrics", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
-    const rolled = rollUpRows(
+    const rolledRows = rollUpRows(
       [
-        row({ address: OWNER.toLowerCase(), pnlUsd: 100, volumeUsd: 50, volume: 50, valueStart: 10 }),
+        row({ address: OWNER.toLowerCase(), pnlUsd: 100, volumeUsd: 50, valueStart: 10, capitalDeployed: 50 }),
         row({
           address: EXECUTOR,
           pnlUsd: 200,
           volumeUsd: 30,
-          volume: 30,
           valueStart: 5,
-          tradingCollateralNetOut: 10,
+          capitalDeployed: 40,
         }),
       ],
       owners,
     );
 
-    expect(rolled).toHaveLength(1);
-    expect(rolled[0].address).toBe(OWNER.toLowerCase());
-    expect(rolled[0].pnlUsd).toBe(300);
-    expect(rolled[0].volumeUsd).toBe(80);
-    expect(rolled[0].members.sort()).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
-    expect(rolled[0].roi).not.toBeNull();
+    expect(rolledRows).toHaveLength(1);
+    expect(rolledRows[0].address).toBe(OWNER.toLowerCase());
+    expect(rolledRows[0].pnlUsd).toBe(300);
+    expect(rolledRows[0].volumeUsd).toBe(80);
+    expect(rolledRows[0].members.sort()).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
+    expect(rolledRows[0].roi).not.toBeNull();
   });
 
   it("keeps separate rows when there is no owner mapping", () => {
-    const rolled = rollUpRows(
+    const rolledRows = rollUpRows(
       [row({ address: OWNER.toLowerCase(), pnlUsd: 10 }), row({ address: EXECUTOR, pnlUsd: 20 })],
       {},
     );
-    expect(rolled).toHaveLength(2);
+    expect(rolledRows).toHaveLength(2);
   });
 
   it("still ranks under the owner when only the executor row was materialized", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
-    const rolled = rollUpRows([row({ address: EXECUTOR, pnlUsd: 200, volumeUsd: 30 })], owners);
-    expect(rolled).toHaveLength(1);
-    expect(rolled[0].address).toBe(OWNER.toLowerCase());
-    expect(rolled[0].pnlUsd).toBe(200);
-    expect(rolled[0].members).toEqual([EXECUTOR]);
+    const rolledRows = rollUpRows([row({ address: EXECUTOR, pnlUsd: 200, volumeUsd: 30 })], owners);
+    expect(rolledRows).toHaveLength(1);
+    expect(rolledRows[0].address).toBe(OWNER.toLowerCase());
+    expect(rolledRows[0].pnlUsd).toBe(200);
+    expect(rolledRows[0].members).toEqual([EXECUTOR]);
   });
 
   it("rolls up Gnosis foresight rows the same way as Optimism", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
-    const rolled = rollUpRows(
+    const rolledRows = rollUpRows(
       [
         row({ chainId: gnosis.id, address: OWNER.toLowerCase(), pnlUsd: 10 }),
         row({ chainId: gnosis.id, address: EXECUTOR, pnlUsd: 40 }),
       ],
       owners,
     );
-    expect(rolled).toHaveLength(1);
-    expect(rolled[0].pnlUsd).toBe(50);
-    expect(rolled[0].address).toBe(OWNER.toLowerCase());
+    expect(rolledRows).toHaveLength(1);
+    expect(rolledRows[0].pnlUsd).toBe(50);
+    expect(rolledRows[0].address).toBe(OWNER.toLowerCase());
+  });
+});
+
+describe("sortLeaderboardRows", () => {
+  const rows = [
+    rolled({ address: OWNER, pnlUsd: 100, volumeUsd: 10, roi: 0.5, marketCount: 2 }),
+    rolled({ address: OTHER, pnlUsd: 50, volumeUsd: 90, roi: 1.2, marketCount: 5 }),
+    rolled({ address: EXECUTOR, pnlUsd: 200, volumeUsd: 40, roi: null, marketCount: 1, capitalUsd: 0 }),
+  ];
+
+  it("sorts by pnl desc by default metric order", () => {
+    expect(sortLeaderboardRows(rows, "pnl", "desc").map((r) => r.address)).toEqual([
+      EXECUTOR,
+      OWNER.toLowerCase(),
+      OTHER,
+    ]);
+  });
+
+  it("sorts by volume asc", () => {
+    expect(sortLeaderboardRows(rows, "volume", "asc").map((r) => r.address)).toEqual([
+      OWNER.toLowerCase(),
+      EXECUTOR,
+      OTHER,
+    ]);
+  });
+
+  it("sorts by markets desc", () => {
+    expect(sortLeaderboardRows(rows, "markets", "desc").map((r) => r.address)).toEqual([
+      OTHER,
+      OWNER.toLowerCase(),
+      EXECUTOR,
+    ]);
+  });
+
+  it("puts null ROI last in both directions", () => {
+    expect(sortLeaderboardRows(rows, "roi", "desc").map((r) => r.address)).toEqual([
+      OTHER,
+      OWNER.toLowerCase(),
+      EXECUTOR,
+    ]);
+    expect(sortLeaderboardRows(rows, "roi", "asc").map((r) => r.address)).toEqual([
+      OWNER.toLowerCase(),
+      OTHER,
+      EXECUTOR,
+    ]);
   });
 });
 
 describe("matchesAddressSearch and rankForAddress", () => {
   const owners = { [EXECUTOR]: OWNER.toLowerCase() };
-  const rolled = rollUpRows(
-    [row({ address: OWNER.toLowerCase(), pnlUsd: 50 }), row({ address: EXECUTOR, pnlUsd: 150 })],
-    owners,
+  const rolledRows = sortLeaderboardRows(
+    rollUpRows([row({ address: OWNER.toLowerCase(), pnlUsd: 50 }), row({ address: EXECUTOR, pnlUsd: 150 })], owners),
+    "pnl",
+    "desc",
   );
 
   it("finds owner row when searching executor fragment", () => {
-    expect(matchesAddressSearch(rolled[0], EXECUTOR.slice(2, 10))).toBe(true);
+    expect(matchesAddressSearch(rolledRows[0], EXECUTOR.slice(2, 10))).toBe(true);
   });
 
   it("ranks executor under the owner row", () => {
-    const result = rankForAddress(rolled, EXECUTOR);
+    const result = rankForAddress(rolledRows, EXECUTOR);
     expect(result.rank).toBe(1);
     expect(result.total).toBe(1);
   });

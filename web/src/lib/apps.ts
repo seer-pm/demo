@@ -55,7 +55,7 @@ export const SEER_APPS: Record<SeerAppId, SeerApp> = {
         id: "movies-3",
         label: "Movies Experiment 3",
         chainId: gnosis.id,
-        marketId: "0xb3027df942259e82c40b620daa4fd9f3541bcd4f",
+        marketId: "0xacc15cfa0f4ae4932b12ab14595941285098436a",
       },
     ],
   },

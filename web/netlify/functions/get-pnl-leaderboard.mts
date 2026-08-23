@@ -9,14 +9,19 @@ import { DEFAULT_CHAIN } from "@/lib/chains";
 import { createClient } from "@supabase/supabase-js";
 import { CORS_HEADERS } from "./utils/common";
 import { type OwnerMap, TRADE_EXECUTOR_CHAIN_IDS, hasTradeExecutorConfig, readOwnerMap } from "./utils/executorOwners";
-import { roiFromCapitalUsd } from "./utils/pnlLeaderboardMetrics";
+import { capitalUsdFromRow, roiFromCapitalUsd } from "./utils/pnlLeaderboardMetrics";
 import {
+  LEADERBOARD_SORT_DIRS,
+  LEADERBOARD_SORT_KEYS,
+  type LeaderboardSortDir,
+  type LeaderboardSortKey,
   type MaterializedLeaderboardRow,
   type RolledUpLeaderboardRow,
   aggregateRowsAcrossChains,
   matchesAddressSearch,
   rankForAddress,
   rollUpRows,
+  sortLeaderboardRows,
 } from "./utils/pnlLeaderboardRollup";
 import type { Database } from "./utils/supabase";
 
@@ -32,9 +37,8 @@ export type PnlLeaderboardRow = {
   /** Gross swap volume in USD. */
   volume: number;
   /**
-   * pnl_usd / (value_start_usd + buys_usd); null when capital is dust (< $0.01).
-   * buys = (volume + trading_collateral_net_out) / 2 (primary as tokenIn).
-   * See capitalUsdFromRow / computeRoiUsd in pnlLeaderboard.ts.
+   * pnl_usd / (value_start_usd + capital_deployed_usd); null when capital is dust (< $0.01).
+   * See capitalUsdFromRow / computeRoiUsd in pnlLeaderboardMetrics.ts.
    */
   roi: number | null;
   unit: "USD";
@@ -85,9 +89,8 @@ function mapDbRow(row: {
   chain_id: number;
   pnl_usd: number | string | null;
   volume_usd: number | string | null;
-  volume: number | string | null;
   value_start: number | string | null;
-  trading_collateral_net_out: number | string | null;
+  capital_deployed: number | string | null;
   collateral_price_usd: number | string | null;
   market_count: number | null;
   updated_at: string | null;
@@ -97,9 +100,8 @@ function mapDbRow(row: {
     chainId: row.chain_id,
     pnlUsd: Number(row.pnl_usd) || 0,
     volumeUsd: Number(row.volume_usd) || 0,
-    volume: Number(row.volume) || 0,
     valueStart: Number(row.value_start) || 0,
-    tradingCollateralNetOut: Number(row.trading_collateral_net_out) || 0,
+    capitalDeployed: Number(row.capital_deployed) || 0,
     collateralPriceUsd: Number(row.collateral_price_usd) || 0,
     marketCount: row.market_count ?? 0,
     updatedAt: row.updated_at,
@@ -123,7 +125,7 @@ async function loadMaterializedRows(args: {
     let query = supabase
       .from("pnl_leaderboard")
       .select(
-        "address, chain_id, pnl_usd, volume_usd, volume, value_start, trading_collateral_net_out, collateral_price_usd, market_count, updated_at",
+        "address, chain_id, pnl_usd, volume_usd, value_start, capital_deployed, collateral_price_usd, market_count, updated_at",
       )
       .in("app_id", args.appIds)
       .eq("period", args.period)
@@ -147,10 +149,11 @@ async function loadMaterializedRows(args: {
 }
 
 function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeaderboardRow {
-  const capitalUsd =
-    (Number(row.valueStart) || 0) * (Number(row.collateralPriceUsd) || 0) +
-    Math.max(((Number(row.volume) || 0) + (Number(row.tradingCollateralNetOut) || 0)) / 2, 0) *
-      (Number(row.collateralPriceUsd) || 0);
+  const capitalUsd = capitalUsdFromRow({
+    valueStart: row.valueStart,
+    capitalDeployed: row.capitalDeployed,
+    collateralPriceUsd: row.collateralPriceUsd,
+  });
 
   return {
     address: row.address,
@@ -208,22 +211,22 @@ function rollUpMaterializedRows(
       rolled.push(...rollUpRows(rows, ownerMaps.get(chainId) ?? {}));
       continue;
     }
-    const plain = rows
-      .map(materializedToRolledUp)
-      .sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
+    const plain = rows.map(materializedToRolledUp);
     rolled.push(...(aggregateScopes ? aggregateRowsAcrossChains(plain) : plain));
   }
 
   if (aggregateScopes || byChain.size > 1) {
     return aggregateRowsAcrossChains(rolled);
   }
-  return rolled.sort((a, b) => b.pnlUsd - a.pnlUsd || a.address.localeCompare(b.address));
+  return rolled;
 }
 
 async function buildPublicLeaderboard(args: {
   app: SeerAppFilterId;
   period: Period;
   chainId?: number;
+  sort: LeaderboardSortKey;
+  dir: LeaderboardSortDir;
 }): Promise<RolledUpLeaderboardRow[]> {
   const appIds = materializedAppIdsForFilter(args.app);
   const materialized = await loadMaterializedRows({
@@ -235,7 +238,27 @@ async function buildPublicLeaderboard(args: {
   const chainIds = args.chainId != null ? [args.chainId] : [...new Set(materialized.map((row) => row.chainId))];
   const ownerMaps = await loadOwnerMapsForChains(chainIds);
 
-  return rollUpMaterializedRows(materialized, ownerMaps, appIds.length > 1);
+  return sortLeaderboardRows(rollUpMaterializedRows(materialized, ownerMaps, appIds.length > 1), args.sort, args.dir);
+}
+
+function isLeaderboardSortKey(value: string): value is LeaderboardSortKey {
+  return (LEADERBOARD_SORT_KEYS as readonly string[]).includes(value);
+}
+
+function isLeaderboardSortDir(value: string): value is LeaderboardSortDir {
+  return (LEADERBOARD_SORT_DIRS as readonly string[]).includes(value);
+}
+
+function parseSortParam(raw: string | null): LeaderboardSortKey | { error: string } {
+  const value = (raw ?? "pnl").toLowerCase();
+  if (isLeaderboardSortKey(value)) return value;
+  return { error: `sort must be one of: ${LEADERBOARD_SORT_KEYS.join(", ")}` };
+}
+
+function parseDirParam(raw: string | null): LeaderboardSortDir | { error: string } {
+  const value = (raw ?? "desc").toLowerCase();
+  if (isLeaderboardSortDir(value)) return value;
+  return { error: `dir must be one of: ${LEADERBOARD_SORT_DIRS.join(", ")}` };
 }
 
 function toApiRow(row: RolledUpLeaderboardRow, rank: number, chainId?: number | "all"): PnlLeaderboardRow {
@@ -308,6 +331,17 @@ export default async (req: Request) => {
       return jsonResponse({ error: "period must be one of: 1d, 1w, 1m, all" }, 400);
     }
 
+    const sortParsed = parseSortParam(url.searchParams.get("sort"));
+    if (typeof sortParsed === "object") {
+      return jsonResponse({ error: sortParsed.error }, 400);
+    }
+    const dirParsed = parseDirParam(url.searchParams.get("dir"));
+    if (typeof dirParsed === "object") {
+      return jsonResponse({ error: dirParsed.error }, 400);
+    }
+    const sort = sortParsed;
+    const dir = dirParsed;
+
     const app = appParam as SeerAppFilterId;
     const isAllChains = chainIdParam === "all";
     let chainId: number | undefined;
@@ -328,6 +362,8 @@ export default async (req: Request) => {
         app,
         period,
         chainId: isAllChains ? undefined : chainId,
+        sort,
+        dir,
       });
       const ownerMaps = await loadOwnerMapsForChains(
         isAllChains ? TRADE_EXECUTOR_CHAIN_IDS : chainId != null ? [chainId] : TRADE_EXECUTOR_CHAIN_IDS,
@@ -340,6 +376,8 @@ export default async (req: Request) => {
           app,
           chainId: isAllChains ? "all" : chainId,
           period,
+          sort,
+          dir,
           address: canonical,
           rank: result.rank,
           total: result.total,
@@ -353,6 +391,8 @@ export default async (req: Request) => {
       app,
       period,
       chainId: isAllChains ? undefined : chainId,
+      sort,
+      dir,
     });
 
     const page = paginateRows({
@@ -368,6 +408,8 @@ export default async (req: Request) => {
         app,
         chainId: isAllChains ? "all" : chainId,
         period,
+        sort,
+        dir,
         unit: "USD",
         updatedAt: latestUpdatedAt(page.rows),
         total: page.total,

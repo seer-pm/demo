@@ -409,23 +409,30 @@ export function conditionalEventsToTransactions(events: ConditionalEventRow[]): 
 /**
  * Net primary collateral for the user from ConditionalEvents:
  * split → −amount, merge/redeem → +amount (only legs whose collateral matches primary).
+ *
+ * `splitOutHuman` is the **gross** split side of the same legs. ROI capital needs deployment,
+ * not the net of deployment and return: a wallet that split and later redeemed nets to ~0,
+ * which would leave it with no denominator.
  */
 export function routerPrimaryNetFromConditionalEvents(
   events: ConditionalEventRow[],
   primaryCollateral: Token,
-): { netHuman: number; transactionEvents: TransactionData[] } {
+): { netHuman: number; splitOutHuman: number; transactionEvents: TransactionData[] } {
   const primaryLc = primaryCollateral.address.toLowerCase();
   const matching = events.filter((ev) => ev.collateral.toLowerCase() === primaryLc);
   let netWei = 0n;
+  let splitOutWei = 0n;
   for (const ev of matching) {
     if (ev.eventType === "split") {
       netWei -= ev.amount;
+      splitOutWei += ev.amount;
     } else {
       netWei += ev.amount;
     }
   }
   return {
     netHuman: Number(formatUnits(netWei, primaryCollateral.decimals)),
+    splitOutHuman: Number(formatUnits(splitOutWei, primaryCollateral.decimals)),
     transactionEvents: conditionalEventsToTransactions(matching),
   };
 }

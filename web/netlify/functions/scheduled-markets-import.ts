@@ -162,12 +162,30 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMa
   return allMarkets;
 }
 
-async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<boolean> {
+async function refreshMarketOutcomeTokensIfNeeded(shouldRefresh: boolean): Promise<void> {
+  if (!shouldRefresh) return;
+  const { error } = await supabase.rpc("refresh_market_outcome_tokens");
+  if (error) {
+    console.error("scheduled-markets-import: refresh_market_outcome_tokens failed:", error.message);
+    return;
+  }
+  console.log("scheduled-markets-import: refreshed market_outcome_tokens after newly created markets");
+}
+
+type ProcessChainResult = {
+  chainId: SupportedChain;
+  /** Most recent market created within maxAgeSeconds — triggers Netlify rebuild + MV refresh. */
+  hasNewMarkets: boolean;
+  success: boolean;
+  error?: unknown;
+};
+
+async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<ProcessChainResult> {
   const markets = await fetchAllSubgraphMarkets(chainId);
 
   if (markets.length === 0) {
     console.log(`No markets found for chain ${chainId}`);
-    return false;
+    return { chainId, hasNewMarkets: false, success: true };
   }
 
   console.log(`Chain ${chainId}: fetched ${markets.length} markets`);
@@ -217,7 +235,11 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
   // Check if the most recent market was created within the maxAgeSeconds window
   const now = Math.floor(Date.now() / 1000);
   const timestamp = Number(markets[0].blockTimestamp);
-  return now - timestamp < maxAgeSeconds;
+  return {
+    chainId,
+    hasNewMarkets: now - timestamp < maxAgeSeconds,
+    success: true,
+  };
 }
 
 export default async () => {
@@ -229,29 +251,36 @@ export default async () => {
       .filter((chainId) => chainId !== sepolia.id)
       .map(async (chainId) => {
         try {
-          const hasNewMarkets = await processChain(chainId, maxAgeSeconds);
-          return { chainId, hasNewMarkets, success: true };
+          return await processChain(chainId, maxAgeSeconds);
         } catch (e) {
           console.error(`Chain id ${chainId} error`, e);
-          return { chainId, hasNewMarkets: false, success: false, error: e };
+          return {
+            chainId,
+            hasNewMarkets: false,
+            success: false,
+            error: e,
+          } satisfies ProcessChainResult;
         }
       }),
   );
 
+  const fulfilled = chainResults
+    .filter((r): r is PromiseFulfilledResult<ProcessChainResult> => r.status === "fulfilled")
+    .map((r) => r.value);
+
   // Check if any chain had new markets
-  const shouldRebuild = chainResults.some((result) => result.status === "fulfilled" && result.value.hasNewMarkets);
+  const shouldRebuild = fulfilled.some((r) => r.hasNewMarkets);
 
   // Log results summary
-  const successfulChains = chainResults.filter((r) => r.status === "fulfilled" && r.value.success).length;
-  const failedChains = chainResults.filter(
-    (r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.success),
-  ).length;
+  const successfulChains = fulfilled.filter((r) => r.success).length;
+  const failedChains = chainResults.length - successfulChains;
   console.log(`Chain processing completed: ${successfulChains} successful, ${failedChains} failed`);
 
   // update images
   await updateImages();
 
-  // Trigger rebuild if new markets were found
+  // Refresh MV + trigger rebuild when newly created markets were found
+  await refreshMarketOutcomeTokensIfNeeded(shouldRebuild);
   await triggerRebuildIfNeeded(shouldRebuild);
 
   try {

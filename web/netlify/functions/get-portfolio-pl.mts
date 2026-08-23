@@ -31,8 +31,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   frontend does not break; the leaderboard job still skips the upsert.
  *
  * Global response shape
- * - USD from materialization: `pnl` is `pnl_usd`; `valueStart` / `valueEnd` / net-out / `volume`
- *   are native fields × `collateral_price_usd` (or `volume_usd`). `unit` is `"USD"`.
+ * - USD from materialization: `pnl` is `pnl_usd`; `valueStart` / `valueEnd` / net-out / `volume` /
+ *   `capitalDeployed` are native fields × `collateral_price_usd` (or `volume_usd`). `unit` is `"USD"`.
  * - `chainId=all` sums those USD fields across chains for the wallet.
  * - `endTime` / `startTime` (for 1d, 1w, 1m) are derived from the row's `updated_at`, not request-time now.
  * - `updatedAt` is that snapshot timestamp. `period=all` keeps `startTime` null.
@@ -53,6 +53,7 @@ type LeaderboardUsdRow = {
   trading_collateral_net_out: number;
   lp_collateral_net_out: number;
   volume_usd: number;
+  capital_deployed: number;
   collateral_price_usd: number;
   market_count: number;
   updated_at: string;
@@ -67,6 +68,7 @@ function usdFromLeaderboardRow(row: LeaderboardUsdRow) {
     tradingCollateralNetOut: (Number(row.trading_collateral_net_out) || 0) * price,
     lpCollateralNetOut: (Number(row.lp_collateral_net_out) || 0) * price,
     volume: Number(row.volume_usd) || 0,
+    capitalDeployed: (Number(row.capital_deployed) || 0) * price,
     marketCount: Number(row.market_count) || 0,
   };
 }
@@ -93,6 +95,7 @@ async function portfolioPlFromLeaderboard(args: {
     lpCollateralNetOut: 0,
     volume: 0,
     marketCount: 0,
+    capitalDeployed: 0,
     pnl: 0,
     updatedAt,
     unit: "USD",
@@ -101,7 +104,7 @@ async function portfolioPlFromLeaderboard(args: {
   let query = supabase
     .from("pnl_leaderboard")
     .select(
-      "pnl_usd, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume_usd, collateral_price_usd, market_count, updated_at",
+      "pnl_usd, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume_usd, capital_deployed, collateral_price_usd, market_count, updated_at",
     )
     .eq("app_id", SEER_APP_ALL_ID)
     .eq("address", accountLc)
@@ -132,6 +135,7 @@ async function portfolioPlFromLeaderboard(args: {
     tradingCollateralNetOut: 0,
     lpCollateralNetOut: 0,
     volume: 0,
+    capitalDeployed: 0,
     marketCount: 0,
   };
 
@@ -143,6 +147,7 @@ async function portfolioPlFromLeaderboard(args: {
     summed.tradingCollateralNetOut += usd.tradingCollateralNetOut;
     summed.lpCollateralNetOut += usd.lpCollateralNetOut;
     summed.volume += usd.volume;
+    summed.capitalDeployed += usd.capitalDeployed;
     summed.marketCount += usd.marketCount;
     if (!latestUpdatedAt || row.updated_at > latestUpdatedAt) {
       latestUpdatedAt = row.updated_at;
@@ -216,6 +221,7 @@ function emptyPortfolioPlSnapshot(args: {
     lpCollateralNetOut: 0,
     volume: 0,
     marketCount: 0,
+    capitalDeployed: 0,
     pnl: 0,
     ...(marketScoped ? {} : { updatedAt: null, unit: "USD" as const }),
   };
