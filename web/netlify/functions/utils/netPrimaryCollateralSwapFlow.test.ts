@@ -66,7 +66,7 @@ describe("computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents", () => {
     expect(flow.marketCountByStartTime.get(0)).toBe(1);
   });
 
-  it("prices conditional child volume at settlement (e.g. 1/15)", () => {
+  it("prices conditional child volume at 1/N (e.g. 1/15)", () => {
     const prices: CollateralPriceByMarketId = new Map([[MARKET_CHILD.toLowerCase(), 1 / 15]]);
     const swaps = [
       swap({
@@ -87,7 +87,7 @@ describe("computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents", () => {
     expect(flow.marketCountByStartTime.get(0)).toBe(1);
   });
 
-  it("counts market when settlement price is 0 but still had a collateral leg", () => {
+  it("counts market when collateral price is 0 but still had a collateral leg", () => {
     const prices: CollateralPriceByMarketId = new Map([[MARKET_CHILD.toLowerCase(), 0]]);
     const swaps = [
       swap({

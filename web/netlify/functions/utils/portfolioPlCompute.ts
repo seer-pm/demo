@@ -1,5 +1,4 @@
 import type { PortfolioPosition, SupportedChain, Token } from "@seer-pm/sdk";
-import { getRedeemedPrice } from "@seer-pm/sdk/market";
 import type { Market } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, zeroAddress } from "viem";
@@ -29,6 +28,7 @@ import {
 } from "./seerIndexerPortfolio";
 import type { Database } from "./supabase";
 import { fetchAccountDexEvents } from "./transactions/fetchAccountDexEvents";
+import { volumePriceForParentOutcome } from "./volumeCollateralPrice";
 
 export type { PortfolioPlPeriod };
 export { PORTFOLIO_PL_PERIODS };
@@ -47,8 +47,8 @@ export type PortfolioPlPeriodSnapshot = {
   /** Net primary into LP pools in the window (mints − burns). */
   lpCollateralNetOut: number;
   /**
-   * Gross swap notional in primary collateral (buy + sell): market-collateral leg × settlement
-   * price for conditional markets. See `netPrimaryCollateralSwapFlow.volumeByStartTime`.
+   * Gross swap notional in primary collateral (buy + sell): market-collateral leg × 1/N on
+   * conditional markets. See `netPrimaryCollateralSwapFlow.volumeByStartTime`.
    */
   volume: number;
   /** Distinct markets with a market-collateral swap leg in the window. */
@@ -80,10 +80,10 @@ function positionRowValueAtReference(
 }
 
 /**
- * What one unit of each market's collateral token is worth in primary collateral.
+ * What one unit of each market's collateral token is worth in primary collateral for volume.
  *
  * Flat markets collateralised in primary: 1. Conditional markets use a parent outcome token —
- * valued at settlement (`getRedeemedPrice` on the parent). Lost / unresolved parents price at 0.
+ * always 1/N (split value), independent of parent resolution or outcome win/loss.
  * Keyed by market id (what a mapped swap carries).
  */
 function collateralPricesByMarketId(markets: Market[], primaryCollateral: Token): CollateralPriceByMarketId {
@@ -100,22 +100,10 @@ function collateralPricesByMarketId(markets: Market[], primaryCollateral: Token)
       continue;
     }
     const parent = byIdLower.get(parentId.toLowerCase());
-    const parentOutcome = Number(market.parentOutcome);
-    prices.set(
-      market.id.toLowerCase(),
-      parent
-        ? getRedeemedPrice(parent, parentOutcome)
-        : payoutShare(market.parentMarket.payoutReported, market.parentMarket.payoutNumerators, parentOutcome),
-    );
+    const payoutNumerators = parent?.payoutNumerators ?? market.parentMarket.payoutNumerators;
+    prices.set(market.id.toLowerCase(), volumePriceForParentOutcome(payoutNumerators));
   }
   return prices;
-}
-
-function payoutShare(payoutReported: boolean, payoutNumerators: readonly bigint[], index: number): number {
-  if (!payoutReported) return 0;
-  const sum = payoutNumerators.reduce((total, numerator) => total + Number(numerator), 0);
-  if (sum === 0) return 0;
-  return Number(payoutNumerators[index] ?? 0n) / sum;
 }
 
 /** P/L is Generic-only: Futarchy (PNK/GNO, …) would mix 1.0 notional into primary-collateral units. */
@@ -318,7 +306,7 @@ export type PortfolioPlComputed = {
  * - `lpCollateralNetOut`: net primary deposited into outcome/collateral LP pools
  *   (mint − burn) in the window. Positive = capital locked in LP.
  * - `volume`: each swap's market-collateral leg valued in primary (primary on flat markets;
- *   parent outcome × settlement price on conditional ones).
+ *   parent outcome × 1/N on conditional ones).
  * - `marketCount`: distinct markets with a market-collateral swap leg in the window.
  * - `capitalDeployed`: primary spent buying outcomes (`tokenIn` = primary), plus (market-scoped
  *   only) gross primary split through the router — the ROI denominator, not part of P/L.

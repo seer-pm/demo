@@ -20,15 +20,25 @@ multi-statement scripts in one, so run those statements individually.
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
-| `pnl_leaderboard.sql` | Table + indexes + all-chains RPCs (`pnl_leaderboard_all_chains`, `pnl_leaderboard_all_chains_rank`) + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). |
+| `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
+
+Analytics matview RPC `refresh_market_outcome_tokens` lives in
+[`dashboard/supabase/sql/analytics_rpcs.sql`](../../dashboard/supabase/sql/analytics_rpcs.sql)
+(same DB). `scheduled-markets-import` calls it when new market ids are upserted. Apply that
+function in the SQL editor before relying on the auto-refresh.
 
 ## Apply for PnL leaderboard / portfolio fixes
 
 After pulling these changes, run in the Supabase SQL editor (in order):
 
 1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
-2. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `capital_deployed` / `roi`, the refresh cursor table, and all-chains RPCs)
+2. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `capital_deployed` / `roi` and the refresh cursor table). If production still has the unused `pnl_leaderboard_all_chains` / `pnl_leaderboard_all_chains_rank` functions, drop them manually:
+
+```sql
+drop function if exists public.pnl_leaderboard_all_chains(text, text, text, integer, integer);
+drop function if exists public.pnl_leaderboard_all_chains_rank(text, text, text);
+```
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

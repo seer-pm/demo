@@ -12,9 +12,8 @@ const OUTCOME_TOKEN_DECIMALS = 18;
  * Price, in primary collateral, of one unit of a market's collateral token — keyed by market id.
  *
  * 1 for a market collateralised in the primary token itself. For a conditional market the
- * collateral is a *parent outcome token*, and the caller supplies its settlement price
- * (`getRedeemedPrice` on the parent): 1/15 for a winning Round 2 · L2 repo, 1/33 for Originality,
- * 0 for an outcome that lost or a parent that has not resolved yet.
+ * collateral is a *parent outcome token*, and the caller supplies its volume price (always 1/N:
+ * one primary collateral split across N parent outcomes).
  */
 export type CollateralPriceByMarketId = Map<string, number>;
 
@@ -50,8 +49,8 @@ export type PrimaryCollateralSwapFlowByPeriod = {
    * swap's market-collateral leg, priced by `collateralPriceByMarketId`.
    *
    * On conditional markets the pool is `childOutcome ↔ parentOutcome`, so no leg is the primary
-   * collateral. Parent outcome tokens are valued at settlement (`getRedeemedPrice` on the parent):
-   * a winning L2 repo redeems for 1/15, Originality 1/33; a lost / unresolved parent prices at 0.
+   * collateral. Parent outcome tokens are valued at 1/N primary collateral for volume (split
+   * notional), regardless of parent resolution or which outcome wins.
    */
   volumeByStartTime: Map<number, number>;
   /**
@@ -59,7 +58,7 @@ export type PrimaryCollateralSwapFlowByPeriod = {
    * Feeds `capitalDeployed` / ROI — not derived from volume (volume also counts nested legs).
    */
   buysByStartTime: Map<number, number>;
-  /** Distinct markets with a market-collateral swap leg in the window (even if settlement price is 0). */
+  /** Distinct markets with a market-collateral swap leg in the window. */
   marketCountByStartTime: Map<number, number>;
   rowsByStartTime: Map<number, PrimaryCollateralSwapFlowDebugRow[]>;
   primary: { address: string; decimals: number };
@@ -78,7 +77,7 @@ function aggregateSwapFlowForPeriods(
   const netOutWeiByStart = new Map<number, bigint>();
   const buysWeiByStart = new Map<number, bigint>();
   // Primary-collateral legs stay exact in wei; priced legs are floats the moment they are
-  // multiplied by a settlement price, so the two are summed only at the end.
+  // multiplied by a volume price, so the two are summed only at the end.
   const volumePrimaryWeiByStart = new Map<number, bigint>();
   const volumePricedByStart = new Map<number, number>();
   const marketsByStart = new Map<number, Set<string>>();
@@ -125,7 +124,7 @@ function aggregateSwapFlowForPeriods(
     }
 
     // Volume: the leg denominated in the market's own collateral, whatever that is, valued in
-    // primary collateral. A zero price (outcome lost, or parent unresolved) contributes nothing.
+    // primary collateral. A zero price (e.g. missing payout numerators) contributes nothing.
     let volumeCounted = 0n;
     if (tin === collateralAddr) volumeCounted += BigInt(s.amountIn || 0);
     if (tout === collateralAddr) volumeCounted += BigInt(s.amountOut || 0);
@@ -146,8 +145,7 @@ function aggregateSwapFlowForPeriods(
       } else {
         volumePricedByStart.set(startTime, (volumePricedByStart.get(startTime) ?? 0) + volumePriced);
       }
-      // Counts the market as traded on the leg, not on its settlement value: a real trade against
-      // an outcome that lost is still a market this wallet was active in.
+      // Counts the market as traded on the collateral leg, not on its priced volume.
       if (swapMarketId && volumeCounted > 0n) marketsByStart.get(startTime)?.add(swapMarketId);
       if (rowLimit > 0) {
         const rows = rowsByStart.get(startTime) ?? [];
