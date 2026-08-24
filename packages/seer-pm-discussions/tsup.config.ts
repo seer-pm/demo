@@ -16,7 +16,7 @@ function injectCssImport(file: string, statement: string) {
 }
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/tooltip.ts"],
+  entry: ["src/index.ts"],
   format: ["cjs", "esm"],
   dts: true,
   clean: true,

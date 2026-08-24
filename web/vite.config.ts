@@ -47,7 +47,6 @@ export default defineConfig({
       "@seer-pm/sdk/sign-in": path.resolve(__dirname, "../packages/seer-pm-sdk/src/sign-in.ts"),
       "@seer-pm/sdk": path.resolve(__dirname, "../packages/seer-pm-sdk/src/index.ts"),
       "@seer-pm/react": path.resolve(__dirname, "../packages/seer-pm-react/src/index.ts"),
-      "@seer-pm/discussions/tooltip": path.resolve(__dirname, "../packages/seer-pm-discussions/src/tooltip.ts"),
       "@seer-pm/discussions": path.resolve(__dirname, "../packages/seer-pm-discussions/src/index.ts"),
     },
   },

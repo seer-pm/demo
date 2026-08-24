@@ -69,26 +69,4 @@ describe("createDiscussionsClient", () => {
     ]);
     expect(positions.has("0xccdd")).toBe(false);
   });
-
-  it("retries a failed commenter positions request once", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError("network error"))
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ topHolders: {} }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const client = createDiscussionsClient({
-      baseUrl: "https://app.seer.pm",
-      market,
-      getAccessToken: () => "",
-    });
-
-    await expect(client.listCommenterPositions()).resolves.toEqual(new Map());
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
 });

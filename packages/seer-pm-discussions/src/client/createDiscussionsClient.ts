@@ -25,9 +25,6 @@ type TokenHoldersResponse = {
   topHolders?: Record<string, Holder[]>;
 };
 
-const POSITION_REQUEST_ATTEMPTS = 2;
-const POSITION_RETRY_DELAY_MS = 250;
-
 function authHeaders(token: string): HeadersInit {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -41,23 +38,6 @@ async function readError(res: Response): Promise<string> {
   } catch {
     return res.statusText || `HTTP ${res.status}`;
   }
-}
-
-async function fetchPositions(url: string): Promise<Response> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < POSITION_REQUEST_ATTEMPTS; attempt += 1) {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(await readError(response));
-      return response;
-    } catch (error) {
-      lastError = error;
-      if (attempt + 1 < POSITION_REQUEST_ATTEMPTS) {
-        await new Promise((resolve) => setTimeout(resolve, POSITION_RETRY_DELAY_MS));
-      }
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("Failed to load commenter positions");
 }
 
 /** HTTP client for market discussion comments. */
@@ -90,7 +70,10 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
         commentersOnly: "true",
       });
       if (account) params.set("account", account.toLowerCase());
-      const res = await fetchPositions(`${positionsEndpoint}?${params}`);
+      const res = await fetch(`${positionsEndpoint}?${params}`);
+      if (!res.ok) {
+        throw new Error(await readError(res));
+      }
 
       const json = (await res.json()) as TokenHoldersResponse;
       const positionsByAddress = new Map<string, DiscussionPosition[]>();

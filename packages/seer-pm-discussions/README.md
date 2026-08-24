@@ -91,7 +91,6 @@ You can also pass `className` / `style` on `<Discussion />` (including CSS varia
 ## Public API
 
 - `Discussion` — thread UI (`components.Button` / `components.ConnectButton` / `components.UserPositionBadge`)
-- `Tooltip` — shared portal tooltip, also available from `@seer-pm/discussions/tooltip`
 - `createDiscussionsClient` — Seer HTTP client for comments and commenter positions (`market`, `listComments`, `listCommenterPositions`, comment mutations)
 - `useDiscussions` — context hook
 - `userFromAddress` — build `DiscussionUser` from a wallet

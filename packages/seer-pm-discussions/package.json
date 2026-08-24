@@ -18,11 +18,6 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
-    "./tooltip": {
-      "types": "./dist/tooltip.d.ts",
-      "import": "./dist/tooltip.mjs",
-      "require": "./dist/tooltip.js"
-    },
     "./style.css": "./dist/index.css",
     "./tailwind": "./tailwind-preset.cjs"
   },
