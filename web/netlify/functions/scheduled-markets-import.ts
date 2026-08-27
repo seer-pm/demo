@@ -1,9 +1,9 @@
+import { isVerificationEnabled } from "@/lib/config.ts";
 import type { Config } from "@netlify/functions";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, VerificationResult } from "@seer-pm/sdk";
 import { WEATHER_CATEGORY } from "@seer-pm/sdk/create-market";
 import { getMarketStatus } from "@seer-pm/sdk/market";
-import { graphQLClient } from "@seer-pm/sdk/subgraph";
-import { Market_Select_Column, Order_By, getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
+import { Market_Select_Column, Order_By } from "@seer-pm/sdk/subgraph/seer";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -15,6 +15,7 @@ import {
   getVerificationStatusList,
   updateVerificationForRecentlyChangedItems,
 } from "./utils/curate.ts";
+import { seerEnvioSdk } from "./utils/envioClient.ts";
 import { type EnvioMarket, envioMarketToLegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
 import type { Database } from "./utils/supabase.ts";
 
@@ -128,23 +129,38 @@ function getLiquidityAccount() {
 }
 
 const MARKETS_PAGE_SIZE = 1000;
-const MARKETS_IMPORT_LOOKBACK_SECONDS = 60 * 60 * 5; // Search for markets with changes in the last 5 hours
 
-async function fetchAllSubgraphMarkets(chainId: SupportedChain): Promise<EnvioMarket[]> {
-  const client = graphQLClient(chainId);
+/** Latest persisted creation time for this chain — import cursor for Envio `updatedAt`. */
+async function getMaxBlockTimestamp(chainId: SupportedChain): Promise<number> {
+  const { data, error } = await supabase
+    .from("markets_search")
+    .select("block_timestamp")
+    .eq("chain_id", chainId)
+    .not("block_timestamp", "is", null)
+    .order("block_timestamp", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to fetch max block_timestamp for chain ${chainId}: ${error.message}`);
+  }
+
+  return data?.block_timestamp ?? 0;
+}
+
+async function fetchAllSubgraphMarkets(chainId: SupportedChain, sinceUpdatedAt: number): Promise<EnvioMarket[]> {
+  const sdk = seerEnvioSdk(chainId);
   const allMarkets: EnvioMarket[] = [];
   let offset = 0;
 
   while (true) {
-    const { Market: markets } = await getSeerSdk(client).GetMarkets({
+    const { Market: markets } = await sdk.GetMarkets({
       limit: MARKETS_PAGE_SIZE,
       offset,
       orderBy: { [Market_Select_Column.BlockNumber]: Order_By.Desc },
       where: {
         chainId: { _eq: String(chainId) },
-        updatedAt: {
-          _gt: Math.floor((Date.now() - MARKETS_IMPORT_LOOKBACK_SECONDS * 1000) / 1000).toString(),
-        },
+        updatedAt: { _gt: String(sinceUpdatedAt) },
       },
     });
 
@@ -174,36 +190,43 @@ async function refreshMarketOutcomeTokensIfNeeded(shouldRefresh: boolean): Promi
 
 type ProcessChainResult = {
   chainId: SupportedChain;
-  /** Most recent market created within maxAgeSeconds — triggers Netlify rebuild + MV refresh. */
+  /** Any market with blockTimestamp above the DB watermark — triggers Netlify rebuild + MV refresh. */
   hasNewMarkets: boolean;
   success: boolean;
   error?: unknown;
 };
 
-async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Promise<ProcessChainResult> {
-  const markets = await fetchAllSubgraphMarkets(chainId);
+async function processChain(chainId: SupportedChain): Promise<ProcessChainResult> {
+  const maxBlockTimestamp = await getMaxBlockTimestamp(chainId);
+  const markets = await fetchAllSubgraphMarkets(chainId, maxBlockTimestamp);
 
   if (markets.length === 0) {
     console.log(`No markets found for chain ${chainId}`);
     return { chainId, hasNewMarkets: false, success: true };
   }
 
-  console.log(`Chain ${chainId}: fetched ${markets.length} markets`);
+  console.log(`Chain ${chainId}: fetched ${markets.length} markets (watermark block_timestamp=${maxBlockTimestamp})`);
 
-  await fetchAndStoreMetadata(supabase, chainId);
+  const hasNewMarkets = markets.some((market) => Number(market.blockTimestamp) > maxBlockTimestamp);
 
-  const { data: curateItems } = await supabase
-    .from("curate")
-    .select("chain_id, item_id, metadata_path, metadata")
-    .eq("chain_id", chainId)
-    .not("metadata", "is", null);
+  let verificationStatusList: Record<Address, VerificationResult> = {};
+  if (isVerificationEnabled(chainId)) {
+    await fetchAndStoreMetadata(supabase, chainId);
 
-  const verificationItems = await getVerification(chainId, (curateItems as CurateItem[]) || []);
-  const verificationStatusList = getVerificationStatusList(verificationItems);
+    const { data: curateItems } = await supabase
+      .from("curate")
+      .select("chain_id, item_id, metadata_path, metadata")
+      .eq("chain_id", chainId)
+      .not("metadata", "is", null);
+
+    const verificationItems = await getVerification(chainId, (curateItems as CurateItem[]) || []);
+    verificationStatusList = getVerificationStatusList(verificationItems);
+  }
+
   const { data: weatherMarkets } = await supabase.from("weather_markets").select("tx_hash");
   const weatherTxHashSet = new Set((weatherMarkets ?? []).map((weatherMarket) => weatherMarket.tx_hash));
   const liquidityAccount = getLiquidityAccount();
-  await supabase.from("markets").upsert(
+  const { error: upsertError } = await supabase.from("markets").upsert(
     markets.map((market) => {
       const legacySubgraphMarket = envioMarketToLegacySubgraphMarket(market);
       return {
@@ -229,29 +252,30 @@ async function processChain(chainId: SupportedChain, maxAgeSeconds: number): Pro
     }),
   );
 
-  const sinceSeconds = Math.floor(Date.now() / 1000) - MARKETS_IMPORT_LOOKBACK_SECONDS;
-  await updateVerificationForRecentlyChangedItems(supabase, chainId, sinceSeconds);
+  if (upsertError) {
+    console.error(`Chain ${chainId}: markets upsert failed:`, upsertError);
+    return { chainId, hasNewMarkets: false, success: false, error: upsertError };
+  }
 
-  // Check if the most recent market was created within the maxAgeSeconds window
-  const now = Math.floor(Date.now() / 1000);
-  const timestamp = Number(markets[0].blockTimestamp);
+  if (isVerificationEnabled(chainId)) {
+    await updateVerificationForRecentlyChangedItems(supabase, chainId, maxBlockTimestamp);
+  }
+
   return {
     chainId,
-    hasNewMarkets: now - timestamp < maxAgeSeconds,
+    hasNewMarkets,
     success: true,
   };
 }
 
 export default async () => {
-  const maxAgeSeconds = 60 * 5; // 5 minutes
-
   // update markets & verification status
   const chainResults = await Promise.allSettled(
     chainIds
       .filter((chainId) => chainId !== sepolia.id)
       .map(async (chainId) => {
         try {
-          return await processChain(chainId, maxAgeSeconds);
+          return await processChain(chainId);
         } catch (e) {
           console.error(`Chain id ${chainId} error`, e);
           return {
