@@ -1,0 +1,24 @@
+---
+title: "Seer DAO"
+---
+To solve the issues we’ve seen previously (centralised operators subject to regulations or lack of governance preventing updates), Seer will start decentralised governance from day 1. There will not be any entity such as a foundation or a company. There will not be any pre-allocation of tokens. Contributions and payout for their work will be open to everyone.
+
+#### Project governance
+
+**Base system**
+
+The project will be governed by the Seer DAO. The ultimate voting system will be the standard 1-Token 1-Vote, but the DAO will be able to delegate some of its decisions to other decision systems.
+
+There will be three ways to acquire tokens:
+
+* Work on Seer and its ecosystem (to get retroactive public good funding as discussed in the previous section).
+* Participate in Seer markets as a liquidity provider. Liquidity providers are the second type of actors required for a prediction market success (without them, no one could trade) and we’ve seen that it was historically hard to get significant liquidity in those markets. They are also the actors who risk the most initially (an opportunity cost for their capital and being outsmarted by traders) and we should reward/incentivize them. See the Token Incentives section for more details.
+* Buy those on the open market.
+
+**Quadratic Matching**
+
+The Retroactive Public Good Funding system could use quadratic matching \[6]. People can donate to different contributor and the DAO « matches » the given funding. The matching is proportional to the sum of the square root of donations such that 1 person giving 100 tokens (sqrt(100)=10) provides the same amount of matching as 10 giving 1 token each (10\*sqrt(1)=10). Note that for such a system to be possible, we need to be able to prevent parties from making donations from multiple accounts to game the system (such that the individual making 100 donations of 1 token each from different accounts which would provide a matching factor of 100\*sqrt(1)=100 instead of 10 if he is identified as being a single individual). To do so we could require Sismo \[7] Proof Of Humanity (Origin) \[8] badge guaranteeing that a human can only have one account with the badge, but without revealing which human owns the account.
+
+**Futarchy**
+
+Important decisions could use Futarchy. The idea of Futarchy is to « Vote on values, bet on beliefs » \[9]. Here Seer could make conditional prediction markets in order to take the decisions which are predicted to optimise some metrics (for example token price). See the Application - Futarchy section for more details.

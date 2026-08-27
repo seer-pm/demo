@@ -1,0 +1,20 @@
+---
+title: "Reasoning"
+---
+The goal of this system is to prevent liquidity providers from losing huge sums of money when the result of a market becomes known while still allowing traders to have their orders executed in a reasonable timeframe.
+
+Contrary to a classic auction system where the most common result of an order is not to be fulfilled, here traders can trade knowing most of their orders will be fulfilled within the short auction timeframe (1h). As they expect their orders to be fulfilled, they are more likely to make those orders compared to a pure auction system.
+
+Here we chose to use a modified (to allow partial bid) English auction, instead of other types of auctions such as sealed bid Vickery auction \[26], for the following reasons:
+
+* **Simplicity**: This auction is the easiest to understand for traders. As we’ve already increased complexity by adding an auction step to an AMM, we want to keep the extra complexity at a minimum, specifically since the auction step will be irrelevant for most trades.
+* **Capital efficiency**: By simply taking the highest bid, we can directly reimburse bids which are overbid. This gives back capital to traders as soon as possible for them to be able to use it in other orders (potentially increasing their bid on the same auction). Using a bounded linear AMM allows for all the liquidity of the market to be potentially usable.
+* **Speed**: By not using sealed bids, we save ourselves from the extra delay introduced by commit and reveal schemes \[27].
+* **Auction marketability**: By having public bids, external observers can immediately spot assets currently undervalued by the highest bid (this is particularly relevant for when the result of a market is known and tokens of the winning outcome have their highest bid lower than 1) to bid on them.
+* **Compatible incentives**: When the result is known, there are 2 possible strategies: The first one is just to bid the increment and hope that no one else will overbid. This can be highly profitable but only would only work if no one else is watching. The second strategy is to bid such that the value after the next increment is 1 (so 0.999 with a 0.1% increment), this way no one has an incentive to overbid you and you still get to get a 0.1% profit. In comparison, in a Vickery system, once a trader bids 1, there is no incentive for other traders (beside liquidity providers themselves) to overbid him and he can get assets at the previous price which can be significantly lower.
+
+The rewards for liquidity providers are never in the form of outcome tokens but always in the form of underlying tokens. Indeed, when the result becomes known, it is possible to get outcome tokens of the losing options at a zero cost (mint complete sets and keep the winning outcome tokens which will be redeemed for the underlying, leaving you with free outcome tokens of losing outcomes). If rewards were in outcome tokens, it wouldn’t prevent liquidity providers from losing money (as getting more worthless tokens thanks to the auction mechanism wouldn’t help).
+
+For traders, the system acts as a classic AMM with a 1h delay for most orders (bids where the price increased less than the increment during the bidding period).
+
+For liquidity providers, the system acts like a classic AMM, except in periods of high price moves (such as when the result becomes known) where it switches to an auction system such that they receive extra compared to the simple AMM functioning. When a result becomes known, as long as there are multiple traders noticing the opportunity, the final price of the auction will be very close to 1 (0.999 with a 0.1% increment). This solves the resolution loss problem for all markets having a sufficient amount of eyes on them.

@@ -1,0 +1,367 @@
+---
+title: "FutarchyFactory"
+---
+Futarchy factory is used to create price-based futarchy markets.
+
+Market creation logic:
+
+1. Ask reality questions.
+2. Prepare condition.
+3. Create new erc20 outcome tokens.
+4. Initialize a new market contract.
+
+## Variables
+
+### CreateProposalParams
+
+```solidity
+struct CreateProposalParams {
+  string marketName;
+  IERC20 collateralToken1;
+  IERC20 collateralToken2;
+  string category;
+  string lang;
+  uint256 minBond;
+  uint32 openingTime;
+}
+```
+
+### REALITY\_SINGLE\_SELECT\_TEMPLATE
+
+```solidity
+uint8 REALITY_SINGLE_SELECT_TEMPLATE
+```
+
+*Template for categorical markets.*
+
+### questionTimeout
+
+```solidity
+uint32 questionTimeout
+```
+
+*Reality question timeout.*
+
+### arbitrator
+
+```solidity
+address arbitrator
+```
+
+*Arbitrator contract.*
+
+### realitio
+
+```solidity
+contract IRealityETH_v3_0 realitio
+```
+
+*Reality.eth contract.*
+
+### wrapped1155Factory
+
+```solidity
+contract IWrapped1155Factory wrapped1155Factory
+```
+
+*Wrapped1155Factory contract.*
+
+### conditionalTokens
+
+```solidity
+contract IConditionalTokens conditionalTokens
+```
+
+*Conditional Tokens contract.*
+
+### collateralToken
+
+```solidity
+address collateralToken
+```
+
+*Conditional Tokens collateral token contract.*
+
+### realityProxy
+
+```solidity
+contract RealityProxy realityProxy
+```
+
+*Oracle contract.*
+
+### proposals
+
+```solidity
+address[] proposals
+```
+
+*Proposals created by this factory.*
+
+### proposal
+
+```solidity
+address proposal
+```
+
+*Proposal contract.*
+
+## Events
+
+### NewProposal
+
+```solidity
+event NewProposal(address indexed proposal, string marketName, bytes32 conditionId, bytes32 questionId)
+```
+
+*To be emitted when a new proposal is created.*
+
+**Parameters**
+
+| Name        | Type    | Description                     |
+| ----------- | ------- | ------------------------------- |
+| proposal    | address | The new proposal address.       |
+| marketName  | string  | The name of the market.         |
+| conditionId | bytes32 | Conditional Tokens conditionId. |
+| questionId  | bytes32 | Conditional Tokens questionId.  |
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(address _proposal, address _arbitrator, contract IRealityETH_v3_0 _realitio, contract IWrapped1155Factory _wrapped1155Factory, contract IConditionalTokens _conditionalTokens, contract RealityProxy _realityProxy, uint32 _questionTimeout) public
+```
+
+*Constructor.*
+
+| Name                 | Type                         | Description                                                                        |
+| -------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| \_proposal           | address                      | Address of the proposal contract that is going to be used for each new deployment. |
+| \_arbitrator         | address                      | Address of the arbitrator that is going to resolve Realitio disputes.              |
+| \_realitio           | contract IRealityETH\_v3\_0  | Address of the Realitio implementation.                                            |
+| \_wrapped1155Factory | contract IWrapped1155Factory | Address of the Wrapped1155Factory implementation.                                  |
+| \_conditionalTokens  | contract IConditionalTokens  | Address of the ConditionalTokens implementation.                                   |
+| \_realityProxy       | contract RealityProxy        | Address of the RealityProxy implementation.                                        |
+| \_questionTimeout    | uint32                       | Reality question timeout.                                                          |
+
+### createProposal
+
+```solidity
+function createProposal(struct FutarchyFactory.CreateProposalParams params) external returns (address)
+```
+
+*Creates a price-based futarchy market and deploys the wrapped ERC20 tokens.*
+
+**Parameters**
+
+| Name   | Type                                        | Description                    |
+| ------ | ------------------------------------------- | ------------------------------ |
+| params | struct FutarchyFactory.CreateProposalParams | CreateProposalParams instance. |
+
+**Return Values**
+
+| Name | Type    | Description               |
+| ---- | ------- | ------------------------- |
+| \[0] | address | The new proposal address. |
+
+**Logic**
+
+1. Ask reality questions.
+2. Prepare condition.
+3. Create new erc20 outcome tokens.
+4. Initialize a new proposal contract.
+
+### createNewProposalParams
+
+```solidity
+function createNewProposalParams(struct FutarchyFactory.CreateProposalParams params, string[] memory tokenNames) internal returns (struct FutarchyProposal.FutarchyProposalParams)
+```
+
+*Creates the structures needed to initialize the new proposal.*
+
+**Parameters**
+
+| Name       | Type                                        | Description                                 |
+| ---------- | ------------------------------------------- | ------------------------------------------- |
+| params     | struct FutarchyFactory.CreateProposalParams | CreateProposalParams instance.              |
+| tokenNames | string\[] memory                            | Array with the names of the outcome tokens. |
+
+**Return Values**
+
+| Name | Type                                           | Description                                      |
+| ---- | ---------------------------------------------- | ------------------------------------------------ |
+| \[0] | struct FutarchyProposal.FutarchyProposalParams | FutarchyProposal.FutarchyProposalParam instance. |
+
+### getOutcomesAndTokens
+
+```solidity
+function getOutcomesAndTokens(IERC20 collateralToken1, IERC20 collateralToken2) internal view returns (string memory[], string memory[])
+```
+
+*Creates the outcomes and token names.*
+
+**Parameters**
+
+| Name             | Type   | Description              |
+| ---------------- | ------ | ------------------------ |
+| collateralToken1 | IERC20 | The token collateral.    |
+| collateralToken2 | IERC20 | The currency collateral. |
+
+**Return Values**
+
+| Name | Type      | Description              |
+| ---- | --------- | ------------------------ |
+| \[0] | string\[] | The outcomes names.      |
+| \[1] | string\[] | The wrapped ERC20 names. |
+
+### encodeRealityQuestion
+
+```solidity
+function encodeRealityQuestion(string question, string category, string lang) internal pure returns (string)
+```
+
+*Encodes the question, category and language following the Reality structure. If any parameter has a special character like quotes, it must be properly escaped.*
+
+**Parameters**
+
+| Name     | Type   | Description            |
+| -------- | ------ | ---------------------- |
+| question | string | The question text.     |
+| category | string | The question category. |
+| lang     | string | The question language. |
+
+**Return Values**
+
+| Name | Type   | Description           |
+| ---- | ------ | --------------------- |
+| \[0] | string | The encoded question. |
+
+### askRealityQuestion
+
+```solidity
+function askRealityQuestion(string encodedQuestion, uint256 templateId, uint32 openingTime, uint256 minBond) internal returns (bytes32)
+```
+
+*Asks a question on reality.*
+
+**Parameters**
+
+| Name            | Type    | Description                                             |
+| --------------- | ------- | ------------------------------------------------------- |
+| encodedQuestion | string  | The encoded question containing the Reality parameters. |
+| templateId      | uint256 | The Reality template id.                                |
+| openingTime     | uint32  | The question opening time.                              |
+| minBond         | uint256 | The question min bond.                                  |
+
+**Return Values**
+
+| Name | Type    | Description     |
+| ---- | ------- | --------------- |
+| \[0] | bytes32 | The question id |
+
+### prepareCondition
+
+```solidity
+function prepareCondition(bytes32 questionId, uint256 outcomeSlotCount) internal returns (bytes32)
+```
+
+*Prepares the CTF condition and returns the conditionId.*
+
+**Parameters**
+
+| Name             | Type    | Description                                                                             |
+| ---------------- | ------- | --------------------------------------------------------------------------------------- |
+| questionId       | bytes32 | An identifier for the question to be answered by the oracle.                            |
+| outcomeSlotCount | uint256 | The number of outcome slots which must be used for this condition. Must not exceed 256. |
+
+**Return Values**
+
+| Name | Type    | Description   |
+| ---- | ------- | ------------- |
+| \[0] | bytes32 | Condition ID. |
+
+**Pre-condition**
+
+1. Reality question asked and return `questionsId`.
+
+**Logic**
+
+1. It will check if there is a prepared condition on `ConditionalTokens`, and call `conditionalTokens.prepareCondition()` if there isn't any.
+
+### deployERC20Positions
+
+```solidity
+function deployERC20Positions(IERC20 collateralToken1, IERC20 collateralToken2, bytes32 parentCollectionId, bytes32 conditionId, string[] tokenNames) internal returns (contract IERC20[] wrapped1155, bytes[] data)
+```
+
+*Wraps the ERC1155 outcome tokens to ERC20.*
+
+**Parameters**
+
+| Name               | Type      | Description                     |
+| ------------------ | --------- | ------------------------------- |
+| collateralToken1   | ERC20     | The token collateral.           |
+| collateralToken2   | ERC20     | The currency collateral.        |
+| parentCollectionId | bytes32   | The parentCollectionId.         |
+| conditionId        | bytes32   | The conditionId.                |
+| tokenNames         | string\[] | The name of each outcome token. |
+
+**Return Values**
+
+| Name        | Type               | Description                                    |
+| ----------- | ------------------ | ---------------------------------------------- |
+| wrapped1155 | contract IERC20\[] | Array of outcome tokens wrapped to ERC20.      |
+| data        | bytes\[]           | Array of token data used to create each ERC20. |
+
+**Logic**
+
+1. It will call `wrapped1155Factory.requireWrapped1155` to create an ERC20 token contract for each position. The new tokens addresses and data are saved in `Proposal` contract.
+
+### toString31
+
+```solidity
+function toString31(string value) internal pure returns (bytes32 encodedString)
+```
+
+*Encodes a short string (less than than 31 bytes long) as for storage as expected by Solidity. See* [*https://github.com/gnosis/1155-to-20/pull/4#discussion\_r573630922*](https://github.com/gnosis/1155-to-20/pull/4#discussion_r573630922)*.*
+
+**Parameters**
+
+| Name  | Type   | Description      |
+| ----- | ------ | ---------------- |
+| value | string | String to encode |
+
+**Return Values**
+
+| Name          | Type    | Description         |
+| ------------- | ------- | ------------------- |
+| encodedString | bytes32 | The encoded string. |
+
+### allMarkets
+
+```solidity
+function allMarkets() external view returns (address[])
+```
+
+*Returns all the proposals created by this factory.*
+
+**Return Values**
+
+| Name | Type       | Description                     |
+| ---- | ---------- | ------------------------------- |
+| \[0] | address\[] | The addresses of the proposals. |
+
+### marketsCount
+
+```solidity
+function marketsCount() external view returns (uint256)
+```
+
+Returns the amount of proposals created by this factory.
+
+**Return Values**
+
+| Name | Type    | Description              |
+| ---- | ------- | ------------------------ |
+| \[0] | uint256 | The amount of proposals. |

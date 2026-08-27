@@ -1,0 +1,62 @@
+---
+title: "FutarchyRealityProxy"
+---
+Contract used as a Reality Oracle. Is called to resolve a proposal based on the answer provided.
+
+## Variables
+
+### conditionalTokens
+
+```solidity
+contract IConditionalTokens conditionalTokens
+```
+
+*Conditional Tokens contract.*
+
+### realitio
+
+```solidity
+contract IRealityETH_v3_0 realitio
+```
+
+*Reality.eth contract.*
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IConditionalTokens _conditionalTokens, contract IRealityETH_v3_0 _realitio) public
+```
+
+*Constructor.*
+
+**Parameters**
+
+| Name                | Type                        | Description                          |
+| ------------------- | --------------------------- | ------------------------------------ |
+| \_conditionalTokens | contract IConditionalTokens | Conditional Tokens contract address. |
+| \_realitio          | contract IRealityETH\_v3\_0 | Reality.eth contract address.        |
+
+### resolve
+
+```solidity
+function resolve(contract FutarchyProposal proposal) external
+```
+
+*Resolves the specified proposal.*
+
+**Parameters**
+
+| Name     | Type                      | Description                     |
+| -------- | ------------------------- | ------------------------------- |
+| proposal | contract FutarchyProposal | Proposal to resolve. UNTRUSTED. |
+
+**Pre-condition**
+
+This proposal reality questions must be finalized. If there is a reopened question, that question need to be finalized instead.
+
+**Logic**
+
+1. If the answer is 0, the proposal is accepted.
+2. For any other value (including if the question resolves to INVALID), the proposal is rejected.

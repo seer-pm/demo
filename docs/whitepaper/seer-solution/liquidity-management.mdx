@@ -1,0 +1,27 @@
+---
+title: "Liquidity Management"
+---
+As we’ve seen in the Lack Of Liquidity section, providing liquidity can be risky, requires monitoring the markets and removing liquidity when the result is about to be known. It’s not a set and forget investment but requires active management. To cater to people wishing to provide liquidity without active involvement, we can use liquidity management contracts. Liquidity providers can provide assets to those contracts which would then provide liquidity to the prediction markets. Those vaults can add/remove liquidity based on some specific logic.
+
+**Timely withdrawal**
+
+A simple, but very useful contract would be a time based withdrawal vault: In order to avoid losing a lot of money to the fastest trader when the result is known, the vault would remove the liquidity at a specific time.
+
+For example, it could remove the liquidity just before the polling stations open for a market on an electoral result. For markets where the result cannot be known in advance, this solves the revelation loss issue.
+
+**Chaining markets**
+
+A slightly more complex vault could allow a user to provide liquidity in a multitude of successive markets. When the liquidity is removed from a market, the vault matches complete sets of outcome tokens to redeem the underlying token and reuses those to provide liquidity in other markets. Similarly when the oracle returns an answer for the market, the vault redeems the outcome tokens of the correct answer and uses the redeemed tokens to provide liquidity in other markets.
+
+For example, we could have a vault allowing liquidity on the football World Cup. The vault would initially provide liquidity in all quarterfinal matches, it would then reuse this liquidity for the semifinals, and then for the final.
+
+**Liquidity management teams**
+
+Finally, the most flexible (but most risky) vault would involve trusting a management team (or DAO) to decide on how to provide liquidity. The team would evaluate the opportunities (risks, potential gains through the spread, potential gains through subsidies) and allocate the funds based on their strategy.
+
+Note that if the management has full latitude in its liquidity provision, it can easily steal all the funds under the vault control (to do so, it suffices to create a market with a result already known by the management and provide liquidity buying the « wrong » side), so there would be a need to protect users.
+
+This could either involve:
+
+* A doxed team (but this would create risks for the management).
+* A DAO with a low number of decision makers (maybe something like a 3 people management team) but a strong constitution (forbidding stealing user funds) allowing any party willing to put a deposit to challenge decisions violating the constitution to the Kleros court \[18].

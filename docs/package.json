@@ -1,0 +1,14 @@
+{
+  "name": "@seer-pm/docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Seer documentation site (Mintlify).",
+  "scripts": {
+    "dev": "mint dev",
+    "check": "mint broken-links",
+    "migrate": "node scripts/migrate-gitbook.mjs"
+  },
+  "devDependencies": {
+    "mint": "^4.2.135"
+  }
+}

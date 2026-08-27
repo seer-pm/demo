@@ -49,7 +49,7 @@ Do **not** use this skill when:
 - **Wallet connection**: A wallet-connection UI library is always required. Prefer **ConnectKit** (works with wagmi) unless the user specifies another (e.g. RainbowKit, WalletConnect modal).
 - **Seer SDK packages**: Install both `@seer-pm/sdk` (core integration: contracts + HTTP API) and `@seer-pm/react` (hooks and React utilities). The project must use **wagmi v2** and **viem v2** (e.g. `wagmi` and `viem` at major version 2) and satisfy the peer dependencies of both packages: `wagmi`, `@wagmi/core`, `viem`, `react`; `@seer-pm/react` also needs `@seer-pm/sdk`, `@tanstack/react-query`; `@seer-pm/sdk` also needs `graphql-request` and `graphql-tag` for HTTP API usage.
 - **Notifications**: `react-toastify` wired through Seer notifier helpers – see `skills/seer-sites/examples/toastify.tsx` and ensure `ToastContainer` + `import "react-toastify/dist/ReactToastify.css";` are added at app root.
-- **Collateral profiles**: Multiple primaries per chain (e.g. **sDAI** / `default` and **s-gCRC** on Gnosis). Each site build may call `configureCollateral("circles")` (optional — defaults to `"default"`). The shared app backend indexes all registered collaterals; portfolio APIs take `?collateralProfile=` (profile name, e.g. `default` or `circles`). See [9-collateral-profiles.md](https://github.com/seer-pm/demo/raw/main/integration-docs/9-collateral-profiles.md).
+- **Collateral profiles**: Multiple primaries per chain (e.g. **sDAI** / `default` and **s-gCRC** on Gnosis). Each site build may call `configureCollateral("circles")` (optional — defaults to `"default"`). The shared app backend indexes all registered collaterals; portfolio APIs take `?collateralProfile=` (profile name, e.g. `default` or `circles`). See [collateral-profiles.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/collateral-profiles.mdx).
 - **Vite projects**: Install **vite-plugin-node-polyfills**, register it in `vite.config.ts` (add `nodePolyfills()` to the `plugins` array), and add a `define` block so Node-style globals and `process.env` are available for SDK/wagmi deps:
   ```ts
   import { nodePolyfills } from 'vite-plugin-node-polyfills'
@@ -77,7 +77,7 @@ For any Seer-related behavior, refer to the **integration docs** hosted in the `
 | Split / merge / redeem positions | `useSplitPosition`, `useMergePositions`, and `useRedeemPositions` from `@seer-pm/react` |
 | Trading via AMMs | `useQuoteTrade` and `useTrade` from `@seer-pm/react` |
 | Block explorer / pool URLs | `getBlockExplorerUrl`, `getTokenExplorerUrl`, `getLiquidityUrlByMarket`, `getPoolExplorerUrl` from `@seer-pm/sdk` |
-| Collateral profiles (multi-primary, white-label) | [9-collateral-profiles.md](https://github.com/seer-pm/demo/raw/main/integration-docs/9-collateral-profiles.md) — `getCollateralProfiles`, `configureCollateral`, `collateralProfile` API param |
+| Collateral profiles (multi-primary, white-label) | [collateral-profiles.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/collateral-profiles.mdx) — `getCollateralProfiles`, `configureCollateral`, `collateralProfile` API param |
 
 Treat these documents as the **authoritative reference** for:
 

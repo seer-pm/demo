@@ -1,0 +1,62 @@
+---
+title: "MarketView"
+---
+Contract used as a frontend helper. It doesn't have any state-changing function.
+
+## Variables
+
+### MarketInfo
+
+```solidity
+struct MarketInfo {
+  address id;
+  string marketName;
+  string[] outcomes;
+  address parentMarket;
+  uint256 parentOutcome;
+  address[] wrappedTokens;
+  uint256 outcomesSupply;
+  uint256 lowerBound;
+  uint256 upperBound;
+  bytes32 parentCollectionId;
+  bytes32 conditionId;
+  bytes32 questionId;
+  uint256 templateId;
+  struct IRealityETH_v3_0.Question[] questions;
+  bytes32[] questionsIds;
+  string[] encodedQuestions;
+  bool payoutReported;
+}
+```
+
+## Functions
+
+### getMarket
+
+```solidity
+function getMarket(contract IMarketFactory marketFactory, contract Market market) public view returns (struct MarketView.MarketInfo)
+```
+
+### getOutcomesAndTokens
+
+```solidity
+function getOutcomesAndTokens(contract IConditionalTokens conditionalTokens, contract Market market, bytes32 conditionId) internal view returns (string[] outcomes, address[] wrappedTokens)
+```
+
+### getQuestions
+
+```solidity
+function getQuestions(contract Market market, contract IMarketFactory marketFactory) internal view returns (struct IRealityETH_v3_0.Question[] questions, string[] encodedQuestions, bytes32[] questionsIds)
+```
+
+### getMarkets
+
+```solidity
+function getMarkets(uint256 count, contract IMarketFactory marketFactory) external view returns (struct MarketView.MarketInfo[])
+```
+
+### getQuestionId
+
+```solidity
+function getQuestionId(bytes32 questionId, contract IRealityETH_v3_0 realitio) public view returns (bytes32)
+```

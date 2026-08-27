@@ -1,0 +1,19 @@
+---
+title: "Exchange Integration"
+---
+Classic prediction market positions can only be traded on a dedicated exchange (with the disadvantage for liquidity providers to only be able to use one specific type of liquidity position). Smart contract technology allows dapps to be composable with each other’s (Money Legos). We can take advantage of this by separating the position minting/redemption from the position trading by making position ERC20 tokens tradable on all supported exchanges. Note that Gnosis already made some work in this direction allowing the wrapping of positions into ERC20 tokens\[14]. For Seer, the tokens will be natively ERC20.
+
+This allows taking advantage of existing exchanges (such as Uniswap V3 allowing concentrated bonded curves and de facto limit order, or Gnosis auction for auctions).
+
+In order to solve the issue of split liquidity, aggregators (such as 1inch\[15], Paraswap\[16] or Cowswap\[17]) allowing users to get the best price when buying/selling a position could be used by end user frontends.
+
+Those aggregators could also use the minting/redemption mechanisms as if it were an exchange itself. For example if you want take a YES position, you have two ways to do that:
+
+* Buy YES tokens on the open market.
+* Mint YES and NO tokens using the underlying asset and sell the NO tokens on the open market.
+
+Current prediction markets require users to make those actions themselves, not necessarily taking the action which would result in the best price.
+
+The front-end could automatically split any order in those two types of actions in order to always give the users the best price.
+
+Exchange integration can also be a way to have more liquidity incentives. Exchanges are competing for liquidity and also provide incentives to liquidity providers using their platforms. The Seer DAO will seek partnership with different exchanges in order to make the outcome tokens as liquid as possible.

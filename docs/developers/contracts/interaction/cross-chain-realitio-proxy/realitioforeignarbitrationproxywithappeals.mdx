@@ -1,0 +1,532 @@
+---
+title: "RealitioForeignArbitrationProxyWithAppeals"
+---
+This contract is meant to be deployed to the Ethereum chains where Kleros is deployed.
+
+## Variables
+
+### NUMBER\_OF\_CHOICES\_FOR\_ARBITRATOR
+
+```solidity
+uint256 NUMBER_OF_CHOICES_FOR_ARBITRATOR
+```
+
+### MULTIPLIER\_DIVISOR
+
+```solidity
+uint256 MULTIPLIER_DIVISOR
+```
+
+### META\_EVIDENCE\_ID
+
+```solidity
+uint256 META_EVIDENCE_ID
+```
+
+### Status
+
+```solidity
+enum Status {
+  None,
+  Requested,
+  Created,
+  Ruled,
+  Failed
+}
+```
+
+### ArbitrationRequest
+
+```solidity
+struct ArbitrationRequest {
+  enum RealitioForeignArbitrationProxyWithAppeals.Status status;
+  uint248 deposit;
+  uint256 disputeID;
+  uint256 answer;
+  struct RealitioForeignArbitrationProxyWithAppeals.Round[] rounds;
+}
+```
+
+### DisputeDetails
+
+```solidity
+struct DisputeDetails {
+  uint256 arbitrationID;
+  address requester;
+}
+```
+
+### Round
+
+```solidity
+struct Round {
+  mapping(uint256 => uint256) paidFees;
+  mapping(uint256 => bool) hasPaid;
+  mapping(address => mapping(uint256 => uint256)) contributions;
+  uint256 feeRewards;
+  uint256[] fundedAnswers;
+}
+```
+
+### arbitrator
+
+```solidity
+contract IArbitrator arbitrator
+```
+
+### arbitratorExtraData
+
+```solidity
+bytes arbitratorExtraData
+```
+
+### amb
+
+```solidity
+contract IAMB amb
+```
+
+### homeProxy
+
+```solidity
+address homeProxy
+```
+
+### homeChainId
+
+```solidity
+bytes32 homeChainId
+```
+
+### termsOfService
+
+```solidity
+string termsOfService
+```
+
+### winnerMultiplier
+
+```solidity
+uint256 winnerMultiplier
+```
+
+### loserMultiplier
+
+```solidity
+uint256 loserMultiplier
+```
+
+### loserAppealPeriodMultiplier
+
+```solidity
+uint256 loserAppealPeriodMultiplier
+```
+
+### arbitrationRequests
+
+```solidity
+mapping(uint256 => mapping(address => struct RealitioForeignArbitrationProxyWithAppeals.ArbitrationRequest)) arbitrationRequests
+```
+
+### disputeIDToDisputeDetails
+
+```solidity
+mapping(uint256 => struct RealitioForeignArbitrationProxyWithAppeals.DisputeDetails) disputeIDToDisputeDetails
+```
+
+### arbitrationIDToDisputeExists
+
+```solidity
+mapping(uint256 => bool) arbitrationIDToDisputeExists
+```
+
+### arbitrationIDToRequester
+
+```solidity
+mapping(uint256 => address) arbitrationIDToRequester
+```
+
+## Modifiers
+
+### onlyHomeProxy
+
+```solidity
+modifier onlyHomeProxy()
+```
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IAMB _amb, address _homeProxy, bytes32 _homeChainId, contract IArbitrator _arbitrator, bytes _arbitratorExtraData, string _metaEvidence, string _termsOfService, uint256 _winnerMultiplier, uint256 _loserMultiplier, uint256 _loserAppealPeriodMultiplier) public
+```
+
+Creates an arbitration proxy on the foreign chain.
+
+**Parameters**
+
+| Name                          | Type                 | Description                                                                 |
+| ----------------------------- | -------------------- | --------------------------------------------------------------------------- |
+| \_amb                         | contract IAMB        | ArbitraryMessageBridge contract address.                                    |
+| \_homeProxy                   | address              | The address of the proxy.                                                   |
+| \_homeChainId                 | bytes32              | The chain ID where the home proxy is deployed.                              |
+| \_arbitrator                  | contract IArbitrator | Arbitrator contract address.                                                |
+| \_arbitratorExtraData         | bytes                | The extra data used to raise a dispute in the arbitrator.                   |
+| \_metaEvidence                | string               | The URI of the meta evidence file.                                          |
+| \_termsOfService              | string               | The path for the Terms of Service for Kleros as an arbitrator for Realitio. |
+| \_winnerMultiplier            | uint256              | Multiplier for calculating the appeal cost of the winning answer.           |
+| \_loserMultiplier             | uint256              | Multiplier for calculation the appeal cost of the losing answer.            |
+| \_loserAppealPeriodMultiplier | uint256              | Multiplier for calculating the appeal period for the losing answer.         |
+
+### requestArbitration
+
+```solidity
+function requestArbitration(bytes32 _questionID, uint256 _maxPrevious) external payable
+```
+
+Requests arbitration for the given question and contested answer.
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                                                                                                                 |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question.                                                                                                                                                                     |
+| \_maxPrevious | uint256 | The maximum value of the current bond for the question. The arbitration request will get rejected if the current bond is greater than \_maxPrevious. If set to 0, \_maxPrevious is ignored. |
+
+### receiveArbitrationAcknowledgement
+
+```solidity
+function receiveArbitrationAcknowledgement(bytes32 _questionID, address _requester) external
+```
+
+Receives the acknowledgement of the arbitration request for the given question and requester. TRUSTED.
+
+**Parameters**
+
+| Name         | Type    | Description             |
+| ------------ | ------- | ----------------------- |
+| \_questionID | bytes32 | The ID of the question. |
+| \_requester  | address | The requester.          |
+
+### receiveArbitrationCancelation
+
+```solidity
+function receiveArbitrationCancelation(bytes32 _questionID, address _requester) external
+```
+
+Receives the cancelation of the arbitration request for the given question and requester. TRUSTED.
+
+**Parameters**
+
+| Name         | Type    | Description             |
+| ------------ | ------- | ----------------------- |
+| \_questionID | bytes32 | The ID of the question. |
+| \_requester  | address | The requester.          |
+
+### handleFailedDisputeCreation
+
+```solidity
+function handleFailedDisputeCreation(bytes32 _questionID, address _requester) external
+```
+
+Cancels the arbitration in case the dispute could not be created.
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### fundAppeal
+
+```solidity
+function fundAppeal(uint256 _arbitrationID, uint256 _answer) external payable returns (bool)
+```
+
+Takes up to the total amount required to fund an answer. Reimburses the rest. Creates an appeal if at least two answers are funded.
+
+**Parameters**
+
+| Name            | Type    | Description                                                                                                                                                                                                                                                                 |
+| --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_arbitrationID | uint256 | The ID of the arbitration, which is questionID cast into uint256.                                                                                                                                                                                                           |
+| \_answer        | uint256 | One of the possible rulings the arbitrator can give that the funder considers to be the correct answer to the question. Note that the answer has Kleros denomination, meaning that it has '+1' offset compared to Realitio format. Also note that '0' answer can be funded. |
+
+**Return Values**
+
+| Name | Type | Description                                 |
+| ---- | ---- | ------------------------------------------- |
+| \[0] | bool | Whether the answer was fully funded or not. |
+
+### withdrawFeesAndRewards
+
+```solidity
+function withdrawFeesAndRewards(uint256 _arbitrationID, address payable _beneficiary, uint256 _round, uint256 _answer) public returns (uint256 reward)
+```
+
+Sends the fee stake rewards and reimbursements proportional to the contributions made to the winner of a dispute. Reimburses contributions if there is no winner.
+
+**Parameters**
+
+| Name            | Type            | Description                          |
+| --------------- | --------------- | ------------------------------------ |
+| \_arbitrationID | uint256         | The ID of the arbitration.           |
+| \_beneficiary   | address payable | The address to send reward to.       |
+| \_round         | uint256         | The round from which to withdraw.    |
+| \_answer        | uint256         | The answer to query the reward from. |
+
+**Return Values**
+
+| Name   | Type    | Description           |
+| ------ | ------- | --------------------- |
+| reward | uint256 | The withdrawn amount. |
+
+### withdrawFeesAndRewardsForAllRounds
+
+```solidity
+function withdrawFeesAndRewardsForAllRounds(uint256 _arbitrationID, address payable _beneficiary, uint256 _contributedTo) external
+```
+
+Allows to withdraw any rewards or reimbursable fees for all rounds at once.
+
+*This function is O(n) where n is the total number of rounds. Arbitration cost of subsequent rounds is `A(n) = 2A(n-1) + 1`. So because of this exponential growth of costs, you can assume n is less than 10 at all times.*
+
+**Parameters**
+
+| Name            | Type            | Description                                          |
+| --------------- | --------------- | ---------------------------------------------------- |
+| \_arbitrationID | uint256         | The ID of the arbitration.                           |
+| \_beneficiary   | address payable | The address that made contributions.                 |
+| \_contributedTo | uint256         | Answer that received contributions from contributor. |
+
+### submitEvidence
+
+```solidity
+function submitEvidence(uint256 _arbitrationID, string _evidenceURI) external
+```
+
+Allows to submit evidence for a particular question.
+
+**Parameters**
+
+| Name            | Type    | Description                                        |
+| --------------- | ------- | -------------------------------------------------- |
+| \_arbitrationID | uint256 | The ID of the arbitration related to the question. |
+| \_evidenceURI   | string  | Link to evidence.                                  |
+
+### rule
+
+```solidity
+function rule(uint256 _disputeID, uint256 _ruling) external
+```
+
+Rules a specified dispute. Can only be called by the arbitrator.
+
+*Accounts for the situation where the winner loses a case due to paying less appeal fees than expected.*
+
+**Parameters**
+
+| Name        | Type    | Description                                     |
+| ----------- | ------- | ----------------------------------------------- |
+| \_disputeID | uint256 | The ID of the dispute in the ERC792 arbitrator. |
+| \_ruling    | uint256 | The ruling given by the arbitrator.             |
+
+### getMultipliers
+
+```solidity
+function getMultipliers() external view returns (uint256 winner, uint256 loser, uint256 loserAppealPeriod, uint256 divisor)
+```
+
+Returns stake multipliers.
+
+**Return Values**
+
+| Name              | Type    | Description                                                               |
+| ----------------- | ------- | ------------------------------------------------------------------------- |
+| winner            | uint256 | Winners stake multiplier.                                                 |
+| loser             | uint256 | Losers stake multiplier.                                                  |
+| loserAppealPeriod | uint256 | Multiplier for calculating an appeal period duration for the losing side. |
+| divisor           | uint256 | Multiplier divisor.                                                       |
+
+### numberOfRulingOptions
+
+```solidity
+function numberOfRulingOptions(uint256) external pure returns (uint256)
+```
+
+Returns number of possible ruling options. Valid rulings are \[0, return value].
+
+**Return Values**
+
+| Name | Type    | Description                         |
+| ---- | ------- | ----------------------------------- |
+| \[0] | uint256 | count The number of ruling options. |
+
+### getDisputeFee
+
+```solidity
+function getDisputeFee(bytes32) external view returns (uint256)
+```
+
+Gets the fee to create a dispute.
+
+**Return Values**
+
+| Name | Type    | Description                  |
+| ---- | ------- | ---------------------------- |
+| \[0] | uint256 | The fee to create a dispute. |
+
+### getNumberOfRounds
+
+```solidity
+function getNumberOfRounds(uint256 _arbitrationID) external view returns (uint256)
+```
+
+Gets the number of rounds of the specific question.
+
+**Parameters**
+
+| Name            | Type    | Description                                        |
+| --------------- | ------- | -------------------------------------------------- |
+| \_arbitrationID | uint256 | The ID of the arbitration related to the question. |
+
+**Return Values**
+
+| Name | Type    | Description           |
+| ---- | ------- | --------------------- |
+| \[0] | uint256 | The number of rounds. |
+
+### getRoundInfo
+
+```solidity
+function getRoundInfo(uint256 _arbitrationID, uint256 _round) external view returns (uint256[] paidFees, uint256 feeRewards, uint256[] fundedAnswers)
+```
+
+Gets the information of a round of a question.
+
+**Parameters**
+
+| Name            | Type    | Description                |
+| --------------- | ------- | -------------------------- |
+| \_arbitrationID | uint256 | The ID of the arbitration. |
+| \_round         | uint256 | The round to query.        |
+
+**Return Values**
+
+| Name          | Type       | Description                                           |
+| ------------- | ---------- | ----------------------------------------------------- |
+| paidFees      | uint256\[] | The amount of fees paid for each fully funded answer. |
+| feeRewards    | uint256    | The amount of fees that will be used as rewards.      |
+| fundedAnswers | uint256\[] | IDs of fully funded answers.                          |
+
+### getFundingStatus
+
+```solidity
+function getFundingStatus(uint256 _arbitrationID, uint256 _round, uint256 _answer) external view returns (uint256 raised, bool fullyFunded)
+```
+
+Gets the information of a round of a question for a specific answer choice.
+
+**Parameters**
+
+| Name            | Type    | Description                                  |
+| --------------- | ------- | -------------------------------------------- |
+| \_arbitrationID | uint256 | The ID of the arbitration.                   |
+| \_round         | uint256 | The round to query.                          |
+| \_answer        | uint256 | The answer choice to get funding status for. |
+
+**Return Values**
+
+| Name        | Type    | Description                                |
+| ----------- | ------- | ------------------------------------------ |
+| raised      | uint256 | The amount paid for this answer.           |
+| fullyFunded | bool    | Whether the answer is fully funded or not. |
+
+### getContributionsToSuccessfulFundings
+
+```solidity
+function getContributionsToSuccessfulFundings(uint256 _arbitrationID, uint256 _round, address _contributor) external view returns (uint256[] fundedAnswers, uint256[] contributions)
+```
+
+Gets contributions to the answers that are fully funded.
+
+**Parameters**
+
+| Name            | Type    | Description                               |
+| --------------- | ------- | ----------------------------------------- |
+| \_arbitrationID | uint256 | The ID of the arbitration.                |
+| \_round         | uint256 | The round to query.                       |
+| \_contributor   | address | The address whose contributions to query. |
+
+**Return Values**
+
+| Name          | Type       | Description                                                      |
+| ------------- | ---------- | ---------------------------------------------------------------- |
+| fundedAnswers | uint256\[] | IDs of the answers that are fully funded.                        |
+| contributions | uint256\[] | The amount contributed to each funded answer by the contributor. |
+
+### getTotalWithdrawableAmount
+
+```solidity
+function getTotalWithdrawableAmount(uint256 _arbitrationID, address payable _beneficiary, uint256 _contributedTo) external view returns (uint256 sum)
+```
+
+Returns the sum of withdrawable amount.
+
+*This function is O(n) where n is the total number of rounds. This could exceed the gas limit, therefore this function should be used only as a utility and not be relied upon by other contracts.*
+
+**Parameters**
+
+| Name            | Type            | Description                                          |
+| --------------- | --------------- | ---------------------------------------------------- |
+| \_arbitrationID | uint256         | The ID of the arbitration.                           |
+| \_beneficiary   | address payable | The contributor for which to query.                  |
+| \_contributedTo | uint256         | Answer that received contributions from contributor. |
+
+**Return Values**
+
+| Name | Type    | Description                             |
+| ---- | ------- | --------------------------------------- |
+| sum  | uint256 | The total amount available to withdraw. |
+
+### questionIDToArbitrationID
+
+```solidity
+function questionIDToArbitrationID(bytes32 _questionID) external pure returns (uint256)
+```
+
+Casts question ID into uint256 thus returning the related arbitration ID.
+
+**Parameters**
+
+| Name         | Type    | Description             |
+| ------------ | ------- | ----------------------- |
+| \_questionID | bytes32 | The ID of the question. |
+
+**Return Values**
+
+| Name | Type    | Description                |
+| ---- | ------- | -------------------------- |
+| \[0] | uint256 | The ID of the arbitration. |
+
+### externalIDtoLocalID
+
+```solidity
+function externalIDtoLocalID(uint256 _externalDisputeID) external view returns (uint256)
+```
+
+Maps external (arbitrator side) dispute id to local (arbitrable) dispute id.
+
+**Parameters**
+
+| Name                | Type    | Description                       |
+| ------------------- | ------- | --------------------------------- |
+| \_externalDisputeID | uint256 | Dispute id as in arbitrator side. |
+
+**Return Values**
+
+| Name | Type    | Description                                          |
+| ---- | ------- | ---------------------------------------------------- |
+| \[0] | uint256 | localDisputeID Dispute id as in arbitrable contract. |

@@ -1,0 +1,22 @@
+---
+title: "An article shows a method over performing prediction market"
+---
+In this section, we will take « Are markets more accurate than polls? The surprising informational value of “just asking” » as our example article \[2], but this criticism could apply to similar research.
+
+Following Betteridge’s law of headlines \[3] the article claims that « just asking » people can lead to results at least as good as prediction markets, we’ll see how its methodology was incorrect.
+
+First, the researchers didn’t set up a real prediction market and participants were just competing for « play money », a leaderboard slot and an invite to a forecaster group. It would have been easy for the prediction market to be a real one as participants were compensated with 250\$. Without monetary incentives, this is not a real prediction market and we cannot expect participants to take their trades as seriously as if they had a significant financial interest in the outcome.
+
+Despite the prediction market not being a real one, the researchers initially found out that it provided better results than just asking and averaging answers. They then set up another method of getting estimates from the answers of participants:
+
+* Use only the last 20% more recent self reports.
+* Weight reports based on prior accuracy.
+* Apply belief extremization.
+
+None of those techniques is per say problematic, only counting the most recent reports makes sense as we approach an event, forecasting generally becomes more precise. Weighting based on accuracy can be a good idea which actually reproduces some features of prediction markets (participants who have been successful in the past get to influence the market more as they now have more capital). And extremizing may allow to increase the learnings from one report.
+
+However, the results were given without a validation set. The proper way to test a model is to use a « test set » which is available to the researchers and on which the researchers try various models with various parameters, then when their research is finished, they try the chosen model on a validation set that they didn’t use prior. Results on the validation set are generally lower than the results of the test set (as by selecting and publishing only the best models, you get a biassed sample of models). Here since researchers could tweak their model using the data of their test set, the results do not only show the model performance, but also show the performance of the « model tweaking » done by the researchers using the answers.
+
+TL;DR, researchers used the answers to the questions in their construction of the model!
+
+And despite being able to use the answers in the creation of their model, they didn’t get a significative improvement with their model compared to the prediction « though this difference was not statistically significant \[…] equivalent to assigning a probability of 66.3% to the correct answer for Prices and a probability of 67.6% to the correct answer for Beliefs. ». So the experiments were made in a way biassed against prediction markets and had inconclusive results despite those biases

@@ -39,7 +39,7 @@ import { fetchAmmQuote } from "@seer-pm/sdk";
 
 AMM quotes go through **Lens smart quoter**; swaps run on the chosen DEX router (`fetchAmmQuote` / `AmmTrade`).
 
-See the [integration docs](https://github.com/seer-pm/demo/tree/main/integration-docs) for full flows (create market, resolve, [trading](https://github.com/seer-pm/demo/blob/main/integration-docs/7-trading.md), API).
+See the [integration docs](https://github.com/seer-pm/demo/tree/main/docs/developers) for full flows (create market, resolve, [trading](https://github.com/seer-pm/demo/blob/main/docs/developers/guides/trading.mdx), API).
 
 ## Publishing (maintainers)
 

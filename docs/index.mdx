@@ -1,0 +1,40 @@
+---
+title: "Introduction to Seer"
+---
+<Note>
+  This section is an extract of the Seer whitepaper: the reasoning behind the
+  protocol. For how to use the app, see [What is Seer](/documentation/what-is-seer);
+  for how to build on it, see the [Developers](/developers/introduction) tab.
+</Note>
+
+Seer is live on mainnet at [seer.pm](https://seer.pm/).
+
+Ancient Greeks seers tried to predict the future by looking at the flight of birds, entrails of sacrificed animals or even by consuming psychotropes leading to hallucinations. But today we have a way more efficient method which still remains underused: Markets.
+
+Markets have been shown to efficiently aggregate information, leading to efficient pricing of products and allowing the furniture of goods and services that no single actor could have produced alone.
+
+A prediction market is a market where participants can buy shares of future outcomes. For example, we could have a market « Who will win the 2028 presidential election? » with shares of « Joe Biden », « Donald Trump », « Someone else ». A share can be redeemed for 1\$ if the event happens (so after the election, a share of « Joe Biden » will be worth 1\$ if Biden is re-elected, 0\$ otherwise).
+
+Shares are tradable (for example in the form of ERC20 tokens), by looking at the price of a share we can know the likelihood of some event happening (if « Joe Biden » shares trades at 0.60\$, we can assign a 60% probability of Joe Biden being reelected).
+
+In the context of predicting the future, prediction markets have been shown to produce results equivalent or better than alternatives like expert opinion or aggregation of estimates from multiple individuals \[1]\[4].
+
+However, despite being promising, prediction markets have mainly remained niche.
+
+This paper is not describing a specific market to be implemented, but will focus on:
+
+* Why did previous prediction markets fail?
+* How can we create a prediction market ecosystem solving those issues?
+
+We don’t expect nor advise for all the ideas of this paper to be implemented immediately. A progressive approach, delivering features bit by bit, is more likely to be successful than spending 3 years developing a complex project without user (and market) feedback.
+
+You will also see that some methods may apply at the start of the project to be replaced by other methods as the project matures. And you will even see methods which are incompatible with each other. For those, testing will reveal if the project would benefit from choosing one of them or running multiple of them in parallel or even picking a specific one depending on the type of the market.
+
+<CardGroup cols={2}>
+  <Card title="Use the app" icon="compass" href="/documentation/what-is-seer">
+    Deposit collateral, create markets, trade outcome tokens and provide liquidity.
+  </Card>
+  <Card title="Build on Seer" icon="code" href="/developers/introduction">
+    Contracts, subgraph and the HTTP API, with viem examples for every flow.
+  </Card>
+</CardGroup>

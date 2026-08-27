@@ -1,0 +1,97 @@
+---
+title: "GraphQL Schema"
+---
+### Market
+
+```graphql
+type Market @entity {
+  id: ID!
+  factory: Bytes!
+  creator: Bytes!
+  marketName: String!
+  rules: String!
+  outcomes: [String!]!
+  outcomesSupply: BigInt!
+  lowerBound: BigInt!
+  upperBound: BigInt!
+  parentCollectionId: Bytes!
+  parentOutcome: BigInt!
+  parentMarket: Bytes!
+  conditionId: Bytes!
+  questionId: Bytes!
+  questionsIds: [Bytes!]!
+  templateId: BigInt!
+  encodedQuestions: [String!]!
+  payoutReported: Boolean!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+  questions: [MarketQuestion!]! @derivedFrom(field: "market")
+  openingTs: BigInt!
+  hasAnswers: Boolean!
+  " finalizeTs is equal to 33260976000 (random big number) if there is any unanswered question, otherwise it contains the finalizeTs value of the lattest question. This allows us to filter multi scalar markets using `finalizeTs > now` for markets with pending answers, and `finalizeTs < now` for markets with pending execution "
+  finalizeTs: BigInt!
+  questionsInArbitration: BigInt!
+  index: BigInt!
+}
+```
+
+### MarketsCount
+
+```graphql
+type MarketsCount @entity {
+  id: ID!
+  count: BigInt!
+}
+```
+
+### Question
+
+```graphql
+type Question @entity {
+  id: ID!
+  index: Int!
+  arbitrator: Bytes!
+  opening_ts: BigInt!
+  timeout: BigInt!
+  finalize_ts: BigInt!
+  is_pending_arbitration: Boolean!
+  best_answer: Bytes!
+  bond: BigInt!
+  min_bond: BigInt!
+  arbitration_occurred: Boolean!
+  markets: [MarketQuestion!]! @derivedFrom(field: "question")
+}
+```
+
+### MarketQuestion
+
+```graphql
+type MarketQuestion @entity {
+  id: ID!
+  market: Market!
+  question: Question!
+  " a market can have the same question multiple times, we use the index to identify each one of them "
+  index: Int!
+}
+```
+
+### Condition
+
+```graphql
+type Condition @entity {
+  " Conditional token conditionId "
+  id: ID!
+  market: Market!
+}
+```
+
+### Position
+
+```graphql
+type Position @entity {
+  " Conditional token positionId "
+  id: ID!
+  market: Market!
+}
+```

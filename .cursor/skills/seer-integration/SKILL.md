@@ -12,22 +12,22 @@ When helping with Seer (prediction markets, MarketFactory, Router, trading, or t
 
 | Goal | Document |
 |------|----------|
-| **Integration guides (overview and full map)** | [0-intro.md](https://github.com/seer-pm/demo/raw/main/integration-docs/0-intro.md) |
-| Create market | [2-create-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/2-create-market.md) |
-| Resolve market | [3-resolve-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/3-resolve-market.md) |
-| Split / merge / redeem | [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md) |
-| Conditional markets | [5-conditional-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/5-conditional-market.md) |
-| Futarchy markets | [6-futarchy-markets.md](https://github.com/seer-pm/demo/raw/main/integration-docs/6-futarchy-markets.md) |
-| Trading (AMMs) | [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md) |
-| HTTP API (get-market, search, portfolio, etc.) | [8-api.md](https://github.com/seer-pm/demo/raw/main/integration-docs/8-api.md) |
-| Collateral profiles (multi-primary) | [9-collateral-profiles.md](https://github.com/seer-pm/demo/raw/main/integration-docs/9-collateral-profiles.md) |
+| **Integration guides (overview and full map)** | [introduction.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/introduction.mdx) |
+| Create market | [create-a-market.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/create-a-market.mdx) |
+| Resolve market | [resolve-a-market.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/resolve-a-market.mdx) |
+| Split / merge / redeem | [split-merge-and-redeem.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/split-merge-and-redeem.mdx) |
+| Conditional markets | [conditional-markets.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/conditional-markets.mdx) |
+| Futarchy markets | [futarchy-markets.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/futarchy-markets.mdx) |
+| Trading (AMMs) | [trading.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/trading.mdx) |
+| HTTP API (get-market, search, portfolio, etc.) | [api.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/api.mdx) |
+| Collateral profiles (multi-primary) | [collateral-profiles.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/collateral-profiles.mdx) |
 
 ## Flow
 
-1. **Setup** – viem public + wallet clients: [1-viem-setup.md](https://github.com/seer-pm/demo/raw/main/integration-docs/1-viem-setup.md). Contract addresses from **@seer-pm/sdk** (`getMarketFactoryAddress`, `getRouterAddress`, etc.).
-2. **Create or fetch market** – contracts: [2-create-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/2-create-market.md); app data: [8-api.md](https://github.com/seer-pm/demo/raw/main/integration-docs/8-api.md) (`get-market`, `markets-search`).
-3. **Positions** – split/merge/redeem via Router: [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md).
-4. **Trading** – Lens smart quoter (`fetchAmmQuote` / `AmmTrade`): [7-trading.md](https://github.com/seer-pm/demo/raw/main/integration-docs/7-trading.md).
-5. **Resolve** – [3-resolve-market.md](https://github.com/seer-pm/demo/raw/main/integration-docs/3-resolve-market.md); then redeem via [4-split-merge-and-redeem.md](https://github.com/seer-pm/demo/raw/main/integration-docs/4-split-merge-and-redeem.md).
+1. **Setup** – viem public + wallet clients: [configuration.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/configuration.mdx). Contract addresses from **@seer-pm/sdk** (`getMarketFactoryAddress`, `getRouterAddress`, etc.).
+2. **Create or fetch market** – contracts: [create-a-market.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/create-a-market.mdx); app data: [api.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/api.mdx) (`get-market`, `markets-search`).
+3. **Positions** – split/merge/redeem via Router: [split-merge-and-redeem.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/split-merge-and-redeem.mdx).
+4. **Trading** – Lens smart quoter (`fetchAmmQuote` / `AmmTrade`): [trading.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/trading.mdx).
+5. **Resolve** – [resolve-a-market.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/resolve-a-market.mdx); then redeem via [split-merge-and-redeem.mdx](https://github.com/seer-pm/demo/raw/main/docs/developers/guides/split-merge-and-redeem.mdx).
 
 Read the linked doc for the task at hand; avoid inferring ABIs or addresses from other sources.
