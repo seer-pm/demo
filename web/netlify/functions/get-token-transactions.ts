@@ -11,7 +11,6 @@ import type { Database } from "./utils/supabase";
 import { getTokenHolders } from "./utils/token-transactions";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
-const commentsSupabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
 
 /** Primary-collateral legs for the given tx hashes (list length bounded by `distinctTxCap` in the caller). */
@@ -188,7 +187,7 @@ export default async (req: Request) => {
         });
       }
 
-      const { data: commenters, error } = await commentsSupabase
+      const { data: commenters, error } = await supabase
         .from("market_comments")
         .select("author")
         .eq("market_id", market.id.toLowerCase())
