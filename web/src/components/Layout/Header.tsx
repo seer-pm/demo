@@ -441,14 +441,6 @@ export default function Header() {
                     url: paths.beginnerGuide(),
                     className: nestedLinkClassName,
                   },
-                  {
-                    id: "faq",
-                    type: "link",
-                    title: "FAQ",
-                    icon: <QuestionIcon />,
-                    url: paths.faq(),
-                    className: nestedLinkClassName,
-                  },
                 ],
               },
               {

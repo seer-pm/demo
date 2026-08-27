@@ -43,7 +43,6 @@ export const paths = {
 
     return "#";
   },
-  faq: () => "#",
   dappGuide: () => "https://seer-3.gitbook.io/seer-documentation",
   bugReport: () => "https://github.com/seer-pm/demo/issues",
   getHelp: () => "https://discord.com/invite/rBEB4MYQwV",

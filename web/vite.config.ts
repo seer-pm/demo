@@ -1,6 +1,5 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "tailwindcss";
 import vike from "vike/plugin";
 import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
@@ -48,11 +47,6 @@ export default defineConfig({
       "@seer-pm/sdk": path.resolve(__dirname, "../packages/seer-pm-sdk/src/index.ts"),
       "@seer-pm/react": path.resolve(__dirname, "../packages/seer-pm-react/src/index.ts"),
       "@seer-pm/discussions": path.resolve(__dirname, "../packages/seer-pm-discussions/src/index.ts"),
-    },
-  },
-  css: {
-    postcss: {
-      plugins: [tailwindcss()],
     },
   },
 });
