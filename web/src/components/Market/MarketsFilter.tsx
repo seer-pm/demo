@@ -1,7 +1,6 @@
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { Collections, Filter, PlusCircleIcon, SearchIcon } from "@/lib/icons";
-import { MARKET_CATEGORIES } from "@seer-pm/sdk";
 import clsx from "clsx";
 import debounce from "lodash.debounce";
 import { useCallback, useEffect, useState } from "react";
@@ -20,8 +19,6 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
     // toggleShowMyMarkets,
     hasFilters,
     marketName: marketNameParam,
-    categoryList,
-    setCategories,
   } = useMarketsSearchParams();
   const [marketName, setMarketName] = useState(marketNameParam || "");
   useEffect(() => {
@@ -91,34 +88,8 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
           />
         </div>
       </div>
-      <div className="flex mt-8">
-        <div className="flex items-center gap-2 flex-wrap">
-          {[{ value: "all", text: "All" }, ...MARKET_CATEGORIES].map((category) => {
-            if (category.value === "all") {
-              return (
-                <button
-                  className={clsx("pill-button", !categoryList && "pill-button-active")}
-                  key={category.value}
-                  onClick={() => setCategories(undefined)}
-                  type="button"
-                >
-                  {category.text}
-                </button>
-              );
-            }
-            return (
-              <button
-                className={clsx("pill-button", categoryList?.includes(category.value) && "pill-button-active")}
-                key={category.value}
-                onClick={() => setCategories([category.value])}
-                type="button"
-              >
-                {category.text}
-              </button>
-            );
-          })}
-        </div>
-        {address && (
+      {address && (
+        <div className="flex mt-8">
           <Link
             to={"/collections/default"}
             className="whitespace-nowrap flex items-center gap-2 ml-auto hover:opacity-80"
@@ -126,8 +97,8 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
             <Collections />
             <p className="text-[14px] text-purple-primary">My collections</p>
           </Link>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
