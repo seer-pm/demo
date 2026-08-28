@@ -7,7 +7,13 @@ import { type Address, zeroAddress } from "viem";
 import { requireBackgroundSecret } from "./utils/backgroundAuth";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { fetchHoldersOfTokens } from "./utils/marketHoldings";
-import { type MtmRefreshRow, effectivePricesByToken, refreshMarketMtm } from "./utils/marketMtmRefresh";
+import {
+  type MtmRefreshRow,
+  type PricedMarket,
+  effectivePricesByToken,
+  outcomePriceTokensForChain,
+  refreshMarketMtm,
+} from "./utils/marketMtmRefresh";
 import { searchAllMarkets } from "./utils/markets";
 import { getCurrentOutcomePrices } from "./utils/onchainOutcomePrices";
 import type { Database } from "./utils/supabase";
@@ -38,6 +44,54 @@ const ROW_PAGE = 1000;
  *
  * `?chainId=100` to restrict, `?markets=N` for the batch size, `?apply=1` to write.
  */
+type MarketLike = Awaited<ReturnType<typeof searchAllMarkets>>["markets"][number];
+
+function isRoot(market: MarketLike): boolean {
+  const parent = market.parentMarket?.id;
+  return !parent || parent.toLowerCase() === (zeroAddress as string);
+}
+
+function toPricedMarket(market: MarketLike): PricedMarket {
+  return {
+    id: market.id.toLowerCase(),
+    collateralToken: market.collateralToken.toLowerCase(),
+    wrappedTokens: (market.wrappedTokens ?? []).map((t) => String(t).toLowerCase()),
+    parentMarketId: isRoot(market) ? undefined : market.parentMarket.id.toLowerCase(),
+  };
+}
+
+/**
+ * The market plus every ancestor, ordered root first — the order `mapOutcomePrices` needs to resolve
+ * a chain deeper than one level in its single pass.
+ */
+async function loadParentChain(
+  market: MarketLike,
+  chainId: SupportedChain,
+  cache: Map<string, MarketLike>,
+): Promise<PricedMarket[]> {
+  const chain: MarketLike[] = [market];
+  let current = market;
+  // Depth is small (session market -> conditional), but bound it so a cyclic parent cannot hang.
+  for (let depth = 0; depth < 8 && !isRoot(current); depth++) {
+    const parentId = current.parentMarket.id.toLowerCase();
+    let parent = cache.get(parentId);
+    if (!parent) {
+      const { markets: found } = await searchAllMarkets({
+        chainIds: [chainId],
+        marketIds: [parentId],
+        collateralProfile: DEFAULT_COLLATERAL_PROFILE,
+        type: "Generic",
+      });
+      parent = found[0];
+      if (!parent) break;
+      cache.set(parentId, parent);
+    }
+    chain.push(parent);
+    current = parent;
+  }
+  return chain.reverse().map(toPricedMarket);
+}
+
 export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
     console.log("refresh-pnl-market-mtm: disabled");
@@ -87,6 +141,7 @@ export default async (req: Request) => {
       type: "Generic",
     });
 
+    const marketCache = new Map<string, MarketLike>();
     let updated = 0;
     let scanned = 0;
     let wouldUpdate = 0;
@@ -98,18 +153,11 @@ export default async (req: Request) => {
       const tokens = (market.wrappedTokens ?? []).map((t) => String(t).toLowerCase() as Address);
       if (tokens.length === 0) continue;
 
-      // `parentMarketId` must be undefined for a root market: `outcomePairs` treats *any* value as
-      // "this is a conditional outcome, quote it against its parent's token", and a root market has
-      // no parent token in the set — so passing the zero address prices every outcome at 0. The
-      // wallet pass gets undefined here because it looks the parent up in its loaded market set.
-      const parentMarketId =
-        market.parentMarket && market.parentMarket.id.toLowerCase() !== (zeroAddress as string)
-          ? market.parentMarket.id
-          : undefined;
-      const currentByToken = await getCurrentOutcomePrices(
-        tokens.map((tokenId) => ({ tokenId, collateralToken: market.collateralToken, parentMarketId })),
-        supportedChain,
-      );
+      // Price the whole parent chain, not this market alone. A conditional outcome is quoted
+      // against its parent's outcome token, so a batch holding only this market's tokens values
+      // every conditional at 0 — see `outcomePricingContract.test.ts`.
+      const chain = await loadParentChain(market, supportedChain, marketCache);
+      const currentByToken = await getCurrentOutcomePrices(outcomePriceTokensForChain(chain), supportedChain);
       // A resolved market has no live pool, so the settled payout has to take precedence — same
       // rule `buildPortfolioPositions` uses, and the reason an earlier version zeroed real positions.
       const redeemedByToken: Record<string, number> = {};

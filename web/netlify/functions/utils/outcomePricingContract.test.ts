@@ -2,7 +2,7 @@ import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { effectivePricesByToken } from "./marketMtmRefresh";
+import { effectivePricesByToken, outcomePriceTokensForChain } from "./marketMtmRefresh";
 import { type OutcomePriceToken, type PairMids, mapOutcomePrices, setPairMid } from "./outcomePrices";
 
 /**
@@ -81,6 +81,64 @@ describe("conditional markets", () => {
     // This is why a strictly per-market price batch cannot value conditional outcomes: the parent's
     // token belongs to a different market, so a market-shaped loop must price the parent chain too.
     expect(mapOutcomePrices(childOnly, pool)[CHILD_YES]).toBe(0);
+  });
+});
+
+describe("outcomePriceTokensForChain", () => {
+  const root = { id: "0xroot", collateralToken: COLLATERAL, wrappedTokens: [ROOT_YES, ROOT_NO] };
+  const child = {
+    id: "0xchild",
+    collateralToken: PARENT_OUTCOME,
+    wrappedTokens: [CHILD_YES],
+    parentMarketId: "0xroot",
+  };
+
+  it("marks the root undefined and the child conditional", () => {
+    const inputs = outcomePriceTokensForChain([root, child]);
+    expect(inputs.find((i) => i.tokenId === ROOT_YES)!.parentMarketId).toBeUndefined();
+    expect(inputs.find((i) => i.tokenId === CHILD_YES)!.parentMarketId).toBe("0xroot");
+  });
+
+  it("keeps the root's tokens ahead of the child's, which is what makes a chain resolve", () => {
+    const inputs = outcomePriceTokensForChain([root, child]);
+    expect(inputs.map((i) => i.tokenId).indexOf(CHILD_YES)).toBeGreaterThan(
+      inputs.map((i) => i.tokenId).indexOf(ROOT_YES),
+    );
+  });
+
+  it("produces a batch that actually prices the conditional", () => {
+    const pool = mids([
+      [PARENT_OUTCOME, COLLATERAL, 0.5],
+      [CHILD_YES, PARENT_OUTCOME, 0.8],
+    ]);
+    const prices = mapOutcomePrices(outcomePriceTokensForChain([root, child]), pool);
+    expect(prices[CHILD_YES]).toBeCloseTo(0.4, 10);
+  });
+
+  it("orders by depth, which only matters once conditionals nest", () => {
+    // `mapOutcomePrices` runs two passes: every non-conditional first, then every conditional. So
+    // root-vs-child order is irrelevant — but a grandchild reads a price the *same* second pass
+    // writes for its parent, so depth order is load-bearing from the second level down.
+    const GRANDCHILD = "0x3333000000000000000000000000000000000001" as Address;
+    const grandchild = {
+      id: "0xgrandchild",
+      collateralToken: CHILD_YES,
+      wrappedTokens: [GRANDCHILD],
+      parentMarketId: "0xchild",
+    };
+    const pool = mids([
+      [PARENT_OUTCOME, COLLATERAL, 0.5],
+      [CHILD_YES, PARENT_OUTCOME, 0.8],
+      [GRANDCHILD, CHILD_YES, 0.5],
+    ]);
+
+    // Root first, then child, then grandchild: 0.5 x 0.8 x 0.5.
+    expect(mapOutcomePrices(outcomePriceTokensForChain([root, child, grandchild]), pool)[GRANDCHILD]).toBeCloseTo(
+      0.2,
+      10,
+    );
+    // Grandchild ahead of its parent: it reads a price that has not been written yet.
+    expect(mapOutcomePrices(outcomePriceTokensForChain([root, grandchild, child]), pool)[GRANDCHILD]).toBe(0);
   });
 });
 

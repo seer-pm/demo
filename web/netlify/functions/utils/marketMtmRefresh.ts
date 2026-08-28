@@ -46,6 +46,51 @@ export type MtmRefreshUpdate = {
 /** Current holdings of one market's outcome tokens, in human units, per wallet. */
 export type HoldingsByWallet = Map<string, Map<string, number>>;
 
+/** The shape `getCurrentOutcomePrices` needs, without importing the pricing module here. */
+export type PriceTokenInput = {
+  tokenId: string;
+  collateralToken: string;
+  parentMarketId?: string;
+};
+
+/** Just enough of a market to build its pricing inputs. */
+export type PricedMarket = {
+  id: string;
+  collateralToken: string;
+  wrappedTokens: readonly string[];
+  parentMarketId?: string;
+};
+
+/**
+ * Pricing inputs for a market **and its parent chain**, ordered root first.
+ *
+ * A conditional outcome is quoted against its parent's outcome token, and `mapOutcomePrices`
+ * resolves that in a single pass over the array: each conditional multiplies its relative price by
+ * `prices[collateralToken]`, which must already be in the map. So two things are load-bearing and
+ * neither is enforced by the type system:
+ *
+ * - the parent's tokens must be **present** — a batch holding one market's tokens alone prices every
+ *   conditional at 0;
+ * - they must come **first** — depth-ascending order is what makes a chain deeper than one level
+ *   resolve, since the second pass reads prices written earlier in the same pass.
+ *
+ * A root market passes `parentMarketId: undefined`. Passing the zero address instead marks it as
+ * conditional and prices it at 0.
+ */
+export function outcomePriceTokensForChain(chainRootFirst: PricedMarket[]): PriceTokenInput[] {
+  const out: PriceTokenInput[] = [];
+  for (const market of chainRootFirst) {
+    for (const tokenId of market.wrappedTokens) {
+      out.push({
+        tokenId: tokenId.toLowerCase(),
+        collateralToken: market.collateralToken.toLowerCase(),
+        parentMarketId: market.parentMarketId?.toLowerCase(),
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * Effective price per token: the settled payout when the market has resolved, else the pool price.
  *
