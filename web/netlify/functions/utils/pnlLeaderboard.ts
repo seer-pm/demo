@@ -508,6 +508,15 @@ export async function refreshPnlLeaderboardForAppChain(
           failures += 1;
           return;
         }
+        if (computed.timings) {
+          const total = Object.values(computed.timings).reduce((a, b) => a + b, 0);
+          console.log(
+            `pnl-leaderboard timings ${candidate.address} total=${total}ms ${Object.entries(computed.timings)
+              .sort((a, b) => b[1] - a[1])
+              .map(([phase, ms]) => `${phase}=${ms}`)
+              .join(" ")}`,
+          );
+        }
 
         const writtenAt = new Date().toISOString();
         const rows: PnlLeaderboardInsert[] =
