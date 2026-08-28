@@ -41,9 +41,9 @@ describe("apps registry / leaderboard scopes", () => {
     ]);
     expect(materializedAppIdsForFilter("deepfund:octant")).toEqual(["deepfund:octant"]);
     expect(materializedAppIdsForFilter("foresight")).toEqual([
-      "foresight:foresight-1",
-      "foresight:foresight-2",
-      "foresight:foresight-3",
+      "foresight:movies-1",
+      "foresight:movies-2",
+      "foresight:movies-3",
     ]);
   });
 
@@ -52,7 +52,7 @@ describe("apps registry / leaderboard scopes", () => {
     const appIds = jobs.map((j) => j.appId);
 
     expect(appIds).toContain("deepfund:octant");
-    expect(appIds).toContain("foresight:foresight-1");
+    expect(appIds).toContain("foresight:movies-1");
     expect(appIds).toContain("opportunity");
     expect(appIds).not.toContain("deepfund");
     expect(appIds).not.toContain("foresight");
@@ -77,6 +77,6 @@ describe("apps registry / leaderboard scopes", () => {
     expect(marketsForAppFilter("all", optimism.id)).toBeNull();
     expect(marketsForAppFilter("deepfund:octant", optimism.id)).toEqual(["0xe85ada7cd6d33cb41ac596fb4749e3f94d836ece"]);
     expect(marketsForAppFilter("deepfund", optimism.id)).toHaveLength(5);
-    expect(marketsForAppFilter(marketScopeFilterId("foresight", "foresight-1"), gnosis.id)).toHaveLength(1);
+    expect(marketsForAppFilter(marketScopeFilterId("foresight", "movies-1"), gnosis.id)).toHaveLength(1);
   });
 });

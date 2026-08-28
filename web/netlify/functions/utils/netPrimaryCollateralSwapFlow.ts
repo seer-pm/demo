@@ -61,7 +61,24 @@ export type PrimaryCollateralSwapFlowByPeriod = {
   /** Distinct markets with a market-collateral swap leg in the window. */
   marketCountByStartTime: Map<number, number>;
   rowsByStartTime: Map<number, PrimaryCollateralSwapFlowDebugRow[]>;
+  /**
+   * The same window totals split by market id — the per-market P/L buckets.
+   *
+   * Primary-collateral legs stay in **wei** so folding buckets back into `*ByStartTime` is exact;
+   * `volumePriced` is already a float by the time a conditional leg is multiplied by its 1/N price,
+   * and is kept separate for the same reason the scalar path keeps it separate.
+   */
+  byStartTimeAndMarket: Map<number, Map<string, PrimaryCollateralSwapFlowMarketBucket>>;
   primary: { address: string; decimals: number };
+};
+
+export type PrimaryCollateralSwapFlowMarketBucket = {
+  netOutWei: bigint;
+  buysWei: bigint;
+  volumePrimaryWei: bigint;
+  volumePriced: number;
+  /** The market had a collateral-leg swap in the window — what `marketCount` counts. */
+  traded: boolean;
 };
 
 function aggregateSwapFlowForPeriods(
@@ -74,22 +91,24 @@ function aggregateSwapFlowForPeriods(
   marketId?: Address,
   opts?: CollateralSwapFlowOpts,
 ): PrimaryCollateralSwapFlowByPeriod {
-  const netOutWeiByStart = new Map<number, bigint>();
-  const buysWeiByStart = new Map<number, bigint>();
   // Primary-collateral legs stay exact in wei; priced legs are floats the moment they are
   // multiplied by a volume price, so the two are summed only at the end.
-  const volumePrimaryWeiByStart = new Map<number, bigint>();
-  const volumePricedByStart = new Map<number, number>();
-  const marketsByStart = new Map<number, Set<string>>();
+  const byStartAndMarket = new Map<number, Map<string, PrimaryCollateralSwapFlowMarketBucket>>();
   const rowsByStart = new Map<number, PrimaryCollateralSwapFlowDebugRow[]>();
   for (const s of startTimes) {
-    netOutWeiByStart.set(s, 0n);
-    buysWeiByStart.set(s, 0n);
-    volumePrimaryWeiByStart.set(s, 0n);
-    volumePricedByStart.set(s, 0);
-    marketsByStart.set(s, new Set());
+    byStartAndMarket.set(s, new Map());
     rowsByStart.set(s, []);
   }
+
+  const bucketFor = (startTime: number, marketId: string): PrimaryCollateralSwapFlowMarketBucket => {
+    const byMarket = byStartAndMarket.get(startTime)!;
+    let bucket = byMarket.get(marketId);
+    if (!bucket) {
+      bucket = { netOutWei: 0n, buysWei: 0n, volumePrimaryWei: 0n, volumePriced: 0, traded: false };
+      byMarket.set(marketId, bucket);
+    }
+    return bucket;
+  };
 
   const rowLimit = Math.max(0, opts?.limitRows ?? 200);
 
@@ -138,15 +157,16 @@ function aggregateSwapFlowForPeriods(
 
     for (const startTime of startTimes) {
       if (ts <= startTime || ts > endTime) continue;
-      netOutWeiByStart.set(startTime, (netOutWeiByStart.get(startTime) ?? 0n) + netCounted);
-      buysWeiByStart.set(startTime, (buysWeiByStart.get(startTime) ?? 0n) + buyCounted);
+      const bucket = bucketFor(startTime, swapMarketId);
+      bucket.netOutWei += netCounted;
+      bucket.buysWei += buyCounted;
       if (collateralIsPrimary) {
-        volumePrimaryWeiByStart.set(startTime, (volumePrimaryWeiByStart.get(startTime) ?? 0n) + volumeCounted);
+        bucket.volumePrimaryWei += volumeCounted;
       } else {
-        volumePricedByStart.set(startTime, (volumePricedByStart.get(startTime) ?? 0) + volumePriced);
+        bucket.volumePriced += volumePriced;
       }
       // Counts the market as traded on the collateral leg, not on its priced volume.
-      if (swapMarketId && volumeCounted > 0n) marketsByStart.get(startTime)?.add(swapMarketId);
+      if (swapMarketId && volumeCounted > 0n) bucket.traded = true;
       if (rowLimit > 0) {
         const rows = rowsByStart.get(startTime) ?? [];
         if (rows.length < rowLimit) {
@@ -175,18 +195,29 @@ function aggregateSwapFlowForPeriods(
     }
   }
 
+  // Window totals are a fold of the buckets: wei summed as wei and converted once, priced floats
+  // summed separately — the same two-track arithmetic the per-swap loop uses.
   const netOutByStartTime = new Map<number, number>();
   const buysByStartTime = new Map<number, number>();
   const volumeByStartTime = new Map<number, number>();
   const marketCountByStartTime = new Map<number, number>();
   for (const st of startTimes) {
-    netOutByStartTime.set(st, Number(formatUnits(netOutWeiByStart.get(st) ?? 0n, decimals)));
-    buysByStartTime.set(st, Number(formatUnits(buysWeiByStart.get(st) ?? 0n, decimals)));
-    volumeByStartTime.set(
-      st,
-      Number(formatUnits(volumePrimaryWeiByStart.get(st) ?? 0n, decimals)) + (volumePricedByStart.get(st) ?? 0),
-    );
-    marketCountByStartTime.set(st, marketsByStart.get(st)?.size ?? 0);
+    let netOutWei = 0n;
+    let buysWei = 0n;
+    let volumePrimaryWei = 0n;
+    let volumePriced = 0;
+    let traded = 0;
+    for (const bucket of byStartAndMarket.get(st)!.values()) {
+      netOutWei += bucket.netOutWei;
+      buysWei += bucket.buysWei;
+      volumePrimaryWei += bucket.volumePrimaryWei;
+      volumePriced += bucket.volumePriced;
+      if (bucket.traded) traded += 1;
+    }
+    netOutByStartTime.set(st, Number(formatUnits(netOutWei, decimals)));
+    buysByStartTime.set(st, Number(formatUnits(buysWei, decimals)));
+    volumeByStartTime.set(st, Number(formatUnits(volumePrimaryWei, decimals)) + volumePriced);
+    marketCountByStartTime.set(st, traded);
   }
 
   return {
@@ -195,6 +226,7 @@ function aggregateSwapFlowForPeriods(
     volumeByStartTime,
     marketCountByStartTime,
     rowsByStartTime: rowsByStart,
+    byStartTimeAndMarket: byStartAndMarket,
     primary: { address: primaryAddr, decimals },
   };
 }
@@ -234,6 +266,7 @@ export function computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
       volumeByStartTime: new Map(),
       marketCountByStartTime: new Map(),
       rowsByStartTime: new Map(),
+      byStartTimeAndMarket: new Map(),
       primary: { address: primaryAddr, decimals },
     };
   }

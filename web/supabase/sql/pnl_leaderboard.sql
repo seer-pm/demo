@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS public.pnl_leaderboard (
   volume_usd numeric NOT NULL DEFAULT 0,
   -- Primary put to work: swap buys + (market-scoped) router splits. ROI denominator.
   capital_deployed numeric NOT NULL DEFAULT 0,
-  -- roi = pnl_usd / (value_start_usd + capital_deployed_usd).
+  -- roi = pnl_usd / capital_deployed_usd, where capital_deployed is the peak primary collateral at
+  -- risk in the window (it already includes the position open when the window started, so
+  -- value_start must NOT be added on top).
   -- NULL when capital_usd < $0.01 (dust; avoids ÷0 / “infinite” ROI).
   roi numeric NULL,
   market_count integer NOT NULL DEFAULT 0,
@@ -49,7 +51,7 @@ CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_updated_at_idx
   ON public.pnl_leaderboard (app_id, chain_id, period, updated_at);
 
 COMMENT ON TABLE public.pnl_leaderboard IS
-  'Materialized wallet PnL for Seer app leaderboards. Native pnl/volume/capital_deployed stored for audit; public rankings use pnl_usd / volume_usd (spot collateral USD at refresh). roi = pnl_usd / (value_start_usd + capital_deployed_usd); NULL when capital < $0.01. market_count = distinct markets with a market-collateral swap leg in the row period.';
+  'Materialized wallet PnL for Seer app leaderboards. Native pnl/volume/capital_deployed stored for audit; public rankings use pnl_usd / volume_usd (spot collateral USD at refresh). roi = pnl_usd / capital_deployed_usd (peak capital at risk, including the position open at window start); NULL when capital < $0.01. market_count = distinct markets with a market-collateral swap leg in the row period.';
 
 -- Refresh job (`refresh-pnl-leaderboard-background`) uses SUPABASE_API_KEY.
 -- That must be the service_role key: anon/authenticated are SELECT-only (public

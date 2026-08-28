@@ -14,11 +14,17 @@ const primary: Token = {
   chainId: 10,
 };
 
+// Distinct log index per event: legs sharing an id are the duplicate-market fan-out and get
+// collapsed by `dedupeConditionalEventLegs`, which is not what these cases are exercising.
+let logIndex = 0;
+
 function event(
   partial: Partial<ConditionalEventRow> & Pick<ConditionalEventRow, "eventType" | "amount" | "collateral">,
 ): ConditionalEventRow {
   return {
+    id: `10:0xabc-${logIndex++}-10:0x1`,
     marketId: "0x1",
+    marketEntityId: "10:0x1",
     marketName: "m",
     blockNumber: 1,
     timestamp: 100,
@@ -47,32 +53,15 @@ describe("routerPrimaryNetFromConditionalEvents", () => {
 
 describe("capitalUsdFromRow / computeRoiUsd", () => {
   it("uses capitalDeployed, not volume", () => {
-    const capital = capitalUsdFromRow({
-      valueStart: 10,
-      capitalDeployed: 20,
-      collateralPriceUsd: 2,
-    });
-    // (10 + 20) * 2
-    expect(capital).toBe(60);
+    // capital_deployed is the whole denominator: the peak at risk already includes any position
+    // open when the window started, so value_start must not be added on top.
+    const capital = capitalUsdFromRow({ capitalDeployed: 20, collateralPriceUsd: 2 });
+    expect(capital).toBe(40);
 
-    expect(
-      computeRoiUsd({
-        pnlUsd: 30,
-        valueStart: 10,
-        capitalDeployed: 20,
-        collateralPriceUsd: 2,
-      }),
-    ).toBe(0.5);
+    expect(computeRoiUsd({ pnlUsd: 30, capitalDeployed: 20, collateralPriceUsd: 2 })).toBe(0.75);
   });
 
   it("returns null ROI when capital is dust", () => {
-    expect(
-      computeRoiUsd({
-        pnlUsd: 1,
-        valueStart: 0,
-        capitalDeployed: 0,
-        collateralPriceUsd: 1,
-      }),
-    ).toBeNull();
+    expect(computeRoiUsd({ pnlUsd: 1, capitalDeployed: 0, collateralPriceUsd: 1 })).toBeNull();
   });
 });

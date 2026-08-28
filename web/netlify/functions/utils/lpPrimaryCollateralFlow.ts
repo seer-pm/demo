@@ -4,6 +4,11 @@ import { formatUnits } from "viem";
 export type LpPrimaryCollateralFlowByPeriod = {
   /** Net primary into LP pools per window start (mints − burns). Positive = capital locked in LP. */
   netOutByStartTime: Map<number, number>;
+  /**
+   * Same quantity split by market id, in **wei**, so the caller can fold buckets back into the
+   * scalar without float re-association changing the result.
+   */
+  netOutWeiByStartTimeAndMarket: Map<number, Map<string, bigint>>;
   primary: { address: string; decimals: number };
 };
 
@@ -22,30 +27,38 @@ function aggregateLpFlowForPeriods(
   primaryAddr: string,
   decimals: number,
 ): LpPrimaryCollateralFlowByPeriod {
-  const netOutWeiByStart = new Map<number, bigint>();
-  for (const s of startTimes) netOutWeiByStart.set(s, 0n);
+  const byStartAndMarket = new Map<number, Map<string, bigint>>();
+  for (const s of startTimes) byStartAndMarket.set(s, new Map());
 
   const apply = (ev: TransactionData, sign: 1n | -1n) => {
     const ts = Number(ev.timestamp ?? 0);
     if (ts > endTime) return;
     const amt = primaryAmountWei(ev, primaryAddr);
     if (amt === 0n) return;
+    // Mints and burns are mapped to a market by `tokenPairToMarketMapping`; an unmapped event is
+    // dropped upstream, so a missing id here would be a bug rather than a normal case.
+    const marketId = String(ev.marketId ?? "").toLowerCase();
     for (const startTime of startTimes) {
       if (ts <= startTime || ts > endTime) continue;
-      netOutWeiByStart.set(startTime, (netOutWeiByStart.get(startTime) ?? 0n) + sign * amt);
+      const byMarket = byStartAndMarket.get(startTime)!;
+      byMarket.set(marketId, (byMarket.get(marketId) ?? 0n) + sign * amt);
     }
   };
 
   for (const m of mints) apply(m, 1n);
   for (const b of burns) apply(b, -1n);
 
+  // Sum in wei, convert once: folding per-market floats would drift from the scalar.
   const netOutByStartTime = new Map<number, number>();
   for (const st of startTimes) {
-    netOutByStartTime.set(st, Number(formatUnits(netOutWeiByStart.get(st) ?? 0n, decimals)));
+    let total = 0n;
+    for (const v of byStartAndMarket.get(st)!.values()) total += v;
+    netOutByStartTime.set(st, Number(formatUnits(total, decimals)));
   }
 
   return {
     netOutByStartTime,
+    netOutWeiByStartTimeAndMarket: byStartAndMarket,
     primary: { address: primaryAddr, decimals },
   };
 }
@@ -70,6 +83,7 @@ export function computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
   if (startTimes.length === 0) {
     return {
       netOutByStartTime: new Map(),
+      netOutWeiByStartTimeAndMarket: new Map(),
       primary: { address: primaryAddr, decimals },
     };
   }

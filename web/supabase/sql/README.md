@@ -20,6 +20,7 @@ multi-statement scripts in one, so run those statements individually.
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
+| `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 
