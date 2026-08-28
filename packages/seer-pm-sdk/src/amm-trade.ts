@@ -58,12 +58,22 @@ export function maxSlippageToBps(maxSlippage: string): number {
   return Math.round(pct * 100);
 }
 
-function applySlippageDown(amount: bigint, slippageBps: number): bigint {
+/**
+ * Slippage bounds, mirroring `SlippageLib.limit` in the LensQuoter contract.
+ *
+ * The rounding has to match exactly: the quoter bakes its own `amountOutMinimum` /
+ * `amountInMaximum` into the calldata, and these values gate the approval. Rounding
+ * the maximum down leaves the approval 1 wei short of what the router may pull, so
+ * a swap that moves all the way to the limit reverts on `transferFrom`.
+ */
+export function applySlippageDown(amount: bigint, slippageBps: number): bigint {
+  // minOut = floor(amount * (1 - bps/BPS))
   return (amount * BigInt(10_000 - slippageBps)) / 10_000n;
 }
 
-function applySlippageUp(amount: bigint, slippageBps: number): bigint {
-  return (amount * BigInt(10_000 + slippageBps)) / 10_000n;
+export function applySlippageUp(amount: bigint, slippageBps: number): bigint {
+  // maxIn = ceil(amount * (1 + bps/BPS))
+  return (amount * BigInt(10_000 + slippageBps) + 9_999n) / 10_000n;
 }
 
 export class AmmTrade {

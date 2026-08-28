@@ -201,7 +201,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@seer-pm/lens": "^1.4.0",
+    "@seer-pm/lens": "^1.5.0",
     "@uniswap/v3-sdk": "^3.19.0",
     "graphql": "16.11.0"
   }
