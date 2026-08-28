@@ -2,6 +2,7 @@ import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
 import type { Market, SupportedChain } from "@seer-pm/sdk";
 import { getCollateralByIndex, getToken0Token1, getTokensPairKey } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { requireBackgroundSecret } from "./utils/backgroundAuth.ts";
 import {
   type DexPoolHourFetchCursor,
   type FetchPoolHourDatasResult,
@@ -155,10 +156,15 @@ async function loadMarketsForChain(
   return out;
 }
 
-export default async () => {
+export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
     console.log("scheduled-dex-pool-prices: disabled");
     return;
+  }
+
+  const unauthorized = requireBackgroundSecret(req);
+  if (unauthorized) {
+    return unauthorized;
   }
 
   const runStart = Date.now();

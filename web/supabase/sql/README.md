@@ -19,6 +19,7 @@ multi-statement scripts in one, so run those statements individually.
 | File | What it does |
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
+| `dex_pool_hour_prices.sql` | Table + indexes + `dex_pool_hour_prices_nearest_before_for_pairs`. Hour candles written by `dex-pool-prices-background`; read by portfolio history and the airdrop calculation. Captured from the live project — the objects predate the file. Ingest writes require `SUPABASE_API_KEY` = **service_role**. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
@@ -54,8 +55,13 @@ live Supabase project. Worth dumping and committing here:
 
 - `get_direct_holdings_at` — referenced by `netlify/functions/utils/airdropCalculation/computeDailyAirdrop.ts`
 - `insert_airdrop_safely`
-- `dex_pool_hour_prices_nearest_before_for_pairs`
 - `markets_by_question_ids`
+
+`dex_pool_hour_prices_nearest_before_for_pairs` is now captured in `dex_pool_hour_prices.sql`,
+dumped from the live project. Always dump rather than re-derive: an attempt to reconstruct it
+from the calling code produced `(integer, integer, integer, ...)` against the live
+`(integer, bigint, bigint, ...)`, so `CREATE OR REPLACE` silently added a second overload and
+PostgREST could no longer resolve the call. Signature mismatches do not replace — they overload.
 
 Dump one with:
 
