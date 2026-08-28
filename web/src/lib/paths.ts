@@ -6,6 +6,8 @@ import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { Address, getAddress as ViemGetAddress, zeroAddress } from "viem";
 import { base, optimism } from "./chains";
 
+const DOCS_URL = "https://docs.seer.pm";
+
 function marketPath(market: Market): string;
 function marketPath(id: Address | string, chainId: number): string;
 function marketPath(marketOrIdOrUrl: Market | Address | string, chainId?: number): string {
@@ -43,7 +45,7 @@ export const paths = {
 
     return "#";
   },
-  dappGuide: () => "https://seer-3.gitbook.io/seer-documentation",
+  dappGuide: () => `${DOCS_URL}/documentation/what-is-seer`,
   bugReport: () => "https://github.com/seer-pm/demo/issues",
   getHelp: () => "https://discord.com/invite/rBEB4MYQwV",
   beginnerGuide: () => "https://ethereum.org/en/wallets/",
@@ -54,10 +56,8 @@ export const paths = {
   telegram: () => "https://t.me/Seerpredictionmarket",
   twitter: () => "https://x.com/seer_pm",
   verificationCheck: (id: Address | string, chainId: number) => `/verification-check/${chainId}/${id.toString()}/`,
-  depositGuideEth: () =>
-    "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-ethereum/deposit-dai",
-  depositGuideGnosis: () =>
-    "https://seer-3.gitbook.io/seer-documentation/getting-started/deposit-tokens/on-gnosis/deposit-xdai",
+  depositGuideEth: () => `${DOCS_URL}/getting-started/deposit-tokens/on-ethereum/deposit-dai`,
+  depositGuideGnosis: () => `${DOCS_URL}/getting-started/deposit-tokens/on-gnosis/deposit-xdai`,
   swapETHToDai: () =>
     "https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0x6B175474E89094C44Da98b954EedeAC495271d0F",
   xDAIBridge: (toChain = 100, toToken: Address = zeroAddress) =>

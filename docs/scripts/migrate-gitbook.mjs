@@ -393,7 +393,15 @@ async function buildLinkMap() {
 
 const SPACE_PREFIXES = SPACES.map((s) => [new URL(s.base).pathname, s.base]);
 
+// Links to the GitBook editor that leaked into published pages.
+const EDITOR_LINKS = {
+  "https://app.gitbook.com/o/qmst6jeaYnD3T60SuPaK/s/YEMV9GZFJmUmXVjolDG7/~/changes/17/seer-frontend/resolve-market":
+    "/app/resolve-market",
+};
+
 function rewriteLinks(md, unresolved) {
+  for (const [from, to] of Object.entries(EDITOR_LINKS)) md = md.replaceAll(from, to);
+
   // GitBook also emits space-root-relative links: `/seer-documentation/a/b.md`.
   for (const [prefix, base] of SPACE_PREFIXES) {
     md = md.replaceAll(`(${prefix}/`, `(${base}/`);
