@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type MtmRefreshRow, markToMarket, refreshMarketMtm, refreshRowMtm } from "./marketMtmRefresh";
+import {
+  type MtmRefreshRow,
+  effectivePricesByToken,
+  markToMarket,
+  refreshMarketMtm,
+  refreshRowMtm,
+} from "./marketMtmRefresh";
 
 const WALLET = "0xaaaa000000000000000000000000000000000001";
 const MARKET = "0xbbbb000000000000000000000000000000000002";
@@ -25,7 +31,15 @@ const key = (address = WALLET, marketId = MARKET, period = "all") =>
 
 describe("markToMarket", () => {
   it("values holdings at the market's prices", () => {
-    expect(markToMarket(new Map([[YES, 10], [NO, 4]]), { [YES]: 0.6, [NO]: 0.4 })).toBeCloseTo(7.6, 10);
+    expect(
+      markToMarket(
+        new Map([
+          [YES, 10],
+          [NO, 4],
+        ]),
+        { [YES]: 0.6, [NO]: 0.4 },
+      ),
+    ).toBeCloseTo(7.6, 10);
   });
 
   it("treats a token with no price as worth zero rather than skipping it", () => {
@@ -34,6 +48,37 @@ describe("markToMarket", () => {
 
   it("matches prices case-insensitively", () => {
     expect(markToMarket(new Map([[YES.toUpperCase(), 2]]), { [YES]: 0.5 })).toBeCloseTo(1, 10);
+  });
+});
+
+describe("effectivePricesByToken", () => {
+  it("prefers the settled payout over the pool price", () => {
+    const p = effectivePricesByToken({
+      tokens: [YES, NO],
+      redeemedByToken: { [YES]: 1, [NO]: 0 },
+      currentByToken: { [YES]: 0.7, [NO]: 0.3 },
+    });
+    expect(p[YES]).toBe(1);
+  });
+
+  it("falls back to the pool price while the market is unresolved", () => {
+    const p = effectivePricesByToken({
+      tokens: [YES],
+      redeemedByToken: { [YES]: 0 },
+      currentByToken: { [YES]: 0.62 },
+    });
+    expect(p[YES]).toBeCloseTo(0.62, 10);
+  });
+
+  it("keeps a winning outcome priced when a resolved market has no pool left", () => {
+    // The case that zeroed real positions: no on-chain price, but the payout is 1.
+    const p = effectivePricesByToken({ tokens: [YES], redeemedByToken: { [YES]: 1 }, currentByToken: {} });
+    expect(p[YES]).toBe(1);
+  });
+
+  it("prices a losing outcome of a resolved market at zero", () => {
+    const p = effectivePricesByToken({ tokens: [NO], redeemedByToken: { [NO]: 0 }, currentByToken: {} });
+    expect(p[NO]).toBe(0);
   });
 });
 

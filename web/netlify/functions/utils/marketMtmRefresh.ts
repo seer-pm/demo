@@ -47,6 +47,30 @@ export type MtmRefreshUpdate = {
 export type HoldingsByWallet = Map<string, Map<string, number>>;
 
 /**
+ * Effective price per token: the settled payout when the market has resolved, else the pool price.
+ *
+ * This is the rule `buildPortfolioPositions` applies (`redeemedPrice || tokenPrice`), and reproducing
+ * it here is not optional. A resolved market has no live pool, so an on-chain read returns nothing
+ * for it — value it at the pool price alone and every winning position in a settled market collapses
+ * to zero. Measured against the wallet pass, that was 44 of 440 rows.
+ */
+export function effectivePricesByToken(args: {
+  tokens: string[];
+  /** Settled payout per token, 0 when the market has not resolved. */
+  redeemedByToken: Record<string, number>;
+  /** Current pool price per token; missing for markets with no pool. */
+  currentByToken: Record<string, number>;
+}): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const token of args.tokens) {
+    const key = token.toLowerCase();
+    const redeemed = args.redeemedByToken[key] ?? 0;
+    out[key] = redeemed || (args.currentByToken[key] ?? 0);
+  }
+  return out;
+}
+
+/**
  * Value a wallet's holdings of one market at the given prices.
  *
  * A token with no price contributes 0 rather than being skipped: an outcome with no pool has no

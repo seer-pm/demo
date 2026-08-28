@@ -1,12 +1,13 @@
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm/sdk";
+import { getRedeemedPrice } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";
-import type { Address } from "viem";
+import { type Address, zeroAddress } from "viem";
 import { requireBackgroundSecret } from "./utils/backgroundAuth";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { fetchHoldersOfTokens } from "./utils/marketHoldings";
-import { type MtmRefreshRow, refreshMarketMtm } from "./utils/marketMtmRefresh";
+import { type MtmRefreshRow, effectivePricesByToken, refreshMarketMtm } from "./utils/marketMtmRefresh";
 import { searchAllMarkets } from "./utils/markets";
 import { getCurrentOutcomePrices } from "./utils/onchainOutcomePrices";
 import type { Database } from "./utils/supabase";
@@ -90,20 +91,32 @@ export default async (req: Request) => {
     let scanned = 0;
     let wouldUpdate = 0;
     let collapsedToZero = 0;
-    const samples: Array<{ address: string; marketId: string; period: string; from: number; to: number }> = [];
+    let largeMoves = 0;
+    const moves: Array<{ address: string; period: string; from: number; to: number; relative: number }> = [];
     for (const market of markets) {
       if (Date.now() >= deadlineMs) break;
       const tokens = (market.wrappedTokens ?? []).map((t) => String(t).toLowerCase() as Address);
       if (tokens.length === 0) continue;
 
-      const pricesByToken = await getCurrentOutcomePrices(
-        tokens.map((tokenId) => ({
-          tokenId,
-          collateralToken: market.collateralToken,
-          parentMarketId: market.parentMarket?.id,
-        })),
+      // `parentMarketId` must be undefined for a root market: `outcomePairs` treats *any* value as
+      // "this is a conditional outcome, quote it against its parent's token", and a root market has
+      // no parent token in the set — so passing the zero address prices every outcome at 0. The
+      // wallet pass gets undefined here because it looks the parent up in its loaded market set.
+      const parentMarketId =
+        market.parentMarket && market.parentMarket.id.toLowerCase() !== (zeroAddress as string)
+          ? market.parentMarket.id
+          : undefined;
+      const currentByToken = await getCurrentOutcomePrices(
+        tokens.map((tokenId) => ({ tokenId, collateralToken: market.collateralToken, parentMarketId })),
         supportedChain,
       );
+      // A resolved market has no live pool, so the settled payout has to take precedence — same
+      // rule `buildPortfolioPositions` uses, and the reason an earlier version zeroed real positions.
+      const redeemedByToken: Record<string, number> = {};
+      tokens.forEach((tokenId, index) => {
+        redeemedByToken[tokenId] = getRedeemedPrice(market, index);
+      });
+      const pricesByToken = effectivePricesByToken({ tokens, redeemedByToken, currentByToken });
       const holdings = await fetchHoldersOfTokens(supportedChain, tokens);
 
       const { data: rows, error: rowsError } = await supabase
@@ -153,12 +166,14 @@ export default async (req: Request) => {
       for (const u of updates) {
         const key = `${u.address.toLowerCase()}|${u.marketId.toLowerCase()}|${u.period}`;
         const previous = current.get(key) ?? 0;
-        if (previous !== 0 && u.valueEndMtm === 0) {
-          collapsedToZero += 1;
-          if (samples.length < 10) {
-            samples.push({ address: u.address, marketId: u.marketId, period: u.period, from: previous, to: 0 });
-          }
-        }
+        if (previous !== 0 && u.valueEndMtm === 0) collapsedToZero += 1;
+        // Track the relative move, not only collapses: a value dropping 100 -> 5 is just as wrong
+        // and would pass a zero-check unnoticed. Price drift between passes is small; a large
+        // relative jump means the two paths disagree about something other than the clock.
+        const relative =
+          previous === 0 ? (u.valueEndMtm === 0 ? 0 : 1) : Math.abs(u.valueEndMtm - previous) / Math.abs(previous);
+        if (relative > 0.1) largeMoves += 1;
+        moves.push({ address: u.address, period: u.period, from: previous, to: u.valueEndMtm, relative });
       }
 
       if (!apply) {
@@ -198,7 +213,8 @@ export default async (req: Request) => {
       updated,
       wouldUpdate,
       mismatchVsWalletPass: collapsedToZero,
-      samples,
+      movesOver10pct: largeMoves,
+      worstMoves: moves.sort((a, b) => b.relative - a.relative).slice(0, 8),
     });
   }
 
