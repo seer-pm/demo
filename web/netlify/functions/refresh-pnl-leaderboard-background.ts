@@ -41,6 +41,12 @@ export default async (req: Request) => {
   const onlyAppId = url.searchParams.get("appId");
   const onlyChainId = url.searchParams.get("chainId");
   const batchSizeOverride = Number(url.searchParams.get("batchSize")) || undefined;
+  // `?accounts=0x..,0x..` recomputes exactly these wallets. Needed to repair specific rows without
+  // waiting for the rotation to reach them.
+  const explicitAccounts = (url.searchParams.get("accounts") ?? "")
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter((a) => /^0x[0-9a-f]{40}$/.test(a));
 
   const jobs = listPnlLeaderboardRefreshJobs().filter(
     (job) => (onlyAppId ? job.appId === onlyAppId : true) && (onlyChainId ? job.chainId === Number(onlyChainId) : true),
@@ -52,7 +58,7 @@ export default async (req: Request) => {
 
   // A filtered run must not move the shared ring cursor, or it would skip whatever the scheduled
   // run was about to pick up next.
-  const filtered = onlyAppId != null || onlyChainId != null;
+  const filtered = onlyAppId != null || onlyChainId != null || explicitAccounts.length > 0;
   const cursor = filtered ? null : await loadPnlLeaderboardRefreshCursor(supabase);
   const startIndex = nextJobIndexAfterCursor(jobs, cursor);
 
@@ -79,6 +85,7 @@ export default async (req: Request) => {
       const result = await refreshPnlLeaderboardForAppChain(supabase, job.appId, job.chainId, job.marketIds, {
         deadlineMs,
         batchSize: batchSizeOverride,
+        ...(explicitAccounts.length > 0 ? { candidates: explicitAccounts.map((address) => ({ address })) } : {}),
       });
       results.push(result);
       console.log("refresh-pnl-leaderboard-background: done", result);

@@ -1,7 +1,4 @@
 import { SEER_APP_ALL_ID, leaderboardJobsFromApps } from "@/lib/apps";
-
-/** Keep the pre-derivation job ring and per-app compute passes. Escape hatch for the rollout. */
-export const PNL_LEGACY_JOBS = process.env.PNL_LEGACY_JOBS === "1";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm/sdk";
@@ -485,9 +482,9 @@ export async function refreshPnlLeaderboardForAppChain(
   // Only the protocol-wide job writes per-market rows: it is the one scope that covers every market
   // on the chain, so app jobs would write partial duplicates of the same (wallet, market) rows.
   const writeMarketRows = isGlobal;
-  // Derived mode: the global pass also materializes every app board from the same buckets, so no
-  // app-scoped job has to recompute the wallet.
-  const deriveScopes = isGlobal && !PNL_LEGACY_JOBS;
+  // The global pass also materializes every app board from the same buckets, so no app-scoped job
+  // has to recompute the wallet.
+  const deriveScopes = isGlobal;
   const scopes = deriveScopes ? await leaderboardScopesForChain(chainId) : [];
 
   const { abortedByBudget } = await mapPool(
@@ -602,10 +599,11 @@ export async function refreshPnlLeaderboardForAppChain(
 }
 
 /**
- * Jobs: protocol-wide `all` × every supported chain, plus app jobs from `leaderboardJobsFromApps`
- * (one job per market when `splitLeaderboard`, else one union job per app×chain).
- * Split apps do not materialize an aggregated `app_id` — that board is summed at read time.
- * Background refresh walks this list as a ring from a persisted cursor.
+ * One protocol-wide job per supported chain — that is the whole ring now.
+ *
+ * Each pass computes a wallet once and materializes every board from the same per-market buckets
+ * (`leaderboardScopesForChain`), so app scopes no longer need a job. Adding an app is a config edit.
+ * Background refresh walks this list from a persisted cursor.
  */
 export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
   const jobs: RefreshJob[] = [];
@@ -614,18 +612,7 @@ export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
     jobs.push({ appId: SEER_APP_ALL_ID, chainId: chain.id, marketIds: undefined });
   }
 
-  // App boards are derived from the global pass now; they only need their own job while the legacy
-  // path is kept alive for comparison during the rollout.
-  if (PNL_LEGACY_JOBS) {
-    for (const job of leaderboardJobsFromApps()) {
-      jobs.push({
-        appId: job.appId,
-        chainId: job.chainId,
-        marketIds: job.marketIds,
-      });
-    }
-  }
-
+  // App boards are derived from the global pass; they no longer need a job of their own.
   return jobs;
 }
 
