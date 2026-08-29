@@ -23,6 +23,24 @@ describe("parseOwnerMapRecord", () => {
     expect(parsed.scannedOwners).toEqual([]);
     expect(parsed.owners[EXECUTOR]).toBe(OWNER);
   });
+
+  it("lowercases checksummed executor keys and owner values", () => {
+    const parsed = parseOwnerMapRecord({
+      updatedAt: "2026-08-19T00:00:00.000Z",
+      owners: { [EXECUTOR.toUpperCase()]: OWNER.toUpperCase() },
+      scannedOwners: [OWNER],
+    });
+    expect(parsed.owners).toEqual({ [EXECUTOR]: OWNER });
+  });
+
+  it("drops entries whose owner is not a string", () => {
+    const parsed = parseOwnerMapRecord({
+      updatedAt: "2026-08-19T00:00:00.000Z",
+      owners: { [EXECUTOR]: null, [OTHER]: OWNER },
+      scannedOwners: [OWNER],
+    });
+    expect(parsed.owners).toEqual({ [OTHER]: OWNER });
+  });
 });
 
 describe("isOwnerMapStale", () => {

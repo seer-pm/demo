@@ -15,13 +15,27 @@ type StoredOwnerMap = {
 /** Re-probe CREATE2 executors at most this often; otherwise reuse KV + scanned owners. */
 export const OWNER_MAP_TTL_MS = 6 * 60 * 60 * 1000;
 
+/**
+ * Read the KV row into a record every consumer can key by lowercase address.
+ *
+ * The row outlives the revision that wrote it, so its casing is not ours to trust: a checksummed
+ * executor key or owner value from an older writer would miss every lookup downstream — silently
+ * dropping the executor from the refresh list in `withExecutors`, and splitting the owner's rows
+ * across two group keys in `rollUpRows`. Normalize once here rather than at each lookup.
+ */
 export function parseOwnerMapRecord(value: unknown): OwnerMapRecord {
   if (!value || typeof value !== "object") {
     return { updatedAt: null, owners: {}, scannedOwners: [] };
   }
   const stored = value as StoredOwnerMap;
-  const owners =
+  const storedOwners =
     stored.owners && typeof stored.owners === "object" && !Array.isArray(stored.owners) ? stored.owners : {};
+  const owners: OwnerMap = {};
+  for (const [executor, owner] of Object.entries(storedOwners)) {
+    // Skip rather than coerce: a malformed row must not inject "undefined" as an owner address.
+    if (typeof owner !== "string") continue;
+    owners[executor.toLowerCase()] = owner.toLowerCase();
+  }
   const scannedOwners = Array.isArray(stored.scannedOwners)
     ? [...new Set(stored.scannedOwners.map((address) => address.toLowerCase()))]
     : [];
