@@ -21,6 +21,7 @@ multi-statement scripts in one, so run those statements individually.
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `dex_pool_hour_prices.sql` | Table + indexes + `dex_pool_hour_prices_nearest_before_for_pairs`. Hour candles written by `dex-pool-prices-background`; read by portfolio history and the airdrop calculation. Captured from the live project — the objects predate the file. Ingest writes require `SUPABASE_API_KEY` = **service_role**. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
+| `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 
@@ -40,6 +41,14 @@ After pulling these changes, run in the Supabase SQL editor (in order):
 drop function if exists public.pnl_leaderboard_all_chains(text, text, text, integer, integer);
 drop function if exists public.pnl_leaderboard_all_chains_rank(text, text, text);
 ```
+
+3. `pnl_market_leaderboard.sql` — **required before any per-market refresh runs.** It creates all
+   three per-market objects (`pnl_market_leaderboard`, `pnl_market_daily_delta`,
+   `pnl_market_refresh_cursor`) and turns `pnl_leaderboard` into a derived read model, so
+   `get-market-pnl-leaderboard`, `refresh-pnl-market-mtm-background` and the per-market half of the
+   wallet pass all query tables that do not exist until it is applied. Safe to re-run; if you
+   applied an earlier copy, the re-run picks up the `market_id` column the MTM sweep's scan cursor
+   needs (`alter table ... add column if not exists`).
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

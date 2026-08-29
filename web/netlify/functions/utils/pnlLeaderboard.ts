@@ -8,7 +8,8 @@ import { getDexScreenerPriceUSD } from "./common";
 import { jobUsesTradeExecutors, resolveOwnerMap } from "./executorOwners";
 import { expandMarketIdsWithChildren } from "./expandMarketsCache";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
-import { type LeaderboardCandidate, withExecutors } from "./pnlLeaderboardRollup";
+import { type LeaderboardCandidate, rankRefreshCandidates, withExecutors } from "./pnlLeaderboardRollup";
+import { type LeaderboardScope, type PnlMarketInsert, buildMarketRows, deriveLeaderboardRows } from "./pnlMarketRows";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
 import type { Database, TablesInsert } from "./supabase";
 
@@ -60,8 +61,17 @@ export async function listLeaderboardCandidates(
   supabase: SupabaseClient<Database>,
   chainId: number,
   marketIds: Address[] | undefined,
+  opts?: {
+    /**
+     * Override the recency window. Pass `0` for the whole analytics history — what backfill and
+     * the shadow comparison need, since they are about coverage and correctness rather than
+     * freshness. Chains with no activity in the last `PNL_LEADERBOARD_RECENT_DAYS` days yield no
+     * candidates at all under the default.
+     */
+    cutoffDay?: number;
+  },
 ): Promise<LeaderboardCandidate[]> {
-  const cutoffDay = recentActivityCutoffDay();
+  const cutoffDay = opts?.cutoffDay ?? recentActivityCutoffDay();
 
   if (marketIds === undefined) {
     return listCandidatesFromWalletAnalytics(supabase, chainId, cutoffDay);
@@ -73,13 +83,15 @@ export async function listLeaderboardCandidates(
 
 const CANDIDATE_PAGE_SIZE = 1000;
 
-type CandidateAnalyticsRow = { address: string | null };
+type CandidateAnalyticsRow = { address: string | null; day?: number | null };
 
-function addCandidateAddresses(into: Set<string>, rows: CandidateAnalyticsRow[]): void {
+/** Latest activity day per address; the day is what tells us whether a row has gone stale. */
+function addCandidateAddresses(into: Map<string, number>, rows: CandidateAnalyticsRow[]): void {
   for (const row of rows) {
     const address = (row.address ?? "").toLowerCase();
     if (!address || address === ZERO_ADDRESS) continue;
-    into.add(address);
+    const day = Number(row.day ?? 0) || 0;
+    into.set(address, Math.max(into.get(address) ?? 0, day));
   }
 }
 
@@ -90,17 +102,17 @@ async function loadCandidateAddresses(
   ) => PromiseLike<{ data: CandidateAnalyticsRow[] | null; error: { message: string } | null }>,
   errorContext: string,
 ): Promise<LeaderboardCandidate[]> {
-  const addresses = new Set<string>();
+  const lastDayByAddress = new Map<string, number>();
   for (let offset = 0; ; offset += CANDIDATE_PAGE_SIZE) {
     const { data, error } = await fetchPage(offset, offset + CANDIDATE_PAGE_SIZE - 1);
     if (error) {
       throw new Error(`pnl-leaderboard: ${errorContext}: ${error.message}`);
     }
     const rows = data ?? [];
-    addCandidateAddresses(addresses, rows);
+    addCandidateAddresses(lastDayByAddress, rows);
     if (rows.length < CANDIDATE_PAGE_SIZE) break;
   }
-  return [...addresses].map((address) => ({ address }));
+  return [...lastDayByAddress].map(([address, lastActivityDay]) => ({ address, lastActivityDay }));
 }
 
 async function listCandidatesFromWalletAnalytics(
@@ -112,7 +124,7 @@ async function listCandidatesFromWalletAnalytics(
     (from, to) =>
       supabase
         .from("analytics_daily_wallet")
-        .select("address")
+        .select("address, day")
         .eq("chain_id", chainId)
         .gte("day", cutoffDay)
         .order("address", { ascending: true })
@@ -133,7 +145,7 @@ async function listCandidatesFromAnalytics(
     (from, to) =>
       supabase
         .from("analytics_daily_wallet_market")
-        .select("address")
+        .select("address, day")
         .eq("chain_id", chainId)
         .in("market_id", marketIdLcs)
         .gte("day", cutoffDay)
@@ -218,15 +230,12 @@ export async function selectStaleLeaderboardBatch(
     }
   }
 
-  const ranked = [...candidates].sort((a, b) => {
-    const aMs = updatedAtMs(updatedAtByAddress.get(a.address.toLowerCase()));
-    const bMs = updatedAtMs(updatedAtByAddress.get(b.address.toLowerCase()));
-    if (aMs == null && bMs == null) return 0;
-    if (aMs == null) return -1;
-    if (bMs == null) return 1;
-    return aMs - bMs;
-  });
-  return ranked.slice(0, batchSize);
+  const lastUpdatedMsByAddress = new Map<string, number | null>();
+  for (const candidate of candidates) {
+    const address = candidate.address.toLowerCase();
+    lastUpdatedMsByAddress.set(address, updatedAtMs(updatedAtByAddress.get(address)));
+  }
+  return rankRefreshCandidates(candidates, lastUpdatedMsByAddress).slice(0, batchSize);
 }
 
 export type RefreshAppChainResult = {
@@ -244,6 +253,8 @@ export type RefreshAppChainResult = {
   scope: "global" | "markets";
   /** Allowlist size after parent→child expansion (undefined when global). */
   marketCount?: number;
+  /** Rows written to `pnl_market_leaderboard` (global job only). */
+  marketRowsUpserted: number;
 };
 
 export { expandMarketIdsWithChildren } from "./expandMarketsCache";
@@ -301,6 +312,78 @@ async function upsertLeaderboardRows(
   }
 }
 
+/**
+ * Write one wallet's per-market rows, then drop whatever this pass superseded.
+ *
+ * Every row of a pass carries the same `writtenAt`, so rows for this wallet with an older
+ * `updated_at` are by definition from a previous generation that this pass did not reproduce.
+ *
+ * The cleanup is not optional. A fanned-out conditional leg is attributed to one market chosen from
+ * the duplicate group (`dedupeConditionalEventLegs`), and that choice depends on the wallet's market
+ * universe — which changes between runs. Without the sweep the old attribution survives alongside
+ * the new one and the same amount is summed twice: observed in production as `trading` folding to
+ * −290.44 against a scalar of −145.22, exactly double.
+ *
+ * This is narrower than "delete markets with no current position", which would be wrong: the market
+ * key set is a union that includes historical swaps and transfers, so a market the wallet fully
+ * exited is still reproduced every pass and survives. `period='all'` stays cumulative.
+ */
+async function upsertMarketRows(
+  supabase: SupabaseClient<Database>,
+  address: string,
+  rows: PnlMarketInsert[],
+  chainId: number,
+  writtenAt: string,
+): Promise<number> {
+  if (rows.length === 0) return 0;
+
+  const { data, error, count } = await supabase
+    .from("pnl_market_leaderboard")
+    .upsert(rows, { onConflict: "chain_id,address,market_id,period", count: "exact" })
+    .select("market_id, period");
+
+  if (error) {
+    throw new Error(`pnl-market upsert failed ${address}: ${error.message}`);
+  }
+  const written = data ?? [];
+  if (count === 0 || written.length === 0) {
+    throw new FatalLeaderboardUpsertError(
+      `pnl-market: upsert wrote 0 rows for ${address} (count=${count}, returned=${written.length}); check SUPABASE_API_KEY is service_role and INSERT/UPDATE grants (anon is SELECT-only)`,
+    );
+  }
+  if (written.length !== rows.length) {
+    throw new FatalLeaderboardUpsertError(
+      `pnl-market: upsert wrote ${written.length}/${rows.length} rows for ${address} (count=${count})`,
+    );
+  }
+
+  const { error: sweepError } = await supabase
+    .from("pnl_market_leaderboard")
+    .delete()
+    .eq("chain_id", chainId)
+    .eq("address", address.toLowerCase())
+    .lt("updated_at", writtenAt);
+  if (sweepError) {
+    throw new Error(`pnl-market: superseded-row sweep failed ${address}: ${sweepError.message}`);
+  }
+
+  return written.length;
+}
+
+/**
+ * Materialized scopes a single global pass now covers on one chain: `all`, plus every app board
+ * whose markets live there. Allowlists are expanded parent→child once per chain, not per wallet.
+ */
+export async function leaderboardScopesForChain(chainId: number): Promise<LeaderboardScope[]> {
+  const scopes: LeaderboardScope[] = [{ appId: SEER_APP_ALL_ID, marketIds: undefined }];
+  for (const job of leaderboardJobsFromApps()) {
+    if (job.chainId !== chainId) continue;
+    const expanded = await expandMarketIdsWithChildren(chainId, job.marketIds);
+    scopes.push({ appId: job.appId, marketIds: new Set(expanded.map((id) => id.toLowerCase())) });
+  }
+  return scopes;
+}
+
 export async function refreshPnlLeaderboardForAppChain(
   supabase: SupabaseClient<Database>,
   appId: string,
@@ -340,6 +423,7 @@ export async function refreshPnlLeaderboardForAppChain(
       collateralPriceUsd: 0,
       scope: isGlobal ? "global" : "markets",
       marketCount: scopedMarketIds?.length,
+      marketRowsUpserted: 0,
     };
   }
 
@@ -363,7 +447,9 @@ export async function refreshPnlLeaderboardForAppChain(
     batch = candidates;
     skippedStale = 0;
   } else {
-    candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds);
+    // No recency cutoff: `rankRefreshCandidates` decides what is worth recomputing, and the fixed
+    // 5-day window was starving every chain but gnosis.
+    candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds, { cutoffDay: 0 });
 
     if (expandExecutors) {
       const candidateAddresses = candidates.map((candidate) => candidate.address);
@@ -391,7 +477,15 @@ export async function refreshPnlLeaderboardForAppChain(
 
   let upserted = 0;
   let failures = 0;
+  let marketRowsUpserted = 0;
   const endTime = Math.floor(Date.now() / 1000);
+  // Only the protocol-wide job writes per-market rows: it is the one scope that covers every market
+  // on the chain, so app jobs would write partial duplicates of the same (wallet, market) rows.
+  const writeMarketRows = isGlobal;
+  // The global pass also materializes every app board from the same buckets, so no app-scoped job
+  // has to recompute the wallet.
+  const deriveScopes = isGlobal;
+  const scopes = deriveScopes ? await leaderboardScopesForChain(chainId) : [];
 
   const { abortedByBudget } = await mapPool(
     batch,
@@ -408,47 +502,76 @@ export async function refreshPnlLeaderboardForAppChain(
           marketIds: isGlobal ? undefined : scopedMarketIds,
           collateralProfile: DEFAULT_COLLATERAL_PROFILE,
           primaryCollateral,
+          withMarketBreakdown: writeMarketRows,
         });
         if (!computed) {
           failures += 1;
           return;
         }
+        if (computed.timings) {
+          const total = Object.values(computed.timings).reduce((a, b) => a + b, 0);
+          console.log(
+            `pnl-leaderboard timings ${candidate.address} total=${total}ms ${Object.entries(computed.timings)
+              .sort((a, b) => b[1] - a[1])
+              .map(([phase, ms]) => `${phase}=${ms}`)
+              .join(" ")}`,
+          );
+        }
 
         const writtenAt = new Date().toISOString();
-        const rows: PnlLeaderboardInsert[] = PORTFOLIO_PL_PERIODS.map((period) => {
-          const snap = computed.byPeriod[period];
-          const pnl = Number(snap.pnl) || 0;
-          const pnlUsd = pnl * collateralPriceUsd;
-          const valueStart = Number(snap.valueStart) || 0;
-          const tradingCollateralNetOut = Number(snap.tradingCollateralNetOut) || 0;
-          const lpCollateralNetOut = Number(snap.lpCollateralNetOut) || 0;
-          const volume = Number(snap.volume) || 0;
-          const capitalDeployed = Number(snap.capitalDeployed) || 0;
-          return {
-            app_id: appId,
-            chain_id: chainId,
-            address: candidate.address.toLowerCase(),
-            period,
-            pnl,
-            pnl_usd: pnlUsd,
-            collateral_price_usd: collateralPriceUsd,
-            value_start: valueStart,
-            value_end: Number(snap.valueEnd) || 0,
-            trading_collateral_net_out: tradingCollateralNetOut,
-            lp_collateral_net_out: lpCollateralNetOut,
-            volume,
-            volume_usd: volume * collateralPriceUsd,
-            capital_deployed: capitalDeployed,
-            roi: computeRoiUsd({
-              pnlUsd,
-              valueStart,
-              capitalDeployed,
-              collateralPriceUsd,
-            }),
-            market_count: Number(snap.marketCount) || 0,
-            updated_at: writtenAt,
-          };
-        });
+        const rows: PnlLeaderboardInsert[] =
+          deriveScopes && computed.byMarketPeriod
+            ? deriveLeaderboardRows({
+                address: candidate.address,
+                chainId,
+                byMarketPeriod: computed.byMarketPeriod,
+                scopes,
+                collateralPriceUsd,
+                writtenAt,
+              })
+            : PORTFOLIO_PL_PERIODS.map((period) => {
+                const snap = computed.byPeriod[period];
+                const pnl = Number(snap.pnl) || 0;
+                const pnlUsd = pnl * collateralPriceUsd;
+                const valueStart = Number(snap.valueStart) || 0;
+                const tradingCollateralNetOut = Number(snap.tradingCollateralNetOut) || 0;
+                const lpCollateralNetOut = Number(snap.lpCollateralNetOut) || 0;
+                const volume = Number(snap.volume) || 0;
+                const capitalDeployed = Number(snap.capitalDeployed) || 0;
+                return {
+                  app_id: appId,
+                  chain_id: chainId,
+                  address: candidate.address.toLowerCase(),
+                  period,
+                  pnl,
+                  pnl_usd: pnlUsd,
+                  collateral_price_usd: collateralPriceUsd,
+                  value_start: valueStart,
+                  value_end: Number(snap.valueEnd) || 0,
+                  trading_collateral_net_out: tradingCollateralNetOut,
+                  lp_collateral_net_out: lpCollateralNetOut,
+                  volume,
+                  volume_usd: volume * collateralPriceUsd,
+                  capital_deployed: capitalDeployed,
+                  roi: computeRoiUsd({ pnlUsd, capitalDeployed, collateralPriceUsd }),
+                  market_count: Number(snap.marketCount) || 0,
+                  updated_at: writtenAt,
+                };
+              });
+
+        if (writeMarketRows && computed.byMarketPeriod) {
+          const marketRows = buildMarketRows({
+            account: candidate.address,
+            chainId,
+            byMarketPeriod: computed.byMarketPeriod,
+            periods: PORTFOLIO_PL_PERIODS,
+            startTimeByPeriod: computed.startTimeByPeriod,
+            endTime,
+            collateralPriceUsd,
+            writtenAt,
+          });
+          marketRowsUpserted += await upsertMarketRows(supabase, candidate.address, marketRows, chainId, writtenAt);
+        }
 
         try {
           await upsertLeaderboardRows(supabase, candidate.address, rows);
@@ -480,14 +603,16 @@ export async function refreshPnlLeaderboardForAppChain(
     collateralPriceUsd,
     scope: isGlobal ? "global" : "markets",
     marketCount: scopedMarketIds?.length,
+    marketRowsUpserted,
   };
 }
 
 /**
- * Jobs: protocol-wide `all` × every supported chain, plus app jobs from `leaderboardJobsFromApps`
- * (one job per market when `splitLeaderboard`, else one union job per app×chain).
- * Split apps do not materialize an aggregated `app_id` — that board is summed at read time.
- * Background refresh walks this list as a ring from a persisted cursor.
+ * One protocol-wide job per supported chain — that is the whole ring now.
+ *
+ * Each pass computes a wallet once and materializes every board from the same per-market buckets
+ * (`leaderboardScopesForChain`), so app scopes no longer need a job. Adding an app is a config edit.
+ * Background refresh walks this list from a persisted cursor.
  */
 export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
   const jobs: RefreshJob[] = [];
@@ -496,14 +621,7 @@ export function listPnlLeaderboardRefreshJobs(): RefreshJob[] {
     jobs.push({ appId: SEER_APP_ALL_ID, chainId: chain.id, marketIds: undefined });
   }
 
-  for (const job of leaderboardJobsFromApps()) {
-    jobs.push({
-      appId: job.appId,
-      chainId: job.chainId,
-      marketIds: job.marketIds,
-    });
-  }
-
+  // App boards are derived from the global pass; they no longer need a job of their own.
   return jobs;
 }
 

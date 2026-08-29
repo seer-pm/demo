@@ -7,6 +7,7 @@ import { getPublicClientByChainId } from "./config";
 import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
 import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
 import { getMappingsCached } from "./mappingsCache";
+import { type MarketPeriodBucket, buildMarketPeriodBuckets } from "./marketPeriodBuckets";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
 import {
   type CollateralPriceByMarketId,
@@ -14,13 +15,18 @@ import {
 } from "./netPrimaryCollateralSwapFlow";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
 import {
+  type ConditionalEventRow,
   PORTFOLIO_PL_PERIODS,
   type PortfolioPlPeriod,
+  type RouterCollateralTransfer,
   computeCollateralPortfolioValuesForPeriods,
   eodStartTimesForPeriods,
   fetchAccountActivity,
+  fetchConditionalEventsByTransactions,
   fetchConditionalEventsForAccount,
   fetchMarketIdsFromAccountTransfers,
+  fetchRouterCollateralTransactionHashes,
+  fetchRouterPrimaryCollateralTransfers,
   fetchTokenBalances,
   fetchTokenBalancesAtEods,
   positionsWithBalances,
@@ -31,6 +37,7 @@ import { fetchAccountDexEvents } from "./transactions/fetchAccountDexEvents";
 import { volumePriceForParentOutcome } from "./volumeCollateralPrice";
 
 export type { PortfolioPlPeriod };
+export type { MarketPeriodBucket };
 export { PORTFOLIO_PL_PERIODS };
 
 export type PortfolioPlPeriodSnapshot = {
@@ -60,6 +67,15 @@ export type PortfolioPlPeriodSnapshot = {
   capitalDeployed: number;
   /** Snapshot write time from `pnl_leaderboard.updated_at` (global path). */
   updatedAt?: string | null;
+  /**
+   * The cumulative router-collateral half of `value*` on the global path, broken out.
+   *
+   * Reported separately so `value* − collateral*` gives the outcome-MTM half **independently**,
+   * rather than by subtracting one estimate from another: a comparison that derives the collateral
+   * term as a residual silently absorbs a lost market into it and reports "all explained".
+   */
+  collateralValueStart?: number;
+  collateralValueEnd?: number;
   routerPrimaryCollateralNetInWindow?: number;
   events?: unknown[];
   pnl: number;
@@ -192,14 +208,68 @@ type RouterLegs = {
   events: unknown[];
 };
 
-async function reconstructRouterLegsByPeriod(
+/**
+ * Split/merge/redeem legs belonging to this account, from the `all` window start through `endTime`.
+ * Fetched once and reused by both the scoped router term and the per-market breakdown.
+ *
+ * Ownership is the union of two signals, because neither alone is complete:
+ *
+ * - `accountId` — right when the user signed their own transaction.
+ * - the transactions where **primary collateral actually moved** between the account and a router —
+ *   the only signal that survives a TradeExecutor driven by a relayer, where `resolveAccountId`
+ *   books the event to the signing EOA instead of to the executor whose money moved.
+ *
+ * Deduped by event id, so a leg that both signals find is counted once. Amounts and markets always
+ * come from the event itself; only the ownership test is widened.
+ */
+async function fetchScopedConditionalEvents(
   account: Address,
   chainId: SupportedChain,
   markets: Market[],
   primaryCollateral: Token,
   startTimeByPeriod: Record<PortfolioPlPeriod, number>,
   endTime: number,
-): Promise<Record<PortfolioPlPeriod, RouterLegs>> {
+  routerTransfers?: RouterCollateralTransfer[],
+): Promise<ConditionalEventRow[]> {
+  if (markets.length === 0) return [];
+  const marketSet = new Set(markets.map((m) => m.id.toLowerCase()));
+  const minStart = Math.min(...PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]));
+
+  const byAccount = await fetchConditionalEventsForAccount(account, chainId, {
+    startTime: minStart,
+    endTime,
+    marketAddresses: [...marketSet] as Address[],
+  });
+
+  const routerTxHashes = await fetchRouterCollateralTransactionHashes(
+    account,
+    chainId,
+    primaryCollateral,
+    endTime,
+    routerTransfers,
+  );
+  const byTransaction = await fetchConditionalEventsByTransactions(chainId, routerTxHashes, {
+    startTime: minStart,
+    endTime,
+  });
+
+  const byId = new Map<string, ConditionalEventRow>();
+  for (const event of [...byAccount, ...byTransaction]) {
+    if (!marketSet.has(event.marketId.toLowerCase())) continue;
+    byId.set(event.id, event);
+  }
+  return [...byId.values()];
+}
+
+function reconstructRouterLegsByPeriod(
+  scoped: ConditionalEventRow[],
+  markets: Market[],
+  primaryCollateral: Token,
+  startTimeByPeriod: Record<PortfolioPlPeriod, number>,
+  endTime: number,
+  account: Address,
+  chainId: SupportedChain,
+): Record<PortfolioPlPeriod, RouterLegs> {
   const out = {} as Record<PortfolioPlPeriod, RouterLegs>;
   for (const p of PORTFOLIO_PL_PERIODS) {
     out[p] = { routerPrimaryCollateralNetInWindow: 0, routerPrimaryCollateralSplitOut: 0, events: [] };
@@ -207,21 +277,25 @@ async function reconstructRouterLegsByPeriod(
   if (markets.length === 0) return out;
 
   const marketSet = new Set(markets.map((m) => m.id.toLowerCase()));
-  const minStart = Math.min(...PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]));
-  const allEvents = await fetchConditionalEventsForAccount(account, chainId, {
-    startTime: minStart,
-    endTime,
-    marketAddresses: [...marketSet] as Address[],
-  });
-  const scoped = allEvents.filter((e) => marketSet.has(e.marketId.toLowerCase()));
 
   for (const p of PORTFOLIO_PL_PERIODS) {
     const start = startTimeByPeriod[p];
     const inWindow = scoped.filter((e) => e.timestamp > start && e.timestamp <= endTime);
-    const { netHuman, splitOutHuman, transactionEvents } = routerPrimaryNetFromConditionalEvents(
+    // Prefer attributing a fanned-out leg to a market in the requested scope — that is the one the
+    // caller is asking about, and the wallet's own tokens sit there.
+    const { netHuman, splitOutHuman, transactionEvents, fannedOutLegs } = routerPrimaryNetFromConditionalEvents(
       inWindow,
       primaryCollateral,
+      { preferMarketIds: marketSet },
     );
+    if (fannedOutLegs > 0) {
+      console.warn("portfolio-pl: collapsed duplicate-market conditional legs", {
+        account: account.toLowerCase(),
+        chainId,
+        period: p,
+        fannedOutLegs,
+      });
+    }
     out[p] = {
       routerPrimaryCollateralNetInWindow: netHuman,
       routerPrimaryCollateralSplitOut: splitOutHuman,
@@ -242,11 +316,20 @@ export type ComputePortfolioPlAllPeriodsArgs = {
   collateralProfile: string;
   primaryCollateral: Token;
   debugPeriod?: PortfolioPlPeriod;
+  /**
+   * Also return the per-market breakdown. Off by default: it needs `ConditionalEvent`s, which the
+   * global path does not otherwise fetch. `byPeriod` is unaffected either way.
+   */
+  withMarketBreakdown?: boolean;
 };
 
 export type PortfolioPlComputed = {
   startTimeByPeriod: Record<PortfolioPlPeriod, number>;
   byPeriod: Record<PortfolioPlPeriod, PortfolioPlPeriodSnapshot>;
+  /** Present only when `withMarketBreakdown` was requested. */
+  byMarketPeriod?: Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
+  /** Milliseconds per fetch phase, for deciding what is actually worth optimizing. */
+  timings?: ComputePhaseTimings;
   debugPayload?: Record<string, unknown>;
   markets: Market[];
 };
@@ -329,6 +412,25 @@ export type PortfolioPlComputed = {
  *   prior row is kept. Live `get-portfolio-pl` catches that and returns a zeroed snapshot
  *   (200) so the frontend does not surface a 500.
  */
+/**
+ * Per-phase timing for one wallet, logged by the refresh.
+ *
+ * Which phases scale with the *number* of periods and which do not is the question that decides
+ * whether trimming periods is worth anything, and it is not answerable by reading the code alone:
+ * the history-price fan-out is per period but runs in parallel, and the DEX pass is one call whose
+ * window is set by the *widest* period rather than by how many there are.
+ */
+export type ComputePhaseTimings = Record<string, number>;
+
+async function timed<T>(timings: ComputePhaseTimings, phase: string, run: () => Promise<T>): Promise<T> {
+  const started = Date.now();
+  try {
+    return await run();
+  } finally {
+    timings[phase] = (timings[phase] ?? 0) + (Date.now() - started);
+  }
+}
+
 export async function computePortfolioPlAllPeriods(
   args: ComputePortfolioPlAllPeriodsArgs,
 ): Promise<PortfolioPlComputed | null> {
@@ -348,17 +450,18 @@ export async function computePortfolioPlAllPeriods(
   const isMarketScoped = !!scopedMarketIds?.length;
   const singleMarketIdForSwapFilter = scopedMarketIds?.length === 1 ? scopedMarketIds[0] : undefined;
 
-  const activity = await fetchAccountActivity(account, chainId);
+  const timings: ComputePhaseTimings = {};
+  const activity = await timed(timings, "accountActivity", () => fetchAccountActivity(account, chainId));
   const startTimeByPeriod = eodStartTimesForPeriods(endTime, activity?.earliestTransferTimestamp ?? null);
 
-  const holdings = await fetchTokenBalances(account, chainId);
-  const historicalMarketIds = isMarketScoped ? [] : await fetchMarketIdsFromAccountTransfers(account, chainId, endTime);
-  const marketsAndPositions = await getMarketsAndPositions(
-    chainId,
-    scopedMarketIds,
-    collateralProfile,
-    holdings,
-    historicalMarketIds,
+  const holdings = await timed(timings, "tokenBalances", () => fetchTokenBalances(account, chainId));
+  const historicalMarketIds = isMarketScoped
+    ? []
+    : await timed(timings, "marketIdsFromTransfers", () =>
+        fetchMarketIdsFromAccountTransfers(account, chainId, endTime),
+      );
+  const marketsAndPositions = await timed(timings, "marketsAndPositions", () =>
+    getMarketsAndPositions(chainId, scopedMarketIds, collateralProfile, holdings, historicalMarketIds),
   );
   if (!marketsAndPositions) {
     return null;
@@ -367,16 +470,15 @@ export async function computePortfolioPlAllPeriods(
   const { markets, positions } = marketsAndPositions;
   const startTimes = PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]);
 
-  const positionsAtStartByPeriod = await computePositionsAtStartByPeriod(
-    positions,
-    account,
-    chainId,
-    startTimeByPeriod,
+  const positionsAtStartByPeriod = await timed(timings, "eodBalances", () =>
+    computePositionsAtStartByPeriod(positions, account, chainId, startTimeByPeriod),
   );
 
-  const historyPricesByPeriod = await Promise.all(
-    PORTFOLIO_PL_PERIODS.map((p) =>
-      getHistoryTokensPricesForPortfolio(supabase, positions, chainId, startTimeByPeriod[p]),
+  const historyPricesByPeriod = await timed(timings, "historyPrices", () =>
+    Promise.all(
+      PORTFOLIO_PL_PERIODS.map((p) =>
+        getHistoryTokensPricesForPortfolio(supabase, positions, chainId, startTimeByPeriod[p]),
+      ),
     ),
   );
   const historyPrices: Record<PortfolioPlPeriod, Record<string, number | undefined>> = {
@@ -398,13 +500,16 @@ export async function computePortfolioPlAllPeriods(
   // legitimate zero cashflow. DEX/subgraph failures throw so callers fail closed (no partial upsert).
   let dexEvents: Awaited<ReturnType<typeof fetchAccountDexEvents>> | null = null;
   if (markets.length > 0) {
-    const mappings = await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
+    const mappings = await timed(timings, "poolMappings", () =>
+      getMappingsCached(getPublicClientByChainId(chainId), markets, chainId),
+    );
     const walletTokenIds = [...holdings.keys(), primaryCollateral.address];
-    dexEvents = await fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime, {
-      walletTokenIds,
-    });
+    dexEvents = await timed(timings, "dexEvents", () =>
+      fetchAccountDexEvents(mappings, account, chainId, minDexStart, endTime, { walletTokenIds }),
+    );
   }
 
+  let swapFlow: ReturnType<typeof computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents> | null = null;
   if (dexEvents) {
     const flow = computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
       dexEvents.swaps,
@@ -415,6 +520,7 @@ export async function computePortfolioPlAllPeriods(
       singleMarketIdForSwapFilter,
       { limitRows: 0 },
     );
+    swapFlow = flow;
     for (const p of PORTFOLIO_PL_PERIODS) {
       swapNetByPeriod[p] = flow.netOutByStartTime.get(startTimeByPeriod[p]) ?? 0;
       swapBuysByPeriod[p] = flow.buysByStartTime.get(startTimeByPeriod[p]) ?? 0;
@@ -424,8 +530,9 @@ export async function computePortfolioPlAllPeriods(
   }
 
   const lpNetByPeriod: Record<PortfolioPlPeriod, number> = { "1d": 0, "1w": 0, "1m": 0, all: 0 };
+  let lpFlow: ReturnType<typeof computeLpPrimaryCollateralNetOutForPeriodsFromEvents> | null = null;
   if (dexEvents) {
-    const lpFlow = computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
+    lpFlow = computeLpPrimaryCollateralNetOutForPeriodsFromEvents(
       dexEvents.mints,
       dexEvents.burns,
       startTimes,
@@ -437,21 +544,58 @@ export async function computePortfolioPlAllPeriods(
     }
   }
 
+  const wantsMarketBreakdown = args.withMarketBreakdown === true;
+  const wantsScopedEvents = (isMarketScoped || wantsMarketBreakdown) && markets.length > 0;
+
+  // Both consumers below scan the same paginated `GetTransfers` history with identical arguments,
+  // and on the global path with a market breakdown — the leaderboard refresh, once per wallet —
+  // both run. Fetch it once and hand the array to each.
+  const routerTransfers =
+    wantsScopedEvents || !isMarketScoped
+      ? await timed(timings, "routerTransfers", () =>
+          fetchRouterPrimaryCollateralTransfers(account, chainId, primaryCollateral.address, endTime),
+        )
+      : undefined;
+
+  const conditionalEvents = wantsScopedEvents
+    ? await timed(timings, "conditionalEvents", () =>
+        fetchScopedConditionalEvents(
+          account,
+          chainId,
+          markets,
+          primaryCollateral,
+          startTimeByPeriod,
+          endTime,
+          routerTransfers,
+        ),
+      )
+    : [];
+
   let reconstructedByPeriod: Record<PortfolioPlPeriod, RouterLegs> | undefined;
   if (isMarketScoped) {
-    reconstructedByPeriod = await reconstructRouterLegsByPeriod(
-      account,
-      chainId,
+    reconstructedByPeriod = reconstructRouterLegsByPeriod(
+      conditionalEvents,
       markets,
       primaryCollateral,
       startTimeByPeriod,
       endTime,
+      account,
+      chainId,
     );
   }
 
   const collateral = isMarketScoped
     ? { valueEnd: 0, valueStartByStartTime: new Map<number, number>() }
-    : await computeCollateralPortfolioValuesForPeriods(account, chainId, endTime, startTimes, primaryCollateral);
+    : await timed(timings, "routerCollateral", () =>
+        computeCollateralPortfolioValuesForPeriods(
+          account,
+          chainId,
+          endTime,
+          startTimes,
+          primaryCollateral,
+          routerTransfers,
+        ),
+      );
 
   const tokensEndOnly = sumPortfolioValueCurrent(positions);
   const valueEndGlobal = tokensEndOnly + collateral.valueEnd;
@@ -505,6 +649,8 @@ export async function computePortfolioPlAllPeriods(
       volume,
       marketCount,
       capitalDeployed,
+      collateralValueStart: collateralValues.valueStart,
+      collateralValueEnd: collateralValues.valueEnd,
       ...(isMarketScoped
         ? {
             routerPrimaryCollateralNetInWindow,
@@ -626,5 +772,20 @@ export async function computePortfolioPlAllPeriods(
     };
   }
 
-  return { startTimeByPeriod, byPeriod, debugPayload, markets };
+  const byMarketPeriod = wantsMarketBreakdown
+    ? buildMarketPeriodBuckets({
+        positions,
+        positionsAtStartByPeriod,
+        historyPrices,
+        swapFlow,
+        swaps: dexEvents?.swaps ?? [],
+        lpFlow,
+        conditionalEvents,
+        primaryCollateral,
+        startTimeByPeriod,
+        endTime,
+      })
+    : undefined;
+
+  return { startTimeByPeriod, byPeriod, byMarketPeriod, debugPayload, markets, timings };
 }

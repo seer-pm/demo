@@ -37,7 +37,8 @@ export type PnlLeaderboardRow = {
   /** Gross swap volume in USD. */
   volume: number;
   /**
-   * pnl_usd / (value_start_usd + capital_deployed_usd); null when capital is dust (< $0.01).
+   * pnl_usd / capital_deployed_usd, where capital is the peak primary collateral at risk in the
+   * window (including the position already open when it started). Null when capital is dust (< $0.01).
    * See capitalUsdFromRow / computeRoiUsd in pnlLeaderboardMetrics.ts.
    */
   roi: number | null;
@@ -150,7 +151,6 @@ async function loadMaterializedRows(args: {
 
 function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeaderboardRow {
   const capitalUsd = capitalUsdFromRow({
-    valueStart: row.valueStart,
     capitalDeployed: row.capitalDeployed,
     collateralPriceUsd: row.collateralPriceUsd,
   });

@@ -35,13 +35,40 @@ export default async (req: Request) => {
     return unauthorized;
   }
 
-  const jobs = listPnlLeaderboardRefreshJobs();
+  // Operational overrides. Without them the only way to exercise one job is to wait for the ring
+  // cursor to reach it, which can take hours.
+  const url = new URL(req.url);
+  const onlyAppId = url.searchParams.get("appId");
+  const onlyChainId = url.searchParams.get("chainId");
+  const batchSizeOverride = Number(url.searchParams.get("batchSize")) || undefined;
+  // `?accounts=0x..,0x..` recomputes exactly these wallets. Needed to repair specific rows without
+  // waiting for the rotation to reach them.
+  const accountsParam = url.searchParams.get("accounts");
+  const explicitAccounts = (accountsParam ?? "")
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter((a) => /^0x[0-9a-f]{40}$/.test(a));
+  // A typo would otherwise fall through to the full rotation: no repair, the whole budget spent on
+  // the wrong wallets, and the shared ring cursor advanced. Refuse instead of guessing.
+  if (accountsParam !== null && explicitAccounts.length === 0) {
+    return new Response(
+      JSON.stringify({ error: "accounts was given but contains no valid 0x-prefixed 40-hex address" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const jobs = listPnlLeaderboardRefreshJobs().filter(
+    (job) => (onlyAppId ? job.appId === onlyAppId : true) && (onlyChainId ? job.chainId === Number(onlyChainId) : true),
+  );
   if (jobs.length === 0) {
     console.log("refresh-pnl-leaderboard-background: no jobs (unexpected — all chains should always enqueue)");
     return;
   }
 
-  const cursor = await loadPnlLeaderboardRefreshCursor(supabase);
+  // A filtered run must not move the shared ring cursor, or it would skip whatever the scheduled
+  // run was about to pick up next.
+  const filtered = onlyAppId != null || onlyChainId != null || explicitAccounts.length > 0;
+  const cursor = filtered ? null : await loadPnlLeaderboardRefreshCursor(supabase);
   const startIndex = nextJobIndexAfterCursor(jobs, cursor);
 
   const startedAt = Date.now();
@@ -66,13 +93,15 @@ export default async (req: Request) => {
     try {
       const result = await refreshPnlLeaderboardForAppChain(supabase, job.appId, job.chainId, job.marketIds, {
         deadlineMs,
+        batchSize: batchSizeOverride,
+        ...(explicitAccounts.length > 0 ? { candidates: explicitAccounts.map((address) => ({ address })) } : {}),
       });
       results.push(result);
       console.log("refresh-pnl-leaderboard-background: done", result);
 
       if (result.abortedByBudget) {
         console.log("refresh-pnl-leaderboard-background: aborted mid-job by budget; remaining jobs deferred");
-        await persistCursor(job);
+        if (!filtered) await persistCursor(job);
         break;
       }
     } catch (e) {
@@ -81,7 +110,7 @@ export default async (req: Request) => {
       results.push({ appId: job.appId, chainId: job.chainId, error, skipped: true });
     }
 
-    await persistCursor(job);
+    if (!filtered) await persistCursor(job);
   }
 
   console.log(

@@ -3,6 +3,8 @@ import { type OwnerMap, canonicalAddress } from "./tradeExecutorOwnersCore";
 
 export type LeaderboardCandidate = {
   address: string;
+  /** UTC day of this wallet's most recent analytics activity; 0 when unknown. */
+  lastActivityDay?: number;
 };
 
 /** One materialized row from `pnl_leaderboard` before executor rollup. */
@@ -84,23 +86,96 @@ export function sortLeaderboardRows(
 
 function capitalUsdForRow(row: MaterializedLeaderboardRow): number {
   return capitalUsdFromRow({
-    valueStart: row.valueStart,
     capitalDeployed: row.capitalDeployed,
     collateralPriceUsd: row.collateralPriceUsd,
   });
+}
+
+const DAY_SECONDS = 86_400;
+
+/** Where a candidate sits in the refresh queue. Lower runs first. */
+export type RefreshPriority = 0 | 1 | 2;
+
+/**
+ * Order candidates for refresh: never materialized, then dirty, then oldest.
+ *
+ * The previous selection was "any wallet with analytics activity in the last 5 UTC days, oldest
+ * `updated_at` first". That window is the wrong instrument twice over:
+ *
+ * - it **excludes** wallets whose last activity is older than the window but which have never been
+ *   computed, or were computed before that activity. Measured on production, it left optimism with
+ *   5 wallet-days of candidates and base with 0, so those boards were effectively frozen;
+ * - it **includes** wallets already recomputed after their last activity, which cost a full pass to
+ *   reproduce the same numbers.
+ *
+ * Dirty means "activity on or after the day we last materialized this wallet". Mark-to-market still
+ * drifts without activity, so wallets that are merely old keep their place in the queue behind the
+ * dirty ones rather than being dropped.
+ */
+export function refreshPriority(args: {
+  lastActivityDay: number;
+  lastUpdatedMs: number | null;
+}): RefreshPriority {
+  if (args.lastUpdatedMs == null) return 0;
+  const lastUpdatedDay = Math.floor(args.lastUpdatedMs / 1000 / DAY_SECONDS) * DAY_SECONDS;
+  return args.lastActivityDay >= lastUpdatedDay ? 1 : 2;
+}
+
+export function rankRefreshCandidates(
+  candidates: LeaderboardCandidate[],
+  lastUpdatedMsByAddress: Map<string, number | null>,
+): LeaderboardCandidate[] {
+  const keyed = candidates.map((candidate) => {
+    const address = candidate.address.toLowerCase();
+    const lastUpdatedMs = lastUpdatedMsByAddress.get(address) ?? null;
+    return {
+      candidate,
+      priority: refreshPriority({ lastActivityDay: candidate.lastActivityDay ?? 0, lastUpdatedMs }),
+      lastUpdatedMs,
+      address,
+    };
+  });
+
+  keyed.sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    // Within a tier, oldest first; never-materialized rows have no timestamp to compare.
+    const aMs = a.lastUpdatedMs ?? Number.NEGATIVE_INFINITY;
+    const bMs = b.lastUpdatedMs ?? Number.NEGATIVE_INFINITY;
+    if (aMs !== bMs) return aMs - bMs;
+    return a.address.localeCompare(b.address);
+  });
+
+  return keyed.map((k) => k.candidate);
 }
 
 /**
  * Add each candidate's trade-executor contracts to the refresh list.
  *
  * Analytics keys off tx sender; executors hold outcome tokens but never appear as candidates.
+ *
+ * `lastActivityDay` has to survive this: `rankRefreshCandidates` reads it back, and dropping it
+ * pins every already-materialized wallet in the trailing tier, which is exactly the starvation the
+ * tiering exists to prevent. A synthesized executor inherits its owner's day — it has no analytics
+ * activity of its own, it moves when the owner moves.
  */
 export function withExecutors(candidates: LeaderboardCandidate[], owners: OwnerMap): LeaderboardCandidate[] {
-  const set = new Set(candidates.map((candidate) => candidate.address.toLowerCase()));
-  for (const [executor, owner] of Object.entries(owners)) {
-    if (set.has(owner)) set.add(executor);
+  const byAddress = new Map<string, LeaderboardCandidate>();
+  for (const candidate of candidates) {
+    const address = candidate.address.toLowerCase();
+    const previous = byAddress.get(address);
+    byAddress.set(address, {
+      address,
+      lastActivityDay: Math.max(previous?.lastActivityDay ?? 0, candidate.lastActivityDay ?? 0),
+    });
   }
-  return [...set].sort().map((address) => ({ address }));
+  for (const [executor, owner] of Object.entries(owners)) {
+    const ownerCandidate = byAddress.get(owner);
+    if (!ownerCandidate) continue;
+    const address = executor.toLowerCase();
+    if (byAddress.has(address)) continue;
+    byAddress.set(address, { address, lastActivityDay: ownerCandidate.lastActivityDay ?? 0 });
+  }
+  return [...byAddress.values()].sort((a, b) => a.address.localeCompare(b.address));
 }
 
 /**

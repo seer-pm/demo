@@ -90,6 +90,7 @@ query GetConditionalEvents(
   $orderBy: [ConditionalEvent_order_by!]
 ) {
   ConditionalEvent(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
     market {
       id
       address
@@ -168,6 +169,62 @@ query GetTokenBalances(
     updatedAtTimestamp
     lastDailyDayStart
   }
+}
+
+# Sparse EOD balances resolved at up to four day boundaries in ONE round trip.
+# `distinct_on: [token]` + `order_by: [{token}, {dayStartTimestamp: desc}]` returns the latest
+# row per token at or before each bound, so callers no longer paginate an account's whole
+# TokenBalanceDaily history. Unused slots take a where-clause that matches nothing.
+query GetTokenBalanceDailiesAtEods(
+  $where0: TokenBalanceDaily_bool_exp
+  $where1: TokenBalanceDaily_bool_exp
+  $where2: TokenBalanceDaily_bool_exp
+  $where3: TokenBalanceDaily_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+) {
+  eod0: TokenBalanceDaily(
+    distinct_on: [token]
+    order_by: [{ token: asc }, { dayStartTimestamp: desc }]
+    where: $where0
+    offset: $offset
+    limit: $limit
+  ) {
+    ...TokenBalanceDailyAtEod
+  }
+  eod1: TokenBalanceDaily(
+    distinct_on: [token]
+    order_by: [{ token: asc }, { dayStartTimestamp: desc }]
+    where: $where1
+    offset: $offset
+    limit: $limit
+  ) {
+    ...TokenBalanceDailyAtEod
+  }
+  eod2: TokenBalanceDaily(
+    distinct_on: [token]
+    order_by: [{ token: asc }, { dayStartTimestamp: desc }]
+    where: $where2
+    offset: $offset
+    limit: $limit
+  ) {
+    ...TokenBalanceDailyAtEod
+  }
+  eod3: TokenBalanceDaily(
+    distinct_on: [token]
+    order_by: [{ token: asc }, { dayStartTimestamp: desc }]
+    where: $where3
+    offset: $offset
+    limit: $limit
+  ) {
+    ...TokenBalanceDailyAtEod
+  }
+}
+
+fragment TokenBalanceDailyAtEod on TokenBalanceDaily {
+  token
+  dayStartTimestamp
+  balance
 }
 
 query GetTokenBalanceDailies(

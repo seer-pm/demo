@@ -1,6 +1,7 @@
 import type { Address } from "viem";
 import { gnosis, optimism } from "viem/chains";
 import { describe, expect, it } from "vitest";
+import { parseOwnerMapRecord } from "./ownerMapRecord";
 import type { LeaderboardCandidate, MaterializedLeaderboardRow, RolledUpLeaderboardRow } from "./pnlLeaderboardRollup";
 import {
   matchesAddressSearch,
@@ -39,6 +40,15 @@ function row(overrides: Partial<MaterializedLeaderboardRow>): MaterializedLeader
   };
 }
 
+/** A `key_value` owner-map row as it comes back from Supabase, with `owner` written as stored. */
+function cachedRecord(owner: string) {
+  return {
+    updatedAt: new Date().toISOString(),
+    owners: { [EXECUTOR]: owner },
+    scannedOwners: [OWNER.toLowerCase()],
+  };
+}
+
 function rolled(overrides: Partial<RolledUpLeaderboardRow>): RolledUpLeaderboardRow {
   const address = (overrides.address ?? OWNER).toLowerCase();
   return {
@@ -63,6 +73,12 @@ describe("canonicalAddress", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
     expect(canonicalAddress(EXECUTOR, owners)).toBe(OWNER.toLowerCase());
   });
+
+  it("resolves a checksummed cached owner to its lowercase address", () => {
+    // Otherwise the executor's rows group under a key the owner's own lowercase row never matches.
+    const owners = parseOwnerMapRecord(cachedRecord(OWNER.toUpperCase())).owners;
+    expect(canonicalAddress(EXECUTOR, owners)).toBe(OWNER.toLowerCase());
+  });
 });
 
 describe("withExecutors", () => {
@@ -71,6 +87,30 @@ describe("withExecutors", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
     const expanded = withExecutors(candidates, owners);
     expect(expanded.map((c) => c.address).sort()).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
+  });
+
+  it("keeps the owner's activity day and lends it to the executor", () => {
+    // Dropping it would send every materialized wallet to the trailing tier in rankRefreshCandidates.
+    const candidates: LeaderboardCandidate[] = [{ address: OWNER.toLowerCase(), lastActivityDay: 86_400 * 200 }];
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const byAddress = new Map(withExecutors(candidates, owners).map((c) => [c.address, c.lastActivityDay]));
+    expect(byAddress.get(OWNER.toLowerCase())).toBe(86_400 * 200);
+    expect(byAddress.get(EXECUTOR)).toBe(86_400 * 200);
+  });
+
+  it("adds the executor when the cached owner is checksummed", () => {
+    // The KV row outlives the revision that wrote it; a mixed-case owner used to miss the
+    // lowercase-keyed candidate lookup and drop its executor from the refresh entirely.
+    const owners = parseOwnerMapRecord(cachedRecord(OWNER.toUpperCase())).owners;
+    const expanded = withExecutors([{ address: OWNER.toLowerCase() }], owners);
+    expect(expanded.map((c) => c.address).sort()).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
+  });
+
+  it("leaves executors of unknown owners out", () => {
+    const owners = { [EXECUTOR]: "0xsomeoneelse" };
+    expect(withExecutors([{ address: OWNER.toLowerCase() }], owners).map((c) => c.address)).toEqual([
+      OWNER.toLowerCase(),
+    ]);
   });
 });
 
