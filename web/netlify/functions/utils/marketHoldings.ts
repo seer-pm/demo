@@ -1,4 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
+import { Order_By } from "@seer-pm/sdk/subgraph/seer";
 import { type Address, formatUnits } from "viem";
 import { seerEnvioSdk } from "./envioClient";
 import type { HoldingsByWallet } from "./marketMtmRefresh";
@@ -25,6 +26,10 @@ export async function fetchHoldersOfTokens(chainId: SupportedChain, tokens: Addr
     const { TokenBalance: rows } = await sdk.GetTokenBalances({
       limit: PAGE,
       offset,
+      // Offset pagination needs a total order. `token` is not unique here (the `where` spans every
+      // outcome of the market), and a row dropped between pages is a holder missing from the
+      // result — which the MTM pass then marks to market at 0.
+      orderBy: [{ id: Order_By.Asc }],
       where: {
         chainId: { _eq: String(chainId) },
         token: { _in: tokenLcs },

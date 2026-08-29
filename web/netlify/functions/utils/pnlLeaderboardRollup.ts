@@ -152,13 +152,30 @@ export function rankRefreshCandidates(
  * Add each candidate's trade-executor contracts to the refresh list.
  *
  * Analytics keys off tx sender; executors hold outcome tokens but never appear as candidates.
+ *
+ * `lastActivityDay` has to survive this: `rankRefreshCandidates` reads it back, and dropping it
+ * pins every already-materialized wallet in the trailing tier, which is exactly the starvation the
+ * tiering exists to prevent. A synthesized executor inherits its owner's day — it has no analytics
+ * activity of its own, it moves when the owner moves.
  */
 export function withExecutors(candidates: LeaderboardCandidate[], owners: OwnerMap): LeaderboardCandidate[] {
-  const set = new Set(candidates.map((candidate) => candidate.address.toLowerCase()));
-  for (const [executor, owner] of Object.entries(owners)) {
-    if (set.has(owner)) set.add(executor);
+  const byAddress = new Map<string, LeaderboardCandidate>();
+  for (const candidate of candidates) {
+    const address = candidate.address.toLowerCase();
+    const previous = byAddress.get(address);
+    byAddress.set(address, {
+      address,
+      lastActivityDay: Math.max(previous?.lastActivityDay ?? 0, candidate.lastActivityDay ?? 0),
+    });
   }
-  return [...set].sort().map((address) => ({ address }));
+  for (const [executor, owner] of Object.entries(owners)) {
+    const ownerCandidate = byAddress.get(owner);
+    if (!ownerCandidate) continue;
+    const address = executor.toLowerCase();
+    if (byAddress.has(address)) continue;
+    byAddress.set(address, { address, lastActivityDay: ownerCandidate.lastActivityDay ?? 0 });
+  }
+  return [...byAddress.values()].sort((a, b) => a.address.localeCompare(b.address));
 }
 
 /**

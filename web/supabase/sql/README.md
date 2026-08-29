@@ -41,6 +41,14 @@ drop function if exists public.pnl_leaderboard_all_chains(text, text, text, inte
 drop function if exists public.pnl_leaderboard_all_chains_rank(text, text, text);
 ```
 
+3. `pnl_market_leaderboard.sql` — **required before any per-market refresh runs.** It creates all
+   three per-market objects (`pnl_market_leaderboard`, `pnl_market_daily_delta`,
+   `pnl_market_refresh_cursor`) and turns `pnl_leaderboard` into a derived read model, so
+   `get-market-pnl-leaderboard`, `refresh-pnl-market-mtm-background` and the per-market half of the
+   wallet pass all query tables that do not exist until it is applied. Safe to re-run; if you
+   applied an earlier copy, the re-run picks up the `market_id` column the MTM sweep's scan cursor
+   needs (`alter table ... add column if not exists`).
+
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,
 `earliest_user_transfer_timestamp`), nor the latest-hour price RPCs

@@ -80,7 +80,11 @@ export default async (req: Request) => {
       .eq("chain_id", chainId)
       .in("market_id", marketIds)
       .eq("period", period)
+      // `address` alone is not unique here — the query spans the parent market and all its
+      // children, so one wallet yields one row per market. `range()` needs a total order or a page
+      // boundary inside a tie group can drop or duplicate rows, and `rollUpRows` sums them.
       .order("address", { ascending: true })
+      .order("market_id", { ascending: true })
       .range(start, start + LOAD_PAGE_SIZE - 1);
 
     if (error) {

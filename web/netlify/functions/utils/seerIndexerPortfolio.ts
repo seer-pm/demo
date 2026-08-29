@@ -233,13 +233,19 @@ export function eodStartTimesForPeriods(
   };
 }
 
-type RouterCollateralTransfer = {
+export type RouterCollateralTransfer = {
   timestamp: number;
   signedValueWeiForUser: bigint;
   transactionHash: string;
 };
 
-async function fetchRouterPrimaryCollateralTransfers(
+/**
+ * Every user↔router primary-collateral transfer up to `endTime`, oldest first.
+ *
+ * Exported so a caller that needs both derived views (`computeCollateralPortfolioValuesForPeriods`
+ * and `fetchRouterCollateralTransactionHashes`) pays for the paginated scan once.
+ */
+export async function fetchRouterPrimaryCollateralTransfers(
   account: Address,
   chainId: SupportedChain,
   primaryToken: Address,
@@ -290,8 +296,12 @@ export async function computeCollateralPortfolioValuesForPeriods(
   endTime: number,
   startTimes: number[],
   primaryCollateral: Token,
+  /** Pass an already-fetched list to skip the scan; omit to fetch. */
+  prefetchedTransfers?: RouterCollateralTransfer[],
 ): Promise<{ valueEnd: number; valueStartByStartTime: Map<number, number> }> {
-  const transfers = await fetchRouterPrimaryCollateralTransfers(account, chainId, primaryCollateral.address, endTime);
+  const transfers =
+    prefetchedTransfers ??
+    (await fetchRouterPrimaryCollateralTransfers(account, chainId, primaryCollateral.address, endTime));
 
   const uniqueStarts = [...new Set(startTimes)].sort((a, b) => a - b);
   const valueStartByStartTime = new Map<number, number>();
@@ -333,8 +343,12 @@ export async function fetchRouterCollateralTransactionHashes(
   chainId: SupportedChain,
   primaryCollateral: Token,
   endTime: number,
+  /** Pass an already-fetched list to skip the scan; omit to fetch. */
+  prefetchedTransfers?: RouterCollateralTransfer[],
 ): Promise<string[]> {
-  const transfers = await fetchRouterPrimaryCollateralTransfers(account, chainId, primaryCollateral.address, endTime);
+  const transfers =
+    prefetchedTransfers ??
+    (await fetchRouterPrimaryCollateralTransfers(account, chainId, primaryCollateral.address, endTime));
   return [...new Set(transfers.map((t) => t.transactionHash.toLowerCase()))];
 }
 

@@ -18,6 +18,7 @@ import {
   type ConditionalEventRow,
   PORTFOLIO_PL_PERIODS,
   type PortfolioPlPeriod,
+  type RouterCollateralTransfer,
   computeCollateralPortfolioValuesForPeriods,
   eodStartTimesForPeriods,
   fetchAccountActivity,
@@ -25,6 +26,7 @@ import {
   fetchConditionalEventsForAccount,
   fetchMarketIdsFromAccountTransfers,
   fetchRouterCollateralTransactionHashes,
+  fetchRouterPrimaryCollateralTransfers,
   fetchTokenBalances,
   fetchTokenBalancesAtEods,
   positionsWithBalances,
@@ -227,6 +229,7 @@ async function fetchScopedConditionalEvents(
   primaryCollateral: Token,
   startTimeByPeriod: Record<PortfolioPlPeriod, number>,
   endTime: number,
+  routerTransfers?: RouterCollateralTransfer[],
 ): Promise<ConditionalEventRow[]> {
   if (markets.length === 0) return [];
   const marketSet = new Set(markets.map((m) => m.id.toLowerCase()));
@@ -238,7 +241,13 @@ async function fetchScopedConditionalEvents(
     marketAddresses: [...marketSet] as Address[],
   });
 
-  const routerTxHashes = await fetchRouterCollateralTransactionHashes(account, chainId, primaryCollateral, endTime);
+  const routerTxHashes = await fetchRouterCollateralTransactionHashes(
+    account,
+    chainId,
+    primaryCollateral,
+    endTime,
+    routerTransfers,
+  );
   const byTransaction = await fetchConditionalEventsByTransactions(chainId, routerTxHashes, {
     startTime: minStart,
     endTime,
@@ -536,12 +545,31 @@ export async function computePortfolioPlAllPeriods(
   }
 
   const wantsMarketBreakdown = args.withMarketBreakdown === true;
-  const conditionalEvents =
-    isMarketScoped || wantsMarketBreakdown
-      ? await timed(timings, "conditionalEvents", () =>
-          fetchScopedConditionalEvents(account, chainId, markets, primaryCollateral, startTimeByPeriod, endTime),
+  const wantsScopedEvents = (isMarketScoped || wantsMarketBreakdown) && markets.length > 0;
+
+  // Both consumers below scan the same paginated `GetTransfers` history with identical arguments,
+  // and on the global path with a market breakdown — the leaderboard refresh, once per wallet —
+  // both run. Fetch it once and hand the array to each.
+  const routerTransfers =
+    wantsScopedEvents || !isMarketScoped
+      ? await timed(timings, "routerTransfers", () =>
+          fetchRouterPrimaryCollateralTransfers(account, chainId, primaryCollateral.address, endTime),
         )
-      : [];
+      : undefined;
+
+  const conditionalEvents = wantsScopedEvents
+    ? await timed(timings, "conditionalEvents", () =>
+        fetchScopedConditionalEvents(
+          account,
+          chainId,
+          markets,
+          primaryCollateral,
+          startTimeByPeriod,
+          endTime,
+          routerTransfers,
+        ),
+      )
+    : [];
 
   let reconstructedByPeriod: Record<PortfolioPlPeriod, RouterLegs> | undefined;
   if (isMarketScoped) {
@@ -559,7 +587,14 @@ export async function computePortfolioPlAllPeriods(
   const collateral = isMarketScoped
     ? { valueEnd: 0, valueStartByStartTime: new Map<number, number>() }
     : await timed(timings, "routerCollateral", () =>
-        computeCollateralPortfolioValuesForPeriods(account, chainId, endTime, startTimes, primaryCollateral),
+        computeCollateralPortfolioValuesForPeriods(
+          account,
+          chainId,
+          endTime,
+          startTimes,
+          primaryCollateral,
+          routerTransfers,
+        ),
       );
 
   const tokensEndOnly = sumPortfolioValueCurrent(positions);

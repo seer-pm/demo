@@ -623,18 +623,21 @@ export type Database = {
           address: string;
           chain_id: number;
           id: string;
+          market_id: string;
           updated_at: string;
         };
         Insert: {
           address?: string;
           chain_id: number;
           id?: string;
+          market_id?: string;
           updated_at?: string;
         };
         Update: {
           address?: string;
           chain_id?: number;
           id?: string;
+          market_id?: string;
           updated_at?: string;
         };
         Relationships: [];

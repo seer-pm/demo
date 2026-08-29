@@ -43,6 +43,11 @@ const ROW_PAGE = 1000;
  * two agree. See `mismatchVsWalletPass` in the output.
  *
  * `?chainId=100` to restrict, `?markets=N` for the batch size, `?apply=1` to write.
+ *
+ * Rotation is a per-chain cursor over market ids (`pnl_market_refresh_cursor`, `id='mtm-scan:<chain>'`),
+ * advanced by every market scanned — including on a dry run and including markets nothing was
+ * written for. It deliberately does not key off `pnl_market_leaderboard.updated_at`, which moves
+ * only on a real MTM write and so would keep handing back the same head.
  */
 type MarketLike = Awaited<ReturnType<typeof searchAllMarkets>>["markets"][number];
 
@@ -116,16 +121,12 @@ export default async (req: Request) => {
     if (Date.now() >= deadlineMs) break;
     const supportedChain = chainId as SupportedChain;
 
-    // Oldest-touched markets first, so the sweep rotates rather than re-doing the same head.
-    const { data: marketRows, error: marketsError } = await supabase
-      .from("pnl_market_leaderboard")
-      .select("market_id, updated_at")
-      .eq("chain_id", chainId)
-      .order("updated_at", { ascending: true })
-      .limit(ROW_PAGE);
-    if (marketsError) throw new Error(`pnl-market-mtm: market list failed: ${marketsError.message}`);
-
-    const marketIds = [...new Set((marketRows ?? []).map((r) => r.market_id.toLowerCase()))].slice(0, marketBatch);
+    // Walk markets in id order from a cursor of the sweep's own, not by `updated_at`. That column
+    // moves only when an MTM value actually changed — never on a dry run, and never for a market
+    // whose price held — so ordering by it pins the same head in every batch and newer markets are
+    // never reached. See `pnl_market_refresh_cursor`.
+    const scanCursor = await loadMarketScanCursor(chainId);
+    const marketIds = await selectNextMarkets(chainId, scanCursor, marketBatch);
     if (marketIds.length === 0) continue;
 
     const profile = getCollateralProfileByName(supportedChain, DEFAULT_COLLATERAL_PROFILE);
@@ -141,7 +142,12 @@ export default async (req: Request) => {
       type: "Generic",
     });
 
+    // `searchAllMarkets` does not promise an order, and the cursor only moves forward — walking out
+    // of id order would let a deadline break strand the markets it skipped past.
+    markets.sort((a, b) => a.id.toLowerCase().localeCompare(b.id.toLowerCase()));
+
     const marketCache = new Map<string, MarketLike>();
+    let lastScanned: string | null = null;
     let updated = 0;
     let scanned = 0;
     let wouldUpdate = 0;
@@ -150,6 +156,9 @@ export default async (req: Request) => {
     const moves: Array<{ address: string; period: string; from: number; to: number; relative: number }> = [];
     for (const market of markets) {
       if (Date.now() >= deadlineMs) break;
+      // Scanned means scanned: the cursor advances even when the market is skipped or unchanged,
+      // which is the whole reason it is not `updated_at`.
+      lastScanned = market.id.toLowerCase();
       const tokens = (market.wrappedTokens ?? []).map((t) => String(t).toLowerCase() as Address);
       if (tokens.length === 0) continue;
 
@@ -253,9 +262,14 @@ export default async (req: Request) => {
       if (upsertError) throw new Error(`pnl-market-mtm: upsert failed: ${upsertError.message}`);
       updated += updates.length;
     }
+    // `searchAllMarkets` can return fewer markets than were selected (an id it does not know), so
+    // fall back to the last id asked for rather than replaying the gap forever.
+    await saveMarketScanCursor(chainId, lastScanned ?? marketIds[marketIds.length - 1]);
+
     results.push({
       chainId,
       markets: markets.length,
+      scanCursor,
       scanned,
       applied: apply,
       updated,
@@ -269,3 +283,61 @@ export default async (req: Request) => {
   console.log("refresh-pnl-market-mtm: finished", JSON.stringify({ elapsedMs: Date.now() - startedAt, results }));
   return new Response(JSON.stringify({ results }), { headers: { "Content-Type": "application/json" } });
 };
+
+/** One cursor row per chain, alongside the wallet pass's `id='default'` row. */
+const scanCursorId = (chainId: number) => `mtm-scan:${chainId}`;
+
+async function loadMarketScanCursor(chainId: number): Promise<string> {
+  const { data, error } = await supabase
+    .from("pnl_market_refresh_cursor")
+    .select("market_id")
+    .eq("id", scanCursorId(chainId))
+    .maybeSingle();
+  if (error) throw new Error(`pnl-market-mtm: load scan cursor failed: ${error.message}`);
+  return data?.market_id ?? "";
+}
+
+async function saveMarketScanCursor(chainId: number, marketId: string): Promise<void> {
+  const { error } = await supabase
+    .from("pnl_market_refresh_cursor")
+    .upsert({ id: scanCursorId(chainId), chain_id: chainId, market_id: marketId });
+  // A cursor that failed to move costs a repeated batch next run, not a wrong number, so this
+  // logs rather than aborting a sweep that already did its work.
+  if (error) console.error("pnl-market-mtm: save scan cursor failed", error.message);
+}
+
+/**
+ * The next `batch` distinct market ids after `cursor`, wrapping to the start of the ring.
+ *
+ * Rows are per (wallet, market, period), so one market can fill a whole page — hence the loop
+ * rather than a single `limit`.
+ */
+async function selectNextMarkets(chainId: number, cursor: string, batch: number): Promise<string[]> {
+  const collect = async (from: string, into: Set<string>): Promise<void> => {
+    let after = from;
+    while (into.size < batch) {
+      const { data, error } = await supabase
+        .from("pnl_market_leaderboard")
+        .select("market_id")
+        .eq("chain_id", chainId)
+        .gt("market_id", after)
+        .order("market_id", { ascending: true })
+        .limit(ROW_PAGE);
+      if (error) throw new Error(`pnl-market-mtm: market list failed: ${error.message}`);
+      const rows = data ?? [];
+      if (rows.length === 0) return;
+      for (const row of rows) {
+        if (into.size >= batch) break;
+        into.add(row.market_id.toLowerCase());
+      }
+      after = rows[rows.length - 1].market_id;
+      if (rows.length < ROW_PAGE) return;
+    }
+  };
+
+  const ids = new Set<string>();
+  await collect(cursor, ids);
+  // End of the ring: start over, so a short tail does not leave the batch half empty.
+  if (ids.size < batch && cursor !== "") await collect("", ids);
+  return [...ids].slice(0, batch);
+}

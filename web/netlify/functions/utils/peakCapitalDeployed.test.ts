@@ -165,4 +165,27 @@ describe("peakCapitalDeployedByMarket", () => {
   it("omits markets that never committed capital", () => {
     expect(run([sell(MARKET_A, 10, 10)], []).has(MARKET_A)).toBe(false);
   });
+
+  it("orders same-second legs by block, not by which array they came from", () => {
+    // One second, three blocks: buy 60, redeem 60, split 100. Chain order peaks at 100. Sorting on
+    // the timestamp alone left the ties in insertion order — every swap ahead of every event — so
+    // the split landed on top of the un-redeemed buy and the peak came out 160.
+    const swaps = [{ ...buy(MARKET_A, 60, 100), blockNumber: 10 } as TransactionData];
+    const events = [
+      ev("split", 100n * one, 100, { blockNumber: 12, id: "100:0xtx-1-split" }),
+      ev("redeem", 60n * one, 100, { blockNumber: 11, id: "100:0xtx-0-redeem" }),
+    ];
+    expect(run(swaps, events).get(MARKET_A)).toBe(100);
+  });
+
+  it("orders legs inside one block by log index", () => {
+    // Opening 50, then redeem 40 and split 40 in the same block. In chain order the balance dips to
+    // 10 and returns to 50, so the peak is the opening 50. Replaying them backwards would invent a
+    // 90 that the wallet never had at risk.
+    const events = [
+      ev("split", 40n * one, 100, { id: "100:0xtx-7-split" }),
+      ev("redeem", 40n * one, 100, { id: "100:0xtx-6-redeem" }),
+    ];
+    expect(run([], events, { [MARKET_A]: 50 }).get(MARKET_A)).toBe(50);
+  });
 });

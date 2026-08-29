@@ -44,7 +44,9 @@ describe("rankRefreshCandidates", () => {
   });
 
   it("breaks ties within a tier by oldest computation", () => {
-    const candidates = [c("0xnew", day(50)), c("0xold", day(50))];
+    // Both must land in the same tier or the tier comparison short-circuits and the
+    // `lastUpdatedMs` comparator below it never runs: activity after both computations is dirty (1).
+    const candidates = [c("0xnew", day(95)), c("0xold", day(95))];
     const updated = new Map<string, number | null>([
       ["0xnew", ms(90)],
       ["0xold", ms(10)],

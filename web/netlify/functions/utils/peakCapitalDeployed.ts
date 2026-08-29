@@ -3,7 +3,21 @@ import { formatUnits } from "viem";
 import type { ConditionalEventRow } from "./seerIndexerPortfolio";
 
 /** A signed primary-collateral movement into (+) or out of (−) one market, at a point in time. */
-type CapitalMove = { timestamp: number; deltaWei: bigint };
+type CapitalMove = {
+  timestamp: number;
+  blockNumber: number;
+  /** Position within the block; -1 when the source does not index it (swaps). */
+  logIndex: number;
+  /** Insertion order — the last tiebreak, so the sort is a total order and reruns agree. */
+  seq: number;
+  deltaWei: bigint;
+};
+
+/** `ConditionalEvent.id` is `{chainId}:{txHash}-{logIndex}-{marketEntityId}`. */
+function logIndexFromEventId(id: string): number {
+  const parsed = Number(id.split("-")[1]);
+  return Number.isFinite(parsed) ? parsed : -1;
+}
 
 /**
  * Peak primary collateral this wallet had at risk in each market during `(startTime, endTime]`.
@@ -58,12 +72,14 @@ export function peakCapitalDeployedByMarket(args: {
   const primaryLc = primaryCollateral.address.toLowerCase();
   const movesByMarket = new Map<string, CapitalMove[]>();
 
-  const push = (marketId: string, timestamp: number, deltaWei: bigint) => {
+  let seq = 0;
+  const push = (marketId: string, timestamp: number, blockNumber: number, logIndex: number, deltaWei: bigint) => {
     if (deltaWei === 0n) return;
     if (timestamp <= startTime || timestamp > endTime) return;
+    const move: CapitalMove = { timestamp, blockNumber, logIndex, seq: seq++, deltaWei };
     const list = movesByMarket.get(marketId);
-    if (list) list.push({ timestamp, deltaWei });
-    else movesByMarket.set(marketId, [{ timestamp, deltaWei }]);
+    if (list) list.push(move);
+    else movesByMarket.set(marketId, [move]);
   };
 
   for (const swap of swaps) {
@@ -73,14 +89,14 @@ export function peakCapitalDeployedByMarket(args: {
     // Buying an outcome commits primary; selling one returns it.
     if ((swap.tokenIn ?? "").toLowerCase() === primaryLc) delta += BigInt(swap.amountIn || 0);
     if ((swap.tokenOut ?? "").toLowerCase() === primaryLc) delta -= BigInt(swap.amountOut || 0);
-    push(marketId, Number(swap.timestamp ?? 0), delta);
+    push(marketId, Number(swap.timestamp ?? 0), Number(swap.blockNumber ?? 0), -1, delta);
   }
 
   for (const event of conditionalEvents) {
     if (event.collateral.toLowerCase() !== primaryLc) continue;
     // Split commits collateral; merge and redeem give it back.
     const delta = event.eventType === "split" ? event.amount : -event.amount;
-    push(event.marketId.toLowerCase(), event.timestamp, delta);
+    push(event.marketId.toLowerCase(), event.timestamp, event.blockNumber, logIndexFromEventId(event.id), delta);
   }
 
   const scale = 10 ** primaryCollateral.decimals;
@@ -90,7 +106,17 @@ export function peakCapitalDeployedByMarket(args: {
   const marketIds = new Set([...movesByMarket.keys(), ...openingCapitalByMarket.keys()]);
   for (const marketId of marketIds) {
     const moves = movesByMarket.get(marketId) ?? [];
-    moves.sort((a, b) => a.timestamp - b.timestamp);
+    // Chain order, not just clock order. Timestamps are block-granular, so a split and the redeem
+    // that funds it share one, and the running balance is floored at zero below — which makes the
+    // order within a second change the peak. Sorting on timestamp alone left ties in insertion
+    // order, i.e. every swap ahead of every conditional event: deterministic, and wrong.
+    //
+    // Swaps carry no log index (`TransactionData` has none), so swap-vs-event order inside a single
+    // block is still arbitrary — `seq` only makes it stable. Block-level and event-level order are
+    // correct, which is the part the data can settle.
+    moves.sort(
+      (a, b) => a.timestamp - b.timestamp || a.blockNumber - b.blockNumber || a.logIndex - b.logIndex || a.seq - b.seq,
+    );
     // Opening position is capital already at risk, so the peak starts there rather than at 0.
     let running = toWei(openingCapitalByMarket.get(marketId) ?? 0);
     let peak = running;

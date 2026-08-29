@@ -111,7 +111,7 @@ describe("deriveLeaderboardRows", () => {
 
   it("recomputes ROI per scope instead of aggregating it", () => {
     const app = rows.find((r) => r.app_id === "foresight:movies-1" && r.period === "all")!;
-    // capital_usd = (value_start 0 + capital_deployed 50) x 2 = 100; pnl_usd = 20.
+    // capital_usd = capital_deployed 50 x 2 = 100 (no value_start term); pnl_usd = 20.
     expect(app.roi).toBeCloseTo(0.2, 10);
   });
 

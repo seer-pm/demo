@@ -119,7 +119,8 @@ export function aggregateBucketsForScope(args: {
   pnl: number;
   valueStart: number;
   valueEnd: number;
-  /** Position value alone at the window start — the ROI denominator, without the cash term. */
+  /** Position value at the window start, without the router cash term. Not the ROI denominator —
+   * that is `capitalDeployed` on its own (see `capitalUsdFromRow`). */
   valueStartMtm: number;
   tradingCollateralNetOut: number;
   lpCollateralNetOut: number;

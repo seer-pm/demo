@@ -72,6 +72,22 @@ describe("withExecutors", () => {
     const expanded = withExecutors(candidates, owners);
     expect(expanded.map((c) => c.address).sort()).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
   });
+
+  it("keeps the owner's activity day and lends it to the executor", () => {
+    // Dropping it would send every materialized wallet to the trailing tier in rankRefreshCandidates.
+    const candidates: LeaderboardCandidate[] = [{ address: OWNER.toLowerCase(), lastActivityDay: 86_400 * 200 }];
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const byAddress = new Map(withExecutors(candidates, owners).map((c) => [c.address, c.lastActivityDay]));
+    expect(byAddress.get(OWNER.toLowerCase())).toBe(86_400 * 200);
+    expect(byAddress.get(EXECUTOR)).toBe(86_400 * 200);
+  });
+
+  it("leaves executors of unknown owners out", () => {
+    const owners = { [EXECUTOR]: "0xsomeoneelse" };
+    expect(withExecutors([{ address: OWNER.toLowerCase() }], owners).map((c) => c.address)).toEqual([
+      OWNER.toLowerCase(),
+    ]);
+  });
 });
 
 describe("rollUpRows", () => {

@@ -43,10 +43,19 @@ export default async (req: Request) => {
   const batchSizeOverride = Number(url.searchParams.get("batchSize")) || undefined;
   // `?accounts=0x..,0x..` recomputes exactly these wallets. Needed to repair specific rows without
   // waiting for the rotation to reach them.
-  const explicitAccounts = (url.searchParams.get("accounts") ?? "")
+  const accountsParam = url.searchParams.get("accounts");
+  const explicitAccounts = (accountsParam ?? "")
     .split(",")
     .map((a) => a.trim().toLowerCase())
     .filter((a) => /^0x[0-9a-f]{40}$/.test(a));
+  // A typo would otherwise fall through to the full rotation: no repair, the whole budget spent on
+  // the wrong wallets, and the shared ring cursor advanced. Refuse instead of guessing.
+  if (accountsParam !== null && explicitAccounts.length === 0) {
+    return new Response(
+      JSON.stringify({ error: "accounts was given but contains no valid 0x-prefixed 40-hex address" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
   const jobs = listPnlLeaderboardRefreshJobs().filter(
     (job) => (onlyAppId ? job.appId === onlyAppId : true) && (onlyChainId ? job.chainId === Number(onlyChainId) : true),
