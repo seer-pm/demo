@@ -1,12 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
 import { gnosis, mainnet } from "viem/chains";
+import { holdingsSeerFromShare, pohSeerFromShare, projectedSeerFromShare } from "./utils/airdropAllocation";
 import { Database } from "./utils/supabase";
 import { withRetry } from "./utils/withRetry";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
-
-const SEER_PER_DAY = 200000000 / 30;
 
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -29,7 +28,7 @@ interface AirdropTotals {
 /**
  * Aggregate the user's whole airdrop history in Postgres and return a single row.
  * The RPC returns raw sums rather than SEER amounts so that SEER_PER_DAY and the 0.25
- * factor stay defined only here and the two implementations can't drift.
+ * factor stay defined only in utils/airdropAllocation.ts and the implementations can't drift.
  */
 async function getTotalsFromRpc(address: string, weekStart: Date): Promise<AirdropTotals> {
   const { data, error } = await supabase
@@ -38,12 +37,12 @@ async function getTotalsFromRpc(address: string, weekStart: Date): Promise<Airdr
   if (error) throw error;
 
   return {
-    outcomeTokenHoldingAllocation: SEER_PER_DAY * data.sum_share_of_holding * 0.25,
-    pohUserAllocation: SEER_PER_DAY * data.sum_share_of_holding_poh * 0.25,
+    outcomeTokenHoldingAllocation: holdingsSeerFromShare(data.sum_share_of_holding),
+    pohUserAllocation: pohSeerFromShare(data.sum_share_of_holding_poh),
     totalAllocation: data.total_seer_tokens,
     currentWeekAllocation: data.current_week_seer_tokens,
-    monthlyEstimate: SEER_PER_DAY * 30 * data.last_share_of_holding * 0.25,
-    monthlyEstimatePoH: SEER_PER_DAY * 30 * data.last_share_of_holding_poh * 0.25,
+    monthlyEstimate: projectedSeerFromShare(data.last_share_of_holding, 30),
+    monthlyEstimatePoH: projectedSeerFromShare(data.last_share_of_holding_poh, 30),
   };
 }
 
@@ -66,8 +65,8 @@ async function getTotalsFromRows(address: string, weekStart: Date): Promise<Aird
   let totalAllocation = 0;
   let currentWeekAllocation = 0;
   for (const row of rows) {
-    outcomeTokenHoldingAllocation += SEER_PER_DAY * row.share_of_holding * 0.25;
-    pohUserAllocation += SEER_PER_DAY * row.share_of_holding_poh * 0.25;
+    outcomeTokenHoldingAllocation += holdingsSeerFromShare(row.share_of_holding);
+    pohUserAllocation += pohSeerFromShare(row.share_of_holding_poh);
     totalAllocation += row.seer_tokens_count;
     if (new Date(row.timestamp) >= weekStart) {
       currentWeekAllocation += row.seer_tokens_count;
@@ -82,8 +81,8 @@ async function getTotalsFromRows(address: string, weekStart: Date): Promise<Aird
     pohUserAllocation,
     totalAllocation,
     currentWeekAllocation,
-    monthlyEstimate: SEER_PER_DAY * 30 * share_of_holding * 0.25,
-    monthlyEstimatePoH: SEER_PER_DAY * 30 * share_of_holding_poh * 0.25,
+    monthlyEstimate: projectedSeerFromShare(share_of_holding, 30),
+    monthlyEstimatePoH: projectedSeerFromShare(share_of_holding_poh, 30),
   };
 }
 

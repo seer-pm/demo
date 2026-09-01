@@ -1,6 +1,9 @@
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
+import { LeaderboardTabs } from "@/components/Leaderboard/LeaderboardTabs";
+import { PeriodFilter } from "@/components/Leaderboard/PeriodFilter";
+import { type SortDir, SortableHeader } from "@/components/Leaderboard/SortableHeader";
 import {
   SEER_APPS,
   SEER_APP_ALL_ID,
@@ -16,7 +19,8 @@ import {
 } from "@/lib/apps";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
-import { ArrowDropDown, ArrowDropUp, Filter } from "@/lib/icons";
+import { Filter } from "@/lib/icons";
+import type { LeaderboardPeriod } from "@/lib/leaderboardPeriods";
 import { paths } from "@/lib/paths";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -24,9 +28,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
-type Period = "1d" | "1w" | "1m" | "all";
+type Period = LeaderboardPeriod;
 type SortKey = "pnl" | "volume" | "roi" | "markets";
-type SortDir = "asc" | "desc";
 
 type LeaderboardApiResponse = {
   app: string;
@@ -59,13 +62,6 @@ type RankForResponse = {
 };
 
 type ChainFilter = number | "all";
-
-const PERIOD_LABELS: Record<Period, string> = {
-  "1d": "1D",
-  "1w": "1W",
-  "1m": "1M",
-  all: "ALL",
-};
 
 const SORT_LABELS: Record<SortKey, string> = {
   pnl: "Profit/Loss",
@@ -165,57 +161,6 @@ async function fetchMyRank(params: {
     throw new Error((body as { error?: string }).error || `Request failed (${res.status})`);
   }
   return res.json() as Promise<RankForResponse>;
-}
-
-function SortMark({ active, dir }: { active: boolean; dir: SortDir }) {
-  const Icon = active && dir === "asc" ? ArrowDropUp : ArrowDropDown;
-  return (
-    <span
-      className={clsx(
-        "inline-flex size-4 flex-shrink-0 items-center justify-center [&>svg]:size-4",
-        active ? "opacity-100" : "opacity-45",
-      )}
-      aria-hidden
-    >
-      <Icon fill="currentColor" />
-    </span>
-  );
-}
-
-function SortableHeader({
-  label,
-  sortKey,
-  activeSort,
-  activeDir,
-  onSort,
-}: {
-  label: string;
-  sortKey: SortKey;
-  activeSort: SortKey;
-  activeDir: SortDir;
-  onSort: (key: SortKey) => void;
-}) {
-  const active = activeSort === sortKey;
-  const currentDir = active ? (activeDir === "asc" ? "ascending" : "descending") : "not sorted";
-  const nextDir = !active || activeDir === "asc" ? "descending" : "ascending";
-
-  return (
-    <th className="text-right" aria-sort={active ? (activeDir === "asc" ? "ascending" : "descending") : "none"}>
-      <button
-        type="button"
-        className={clsx(
-          "inline-flex items-center justify-end gap-1 w-full min-h-11 font-semibold rounded-[1px] hover:text-base-content",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary",
-          active ? "text-base-content" : "text-black-secondary",
-        )}
-        onClick={() => onSort(sortKey)}
-        aria-label={`${label}, ${currentDir}. Activate to sort ${nextDir}.`}
-      >
-        {label}
-        <SortMark active={active} dir={active ? activeDir : "desc"} />
-      </button>
-    </th>
-  );
 }
 
 function LeaderboardPage() {
@@ -372,6 +317,8 @@ function LeaderboardPage() {
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[32px]">
       <Breadcrumb links={[{ title: "Leaderboard" }]} />
 
+      <LeaderboardTabs active="pnl" />
+
       <div className="space-y-2">
         <h1 className="text-[28px] lg:text-[36px] font-semibold text-base-content">Profit &amp; Loss Leaderboard</h1>
         <p className="text-black-secondary max-w-2xl">
@@ -383,22 +330,13 @@ function LeaderboardPage() {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2 items-center">
-          <fieldset className="join">
-            <legend className="sr-only">Time period</legend>
-            {(["1d", "1w", "1m", "all"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={clsx("btn btn-sm join-item", period === p ? "btn-primary" : "btn-ghost")}
-                onClick={() => {
-                  setPeriod(p);
-                  resetPaging();
-                }}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </fieldset>
+          <PeriodFilter
+            value={period}
+            onChange={(p) => {
+              setPeriod(p);
+              resetPaging();
+            }}
+          />
 
           <button
             type="button"

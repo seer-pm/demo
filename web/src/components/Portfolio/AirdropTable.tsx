@@ -1,9 +1,9 @@
 import { AirdropDataByUser } from "@/hooks/airdrop/useGetAirdropDataByUser";
+import { formatSeer, hasAmount, seerValue } from "@/lib/airdropFormat";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { Address } from "viem";
 import { useAccount } from "wagmi";
-import { formatSeer, hasAmount, seerValue } from "./airdropFormat";
 
 function Figure({
   label,
@@ -110,7 +110,11 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
     <div className="space-y-8">
       <p className="text-sm text-black-primary">
         Holdings + Proof of Humanity to date, across all chains.
-        {pohShare != null && pohShare > 0 ? ` Proof of Humanity is ${pohShare}% of this estimate.` : null}
+        {pohShare != null && pohShare > 0 ? ` Proof of Humanity is ${pohShare}% of this estimate.` : null}{" "}
+        <a className="font-semibold text-purple-primary" href="/leaderboard/airdrop">
+          See how you rank
+        </a>
+        .
       </p>
 
       <MetricGroup title="To date" description="These two add up to the total." accent>
