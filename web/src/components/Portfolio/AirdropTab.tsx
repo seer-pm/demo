@@ -2,9 +2,9 @@ import { Alert } from "@/components/Alert";
 import { isUndefined } from "@/lib/utils";
 
 import { useGetAirdropDataByUser } from "@/hooks/airdrop/useGetAirdropDataByUser";
+import { formatSeer } from "@/lib/airdropFormat";
 import { Address } from "viem";
 import AirdropTable from "./AirdropTable";
-import { formatSeer } from "./airdropFormat";
 
 export function AirdropHero({ account }: { account: Address }) {
   const { data, isPending, isError } = useGetAirdropDataByUser(account);

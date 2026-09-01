@@ -18,7 +18,8 @@ multi-statement scripts in one, so run those statements individually.
 
 | File | What it does |
 | --- | --- |
-| `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
+| `airdrops_indexes.sql` | Indexes on `airdrops`: covering `(address, timestamp)` for the per-user read path, narrow `(timestamp)` for the leaderboard refresh. Fixes the statement timeout on the portfolio Airdrop tab. |
+| `airdrop_leaderboard.sql` | Table + index + `refresh_airdrop_leaderboard(period)` (writer, one period per call) and `get_airdrop_leaderboard_page(...)` (reader, assigns global ranks). Materializes SEER airdrop totals per wallet per period (`1d/1w/1m/all`) for the public `/leaderboard/airdrop` board; rebuilt nightly by `refresh-airdrop-leaderboard-background`. Refresh writes require `SUPABASE_API_KEY` = **service_role**. |
 | `dex_pool_hour_prices.sql` | Table + indexes + `dex_pool_hour_prices_nearest_before_for_pairs`. Hour candles written by `dex-pool-prices-background`; read by portfolio history and the airdrop calculation. Captured from the live project — the objects predate the file. Ingest writes require `SUPABASE_API_KEY` = **service_role**. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
 | `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
@@ -56,6 +57,55 @@ App code no longer calls the old transfer-replay RPCs
 (`dex_pool_hour_prices_latest_for_tokens`, `dex_pool_hour_prices_latest_for_pairs`) — current prices
 are read from the pools on-chain, and hour candles are only used for history.
 Those live functions can be left in place or dropped manually in production later.
+
+## Apply for the airdrop leaderboard
+
+New in this change. Run in the Supabase SQL editor (in order):
+
+1. Confirm the column type the refresh compares against, and how big the source is:
+
+```sql
+select data_type from information_schema.columns
+where table_name = 'airdrops' and column_name = 'timestamp';
+
+select count(*) as rows, count(distinct address) as addrs,
+       count(distinct "timestamp") as snapshot_days
+from public.airdrops;
+```
+
+   `refresh_airdrop_leaderboard` declares its cutoff variable with
+   `public.airdrops."timestamp"%TYPE`, so it is correct for either `timestamp` or `timestamptz`
+   with nothing to adjust. The check is to know what you are applying to.
+
+2. The new `create index concurrently ... airdrops_timestamp_idx` at the end of
+   `airdrops_indexes.sql` — **as its own statement** (the editor wraps multi-statement scripts in
+   a transaction, and `concurrently` fails there with 25001), then the `analyze`.
+
+3. `airdrop_leaderboard.sql`. It ends by building all four periods. The `'all'` pass is a
+   full-table aggregate and is the one that might need a longer `statement_timeout`; the SQL
+   editor has a longer budget than the API gateway, so **do the first `'all'` build here** even if
+   the nightly job later struggles with it. Note that
+   `alter function ... set statement_timeout` does *not* reliably extend the timer — raise it at
+   the role level if needed:
+
+```sql
+select rolname, rolconfig from pg_roles
+where rolname in ('anon','authenticated','service_role','authenticator','postgres');
+```
+
+4. Check the windows are what you expect. `max_days` must be exactly 1 / 7 / 30 for `1d` / `1w` /
+   `1m`; anything else means the cutoff logic is wrong. `all` must have at least as many rows as
+   any other period:
+
+```sql
+select period, count(*) as rows, max(day_count) as max_days, max(updated_at)
+from public.airdrop_leaderboard group by period order by period;
+```
+
+   Then cross-check one wallet: its `period='all'` `seer_tokens` must equal `totalAllocation` from
+   `get-airdrop-data-by-user` for the same address.
+
+5. If PostgREST answers `PGRST202`, the `notify pgrst, 'reload schema'` did not land — re-run it.
 
 ## Not yet captured
 
