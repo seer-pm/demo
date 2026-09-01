@@ -43,7 +43,10 @@ function AirdropLeaderboardPage() {
   const { address: connectedAddress } = useAccount();
   const [period, setPeriod] = useState<LeaderboardPeriod>("all");
   const [sort, setSort] = useState<AirdropSortKey>("seer");
-  const [dir, setDir] = useState<SortDir>("desc");
+  // Ranking direction is fixed. A leaderboard is read top-down; ascending only ever surfaced the
+  // smallest holders, so the columns choose WHAT to rank by, never which end to show first. The
+  // API and the CSV export still take a direction, so it stays a value rather than disappearing.
+  const dir: SortDir = "desc";
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
@@ -82,11 +85,9 @@ function AirdropLeaderboardPage() {
 
   const toggleSort = (key: AirdropSortKey) => {
     if (sort === key) {
-      setDir((d) => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setSort(key);
-      setDir("desc");
+      return; // already ranking by this column, and there is no other direction to go to
     }
+    setSort(key);
     resetPaging();
   };
 
@@ -229,6 +230,7 @@ function AirdropLeaderboardPage() {
                 activeSort={sort}
                 activeDir={dir}
                 onSort={toggleSort}
+                lockDescending
               />
               <SortableHeader
                 label={SORT_LABELS.holdings}
@@ -236,6 +238,7 @@ function AirdropLeaderboardPage() {
                 activeSort={sort}
                 activeDir={dir}
                 onSort={toggleSort}
+                lockDescending
               />
               <SortableHeader
                 label={SORT_LABELS.poh}
@@ -243,6 +246,7 @@ function AirdropLeaderboardPage() {
                 activeSort={sort}
                 activeDir={dir}
                 onSort={toggleSort}
+                lockDescending
               />
               <SortableHeader
                 label={SORT_LABELS.days}
@@ -250,6 +254,7 @@ function AirdropLeaderboardPage() {
                 activeSort={sort}
                 activeDir={dir}
                 onSort={toggleSort}
+                lockDescending
               />
             </tr>
           </thead>
