@@ -6,6 +6,7 @@ import type { ConditionalEventRow } from "./seerIndexerPortfolio";
 
 const PRIMARY = {
   address: "0xaf204776c7245bf4147c2612bf6e5972ee483701" as Address,
+  chainId: 100,
   decimals: 18,
   symbol: "sDAI",
   name: "sDAI",

@@ -1,4 +1,4 @@
-import type { Address } from "@seer-pm/sdk";
+import type { Address } from "viem";
 import type { MarketPeriodBucket } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import { PORTFOLIO_PL_PERIODS, type PortfolioPlPeriod } from "./seerIndexerPortfolio";

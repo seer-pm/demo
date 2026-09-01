@@ -116,7 +116,7 @@ export default async (req: Request) => {
   let owners: OwnerMap = {};
   if (hasTradeExecutorConfig(chainId)) {
     try {
-      owners = await readOwnerMap(supabase, chainId);
+      owners = await readOwnerMap(chainId);
     } catch {
       owners = {};
     }

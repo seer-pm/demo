@@ -8,6 +8,7 @@ import {
   type ConditionalEventRow,
   PORTFOLIO_PL_PERIODS,
   type PortfolioPlPeriod,
+  type RouterPrimaryMarketCumulative,
   dedupeConditionalEventLegs,
   routerPrimaryCumulativeByMarketAtTimes,
 } from "./seerIndexerPortfolio";
@@ -103,7 +104,7 @@ export function buildMarketPeriodBuckets(args: {
     sampleTimes,
     { preferMarketIds: walletMarkets },
   );
-  const routerCumEnd = routerCumByTime.get(endTime) ?? new Map();
+  const routerCumEnd = routerCumByTime.get(endTime) ?? new Map<string, RouterPrimaryMarketCumulative>();
 
   const out = {} as Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
 
@@ -125,7 +126,7 @@ export function buildMarketPeriodBuckets(args: {
     });
     const swapByMarket = swapFlow?.byStartTimeAndMarket.get(startTime) ?? new Map();
     const lpByMarket = lpFlow?.netOutWeiByStartTimeAndMarket.get(startTime) ?? new Map();
-    const routerCumStart = routerCumByTime.get(startTime) ?? new Map();
+    const routerCumStart = routerCumByTime.get(startTime) ?? new Map<string, RouterPrimaryMarketCumulative>();
 
     const marketIds = new Set<string>([
       ...mtmEndByMarket.keys(),

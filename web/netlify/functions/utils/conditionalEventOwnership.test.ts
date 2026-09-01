@@ -1,3 +1,4 @@
+import type { Token } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,10 +16,11 @@ const ROUTER = "0x179d8f8c811b8c759c33809dbc6c5cedc62d05dd";
 const RELAYER = "0xda6ada37d7e0c697e1bd18ca0586e342b1c45496";
 const PRIMARY = {
   address: "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0" as Address,
+  chainId: 10,
   decimals: 18,
   symbol: "sUSDS",
   name: "sUSDS",
-} as never;
+} as Token;
 const TX_A = "0xe303e6cd0b7fad5e3c30e2e202e1c30c78288b96c89cceafb87414bd712dc836";
 const TX_B = "0xbd0bf63c6a8447cb8f0b3bd92e9a80ff208b614ae787ddfe1a6082fae08b1504";
 

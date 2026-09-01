@@ -10,6 +10,7 @@ import {
 const TX = "0xeb54b8839e6a83d5dce5ffda4bbc421bf26998cf43a8b04fc8ec71194c1918d0";
 const PRIMARY = {
   address: "0xaf204776c7245bf4147c2612bf6e5972ee483701" as Address,
+  chainId: 100,
   decimals: 18,
   symbol: "sDAI",
   name: "sDAI",
