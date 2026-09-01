@@ -163,3 +163,68 @@ describe("collectExcludedHolders", () => {
     expect(excluded).toEqual(new Set(["0xaaa", "0xbbb"]));
   });
 });
+
+describe("buildChainUsers executor roll-up", () => {
+  const EXECUTOR = "0x00000000000000000000000000000000000000e1";
+  const OWNER = "0x00000000000000000000000000000000000000e2";
+  const owners = { [EXECUTOR]: OWNER };
+
+  it("credits an executor's direct holdings to its owner", () => {
+    const users = buildChainUsers(
+      scenario({
+        directHoldings: [{ owner: EXECUTOR, token: OUTCOME, balance: 2e18 }],
+        executorOwners: owners,
+      }),
+    );
+    expect(users[EXECUTOR]).toBeUndefined();
+    expect(users[OWNER].directHolding).toBeCloseTo(1, 12);
+  });
+
+  it("merges a holder's own wallet with their executor into one participant", () => {
+    const users = buildChainUsers(
+      scenario({
+        directHoldings: [
+          { owner: OWNER, token: OUTCOME, balance: 2e18 },
+          { owner: EXECUTOR, token: OUTCOME, balance: 2e18 },
+        ],
+        executorOwners: owners,
+      }),
+    );
+    // One identity, not two. This is the point of the roll-up: the PoH pool weights by
+    // sqrt(total), and sqrt(a) + sqrt(b) > sqrt(a + b), so leaving them split paid the same
+    // person more than one wallet's worth.
+    expect(Object.keys(users)).toEqual([OWNER]);
+    expect(users[OWNER].directHolding).toBeCloseTo(2, 12);
+  });
+
+  it("credits an executor's LP positions to its owner", () => {
+    const users = buildChainUsers(
+      scenario({
+        positions: [position({ origin: EXECUTOR })],
+        executorOwners: owners,
+      }),
+    );
+    expect(users[EXECUTOR]).toBeUndefined();
+    expect(users[OWNER].indirectHolding).toBeGreaterThan(0);
+  });
+
+  it("leaves plain wallets alone, with or without a map", () => {
+    const withMap = buildChainUsers(
+      scenario({ directHoldings: [{ owner: USER, token: OUTCOME, balance: 2e18 }], executorOwners: owners }),
+    );
+    const withoutMap = buildChainUsers(scenario({ directHoldings: [{ owner: USER, token: OUTCOME, balance: 2e18 }] }));
+    expect(withMap[USER].directHolding).toBeCloseTo(1, 12);
+    expect(withoutMap[USER].directHolding).toBeCloseTo(1, 12);
+  });
+
+  it("still drops pool addresses, which are excluded before any roll-up", () => {
+    const users = buildChainUsers(
+      scenario({
+        directHoldings: [{ owner: POOL, token: OUTCOME, balance: 2e18 }],
+        executorOwners: owners,
+      }),
+    );
+    expect(users[POOL]).toBeUndefined();
+    expect(Object.keys(users)).toHaveLength(0);
+  });
+});
