@@ -45,6 +45,26 @@
   --signed-up: #007A26;
   --signed-down: #B42318;
 
+  /*
+   * Trader score tiers. Same hues as the success/warning/error tokens, but those are calibrated as
+   * *accent* colours and land at 2.0-2.1:1 as text on their own `-light` fill — so the pills are
+   * built from AA-on-fill variants here, exactly like --signed-up above. Fills sit at ~1.18:1
+   * against the white card so a chip reads as a chip; --purple-light at 1.016:1 did not.
+   * Elite is solid rather than tinted: it is the only tier that shares a hue with another (Great),
+   * and a 1px ring is not a tier boundary at 390px or on a low-DPI screen.
+   */
+  --tier-elite-bg: 46% 0.16 144.12; /* #006D04 */
+  --tier-elite-fg: 100% 0 0; /* white on solid green, 6.6:1 */
+  --tier-great-bg: 93.6% 0.055 144.12; /* #D4F4D3 */
+  --tier-great-fg: 51% 0.12 144.12; /* #347736, 4.6:1 */
+  --tier-good-bg: 95.2% 0.055 298.01; /* #F3E8FF */
+  --tier-good-fg: 54.4% 0.2 298.01; /* #814AD2, 4.6:1 */
+  --tier-average-bg: 95.4% 0.055 64.55; /* #FFE9CA */
+  --tier-average-fg: 53% 0.13 64.55; /* #9E5800, 4.6:1 */
+  --tier-weak-bg: 96.8% 0.055 22.93; /* #FFE7E3 */
+  --tier-weak-fg: 54.6% 0.2 22.93; /* #CB2434, 4.6:1 */
+  --tier-none-fg: 50% 0 0; /* unscored dash, 6.0:1 on the card */
+
   --toastify-toast-width: 422px;
   --toastify-color-light: oklch(var(--purple-primary));
   --toastify-text-color-light: oklch(var(--white));
@@ -59,6 +79,19 @@
   --black-primary: 91.5% 0 0; /* #E5E5E5 */
   --signed-up: #00C42B;
   --signed-down: #FF6B7A;
+
+  /* Tiers re-derived against the dark card (#1E2329); every pair stays above 6:1. */
+  --tier-elite-bg: 74% 0.19 144.12; /* #4FC855 */
+  --tier-elite-fg: 0% 0 0; /* black on neon green, 9.8:1 */
+  --tier-great-bg: 30% 0.06 144.12;
+  --tier-great-fg: 80% 0.16 144.12;
+  --tier-good-bg: 30% 0.06 298.01;
+  --tier-good-fg: 80% 0.14 298.01;
+  --tier-average-bg: 30% 0.06 64.55;
+  --tier-average-fg: 82% 0.14 64.55;
+  --tier-weak-bg: 30% 0.06 22.93;
+  --tier-weak-fg: 78% 0.14 22.93;
+  --tier-none-fg: 72% 0 0;
 }
 
 #root {

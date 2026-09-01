@@ -1,7 +1,7 @@
+import { describe, expect, it } from "vitest";
 // Imported by path rather than through the `@seer-pm/sdk` barrel: these are pure
 // helpers and the barrel drags in generated codegen this test does not need.
 import { applySlippageDown, applySlippageUp } from "../../../packages/seer-pm-sdk/src/amm-trade";
-import { describe, expect, it } from "vitest";
 
 /** Reference implementation of `SlippageLib.limit` in the LensQuoter contract. */
 function quoterLimit(exactOut: boolean, quoted: bigint, bps: bigint): bigint {

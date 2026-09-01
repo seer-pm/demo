@@ -496,15 +496,16 @@ export function PreviewCard({ market }: { market: Market }) {
         <div className="flex items-center gap-2">
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
             <Popover
+              label="Open interest and liquidity breakdown"
               trigger={
-                <p className="text-[12px]">
+                <span className="text-[12px]">
                   $
                   {market.liquidityUSD > 0
                     ? liquidityUSD
                     : hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01
                       ? "?"
                       : "0.00"}
-                </p>
+                </span>
               }
               content={
                 <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">

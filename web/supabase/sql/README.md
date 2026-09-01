@@ -23,7 +23,7 @@ multi-statement scripts in one, so run those statements individually.
 | `AIRDROP_RESEED.md` | Runbook for replacing the contents of `airdrops` after the calculation fixes in `fix/airdrop-calculation`. Not SQL to apply — a sequence to follow, including the ordering constraint around the daily scheduled function. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
 | `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
-| `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
+| `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Also carries the trader-score sufficient statistics (`scored_market_count`, `winning_market_count`, `gross_profit_usd`, `gross_loss_usd`, `best_market_pnl_usd`); the score itself is derived at read time, never stored. Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 
 Analytics matview RPC `refresh_market_outcome_tokens` lives in
@@ -36,7 +36,16 @@ function in the SQL editor before relying on the auto-refresh.
 After pulling these changes, run in the Supabase SQL editor (in order):
 
 1. `tokens_transfers_indexes.sql` (each `create index concurrently` as its own statement, if not already applied)
-2. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `capital_deployed` / `roi` and the refresh cursor table). If production still has the unused `pnl_leaderboard_all_chains` / `pnl_leaderboard_all_chains_rank` functions, drop them manually:
+2. `pnl_leaderboard.sql` (if not already applied; re-run to pick up `volume` / `volume_usd` / `capital_deployed` / `roi`, the trader-score statistic columns, and the refresh cursor table).
+
+   **Apply this before deploying the refresh.** The upsert validates its writes and throws
+   `FatalLeaderboardUpsertError` on a partial write, so a refresh that emits the new columns against
+   a table that lacks them aborts the job rather than degrading. In the other order there is no
+   problem: the columns default to 0, every wallet fails the score's eligibility gate and reads
+   `score: null` until the 15-minute refresh ring reaches it. The failure mode is "not yet ranked",
+   never "wrongly ranked", and it self-heals with no backfill.
+
+   If production still has the unused `pnl_leaderboard_all_chains` / `pnl_leaderboard_all_chains_rank` functions, drop them manually:
 
 ```sql
 drop function if exists public.pnl_leaderboard_all_chains(text, text, text, integer, integer);

@@ -1,5 +1,6 @@
 import { capitalUsdFromRow, roiFromCapitalUsd } from "./pnlLeaderboardMetrics";
 import { type OwnerMap, canonicalAddress } from "./tradeExecutorOwnersCore";
+import { type TraderScoreBreakdown, computeTraderScore } from "./traderScore";
 
 export type LeaderboardCandidate = {
   address: string;
@@ -7,8 +8,23 @@ export type LeaderboardCandidate = {
   lastActivityDay?: number;
 };
 
+/**
+ * Trader score sufficient statistics, in USD.
+ *
+ * Every field merges with `+` except `bestMarketPnlUsd`, which merges with `Math.max` (a max over a
+ * union is the max of the per-set maxes). That is what lets the score be derived *after* the
+ * executor and cross-chain merges instead of being stored per row — see `traderScore.ts`.
+ */
+export type TraderScoreStats = {
+  scoredMarketCount: number;
+  winningMarketCount: number;
+  grossProfitUsd: number;
+  grossLossUsd: number;
+  bestMarketPnlUsd: number;
+};
+
 /** One materialized row from `pnl_leaderboard` before executor rollup. */
-export type MaterializedLeaderboardRow = {
+export type MaterializedLeaderboardRow = TraderScoreStats & {
   address: string;
   chainId: number;
   pnlUsd: number;
@@ -22,7 +38,7 @@ export type MaterializedLeaderboardRow = {
 };
 
 /** Rolled-up row shown on the public leaderboard (one participant). */
-export type RolledUpLeaderboardRow = {
+export type RolledUpLeaderboardRow = TraderScoreStats & {
   address: string;
   pnlUsd: number;
   volumeUsd: number;
@@ -30,14 +46,27 @@ export type RolledUpLeaderboardRow = {
   marketCount: number;
   updatedAt: string | null;
   roi: number | null;
+  /** Null when the wallet does not clear the eligibility gate. Sorts last, like a null `roi`. */
+  score: number | null;
+  scoreBreakdown: TraderScoreBreakdown | null;
   /** Every address merged into this row, including the canonical owner. */
   members: string[];
 };
 
-export type LeaderboardSortKey = "pnl" | "volume" | "roi" | "markets";
+export type LeaderboardSortKey = "pnl" | "volume" | "roi" | "markets" | "score";
 export type LeaderboardSortDir = "asc" | "desc";
 
-export const LEADERBOARD_SORT_KEYS: readonly LeaderboardSortKey[] = ["pnl", "volume", "roi", "markets"];
+export const LEADERBOARD_SORT_KEYS: readonly LeaderboardSortKey[] = ["pnl", "volume", "roi", "markets", "score"];
+
+/**
+ * What `get-market-pnl-leaderboard` accepts. Deliberately narrower than the global board's set.
+ *
+ * That endpoint scores a page *after* paginating (a per-market score would be meaningless — one
+ * market means the eligibility gate can never be met), so it cannot rank by score. Sharing one
+ * constant would have it accept `sort=score` and silently rank by something else.
+ */
+export const MARKET_LEADERBOARD_SORT_KEYS: readonly LeaderboardSortKey[] = ["pnl", "volume", "roi", "markets"];
+
 export const LEADERBOARD_SORT_DIRS: readonly LeaderboardSortDir[] = ["asc", "desc"];
 
 function metricValue(row: RolledUpLeaderboardRow, sort: LeaderboardSortKey): number | null {
@@ -50,7 +79,28 @@ function metricValue(row: RolledUpLeaderboardRow, sort: LeaderboardSortKey): num
       return row.roi;
     case "markets":
       return row.marketCount;
+    case "score":
+      return row.score;
   }
+}
+
+/** Merge score statistics across executor wallets, app scopes or chains. */
+export function mergeScoreStats(items: readonly TraderScoreStats[]): TraderScoreStats {
+  const merged: TraderScoreStats = {
+    scoredMarketCount: 0,
+    winningMarketCount: 0,
+    grossProfitUsd: 0,
+    grossLossUsd: 0,
+    bestMarketPnlUsd: 0,
+  };
+  for (const item of items) {
+    merged.scoredMarketCount += item.scoredMarketCount;
+    merged.winningMarketCount += item.winningMarketCount;
+    merged.grossProfitUsd += item.grossProfitUsd;
+    merged.grossLossUsd += item.grossLossUsd;
+    merged.bestMarketPnlUsd = Math.max(merged.bestMarketPnlUsd, item.bestMarketPnlUsd);
+  }
+  return merged;
 }
 
 /**
@@ -130,7 +180,10 @@ export function rankRefreshCandidates(
     const lastUpdatedMs = lastUpdatedMsByAddress.get(address) ?? null;
     return {
       candidate,
-      priority: refreshPriority({ lastActivityDay: candidate.lastActivityDay ?? 0, lastUpdatedMs }),
+      priority: refreshPriority({
+        lastActivityDay: candidate.lastActivityDay ?? 0,
+        lastUpdatedMs,
+      }),
       lastUpdatedMs,
       address,
     };
@@ -173,7 +226,10 @@ export function withExecutors(candidates: LeaderboardCandidate[], owners: OwnerM
     if (!ownerCandidate) continue;
     const address = executor.toLowerCase();
     if (byAddress.has(address)) continue;
-    byAddress.set(address, { address, lastActivityDay: ownerCandidate.lastActivityDay ?? 0 });
+    byAddress.set(address, {
+      address,
+      lastActivityDay: ownerCandidate.lastActivityDay ?? 0,
+    });
   }
   return [...byAddress.values()].sort((a, b) => a.address.localeCompare(b.address));
 }
@@ -201,6 +257,9 @@ export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap)
         return latest;
       }, null) ?? null;
 
+    const stats = mergeScoreStats(group);
+    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd, capitalUsd });
+
     return {
       address,
       pnlUsd,
@@ -209,9 +268,43 @@ export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap)
       marketCount,
       updatedAt,
       roi: roiFromCapitalUsd(pnlUsd, capitalUsd),
+      ...stats,
+      score: scoreBreakdown?.score ?? null,
+      scoreBreakdown,
       members: group.map((row) => row.address),
     };
   });
+}
+
+/**
+ * The wallets whose global rows make up each page row's protocol-wide score, keyed by row address.
+ *
+ * A page row on the market board only knows the wallets that traded *that* market, and its
+ * `address` is the canonical owner, which need not have traded it at all. The score shown there is
+ * the trader's protocol-wide one, so the global lookup has to cover every wallet the owner
+ * controls — including executors whose trading happened in other markets. Miss one and the same
+ * trader reads a different score on the market board than on the global board.
+ */
+export function globalScoreWallets(
+  rows: readonly { address: string; members: readonly string[] }[],
+  owners: OwnerMap,
+): Map<string, string[]> {
+  const walletsByOwner = new Map<string, string[]>();
+  for (const [executor, owner] of Object.entries(owners)) {
+    const key = owner.toLowerCase();
+    const list = walletsByOwner.get(key);
+    if (list) list.push(executor.toLowerCase());
+    else walletsByOwner.set(key, [executor.toLowerCase()]);
+  }
+
+  return new Map(
+    rows.map((row) => {
+      const address = row.address.toLowerCase();
+      const wallets = new Set([address, ...row.members.map((member) => member.toLowerCase())]);
+      for (const wallet of walletsByOwner.get(address) ?? []) wallets.add(wallet);
+      return [row.address, [...wallets]];
+    }),
+  );
 }
 
 /** Sum rolled-up or per-chain rows that share the same address (all-chains view). */
@@ -236,6 +329,9 @@ export function aggregateRowsAcrossChains(rows: RolledUpLeaderboardRow[]): Rolle
         return latest;
       }, null) ?? null;
 
+    const stats = mergeScoreStats(group);
+    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd, capitalUsd });
+
     return {
       address,
       pnlUsd,
@@ -244,6 +340,9 @@ export function aggregateRowsAcrossChains(rows: RolledUpLeaderboardRow[]): Rolle
       marketCount,
       updatedAt,
       roi: roiFromCapitalUsd(pnlUsd, capitalUsd),
+      ...stats,
+      score: scoreBreakdown?.score ?? null,
+      scoreBreakdown,
       members,
     };
   });
@@ -264,5 +363,9 @@ export function rankForAddress(
 } {
   const lower = address.toLowerCase();
   const index = rows.findIndex((row) => row.members.includes(lower) || row.address === lower);
-  return { address: lower, rank: index === -1 ? null : index + 1, total: rows.length };
+  return {
+    address: lower,
+    rank: index === -1 ? null : index + 1,
+    total: rows.length,
+  };
 }

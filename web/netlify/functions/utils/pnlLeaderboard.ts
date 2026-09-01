@@ -555,6 +555,11 @@ export async function refreshPnlLeaderboardForAppChain(
                   capital_deployed: capitalDeployed,
                   roi: computeRoiUsd({ pnlUsd, capitalDeployed, collateralPriceUsd }),
                   market_count: Number(snap.marketCount) || 0,
+                  // No trader score statistics on this path by construction: it has only the
+                  // scalar per-period snapshot, and the score is a statement about the per-market
+                  // distribution. The columns keep their DB default of 0, so the wallet fails the
+                  // eligibility gate and reads `score: null` rather than a wrong number. Only
+                  // non-global jobs reach here, and `listPnlLeaderboardRefreshJobs` emits none.
                   updated_at: writtenAt,
                 };
               });

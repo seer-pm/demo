@@ -24,6 +24,13 @@ import {
   sortLeaderboardRows,
 } from "./utils/pnlLeaderboardRollup";
 import type { Database } from "./utils/supabase";
+import {
+  type TraderScoreBreakdown,
+  type TraderScoreIneligibility,
+  type TraderTier,
+  computeTraderScore,
+  traderScoreIneligibility,
+} from "./utils/traderScore";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -45,6 +52,21 @@ export type PnlLeaderboardRow = {
   unit: "USD";
   chainId?: number;
   marketCount: number;
+  /**
+   * Trader score, 0-100, derived from the merged per-market statistics — see utils/traderScore.ts.
+   * Null when the wallet does not clear the eligibility gate (too few scored markets, or dust
+   * capital); a null score always ranks last, in both sort directions.
+   */
+  score: number | null;
+  tier: TraderTier | null;
+  /**
+   * Why `score` is null, present only when it is. `marketCount` in the column beside the score
+   * counts every traded market while the gate counts markets over $1 of capital, so the dash has to
+   * be able to name which number it means — see `traderScoreIneligibility`.
+   */
+  scoreUnavailable?: TraderScoreIneligibility;
+  /** Per-component breakdown. Only present with `?breakdown=1`. */
+  scoreBreakdown?: TraderScoreBreakdown;
   updatedAt: string | null;
   /** Extra wallets merged into this row (TradeExecutor → owner). */
   mergedWallets?: string[];
@@ -53,6 +75,9 @@ export type PnlLeaderboardRow = {
 type AddressSearch = { kind: "none" } | { kind: "fragment"; hex: string };
 
 const LOAD_PAGE_SIZE = 1000;
+
+/** Accepted truthy spellings of `?breakdown`, matching how `debug` is parsed in get-portfolio-pl. */
+const BREAKDOWN_VALUES = new Set(["1", "true"]);
 
 /** Lowercase hex address fragment for ilike search. */
 function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invalid" } {
@@ -94,6 +119,11 @@ function mapDbRow(row: {
   capital_deployed: number | string | null;
   collateral_price_usd: number | string | null;
   market_count: number | null;
+  scored_market_count: number | null;
+  winning_market_count: number | null;
+  gross_profit_usd: number | string | null;
+  gross_loss_usd: number | string | null;
+  best_market_pnl_usd: number | string | null;
   updated_at: string | null;
 }): MaterializedLeaderboardRow {
   return {
@@ -105,6 +135,11 @@ function mapDbRow(row: {
     capitalDeployed: Number(row.capital_deployed) || 0,
     collateralPriceUsd: Number(row.collateral_price_usd) || 0,
     marketCount: row.market_count ?? 0,
+    scoredMarketCount: row.scored_market_count ?? 0,
+    winningMarketCount: row.winning_market_count ?? 0,
+    grossProfitUsd: Number(row.gross_profit_usd) || 0,
+    grossLossUsd: Number(row.gross_loss_usd) || 0,
+    bestMarketPnlUsd: Number(row.best_market_pnl_usd) || 0,
     updatedAt: row.updated_at,
   };
 }
@@ -126,7 +161,7 @@ async function loadMaterializedRows(args: {
     let query = supabase
       .from("pnl_leaderboard")
       .select(
-        "address, chain_id, pnl_usd, volume_usd, value_start, capital_deployed, collateral_price_usd, market_count, updated_at",
+        "address, chain_id, pnl_usd, volume_usd, value_start, capital_deployed, collateral_price_usd, market_count, scored_market_count, winning_market_count, gross_profit_usd, gross_loss_usd, best_market_pnl_usd, updated_at",
       )
       .in("app_id", args.appIds)
       .eq("period", args.period)
@@ -155,6 +190,19 @@ function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeader
     collateralPriceUsd: row.collateralPriceUsd,
   });
 
+  const stats = {
+    scoredMarketCount: row.scoredMarketCount,
+    winningMarketCount: row.winningMarketCount,
+    grossProfitUsd: row.grossProfitUsd,
+    grossLossUsd: row.grossLossUsd,
+    bestMarketPnlUsd: row.bestMarketPnlUsd,
+  };
+  const scoreBreakdown = computeTraderScore({
+    ...stats,
+    pnlUsd: row.pnlUsd,
+    capitalUsd,
+  });
+
   return {
     address: row.address,
     pnlUsd: row.pnlUsd,
@@ -163,6 +211,9 @@ function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeader
     marketCount: row.marketCount,
     updatedAt: row.updatedAt,
     roi: roiFromCapitalUsd(row.pnlUsd, capitalUsd),
+    ...stats,
+    score: scoreBreakdown?.score ?? null,
+    scoreBreakdown,
     members: [row.address],
   };
 }
@@ -261,7 +312,12 @@ function parseDirParam(raw: string | null): LeaderboardSortDir | { error: string
   return { error: `dir must be one of: ${LEADERBOARD_SORT_DIRS.join(", ")}` };
 }
 
-function toApiRow(row: RolledUpLeaderboardRow, rank: number, chainId?: number | "all"): PnlLeaderboardRow {
+function toApiRow(
+  row: RolledUpLeaderboardRow,
+  rank: number,
+  chainId?: number | "all",
+  breakdown = false,
+): PnlLeaderboardRow {
   const merged = row.members.filter((member) => member !== row.address);
   return {
     rank,
@@ -272,6 +328,17 @@ function toApiRow(row: RolledUpLeaderboardRow, rank: number, chainId?: number | 
     unit: "USD",
     ...(chainId != null && chainId !== "all" ? { chainId } : {}),
     marketCount: row.marketCount,
+    score: row.score,
+    tier: row.scoreBreakdown?.tier ?? null,
+    ...(row.score == null
+      ? {
+          scoreUnavailable:
+            traderScoreIneligibility({ scoredMarketCount: row.scoredMarketCount, capitalUsd: row.capitalUsd }) ??
+            undefined,
+        }
+      : {}),
+    // Five sub-scores on every row is noise for most consumers; opt in with ?breakdown=1.
+    ...(breakdown && row.scoreBreakdown ? { scoreBreakdown: row.scoreBreakdown } : {}),
     updatedAt: row.updatedAt,
     ...(merged.length > 0 ? { mergedWallets: merged } : {}),
   };
@@ -283,6 +350,7 @@ function paginateRows(args: {
   offset: number;
   search: string;
   chainId?: number | "all";
+  breakdown?: boolean;
 }): { total: number; rows: PnlLeaderboardRow[] } {
   const ranked = args.rows.map((row, index) => ({ row, rank: index + 1 }));
   const filtered = args.search ? ranked.filter(({ row }) => matchesAddressSearch(row, args.search)) : ranked;
@@ -291,7 +359,7 @@ function paginateRows(args: {
     total: filtered.length,
     rows: filtered
       .slice(args.offset, args.offset + args.limit)
-      .map(({ row, rank }) => toApiRow(row, rank, args.chainId)),
+      .map(({ row, rank }) => toApiRow(row, rank, args.chainId, args.breakdown)),
   };
 }
 
@@ -401,6 +469,7 @@ export default async (req: Request) => {
       offset,
       search,
       chainId: isAllChains ? "all" : chainId,
+      breakdown: BREAKDOWN_VALUES.has(url.searchParams.get("breakdown") ?? ""),
     });
 
     return jsonResponse(
