@@ -5,8 +5,10 @@ import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
 import type { Address } from "viem";
 import { gnosis, mainnet } from "viem/chains";
+import { type OwnerMap, hasTradeExecutorConfig, readOwnerMap } from "../executorOwners";
 import { type LegacySubgraphMarket, MARKET_DB_FIELDS, mapGraphMarketFromDbResult } from "../markets";
 import type { Database, Json } from "../supabase";
+import { canonicalAddress } from "../tradeExecutorOwnersCore";
 import { withRetry } from "../withRetry";
 import {
   type PerTsAccumulator,
@@ -64,7 +66,41 @@ type ChainSnapshotInputs = {
   poolHourDatas: PoolHourData[];
   /** @see collectExcludedHolders */
   excludedHolders: Set<string>;
+  /** @see loadExecutorOwners */
+  executorOwners: OwnerMap;
 };
+
+/**
+ * TradeExecutor proxy -> owner EOA, for chains that have executors (Gnosis, Optimism today).
+ *
+ * A user trading through a TradeExecutor holds the outcome tokens IN the executor, so
+ * `get_direct_holdings_at` returns the executor as the holder and the airdrop would otherwise treat
+ * it as a participant in its own right. That is wrong twice over: it splits one person's holdings
+ * across two identities in the linear pool, and — because a contract can never be PoH-verified — it
+ * strands the executor's share of the PoH pool entirely, even when the owner behind it is verified.
+ * Collapsing to the owner fixes both.
+ *
+ * Reads the map the P&L leaderboard already maintains (`resolveOwnerMap` probes and writes it)
+ * rather than probing here. Probing is a `getCode` per candidate address plus an `owner()`
+ * multicall, and this path would hand it every holder on the chain — ~70k on Optimism — - once per
+ * run, inside a 15-minute budget that `get_direct_holdings_at` already eats minutes of. A cache
+ * read is one query. The cost is coverage: an executor the P&L job has never scanned stays
+ * un-rolled-up for now and is picked up on a later run, which is a smaller error than the one it
+ * replaces and self-corrects.
+ */
+async function loadExecutorOwners(chainId: SupportedChain): Promise<OwnerMap> {
+  if (!hasTradeExecutorConfig(chainId)) {
+    return {};
+  }
+  // A missing or unreadable map must not abort the run: rolling up is a correction to attribution,
+  // and no map simply means every address stands for itself, which is the pre-existing behaviour.
+  try {
+    return await withRetry(() => readOwnerMap(chainId), `executorOwners.${chainId}`);
+  } catch (e) {
+    console.error(`Failed loading executor owner map for chain ${chainId}:`, (e as Error)?.stack ?? e);
+    return {};
+  }
+}
 
 /**
  * Addresses that hold outcome tokens on behalf of someone else and must not be credited as direct
@@ -185,6 +221,7 @@ async function loadChainInputs(chainId: SupportedChain): Promise<ChainSnapshotIn
   const liquidityEvents = await getAllLiquidityEvents(chainId, tokens);
   const poolHourDatas = await getAllPoolHourDatas(chainId);
   const excludedHolders = collectExcludedHolders(liquidityEvents, poolHourDatas);
+  const executorOwners = await loadExecutorOwners(chainId);
   console.log({
     chainId,
     markets: markets.length,
@@ -192,10 +229,11 @@ async function loadChainInputs(chainId: SupportedChain): Promise<ChainSnapshotIn
     liquidityEvents: liquidityEvents.length,
     poolHourDatas: poolHourDatas.length,
     excludedHolders: excludedHolders.size,
+    executorOwners: Object.keys(executorOwners).length,
     elapsedMs: Date.now() - startedAt,
     rssMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
   });
-  return { chainId, markets, tokens, liquidityEvents, poolHourDatas, excludedHolders };
+  return { chainId, markets, tokens, liquidityEvents, poolHourDatas, excludedHolders, executorOwners };
 }
 
 /**
@@ -296,7 +334,7 @@ const WEI_PER_TOKEN = 1e18;
  *    the snapshot price.
  */
 async function computeChainUsersAtTimestamp(inputs: ChainSnapshotInputs, timestamp: number) {
-  const { chainId, markets, tokens, liquidityEvents, poolHourDatas, excludedHolders } = inputs;
+  const { chainId, markets, tokens, liquidityEvents, poolHourDatas, excludedHolders, executorOwners } = inputs;
   const tokensByTimestamp = getTokensByTimestamp(markets, timestamp);
   // Built once and shared: prices need it, and so does the LP valuation below, which reads each
   // pool's price back out to reconstruct sqrtPriceX96.
@@ -313,6 +351,7 @@ async function computeChainUsersAtTimestamp(inputs: ChainSnapshotInputs, timesta
     directHoldings,
     positions,
     excludedHolders,
+    executorOwners,
   });
 }
 
@@ -331,6 +370,7 @@ export function buildChainUsers({
   directHoldings,
   positions,
   excludedHolders,
+  executorOwners = {},
 }: {
   chainId: SupportedChain;
   tokensByTimestamp: { [key: Address]: boolean };
@@ -339,11 +379,21 @@ export function buildChainUsers({
   directHoldings: DirectHolding[];
   positions: LiquidityPosition[];
   excludedHolders: Set<string>;
+  executorOwners?: OwnerMap;
 }) {
   const users: {
     [key: string]: { directHolding: number; indirectHolding: number; chainId: SupportedChain };
   } = {};
   const initialUser = { directHolding: 0, indirectHolding: 0, chainId };
+
+  /**
+   * The identity a holding is credited to: a TradeExecutor collapses into its owner, everything
+   * else stands for itself. `canonicalAddress` lowercases, which also normalises the key — the
+   * cross-chain accumulator merges on this string, so a mixed-case address arriving from one source
+   * and a lowercase one from another would otherwise split a single holder into two participants
+   * with two shares.
+   */
+  const creditTo = (address: string) => canonicalAddress(address, executorOwners);
 
   for (const { owner: holderAddress, token: tokenId, balance } of directHoldings) {
     if (!tokensByTimestamp[tokenId as Address]) {
@@ -354,10 +404,11 @@ export function buildChainUsers({
     if (excludedHolders.has(holderAddress.toLowerCase())) {
       continue;
     }
-    if (!users[holderAddress]) {
-      users[holderAddress] = { ...initialUser };
+    const holder = creditTo(holderAddress);
+    if (!users[holder]) {
+      users[holder] = { ...initialUser };
     }
-    users[holderAddress]["directHolding"] += (processedPrices[tokenId] ?? 0) * (balance / WEI_PER_TOKEN);
+    users[holder]["directHolding"] += (processedPrices[tokenId] ?? 0) * (balance / WEI_PER_TOKEN);
   }
 
   for (const position of positions) {
@@ -393,10 +444,11 @@ export function buildChainUsers({
       continue;
     }
 
-    if (!users[position.origin]) {
-      users[position.origin] = { ...initialUser };
+    const lp = creditTo(position.origin);
+    if (!users[lp]) {
+      users[lp] = { ...initialUser };
     }
-    users[position.origin]["indirectHolding"] += value;
+    users[lp]["indirectHolding"] += value;
   }
 
   return users;
