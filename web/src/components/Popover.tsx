@@ -4,8 +4,8 @@ import ReactDOM from "react-dom";
 type PopoverProps = {
   trigger: React.ReactElement;
   content: ReactNode;
-  /** Accessible name for the trigger, and the panel's label. Required for icon-only triggers. */
-  label?: string;
+  /** Accessible name for the trigger and the panel. The native dialog has no other name. */
+  label: string;
   /** Panel width in px. The default suits a short definition; legends and tables want more. */
   width?: number;
 };

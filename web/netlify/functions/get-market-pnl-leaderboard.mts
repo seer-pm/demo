@@ -12,6 +12,7 @@ import {
   MARKET_LEADERBOARD_SORT_KEYS,
   type MaterializedLeaderboardRow,
   type RolledUpLeaderboardRow,
+  globalScoreWallets,
   matchesAddressSearch,
   mergeScoreStats,
   rollUpRows,
@@ -39,15 +40,19 @@ const MAX_LIMIT = 100;
  * why this endpoint cannot rank by score, and why its sort keys are `MARKET_LEADERBOARD_SORT_KEYS`.
  *
  * The lookup is by member wallet and merged with `mergeScoreStats`, because the page rows have
- * already been rolled up from TradeExecutor contracts to owner EOAs.
+ * already been rolled up from TradeExecutor contracts to owner EOAs. `globalScoreWallets` widens
+ * each row's member list back out to every wallet the owner controls: a row here only lists the
+ * wallets that traded *this* market, while the score it displays spans all of them.
  */
 async function loadGlobalScores(args: {
   chainId: number;
   period: Period;
   rows: RolledUpLeaderboardRow[];
+  owners: OwnerMap;
 }): Promise<Map<string, TraderScoreBreakdown | null>> {
   const result = new Map<string, TraderScoreBreakdown | null>();
-  const addresses = [...new Set(args.rows.flatMap((row) => row.members))];
+  const walletsByRow = globalScoreWallets(args.rows, args.owners);
+  const addresses = [...new Set([...walletsByRow.values()].flat())];
   if (addresses.length === 0) return result;
 
   const { data, error } = await supabase
@@ -65,7 +70,9 @@ async function loadGlobalScores(args: {
 
   const byAddress = new Map(data.map((row) => [row.address.toLowerCase(), row]));
   for (const row of args.rows) {
-    const parts = row.members.map((member) => byAddress.get(member)).filter((part) => part != null);
+    const parts = (walletsByRow.get(row.address) ?? [])
+      .map((wallet) => byAddress.get(wallet))
+      .filter((part) => part != null);
     if (parts.length === 0) {
       result.set(row.address, null);
       continue;
@@ -207,7 +214,7 @@ export default async (req: Request) => {
   const filtered = search ? sorted.filter((row) => matchesAddressSearch(row, search)) : sorted;
 
   const page = filtered.slice(offset, offset + limit);
-  const scores = await loadGlobalScores({ chainId, period, rows: page });
+  const scores = await loadGlobalScores({ chainId, period, rows: page, owners });
 
   const body = {
     marketId,

@@ -25,8 +25,9 @@
  *  - `profitFactor` is near-direct — the same ratio, over markets instead of days.
  *  - `hitRate` is a genuine proxy with a different unit. For a prediction market, "share of markets
  *    called right" is arguably the better event than "share of green days".
- *  - `lossBurn` is a **terminal-state** loss, not a drawdown. It is a strict lower bound: it cannot
- *    see a wallet that was 80% down mid-window and recovered.
+ *  - `lossBurn` is a **terminal-state** loss, not a drawdown, and not a bound on one either: it
+ *    cannot see a wallet that was 80% down mid-window and recovered, and losses realized in
+ *    different markets at different times need not line up into any single portfolio drawdown.
  *  - `returns` is ROI, which has a capital denominator but no risk denominator. This is the weakest
  *    substitution for Sortino.
  *  - `breadth` is **not** consistency. R² asks whether the equity curve is a straight line through

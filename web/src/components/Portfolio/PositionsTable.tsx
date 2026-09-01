@@ -126,6 +126,7 @@ function PositionsTableInner({
             <div className="w-[100%] flex gap-1">
               {position.parentMarketId && (
                 <Popover
+                  label="Conditional market. Show the parent market."
                   trigger={
                     <span title="Conditional Market">
                       <ConditionalMarketIcon width="24" fill="#9747ff" />

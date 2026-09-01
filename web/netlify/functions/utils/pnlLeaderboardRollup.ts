@@ -276,6 +276,37 @@ export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap)
   });
 }
 
+/**
+ * The wallets whose global rows make up each page row's protocol-wide score, keyed by row address.
+ *
+ * A page row on the market board only knows the wallets that traded *that* market, and its
+ * `address` is the canonical owner, which need not have traded it at all. The score shown there is
+ * the trader's protocol-wide one, so the global lookup has to cover every wallet the owner
+ * controls — including executors whose trading happened in other markets. Miss one and the same
+ * trader reads a different score on the market board than on the global board.
+ */
+export function globalScoreWallets(
+  rows: readonly { address: string; members: readonly string[] }[],
+  owners: OwnerMap,
+): Map<string, string[]> {
+  const walletsByOwner = new Map<string, string[]>();
+  for (const [executor, owner] of Object.entries(owners)) {
+    const key = owner.toLowerCase();
+    const list = walletsByOwner.get(key);
+    if (list) list.push(executor.toLowerCase());
+    else walletsByOwner.set(key, [executor.toLowerCase()]);
+  }
+
+  return new Map(
+    rows.map((row) => {
+      const address = row.address.toLowerCase();
+      const wallets = new Set([address, ...row.members.map((member) => member.toLowerCase())]);
+      for (const wallet of walletsByOwner.get(address) ?? []) wallets.add(wallet);
+      return [row.address, [...wallets]];
+    }),
+  );
+}
+
 /** Sum rolled-up or per-chain rows that share the same address (all-chains view). */
 export function aggregateRowsAcrossChains(rows: RolledUpLeaderboardRow[]): RolledUpLeaderboardRow[] {
   const groups = new Map<string, RolledUpLeaderboardRow[]>();

@@ -5,6 +5,7 @@ import { parseOwnerMapRecord } from "./ownerMapRecord";
 import type { LeaderboardCandidate, MaterializedLeaderboardRow, RolledUpLeaderboardRow } from "./pnlLeaderboardRollup";
 import {
   aggregateRowsAcrossChains,
+  globalScoreWallets,
   matchesAddressSearch,
   rankForAddress,
   rollUpRows,
@@ -301,6 +302,28 @@ describe("jobUsesTradeExecutors", () => {
     expect(jobUsesTradeExecutors("deepfund:octant", gnosis.id)).toBe(false);
     expect(jobUsesTradeExecutors("foresight:movies-1", optimism.id)).toBe(false);
     expect(jobUsesTradeExecutors("foresight:movies-1", 1)).toBe(false);
+  });
+});
+
+describe("globalScoreWallets", () => {
+  const SECOND_EXECUTOR = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const owners = { [EXECUTOR]: OWNER.toLowerCase(), [SECOND_EXECUTOR]: OWNER.toLowerCase() };
+
+  it("covers wallets the owner controls that never traded the market on the page", () => {
+    // The market board rolled up only the executor that traded *this* market; the owner's other
+    // executor traded elsewhere. Scoring off `members` alone would read a partial global book and
+    // show a different score than the global board does for the same trader.
+    const [rolled] = rollUpRows([row({ address: EXECUTOR })], owners);
+    expect(rolled.members).toEqual([EXECUTOR]);
+
+    const wallets = globalScoreWallets([rolled], owners).get(rolled.address);
+    expect(wallets).not.toBeUndefined();
+    expect([...wallets!].sort()).toEqual([EXECUTOR, SECOND_EXECUTOR, OWNER.toLowerCase()].sort());
+  });
+
+  it("leaves an unmapped wallet as itself and does not duplicate members", () => {
+    const [rolled] = rollUpRows([row({ address: OTHER })], owners);
+    expect(globalScoreWallets([rolled], owners).get(rolled.address)).toEqual([OTHER]);
   });
 });
 
