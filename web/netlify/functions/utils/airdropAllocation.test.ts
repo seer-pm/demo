@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  HOLDINGS_SHARE_FACTOR,
+  POOL_SHARE_FACTOR,
   SEER_PER_DAY,
   holdingsSeerFromShare,
   pohSeerFromShare,
@@ -14,7 +14,7 @@ describe("airdropAllocation", () => {
 
   it("converts a summed holdings share to SEER", () => {
     // A wallet holding the entire supply for a single day earns one day's holdings pool.
-    expect(holdingsSeerFromShare(1)).toBe(SEER_PER_DAY * HOLDINGS_SHARE_FACTOR);
+    expect(holdingsSeerFromShare(1)).toBe(SEER_PER_DAY * POOL_SHARE_FACTOR);
     expect(holdingsSeerFromShare(0)).toBe(0);
   });
 

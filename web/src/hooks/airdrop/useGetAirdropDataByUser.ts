@@ -9,6 +9,8 @@ export interface AirdropDataByUser {
   serLppGnosis: number;
   monthlyEstimate: number;
   monthlyEstimatePoH: number;
+  /** Share of the WHOLE airdrop, LP program included, as a percentage. */
+  pctOfAirdrop: number;
 }
 
 export class AirdropFetchError extends Error {

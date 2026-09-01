@@ -10,3 +10,12 @@ export function seerValue(value: number | undefined) {
 export function hasAmount(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
+
+/**
+ * A share of the whole airdrop. Two decimals because a typical holder sits well under 1% — one
+ * decimal would round most of the userbase to "0.0%".
+ */
+export function formatPct(value: number | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}

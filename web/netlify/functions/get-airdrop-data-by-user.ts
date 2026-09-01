@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
 import { gnosis, mainnet } from "viem/chains";
 import { holdingsSeerFromShare, pohSeerFromShare, projectedSeerFromShare } from "./utils/airdropAllocation";
+import { computePctOfAirdrop, countSnapshotDays } from "./utils/airdropCalculation/constants";
 import { Database } from "./utils/supabase";
 import { withRetry } from "./utils/withRetry";
 
@@ -27,7 +28,7 @@ interface AirdropTotals {
 
 /**
  * Aggregate the user's whole airdrop history in Postgres and return a single row.
- * The RPC returns raw sums rather than SEER amounts so that SEER_PER_DAY and the 0.25
+ * The RPC returns raw sums rather than SEER amounts so that SEER_PER_DAY and the pool
  * factor stay defined only in utils/airdropAllocation.ts and the implementations can't drift.
  */
 async function getTotalsFromRpc(address: string, weekStart: Date): Promise<AirdropTotals> {
@@ -116,6 +117,25 @@ async function getTotals(address: string, weekStart: Date): Promise<AirdropTotal
   }
 }
 
+/**
+ * `airdrop_state.last_timestamp` — the newest snapshot, and so the end of the emission window the
+ * percentage is measured over. A missing state row means nothing has been computed yet.
+ */
+async function getSnapshotDays(): Promise<number> {
+  const { data, error } = await supabase
+    .from("airdrop_state")
+    .select("last_timestamp")
+    .eq("id", "latest_day")
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+  if (!data?.last_timestamp) {
+    return 0;
+  }
+  return countSnapshotDays(Number(data.last_timestamp));
+}
+
 async function getSerLppBalances(address: string) {
   const { data, error } = await supabase.from("ser_lpp_balances").select("chain_id,balance").eq("address", address);
   if (error) throw error;
@@ -137,14 +157,25 @@ export default async (req: Request) => {
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
 
   try {
-    const [totals, serLppBalances] = await Promise.all([
+    const [totals, serLppBalances, snapshotDays] = await Promise.all([
       getTotals(address, weekStart),
       withRetry(() => getSerLppBalances(address), "serLppBalances.byUser"),
+      withRetry(() => getSnapshotDays(), "airdropState.snapshotDays"),
     ]);
+
+    // Derived from the two pool allocations rather than `totalAllocation`, which is the sum of the
+    // stored `seer_tokens_count`. The two agree today, but only the pool allocations are recomputed
+    // from the raw shares with the current constants — reading the stored column would silently
+    // measure old rows against a new POOL_SHARE_FACTOR if that ever changed.
+    const pctOfAirdrop = computePctOfAirdrop(
+      totals.outcomeTokenHoldingAllocation + totals.pohUserAllocation,
+      snapshotDays,
+    );
 
     return json(
       {
         ...totals,
+        pctOfAirdrop,
         serLppMainnet: serLppBalances.find((x) => x.chain_id === mainnet.id)?.balance ?? 0,
         serLppGnosis: serLppBalances.find((x) => x.chain_id === gnosis.id)?.balance ?? 0,
       },

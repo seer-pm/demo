@@ -1,10 +1,10 @@
+import { POOL_SHARE_FACTOR, SEER_PER_DAY } from "./constants";
 import { type PoHRequest, isPOHVerifiedUserAtTime } from "./getPOHVerifiedUsers";
 
-/** 200M SEER over 30 days. */
-export const SEER_PER_DAY = 200000000 / 30;
-
-/** Share of the daily emission going to the holdings pool and to the PoH pool respectively. */
-export const POOL_SHARE_FACTOR = 0.25;
+// Both live in `constants.ts` so the read paths (get-airdrop-data-by-user, get-airdrop-leaderboard,
+// via utils/airdropAllocation.ts) share one definition with the write path instead of each keeping
+// its own copy. Re-exported because callers and tests already import them from here.
+export { POOL_SHARE_FACTOR, SEER_PER_DAY };
 
 /**
  * Holdings below this (in collateral terms) are treated as nothing: excluded from the payout AND

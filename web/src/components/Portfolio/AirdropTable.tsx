@@ -1,5 +1,5 @@
 import { AirdropDataByUser } from "@/hooks/airdrop/useGetAirdropDataByUser";
-import { formatSeer, hasAmount, seerValue } from "@/lib/airdropFormat";
+import { formatPct, formatSeer, hasAmount, seerValue } from "@/lib/airdropFormat";
 import { isTwoStringsEqual } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { Address } from "viem";
@@ -84,12 +84,8 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
     data.pohUserAllocation,
     data.serLppMainnet,
     data.serLppGnosis,
+    data.pctOfAirdrop,
   ].every((value) => !hasAmount(value));
-
-  const pohShare =
-    hasAmount(data.totalAllocation) && hasAmount(data.pohUserAllocation)
-      ? Math.round((data.pohUserAllocation / data.totalAllocation) * 100)
-      : null;
 
   const pohRegisterHref = connectedAccount
     ? `https://v2.proofofhumanity.id/${connectedAccount.replace(/^0x/, "")}/claim`
@@ -109,17 +105,22 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
   return (
     <div className="space-y-8">
       <p className="text-sm text-black-primary">
-        Holdings + Proof of Humanity to date, across all chains.
-        {pohShare != null && pohShare > 0 ? ` Proof of Humanity is ${pohShare}% of this estimate.` : null}{" "}
+        Holdings + Proof of Humanity to date, across all chains.{" "}
         <a className="font-semibold text-purple-primary" href="/leaderboard/airdrop">
           See how you rank
         </a>
         .
       </p>
 
-      <MetricGroup title="To date" description="These two add up to the total." accent>
+      <MetricGroup
+        title="To date"
+        description="Holdings and Proof of Humanity add up to the total. Together they are half of the airdrop; the liquidity program is the other half, so a wallet with a tenth of the Proof of Humanity pool shows 2.5% of the airdrop."
+        accent
+      >
         <Figure tone="poh" label="Proof of Humanity" value={seerValue(data.pohUserAllocation)} />
         <Figure label="Holdings" value={seerValue(data.outcomeTokenHoldingAllocation)} />
+        <Figure label="Total" value={seerValue(data.totalAllocation)} />
+        <Figure tone="poh" label="% of airdrop" value={formatPct(data.pctOfAirdrop)} />
       </MetricGroup>
 
       {isOwnProfile && !hasPoh ? <PohRegisterCallout href={pohRegisterHref} /> : null}
