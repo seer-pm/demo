@@ -27,3 +27,6 @@ cosmos-export
 *.sw?
 # Local Netlify folder
 .netlify
+
+# Backfill/reseed output (large CSVs of user addresses)
+tmp/
