@@ -1,0 +1,954 @@
+---
+title: "RealityETH-3.0"
+---
+## Variables
+
+### NULL\_ADDRESS
+
+```solidity
+address NULL_ADDRESS
+```
+
+### NULL\_HASH
+
+```solidity
+bytes32 NULL_HASH
+```
+
+### UNANSWERED
+
+```solidity
+uint32 UNANSWERED
+```
+
+### COMMITMENT\_NON\_EXISTENT
+
+```solidity
+uint256 COMMITMENT_NON_EXISTENT
+```
+
+### COMMITMENT\_TIMEOUT\_RATIO
+
+```solidity
+uint32 COMMITMENT_TIMEOUT_RATIO
+```
+
+### BOND\_CLAIM\_FEE\_PROPORTION
+
+```solidity
+uint256 BOND_CLAIM_FEE_PROPORTION
+```
+
+### UNRESOLVED\_ANSWER
+
+```solidity
+bytes32 UNRESOLVED_ANSWER
+```
+
+### Question
+
+```solidity
+struct Question {
+  bytes32 content_hash;
+  address arbitrator;
+  uint32 opening_ts;
+  uint32 timeout;
+  uint32 finalize_ts;
+  bool is_pending_arbitration;
+  uint256 bounty;
+  bytes32 best_answer;
+  bytes32 history_hash;
+  uint256 bond;
+  uint256 min_bond;
+}
+```
+
+### Commitment
+
+```solidity
+struct Commitment {
+  uint32 reveal_ts;
+  bool is_revealed;
+  bytes32 revealed_answer;
+}
+```
+
+### Claim
+
+```solidity
+struct Claim {
+  address payee;
+  uint256 last_bond;
+  uint256 queued_funds;
+}
+```
+
+### nextTemplateID
+
+```solidity
+uint256 nextTemplateID
+```
+
+### templates
+
+```solidity
+mapping(uint256 => uint256) templates
+```
+
+### template\_hashes
+
+```solidity
+mapping(uint256 => bytes32) template_hashes
+```
+
+### questions
+
+```solidity
+mapping(bytes32 => struct RealityETH_v3_0.Question) questions
+```
+
+### question\_claims
+
+```solidity
+mapping(bytes32 => struct RealityETH_v3_0.Claim) question_claims
+```
+
+### commitments
+
+```solidity
+mapping(bytes32 => struct RealityETH_v3_0.Commitment) commitments
+```
+
+### arbitrator\_question\_fees
+
+```solidity
+mapping(address => uint256) arbitrator_question_fees
+```
+
+### reopened\_questions
+
+```solidity
+mapping(bytes32 => bytes32) reopened_questions
+```
+
+### reopener\_questions
+
+```solidity
+mapping(bytes32 => bool) reopener_questions
+```
+
+## Events
+
+### LogSetQuestionFee
+
+```solidity
+event LogSetQuestionFee(address arbitrator, uint256 amount)
+```
+
+### LogNewTemplate
+
+```solidity
+event LogNewTemplate(uint256 template_id, address user, string question_text)
+```
+
+### LogNewQuestion
+
+```solidity
+event LogNewQuestion(bytes32 question_id, address user, uint256 template_id, string question, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 created)
+```
+
+### LogMinimumBond
+
+```solidity
+event LogMinimumBond(bytes32 question_id, uint256 min_bond)
+```
+
+### LogFundAnswerBounty
+
+```solidity
+event LogFundAnswerBounty(bytes32 question_id, uint256 bounty_added, uint256 bounty, address user)
+```
+
+### LogNewAnswer
+
+```solidity
+event LogNewAnswer(bytes32 answer, bytes32 question_id, bytes32 history_hash, address user, uint256 bond, uint256 ts, bool is_commitment)
+```
+
+### LogAnswerReveal
+
+```solidity
+event LogAnswerReveal(bytes32 question_id, address user, bytes32 answer_hash, bytes32 answer, uint256 nonce, uint256 bond)
+```
+
+### LogNotifyOfArbitrationRequest
+
+```solidity
+event LogNotifyOfArbitrationRequest(bytes32 question_id, address user)
+```
+
+### LogCancelArbitration
+
+```solidity
+event LogCancelArbitration(bytes32 question_id)
+```
+
+### LogFinalize
+
+```solidity
+event LogFinalize(bytes32 question_id, bytes32 answer)
+```
+
+### LogClaim
+
+```solidity
+event LogClaim(bytes32 question_id, address user, uint256 amount)
+```
+
+### LogReopenQuestion
+
+```solidity
+event LogReopenQuestion(bytes32 question_id, bytes32 reopened_question_id)
+```
+
+## Modifiers
+
+### onlyArbitrator
+
+```solidity
+modifier onlyArbitrator(bytes32 question_id)
+```
+
+### stateAny
+
+```solidity
+modifier stateAny()
+```
+
+### stateNotCreated
+
+```solidity
+modifier stateNotCreated(bytes32 question_id)
+```
+
+### stateOpen
+
+```solidity
+modifier stateOpen(bytes32 question_id)
+```
+
+### statePendingArbitration
+
+```solidity
+modifier statePendingArbitration(bytes32 question_id)
+```
+
+### stateOpenOrPendingArbitration
+
+```solidity
+modifier stateOpenOrPendingArbitration(bytes32 question_id)
+```
+
+### stateFinalized
+
+```solidity
+modifier stateFinalized(bytes32 question_id)
+```
+
+### bondMustDoubleAndMatchMinimum
+
+```solidity
+modifier bondMustDoubleAndMatchMinimum(bytes32 question_id)
+```
+
+### previousBondMustNotBeatMaxPrevious
+
+```solidity
+modifier previousBondMustNotBeatMaxPrevious(bytes32 question_id, uint256 max_previous)
+```
+
+## Functions
+
+### constructor
+
+```solidity
+constructor() public
+```
+
+Constructor, sets up some initial templates
+
+*Creates some generalized templates for different question types used in the DApp.*
+
+### setQuestionFee
+
+```solidity
+function setQuestionFee(uint256 fee) external
+```
+
+Function for arbitrator to set an optional per-question fee.
+
+*The per-question fee, charged when a question is asked, is intended as an anti-spam measure.*
+
+**Parameters**
+
+| Name | Type    | Description                                                      |
+| ---- | ------- | ---------------------------------------------------------------- |
+| fee  | uint256 | The fee to be charged by the arbitrator when a question is asked |
+
+### createTemplate
+
+```solidity
+function createTemplate(string content) public returns (uint256)
+```
+
+Create a reusable template, which should be a JSON document. Placeholders should use gettext() syntax, eg %s.
+
+*Template data is only stored in the event logs, but its block number is kept in contract storage.*
+
+**Parameters**
+
+| Name    | Type   | Description          |
+| ------- | ------ | -------------------- |
+| content | string | The template content |
+
+**Return Values**
+
+| Name | Type    | Description                                                          |
+| ---- | ------- | -------------------------------------------------------------------- |
+| \[0] | uint256 | The ID of the newly-created template, which is created sequentially. |
+
+### createTemplateAndAskQuestion
+
+```solidity
+function createTemplateAndAskQuestion(string content, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) public payable returns (bytes32)
+```
+
+Create a new reusable template and use it to ask a question
+
+*Template data is only stored in the event logs, but its block number is kept in contract storage.*
+
+**Parameters**
+
+| Name        | Type    | Description                                                                                    |
+| ----------- | ------- | ---------------------------------------------------------------------------------------------- |
+| content     | string  | The template content                                                                           |
+| question    | string  | A string containing the parameters that will be passed into the template to make the question  |
+| arbitrator  | address | The arbitration contract that will have the final word on the answer if there is a dispute     |
+| timeout     | uint32  | How long the contract should wait after the answer is changed before finalizing on that answer |
+| opening\_ts | uint32  | If set, the earliest time it should be possible to answer the question.                        |
+| nonce       | uint256 | A user-specified nonce used in the question ID. Change it to repeat a question.                |
+
+**Return Values**
+
+| Name | Type    | Description                                                          |
+| ---- | ------- | -------------------------------------------------------------------- |
+| \[0] | bytes32 | The ID of the newly-created template, which is created sequentially. |
+
+### askQuestion
+
+```solidity
+function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) public payable returns (bytes32)
+```
+
+Ask a new question and return the ID
+
+*Template data is only stored in the event logs, but its block number is kept in contract storage.*
+
+**Parameters**
+
+| Name         | Type    | Description                                                                                    |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------- |
+| template\_id | uint256 | The ID number of the template the question will use                                            |
+| question     | string  | A string containing the parameters that will be passed into the template to make the question  |
+| arbitrator   | address | The arbitration contract that will have the final word on the answer if there is a dispute     |
+| timeout      | uint32  | How long the contract should wait after the answer is changed before finalizing on that answer |
+| opening\_ts  | uint32  | If set, the earliest time it should be possible to answer the question.                        |
+| nonce        | uint256 | A user-specified nonce used in the question ID. Change it to repeat a question.                |
+
+**Return Values**
+
+| Name | Type    | Description                                                      |
+| ---- | ------- | ---------------------------------------------------------------- |
+| \[0] | bytes32 | The ID of the newly-created question, created deterministically. |
+
+### askQuestionWithMinBond
+
+```solidity
+function askQuestionWithMinBond(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) public payable returns (bytes32)
+```
+
+Ask a new question and return the ID
+
+*Template data is only stored in the event logs, but its block number is kept in contract storage.*
+
+**Parameters**
+
+| Name         | Type    | Description                                                                                    |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------- |
+| template\_id | uint256 | The ID number of the template the question will use                                            |
+| question     | string  | A string containing the parameters that will be passed into the template to make the question  |
+| arbitrator   | address | The arbitration contract that will have the final word on the answer if there is a dispute     |
+| timeout      | uint32  | How long the contract should wait after the answer is changed before finalizing on that answer |
+| opening\_ts  | uint32  | If set, the earliest time it should be possible to answer the question.                        |
+| nonce        | uint256 | A user-specified nonce used in the question ID. Change it to repeat a question.                |
+| min\_bond    | uint256 | The minimum bond that may be used for an answer.                                               |
+
+**Return Values**
+
+| Name | Type    | Description                                                      |
+| ---- | ------- | ---------------------------------------------------------------- |
+| \[0] | bytes32 | The ID of the newly-created question, created deterministically. |
+
+### \_askQuestion
+
+```solidity
+function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond) internal
+```
+
+### fundAnswerBounty
+
+```solidity
+function fundAnswerBounty(bytes32 question_id) external payable
+```
+
+Add funds to the bounty for a question
+
+*Add bounty funds after the initial question creation. Can be done any time until the question is finalized.*
+
+**Parameters**
+
+| Name         | Type    | Description                             |
+| ------------ | ------- | --------------------------------------- |
+| question\_id | bytes32 | The ID of the question you wish to fund |
+
+### submitAnswer
+
+```solidity
+function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable
+```
+
+Submit an answer for a question.
+
+*Adds the answer to the history and updates the current "best" answer. May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                     |
+| ------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| question\_id  | bytes32 | The ID of the question                                                                          |
+| answer        | bytes32 | The answer, encoded into bytes32                                                                |
+| max\_previous | uint256 | If specified, reverts if a bond higher than this was submitted after you sent your transaction. |
+
+### submitAnswerFor
+
+```solidity
+function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer) external payable
+```
+
+Submit an answer for a question, crediting it to the specified account.
+
+*Adds the answer to the history and updates the current "best" answer. May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                     |
+| ------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| question\_id  | bytes32 | The ID of the question                                                                          |
+| answer        | bytes32 | The answer, encoded into bytes32                                                                |
+| max\_previous | uint256 | If specified, reverts if a bond higher than this was submitted after you sent your transaction. |
+| answerer      | address | The account to which the answer should be credited                                              |
+
+### \_storeCommitment
+
+```solidity
+function _storeCommitment(bytes32 question_id, bytes32 commitment_id) internal
+```
+
+### submitAnswerCommitment
+
+```solidity
+function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) external payable
+```
+
+Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
+
+*Creates a hash, commitment\_id, uniquely identifying this answer, to this question, with this bond. The commitment\_id is stored in the answer history where the answer would normally go. Does not update the current best answer - this is left to the later submitAnswerReveal() transaction. Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                     |
+| ------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| question\_id  | bytes32 | The ID of the question                                                                          |
+| answer\_hash  | bytes32 | The hash of your answer, plus a nonce that you will later reveal                                |
+| max\_previous | uint256 | If specified, reverts if a bond higher than this was submitted after you sent your transaction. |
+| \_answerer    | address | If specified, the address to be given as the question answerer. Defaults to the sender.         |
+
+### submitAnswerReveal
+
+```solidity
+function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) external
+```
+
+Submit the answer whose hash you sent in a previous submitAnswerCommitment() transaction
+
+*Checks the parameters supplied recreate an existing commitment, and stores the revealed answer Updates the current answer unless someone has since supplied a new answer with a higher bond msg.sender is intentionally not restricted to the user who originally sent the commitment; For example, the user may want to provide the answer+nonce to a third-party service and let them send the tx NB If we are pending arbitration, it will be up to the arbitrator to wait and see any outstanding reveal is sent*
+
+**Parameters**
+
+| Name         | Type    | Description                                                                                               |
+| ------------ | ------- | --------------------------------------------------------------------------------------------------------- |
+| question\_id | bytes32 | The ID of the question                                                                                    |
+| answer       | bytes32 | The answer, encoded as bytes32                                                                            |
+| nonce        | uint256 | The nonce that, combined with the answer, recreates the answer\_hash you gave in submitAnswerCommitment() |
+| bond         | uint256 | The bond that you paid in your submitAnswerCommitment() transaction                                       |
+
+### \_addAnswerToHistory
+
+```solidity
+function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) internal
+```
+
+### \_updateCurrentAnswer
+
+```solidity
+function _updateCurrentAnswer(bytes32 question_id, bytes32 answer) internal
+```
+
+### \_updateCurrentAnswerByArbitrator
+
+```solidity
+function _updateCurrentAnswerByArbitrator(bytes32 question_id, bytes32 answer) internal
+```
+
+### notifyOfArbitrationRequest
+
+```solidity
+function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external
+```
+
+Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
+
+*The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                     |
+| ------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| question\_id  | bytes32 | The ID of the question                                                                          |
+| requester     | address | The account that requested arbitration                                                          |
+| max\_previous | uint256 | If specified, reverts if a bond higher than this was submitted after you sent your transaction. |
+
+### cancelArbitration
+
+```solidity
+function cancelArbitration(bytes32 question_id) external
+```
+
+Cancel a previously-requested arbitration and extend the timeout
+
+*Useful when doing arbitration across chains that can't be requested atomically*
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### submitAnswerByArbitrator
+
+```solidity
+function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public
+```
+
+Submit the answer for a question, for use by the arbitrator.
+
+*Doesn't require (or allow) a bond. If the current final answer is correct, the account should be whoever submitted it. If the current final answer is wrong, the account should be whoever paid for arbitration. However, the answerer stipulations are not enforced by the contract.*
+
+**Parameters**
+
+| Name         | Type    | Description                                                          |
+| ------------ | ------- | -------------------------------------------------------------------- |
+| question\_id | bytes32 | The ID of the question                                               |
+| answer       | bytes32 | The answer, encoded into bytes32                                     |
+| answerer     | address | The account credited with this answer for the purpose of bond claims |
+
+### assignWinnerAndSubmitAnswerByArbitrator
+
+```solidity
+function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) external
+```
+
+Submit the answer for a question, for use by the arbitrator, working out the appropriate winner based on the last answer details.
+
+*Doesn't require (or allow) a bond.*
+
+**Parameters**
+
+| Name                             | Type    | Description                                                                                                          |
+| -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| question\_id                     | bytes32 | The ID of the question                                                                                               |
+| answer                           | bytes32 | The answer, encoded into bytes32                                                                                     |
+| payee\_if\_wrong                 | address | The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator |
+| last\_history\_hash              | bytes32 | The history hash before the final one                                                                                |
+| last\_answer\_or\_commitment\_id | bytes32 | The last answer given, or the commitment ID if it was a commitment.                                                  |
+| last\_answerer                   | address | The address that supplied the last answer                                                                            |
+
+### isFinalized
+
+```solidity
+function isFinalized(bytes32 question_id) public view returns (bool)
+```
+
+Report whether the answer to the specified question is finalized
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+**Return Values**
+
+| Name | Type | Description              |
+| ---- | ---- | ------------------------ |
+| \[0] | bool | Return true if finalized |
+
+### getFinalAnswer
+
+```solidity
+function getFinalAnswer(bytes32 question_id) external view returns (bytes32)
+```
+
+(Deprecated) Return the final answer to the specified question, or revert if there isn't one
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+**Return Values**
+
+| Name | Type    | Description                       |
+| ---- | ------- | --------------------------------- |
+| \[0] | bytes32 | The answer formatted as a bytes32 |
+
+### resultFor
+
+```solidity
+function resultFor(bytes32 question_id) public view returns (bytes32)
+```
+
+Return the final answer to the specified question, or revert if there isn't one
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+**Return Values**
+
+| Name | Type    | Description                       |
+| ---- | ------- | --------------------------------- |
+| \[0] | bytes32 | The answer formatted as a bytes32 |
+
+### isSettledTooSoon
+
+```solidity
+function isSettledTooSoon(bytes32 question_id) public view returns (bool)
+```
+
+Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED\_ANSWER
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### resultForOnceSettled
+
+```solidity
+function resultForOnceSettled(bytes32 question_id) external view returns (bytes32)
+```
+
+Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### reopenQuestion
+
+```solidity
+function reopenQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id) public payable returns (bytes32)
+```
+
+Asks a new question reopening a previously-asked question that was settled too soon
+
+*A special version of askQuestion() that replaces a previous question that was settled too soon*
+
+**Parameters**
+
+| Name                  | Type    | Description                                                                                    |
+| --------------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| template\_id          | uint256 | The ID number of the template the question will use                                            |
+| question              | string  | A string containing the parameters that will be passed into the template to make the question  |
+| arbitrator            | address | The arbitration contract that will have the final word on the answer if there is a dispute     |
+| timeout               | uint32  | How long the contract should wait after the answer is changed before finalizing on that answer |
+| opening\_ts           | uint32  | If set, the earliest time it should be possible to answer the question.                        |
+| nonce                 | uint256 | A user-specified nonce used in the question ID. Change it to repeat a question.                |
+| min\_bond             | uint256 | The minimum bond that can be used to provide the first answer.                                 |
+| reopens\_question\_id | bytes32 | The ID of the question this reopens                                                            |
+
+**Return Values**
+
+| Name | Type    | Description                                                      |
+| ---- | ------- | ---------------------------------------------------------------- |
+| \[0] | bytes32 | The ID of the newly-created question, created deterministically. |
+
+### getFinalAnswerIfMatches
+
+```solidity
+function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond) external view returns (bytes32)
+```
+
+Return the final answer to the specified question, provided it matches the specified criteria.
+
+*Reverts if the question is not finalized, or if it does not match the specified criteria.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                |
+| ------------- | ------- | ------------------------------------------------------------------------------------------ |
+| question\_id  | bytes32 | The ID of the question                                                                     |
+| content\_hash | bytes32 | The hash of the question content (template ID + opening time + question parameter string)  |
+| arbitrator    | address | The arbitrator chosen for the question (regardless of whether they are asked to arbitrate) |
+| min\_timeout  | uint32  | The timeout set in the initial question settings must be this high or higher               |
+| min\_bond     | uint256 | The bond sent with the final answer must be this high or higher                            |
+
+**Return Values**
+
+| Name | Type    | Description                       |
+| ---- | ------- | --------------------------------- |
+| \[0] | bytes32 | The answer formatted as a bytes32 |
+
+### claimWinnings
+
+```solidity
+function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) public
+```
+
+Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer Caller must provide the answer history, in reverse order
+
+*Works up the chain and assign bonds to the person who gave the right answer If someone gave the winning answer earlier, they must get paid from the higher bond That means we can't pay out the bond added at n until we have looked at n-1 The first answer is authenticated by checking against the stored history\_hash. One of the inputs to history\_hash is the history\_hash before it, so we use that to authenticate the next entry, etc Once we get to a null hash we'll know we're done and there are no more answers. Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.*
+
+**Parameters**
+
+| Name            | Type       | Description                                                                                          |
+| --------------- | ---------- | ---------------------------------------------------------------------------------------------------- |
+| question\_id    | bytes32    | The ID of the question                                                                               |
+| history\_hashes | bytes32\[] | Second-last-to-first, the hash of each history entry. (Final one should be empty).                   |
+| addrs           | address\[] | Last-to-first, the address of each answerer or commitment sender                                     |
+| bonds           | uint256\[] | Last-to-first, the bond supplied with each answer or commitment                                      |
+| answers         | bytes32\[] | Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal |
+
+### \_payPayee
+
+```solidity
+function _payPayee(bytes32 question_id, address payee, uint256 value) internal
+```
+
+### \_verifyHistoryInputOrRevert
+
+```solidity
+function _verifyHistoryInputOrRevert(bytes32 last_history_hash, bytes32 history_hash, bytes32 answer, uint256 bond, address addr) internal pure returns (bool)
+```
+
+### \_processHistoryItem
+
+```solidity
+function _processHistoryItem(bytes32 question_id, bytes32 best_answer, uint256 queued_funds, address payee, address addr, uint256 bond, bytes32 answer, bool is_commitment) internal returns (uint256, address)
+```
+
+### claimMultipleAndWithdrawBalance
+
+```solidity
+function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) public
+```
+
+Convenience function to assign bounties/bonds for multiple questions in one go, then withdraw all your funds. Caller must provide the answer history for each question, in reverse order
+
+*Can be called by anyone to assign bonds/bounties, but funds are only withdrawn for the user making the call.*
+
+**Parameters**
+
+| Name          | Type       | Description                                                                                    |
+| ------------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| question\_ids | bytes32\[] | The IDs of the questions you want to claim for                                                 |
+| lengths       | uint256\[] | The number of history entries you will supply for each question ID                             |
+| hist\_hashes  | bytes32\[] | In a single list for all supplied questions, the hash of each history entry.                   |
+| addrs         | address\[] | In a single list for all supplied questions, the address of each answerer or commitment sender |
+| bonds         | uint256\[] | In a single list for all supplied questions, the bond supplied with each answer or commitment  |
+| answers       | bytes32\[] | In a single list for all supplied questions, each answer supplied, or commitment ID            |
+
+### getContentHash
+
+```solidity
+function getContentHash(bytes32 question_id) public view returns (bytes32)
+```
+
+Returns the questions's content hash, identifying the question content
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getArbitrator
+
+```solidity
+function getArbitrator(bytes32 question_id) public view returns (address)
+```
+
+Returns the arbitrator address for the question
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getOpeningTS
+
+```solidity
+function getOpeningTS(bytes32 question_id) public view returns (uint32)
+```
+
+Returns the timestamp when the question can first be answered
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getTimeout
+
+```solidity
+function getTimeout(bytes32 question_id) public view returns (uint32)
+```
+
+Returns the timeout in seconds used after each answer
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getFinalizeTS
+
+```solidity
+function getFinalizeTS(bytes32 question_id) public view returns (uint32)
+```
+
+Returns the timestamp at which the question will be/was finalized
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### isPendingArbitration
+
+```solidity
+function isPendingArbitration(bytes32 question_id) public view returns (bool)
+```
+
+Returns whether the question is pending arbitration
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getBounty
+
+```solidity
+function getBounty(bytes32 question_id) public view returns (uint256)
+```
+
+Returns the current total unclaimed bounty
+
+*Set back to zero once the bounty has been claimed*
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getBestAnswer
+
+```solidity
+function getBestAnswer(bytes32 question_id) public view returns (bytes32)
+```
+
+Returns the current best answer
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getHistoryHash
+
+```solidity
+function getHistoryHash(bytes32 question_id) public view returns (bytes32)
+```
+
+Returns the history hash of the question
+
+*Updated on each answer, then rewound as each is claimed*
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getBond
+
+```solidity
+function getBond(bytes32 question_id) public view returns (uint256)
+```
+
+Returns the highest bond posted so far for a question
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### getMinBond
+
+```solidity
+function getMinBond(bytes32 question_id) public view returns (uint256)
+```
+
+Returns the minimum bond that can answer the question
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |

@@ -1,0 +1,27 @@
+---
+title: "Buy, sell outcome tokens"
+---
+Besides minting, you can also buy or sell outcome tokens from a token pool (provided there is enough liquidity).
+
+To buy outcome tokens, click on an outcome of your choice (on the left). On the right, enter the amount (sDAI or wxDAI) and click **Buy**. 
+
+<Info>
+**On Gnosis:** The switch will show **wxDAI** or **xDAI** on the right depending on which token you possess more of (it will always show **sDAI** on the left).\
+**On Ethereum Mainnet:** It will always show DAI on the right.
+</Info>
+
+<Frame><img src="/images/app/buy-sell-outcome-tokens/01-image.png" alt="" /></Frame>
+
+Note that if there aren't enough tokens in the liquidity pool, you may see this message:
+
+<Frame><img src="/images/app/buy-sell-outcome-tokens/02-image.png" alt="" /></Frame>
+
+The above message means that you cannot spend more than 1 sDAI to buy 1 outcome token (in the example you need to pay 15.38 sDAI for 1 YES token). Since the maximum price at which an outcome token can be traded is 1 sDAI per token, we disable buying to prevent buyers from incurring a definite loss.
+
+After clicking **Buy**, a confirmation popup will appear:
+
+<Frame><img src="/images/app/buy-sell-outcome-tokens/03-image.png" alt="" /></Frame>
+
+You can check various details of the trade, including the price and fee. Note that there will be slippage between what you expect to receive and what you actually receive (since we are trading on a DEX). However, there will be a minimum received amount to ensure you don't suffer from a huge price spike (it will revert otherwise). Click **Continue** to execute the trade.
+
+**Selling** is the exact opposite of buying, swapping from outcome tokens to your collateral tokens.

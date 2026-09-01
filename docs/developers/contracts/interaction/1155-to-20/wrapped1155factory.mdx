@@ -1,0 +1,70 @@
+---
+title: "Wrapped1155Factory"
+---
+Wraps and unwraps between ERC1155 tokens and ERC20 tokens.
+
+## Variables
+
+### erc20Implementation
+
+```solidity
+contract Wrapped1155 erc20Implementation
+```
+
+## Events
+
+### Wrapped1155Creation
+
+```solidity
+event Wrapped1155Creation(contract IERC1155 multiToken, uint256 tokenId, contract Wrapped1155 wrappedToken)
+```
+
+## Functions
+
+### constructor
+
+```solidity
+constructor() public
+```
+
+### onERC1155Received
+
+```solidity
+function onERC1155Received(address operator, address, uint256 id, uint256 value, bytes data) external returns (bytes4)
+```
+
+### onERC1155BatchReceived
+
+```solidity
+function onERC1155BatchReceived(address operator, address, uint256[] ids, uint256[] values, bytes data) external returns (bytes4)
+```
+
+### unwrap
+
+```solidity
+function unwrap(contract IERC1155 multiToken, uint256 tokenId, uint256 amount, address recipient, bytes data) external
+```
+
+### batchUnwrap
+
+```solidity
+function batchUnwrap(contract IERC1155 multiToken, uint256[] tokenIds, uint256[] amounts, address recipient, bytes data) external
+```
+
+### getWrapped1155DeployBytecode
+
+```solidity
+function getWrapped1155DeployBytecode(contract IERC1155 multiToken, uint256 tokenId, bytes data) public view returns (bytes)
+```
+
+### getWrapped1155
+
+```solidity
+function getWrapped1155(contract IERC1155 multiToken, uint256 tokenId, bytes data) public view returns (contract Wrapped1155)
+```
+
+### requireWrapped1155
+
+```solidity
+function requireWrapped1155(contract IERC1155 multiToken, uint256 tokenId, bytes data) public returns (contract Wrapped1155)
+```

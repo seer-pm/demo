@@ -1,0 +1,15 @@
+---
+title: "Safe Liquidity Provision"
+---
+Another way to greatly reduce liquidity providing risks is to use a hybrid approach between an AMM and an auction system.
+
+The system would work as follows:
+
+* Liquidity providers provide liquidity like they do in a classic AMM.
+* Traders can't buy directly from the AMM but can place orders. When a trader places an order on the exchange, a simple short term auction starts (this can be around 1h). The auction starts at the price given by the AMM, with the initial bid being made by the trader who started the auction. Anyone can overbid the current highest bidder. When this happens:
+  * The highest bidder order is cancelled.
+  * The tokens of the highest bidder are refunded.
+  * The new bidder becomes the current highest bidder.
+  * The auction timer restarts.
+
+When the auction ends (i.e. no one bids within the auction timer) the winner has its order executed.

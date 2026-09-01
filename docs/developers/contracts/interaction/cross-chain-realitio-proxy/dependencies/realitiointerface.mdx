@@ -1,0 +1,79 @@
+---
+title: "RealitioInterface"
+---
+## Events
+
+### LogNewAnswer
+
+```solidity
+event LogNewAnswer(bytes32 answer, bytes32 question_id, bytes32 history_hash, address user, uint256 bond, uint256 ts, bool is_commitment)
+```
+
+### LogNewTemplate
+
+```solidity
+event LogNewTemplate(uint256 template_id, address user, string question_text)
+```
+
+### LogNewQuestion
+
+```solidity
+event LogNewQuestion(bytes32 question_id, address user, uint256 template_id, string question, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 created)
+```
+
+## Functions
+
+### notifyOfArbitrationRequest
+
+```solidity
+function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external
+```
+
+Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
+
+*The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                     |
+| ------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| question\_id  | bytes32 | The ID of the question.                                                                         |
+| requester     | address | The account that requested arbitration.                                                         |
+| max\_previous | uint256 | If specified, reverts if a bond higher than this was submitted after you sent your transaction. |
+
+### cancelArbitration
+
+```solidity
+function cancelArbitration(bytes32 question_id) external
+```
+
+Cancel a previously-requested arbitration and extend the timeout
+
+*Useful when doing arbitration across chains that can't be requested atomically*
+
+**Parameters**
+
+| Name         | Type    | Description            |
+| ------------ | ------- | ---------------------- |
+| question\_id | bytes32 | The ID of the question |
+
+### assignWinnerAndSubmitAnswerByArbitrator
+
+```solidity
+function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) external
+```
+
+Submit the answer for a question, for use by the arbitrator, working out the appropriate winner based on the last answer details.
+
+*Doesn't require (or allow) a bond.*
+
+**Parameters**
+
+| Name                             | Type    | Description                                                                                                          |
+| -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| question\_id                     | bytes32 | The ID of the question                                                                                               |
+| answer                           | bytes32 | The answer, encoded into bytes32                                                                                     |
+| payee\_if\_wrong                 | address | The account to be credited as winner if the last answer given is wrong, usually the account that paid the arbitrator |
+| last\_history\_hash              | bytes32 | The history hash before the final one                                                                                |
+| last\_answer\_or\_commitment\_id | bytes32 | The last answer given, or the commitment ID if it was a commitment.                                                  |
+| last\_answerer                   | address | The address that supplied the last answer                                                                            |

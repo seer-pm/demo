@@ -1,0 +1,68 @@
+---
+title: "Market"
+---
+### Fragment Question
+
+```graphql
+fragment Question on Question {
+  id
+  index
+  arbitrator
+  opening_ts
+  timeout
+  finalize_ts
+  is_pending_arbitration
+  best_answer
+  bond
+  min_bond
+}
+```
+
+### Fragment Market
+
+```graphql
+fragment Market on Market {
+    id
+    factory
+    creator
+    rules
+}
+```
+
+### GetMarkets
+
+```graphql
+query GetMarkets(
+    $skip: Int = 0
+    $first: Int = 100
+    $orderBy: Market_orderBy
+    $orderDirection: OrderDirection
+    $where: Market_filter
+    $block: Block_height
+    $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+    markets(
+        skip: $skip
+        first: $first
+        orderBy: $orderBy
+        orderDirection: $orderDirection
+        where: $where
+        block: $block
+        subgraphError: $subgraphError
+    ) {
+        ...Market
+    }
+}
+```
+
+### GetMarket
+
+```graphql
+query GetMarket(
+    $id: ID!
+) {
+    market(id: $id) {
+        ...Market
+    }
+}
+```

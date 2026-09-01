@@ -1,0 +1,202 @@
+---
+title: "ERC1155"
+---
+## Functions
+
+### constructor
+
+```solidity
+constructor() public
+```
+
+### balanceOf
+
+```solidity
+function balanceOf(address owner, uint256 id) public view returns (uint256)
+```
+
+*Get the specified address' balance for token with specified ID.*
+
+**Parameters**
+
+| Name  | Type    | Description                     |
+| ----- | ------- | ------------------------------- |
+| owner | address | The address of the token holder |
+| id    | uint256 | ID of the token                 |
+
+**Return Values**
+
+| Name | Type    | Description                                     |
+| ---- | ------- | ----------------------------------------------- |
+| \[0] | uint256 | The owner's balance of the token type requested |
+
+### balanceOfBatch
+
+```solidity
+function balanceOfBatch(address[] owners, uint256[] ids) public view returns (uint256[])
+```
+
+*Get the balance of multiple account/token pairs*
+
+**Parameters**
+
+| Name   | Type       | Description                        |
+| ------ | ---------- | ---------------------------------- |
+| owners | address\[] | The addresses of the token holders |
+| ids    | uint256\[] | IDs of the tokens                  |
+
+**Return Values**
+
+| Name | Type       | Description                               |
+| ---- | ---------- | ----------------------------------------- |
+| \[0] | uint256\[] | Balances for each owner and token id pair |
+
+### setApprovalForAll
+
+```solidity
+function setApprovalForAll(address operator, bool approved) external
+```
+
+*Sets or unsets the approval of a given operator An operator is allowed to transfer all tokens of the sender on their behalf*
+
+**Parameters**
+
+| Name     | Type    | Description                                       |
+| -------- | ------- | ------------------------------------------------- |
+| operator | address | address to set the approval                       |
+| approved | bool    | representing the status of the approval to be set |
+
+### isApprovedForAll
+
+```solidity
+function isApprovedForAll(address owner, address operator) external view returns (bool)
+```
+
+Queries the approval status of an operator for a given owner.
+
+**Parameters**
+
+| Name     | Type    | Description                    |
+| -------- | ------- | ------------------------------ |
+| owner    | address | The owner of the Tokens        |
+| operator | address | Address of authorized operator |
+
+**Return Values**
+
+| Name | Type | Description                                    |
+| ---- | ---- | ---------------------------------------------- |
+| \[0] | bool | True if the operator is approved, false if not |
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data) external
+```
+
+*Transfers `value` amount of an `id` from the `from` address to the `to` address specified. Caller must be approved to manage the tokens being transferred out of the `from` account. If `to` is a smart contract, will call `onERC1155Received` on `to` and act appropriately.*
+
+**Parameters**
+
+| Name  | Type    | Description                                                          |
+| ----- | ------- | -------------------------------------------------------------------- |
+| from  | address | Source address                                                       |
+| to    | address | Target address                                                       |
+| id    | uint256 | ID of the token type                                                 |
+| value | uint256 | Transfer amount                                                      |
+| data  | bytes   | Data forwarded to `onERC1155Received` if `to` is a contract receiver |
+
+### safeBatchTransferFrom
+
+```solidity
+function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[] values, bytes data) external
+```
+
+*Transfers `values` amount(s) of `ids` from the `from` address to the `to` address specified. Caller must be approved to manage the tokens being transferred out of the `from` account. If `to` is a smart contract, will call `onERC1155BatchReceived` on `to` and act appropriately.*
+
+**Parameters**
+
+| Name   | Type       | Description                                                          |
+| ------ | ---------- | -------------------------------------------------------------------- |
+| from   | address    | Source address                                                       |
+| to     | address    | Target address                                                       |
+| ids    | uint256\[] | IDs of each token type                                               |
+| values | uint256\[] | Transfer amounts per token type                                      |
+| data   | bytes      | Data forwarded to `onERC1155Received` if `to` is a contract receiver |
+
+### \_mint
+
+```solidity
+function _mint(address to, uint256 id, uint256 value, bytes data) internal
+```
+
+*Internal function to mint an amount of a token with the given ID*
+
+**Parameters**
+
+| Name  | Type    | Description                                                          |
+| ----- | ------- | -------------------------------------------------------------------- |
+| to    | address | The address that will own the minted token                           |
+| id    | uint256 | ID of the token to be minted                                         |
+| value | uint256 | Amount of the token to be minted                                     |
+| data  | bytes   | Data forwarded to `onERC1155Received` if `to` is a contract receiver |
+
+### \_batchMint
+
+```solidity
+function _batchMint(address to, uint256[] ids, uint256[] values, bytes data) internal
+```
+
+*Internal function to batch mint amounts of tokens with the given IDs*
+
+**Parameters**
+
+| Name   | Type       | Description                                                          |
+| ------ | ---------- | -------------------------------------------------------------------- |
+| to     | address    | The address that will own the minted token                           |
+| ids    | uint256\[] | IDs of the tokens to be minted                                       |
+| values | uint256\[] | Amounts of the tokens to be minted                                   |
+| data   | bytes      | Data forwarded to `onERC1155Received` if `to` is a contract receiver |
+
+### \_burn
+
+```solidity
+function _burn(address owner, uint256 id, uint256 value) internal
+```
+
+*Internal function to burn an amount of a token with the given ID*
+
+**Parameters**
+
+| Name  | Type    | Description                              |
+| ----- | ------- | ---------------------------------------- |
+| owner | address | Account which owns the token to be burnt |
+| id    | uint256 | ID of the token to be burnt              |
+| value | uint256 | Amount of the token to be burnt          |
+
+### \_batchBurn
+
+```solidity
+function _batchBurn(address owner, uint256[] ids, uint256[] values) internal
+```
+
+*Internal function to batch burn an amounts of tokens with the given IDs*
+
+**Parameters**
+
+| Name   | Type       | Description                              |
+| ------ | ---------- | ---------------------------------------- |
+| owner  | address    | Account which owns the token to be burnt |
+| ids    | uint256\[] | IDs of the tokens to be burnt            |
+| values | uint256\[] | Amounts of the tokens to be burnt        |
+
+### \_doSafeTransferAcceptanceCheck
+
+```solidity
+function _doSafeTransferAcceptanceCheck(address operator, address from, address to, uint256 id, uint256 value, bytes data) internal
+```
+
+### \_doSafeBatchTransferAcceptanceCheck
+
+```solidity
+function _doSafeBatchTransferAcceptanceCheck(address operator, address from, address to, uint256[] ids, uint256[] values, bytes data) internal
+```

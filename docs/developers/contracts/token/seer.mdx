@@ -1,0 +1,60 @@
+---
+title: "Seer"
+---
+## Variables
+
+### governor
+
+```solidity
+address governor
+```
+
+## Modifiers
+
+### onlyGovernor
+
+```solidity
+modifier onlyGovernor()
+```
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(address _governor) public
+```
+
+*Constructor.*
+
+**Parameters**
+
+| Name       | Type    | Description                           |
+| ---------- | ------- | ------------------------------------- |
+| \_governor | address | The trusted governor of the contract. |
+
+### changeGovernor
+
+```solidity
+function changeGovernor(address _governor) external
+```
+
+*Change the governor of the contract.*
+
+**Parameters**
+
+| Name       | Type    | Description                      |
+| ---------- | ------- | -------------------------------- |
+| \_governor | address | The address of the new governor. |
+
+### mint
+
+```solidity
+function mint(address to, uint256 amount) external
+```
+
+### burn
+
+```solidity
+function burn(address from, uint256 amount) external
+```

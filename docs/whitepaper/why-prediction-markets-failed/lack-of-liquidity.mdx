@@ -1,0 +1,33 @@
+---
+title: "Lack of Liquidity"
+---
+Besides regulation, the main issue of prediction markets is liquidity. This is particularly an issue as liquidity provision is particularly risky in the context of prediction markets.
+
+**« Impermanent » loss**
+
+When providing liquidity, a liquidity provider is selling an asset at a particular price and buying the same asset at a slightly lower price. If the price remains mainly stable, the liquidity provider will make profit out of the difference of those prices (spread), but if the price moves in a single direction, the liquidity provider will end up with more of the less valuable asset. This is called « Impermanent loss », as if the price goes back to its origin, the liquidity provider will recoup this loss.
+
+For example let’s say that that there is a market « Will Russia stop the invasion of Ukraine in 2023 ?». A liquidity provider use the strategy of making an order for 1 unit of « Yes » on both sides with a 0.1 step putting the following orders:
+
+| Type | Amount | Price |
+| ---- | ------ | ----- |
+| Sell | 1      | 0.9   |
+| Sell | 1      | 0.8   |
+| Sell | 1      | 0.7   |
+| Sell | 1      | 0.6   |
+| Buy  | 1      | 0.5   |
+| Buy  | 1      | 0.4   |
+| Buy  | 1      | 0.3   |
+| Buy  | 1      | 0.2   |
+| Buy  | 1      | 0.1   |
+
+Now let’s look at two scenarios:
+
+* Russia announces that it will stop the invasion. Immediately, a trader notices the news and take all the sell orders, paying 3\$ for 4 shares of « Yes ». When the market resolves, he redeems those shares for 4\$, netting 1\$ of profit but creating a 1\$ loss for the liquidity provider (who sold the 4 shares for 3\$ despite those finally redeeming for 4\$). We will call this loss the « **revelation loss** ».
+* Russia doesn’t announce a stop of the invasion. As we advance through the year 2023 it becomes less and less likely that the invasion will stop in 2023 (simply because there are less and less days remaining in 2023). The price which started around 0.5, drops little by little, 0.4, 0.3, 0.2, 0.1 up to reaching 0 on the 31 of December. Here many traders may have taken the orders and each would have made a small profit, but on the liquidity provider side, the result is quite bad, it paid 1.5\$ to buy shares of « Yes » which will not be redeemable.
+
+We can see that when the market moves, liquidity providers lose money, it may be compensated by the profit made by the spread (our first example would have required 20 extra trades, 10 in each direction, to compensate for the impermanent loss). An approach which has been taken (by Omen) was to keep some of the profit from the spread. But it only goes so far as the issue is particularly problematic in prediction markets, as unlike other markets (crypto, stocks, commodities), shares of predictions always go to either 1 or 0.
+
+A way to avoid this is to limit to markets where the date the outcome will be known is predetermined, there are few partial insights before this date (sport competitions or elections) and to remove the liquidity just before this date. In this case, there is little risk of revelation loss. Those types of markets have currently been shown to be the most successful at getting liquidity, but this significantly decreases the range of questions prediction markets can be applied on.
+
+We’ll see in the Building Liquidity section how to overcome those issues.

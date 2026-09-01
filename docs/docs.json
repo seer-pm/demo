@@ -1,0 +1,426 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Seer",
+  "description": "Seer is a prediction market platform built on Reality.eth and the Conditional Tokens Framework.",
+  "colors": {
+    "primary": "#9747FF",
+    "light": "#B38FFF",
+    "dark": "#59097E"
+  },
+  "favicon": "/favicon.png",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "/"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/seer-pm/demo"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open app",
+      "href": "https://seer.pm"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/seer-pm/demo",
+      "website": "https://seer.pm"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Whitepaper",
+        "icon": "scroll",
+        "groups": [
+          {
+            "group": "Seer",
+            "pages": [
+              "index"
+            ]
+          },
+          {
+            "group": "Why previous prediction markets failed",
+            "pages": [
+              "whitepaper/why-prediction-markets-failed/a-method-other-than-a-prediction-market-produces-the-best-predictions",
+              "whitepaper/why-prediction-markets-failed/an-article-shows-a-method-over-performing-prediction-market",
+              "whitepaper/why-prediction-markets-failed/its-not-ethical",
+              "whitepaper/why-prediction-markets-failed/regulatory-attacks",
+              "whitepaper/why-prediction-markets-failed/lack-of-liquidity"
+            ],
+            "root": "whitepaper/why-prediction-markets-failed"
+          },
+          {
+            "group": "Seer Solution",
+            "pages": [
+              "whitepaper/seer-solution/seer-dao",
+              "whitepaper/seer-solution/retroactive-public-good-funding",
+              "whitepaper/seer-solution/prediction-market-actors",
+              "whitepaper/seer-solution/the-chicken-and-the-egg-problem",
+              "whitepaper/seer-solution/token-incentives",
+              "whitepaper/seer-solution/information-seekers",
+              "whitepaper/seer-solution/exchange-integration",
+              "whitepaper/seer-solution/liquidity-management",
+              "whitepaper/seer-solution/safe-liquidity-provision",
+              "whitepaper/seer-solution/practical-implementation-amm-and-auctions",
+              "whitepaper/seer-solution/reasoning",
+              "whitepaper/seer-solution/capital-efficency"
+            ],
+            "root": "whitepaper/seer-solution"
+          },
+          {
+            "group": "Applications",
+            "pages": [
+              "whitepaper/applications/political-predictions",
+              "whitepaper/applications/food-and-drugs-market",
+              "whitepaper/applications/macro-studies",
+              "whitepaper/applications/micro-recommendation",
+              "whitepaper/applications/futarchy",
+              "whitepaper/applications/ai-markets"
+            ],
+            "root": "whitepaper/applications"
+          },
+          {
+            "group": "Closing",
+            "pages": [
+              "whitepaper/conclusion",
+              "whitepaper/references"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Documentation",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "documentation/what-is-seer",
+              "documentation/glossary"
+            ]
+          },
+          {
+            "group": "Getting started",
+            "pages": [
+              "getting-started/wallet-and-network",
+              "getting-started/deposit-tokens",
+              {
+                "group": "On Ethereum",
+                "pages": [
+                  "getting-started/deposit-tokens/on-ethereum/deposit-dai",
+                  "getting-started/deposit-tokens/on-ethereum/deposit-sdai"
+                ]
+              },
+              {
+                "group": "On Gnosis",
+                "pages": [
+                  "getting-started/deposit-tokens/on-gnosis/deposit-xdai",
+                  "getting-started/deposit-tokens/on-gnosis/deposit-wxdai-or-sdai"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Using the app",
+            "pages": [
+              "app/navigate-our-site",
+              "app/create-a-market",
+              "app/verify-market",
+              "app/mint-merge-redeem-outcome-tokens",
+              "app/buy-sell-outcome-tokens",
+              "app/report-answer",
+              "app/raise-a-dispute",
+              "app/resolve-market",
+              "app/provide-liquidity",
+              "app/conditional-markets",
+              "app/futarchy-markets"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/audit-reports"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developers",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "developers/introduction",
+              "developers/configuration"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "developers/guides/create-a-market",
+              "developers/guides/resolve-a-market",
+              "developers/guides/split-merge-and-redeem",
+              "developers/guides/conditional-markets",
+              "developers/guides/futarchy-markets",
+              "developers/guides/trading",
+              "developers/guides/collateral-profiles"
+            ]
+          },
+          {
+            "group": "HTTP API",
+            "pages": [
+              "developers/api"
+            ]
+          },
+          {
+            "group": "Diagrams",
+            "pages": [
+              "developers/diagrams/seer-overall-interaction",
+              "developers/diagrams/create-market",
+              "developers/diagrams/split-merge-redeem",
+              "developers/diagrams/question-and-resolve"
+            ]
+          },
+          {
+            "group": "Subgraph",
+            "pages": [
+              "developers/subgraph/overview",
+              "developers/subgraph/query-examples",
+              {
+                "group": "GraphQL query",
+                "pages": [
+                  "developers/subgraph/graphql-query/overview",
+                  "developers/subgraph/graphql-query/market",
+                  "developers/subgraph/graphql-query/swapr",
+                  "developers/subgraph/graphql-query/curate"
+                ]
+              },
+              "developers/subgraph/graphql-schema",
+              "developers/subgraph/subgraph-id"
+            ]
+          },
+          {
+            "group": "Contracts",
+            "pages": [
+              "developers/contracts/deployed-contracts",
+              {
+                "group": "Core",
+                "pages": [
+                  "developers/contracts/core/marketfactory",
+                  "developers/contracts/core/market",
+                  "developers/contracts/core/marketview",
+                  "developers/contracts/core/router",
+                  "developers/contracts/core/gnosisrouter",
+                  "developers/contracts/core/mainnetrouter",
+                  "developers/contracts/core/realityproxy",
+                  "developers/contracts/core/interfaces"
+                ]
+              },
+              {
+                "group": "Futarchy",
+                "pages": [
+                  "developers/contracts/futarchy/futarchyfactory",
+                  "developers/contracts/futarchy/futarchyproposal",
+                  "developers/contracts/futarchy/futarchyrouter",
+                  "developers/contracts/futarchy/futarchyrealityproxy"
+                ]
+              },
+              {
+                "group": "Token",
+                "pages": [
+                  "developers/contracts/token/seer"
+                ]
+              },
+              {
+                "group": "Interaction",
+                "pages": [
+                  {
+                    "group": "1155-to-20",
+                    "pages": [
+                      "developers/contracts/interaction/1155-to-20/wrapped1155factory"
+                    ]
+                  },
+                  {
+                    "group": "Conditional Tokens",
+                    "pages": [
+                      "developers/contracts/interaction/conditional-tokens/erc1155",
+                      "developers/contracts/interaction/conditional-tokens/erc1155/erc1155",
+                      "developers/contracts/interaction/conditional-tokens/erc1155/erc1155tokenreceiver",
+                      "developers/contracts/interaction/conditional-tokens/erc1155/ierc1155",
+                      "developers/contracts/interaction/conditional-tokens/erc1155/ierc1155tokenreceiver",
+                      "developers/contracts/interaction/conditional-tokens/conditionaltokens",
+                      "developers/contracts/interaction/conditional-tokens/cthelpers"
+                    ]
+                  },
+                  {
+                    "group": "Cross-chain Realitio proxy",
+                    "pages": [
+                      "developers/contracts/interaction/cross-chain-realitio-proxy/dependencies/iamb",
+                      "developers/contracts/interaction/cross-chain-realitio-proxy/dependencies/realitiointerface",
+                      "developers/contracts/interaction/cross-chain-realitio-proxy/arbitrationproxyinterfaces",
+                      "developers/contracts/interaction/cross-chain-realitio-proxy/realitioforeignarbitrationproxywithappeals",
+                      "developers/contracts/interaction/cross-chain-realitio-proxy/realitiohomearbitrationproxy"
+                    ]
+                  },
+                  {
+                    "group": "Reality.eth",
+                    "pages": [
+                      "developers/contracts/interaction/reality/realityeth-3.0"
+                    ]
+                  },
+                  {
+                    "group": "sDAI on Gnosis",
+                    "pages": [
+                      "developers/contracts/interaction/sdai-on-gnosis/interfaces/ibridgeinterestreceiver",
+                      "developers/contracts/interaction/sdai-on-gnosis/interfaces/iwxdai",
+                      "developers/contracts/interaction/sdai-on-gnosis/periphery/savingsxdaiadapter",
+                      "developers/contracts/interaction/sdai-on-gnosis/savingsxdai"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "redirects": [
+    {
+      "source": "/introduction-to-seer",
+      "destination": "/"
+    },
+    {
+      "source": "/overview/what-is-seer",
+      "destination": "/documentation/what-is-seer"
+    },
+    {
+      "source": "/overview/glossary",
+      "destination": "/documentation/glossary"
+    },
+    {
+      "source": "/getting-started/navigate-our-site",
+      "destination": "/app/navigate-our-site"
+    },
+    {
+      "source": "/getting-started/navigate-our-site/:slug*",
+      "destination": "/app/:slug*"
+    },
+    {
+      "source": "/getting-started/deposit-tokens/on-ethereum",
+      "destination": "/getting-started/deposit-tokens"
+    },
+    {
+      "source": "/getting-started/deposit-tokens/on-gnosis",
+      "destination": "/getting-started/deposit-tokens"
+    },
+    {
+      "source": "/developers/intro",
+      "destination": "/developers/introduction"
+    },
+    {
+      "source": "/developers/interact-with-seer",
+      "destination": "/developers/configuration"
+    },
+    {
+      "source": "/developers/interact-with-seer/configuration",
+      "destination": "/developers/configuration"
+    },
+    {
+      "source": "/developers/interact-with-seer/api",
+      "destination": "/developers/api"
+    },
+    {
+      "source": "/developers/interact-with-seer/conditional-market",
+      "destination": "/developers/guides/conditional-markets"
+    },
+    {
+      "source": "/developers/interact-with-seer/futarchy-market",
+      "destination": "/developers/guides/futarchy-markets"
+    },
+    {
+      "source": "/developers/interact-with-seer/:slug*",
+      "destination": "/developers/guides/:slug*"
+    },
+    {
+      "source": "/developers/diagrams",
+      "destination": "/developers/diagrams/seer-overall-interaction"
+    },
+    {
+      "source": "/developers/subgraph",
+      "destination": "/developers/subgraph/overview"
+    },
+    {
+      "source": "/developers/contracts",
+      "destination": "/developers/contracts/deployed-contracts"
+    },
+    {
+      "source": "/developers/contracts/futarchy-test/:slug*",
+      "destination": "/developers/contracts/futarchy/:slug*"
+    },
+    {
+      "source": "/other/audit-reports",
+      "destination": "/resources/audit-reports"
+    },
+    {
+      "source": "/reference",
+      "destination": "/whitepaper/references"
+    },
+    {
+      "source": "/why-did-previous-prediction-markets-fail",
+      "destination": "/whitepaper/why-prediction-markets-failed"
+    },
+    {
+      "source": "/why-did-previous-prediction-markets-fail/:slug*",
+      "destination": "/whitepaper/why-prediction-markets-failed/:slug*"
+    },
+    {
+      "source": "/seer-solution/:slug*",
+      "destination": "/whitepaper/seer-solution/:slug*"
+    },
+    {
+      "source": "/seer-solution",
+      "destination": "/whitepaper/seer-solution"
+    },
+    {
+      "source": "/applications/:slug*",
+      "destination": "/whitepaper/applications/:slug*"
+    },
+    {
+      "source": "/applications",
+      "destination": "/whitepaper/applications"
+    },
+    {
+      "source": "/conclusion",
+      "destination": "/whitepaper/conclusion"
+    },
+    {
+      "source": "/prediction-market-basics",
+      "destination": "/app/navigate-our-site"
+    },
+    {
+      "source": "/prediction-market-basics/creating-tokens",
+      "destination": "/app/mint-merge-redeem-outcome-tokens"
+    },
+    {
+      "source": "/prediction-market-basics/redeeming-tokens",
+      "destination": "/app/mint-merge-redeem-outcome-tokens"
+    },
+    {
+      "source": "/prediction-market-basics/trading-tokens",
+      "destination": "/app/buy-sell-outcome-tokens"
+    },
+    {
+      "source": "/prediction-market-basics/scalar-markets",
+      "destination": "/documentation/glossary"
+    }
+  ]
+}

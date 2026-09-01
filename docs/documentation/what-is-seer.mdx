@@ -1,0 +1,32 @@
+---
+title: "What is Seer?"
+---
+Seer is a prediction market platform that leverages [Reality.eth](https://reality.eth.limo/app/docs/html/index.html) and [Conditional Tokens Framework](https://conditional-tokens-docs.netlify.app/docs/introduction1) to create and manage various types of markets. It allows users to create and participate in prediction markets for different events and outcomes.
+
+You can read more about prediction market and Seer solution here: [Introduction to Seer](/)
+
+Github: [https://github.com/seer-pm/demo](https://github.com/seer-pm/demo)
+
+Key Components:
+
+1. Prediction market:
+   * Seer allows users to create prediction market of different types. 
+     1. Categorical Markets: Select one out of multiple outcomes. 
+     2. Multi-Categorical Markets: Similar to categorical market but allowing selection of multiple outcomes. 
+     3. Scalar Markets: Numeric outcome within a specified range.
+     4. Multi-Scalar Markets: Multiple numeric outcomes.
+     5. Futarchy Markets: To make decisions based on a token's predicted price.
+2. Reality.eth Integration:
+   * Seer uses Reality.eth as its oracle system for resolving market outcomes.
+   * Questions are submitted to Reality.eth with specific parameters such as opening time, timeout, and minimum bond.
+   * The system supports multiple question templates, including single-select, multi-select, and numeric (scalar) questions.
+3. Conditional Tokens:
+   * Seer utilizes the Conditional Tokens framework for creating and managing outcome tokens.
+   * Each market condition is prepared using the Conditional Tokens contract.
+   * Outcome tokens are represented as ERC1155 tokens within the Conditional Tokens system.
+4. ERC20 Outcome Tokens:
+   * To improve usability, Seer wraps the ERC1155 outcome tokens into ERC20 tokens.
+   * This allows for easier trading and integration with existing DeFi protocols.
+5. Kleros Court:
+   * Seer uses Kleros to resolve disputes that may arise when answering Reality.eth questions.
+   * It functions as a decentralized arbiter capable of determining the correct answer by applying a set of rules to questions ranging from simple to highly complex.

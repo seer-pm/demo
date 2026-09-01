@@ -1,0 +1,38 @@
+---
+title: "Conditional Markets"
+---
+### Create a conditional market
+
+It is possible to create a new market based on the outcome of an existing market. 
+
+For example, we could have a market asking if Maduro will win the election, and a conditional market asking if Maduro will accept the election results in case of losing. 
+
+There is a "New conditional market" link to each outcome.
+
+<Frame><img src="/images/app/conditional-markets/01-1.png" alt="" /></Frame>
+
+When you click on it, you're directed to the usual market form. However, you'll notice an alert indicating that this is a conditional market, which depends on the outcome of another market.
+
+<Frame><img src="/images/app/conditional-markets/02-2.png" alt="" /></Frame>
+
+You can see the same alert on the market page.
+
+<Frame><img src="/images/app/conditional-markets/03-3.png" alt="" /></Frame>
+
+In conditional markets, you don't use sDAI to place bets. Instead, you must first split or purchase the parent outcome tokens from the main market. In this case, you need to have "No" tokens from the parent market (**Will Maduro win the election?**)
+
+### Nested conditional markets
+
+You can create a conditional market based on another conditional market and interact with it as you would with any market.
+
+### Mint, merge conditional outcome tokens
+
+The process is largely the same [as with a simple market](/app/mint-merge-redeem-outcome-tokens). However, instead of using sDAI (or xDAI) to mint conditional outcome tokens and receiving sDAI (or xDAI) when merging those tokens, you will use parent outcome tokens from the main market.
+
+### Resolve conditional market and redeem conditional outcome tokens
+
+You would resolve the market [as normal](/app/resolve-market). However, after a conditional market is resolved, instead of redeeming sDAI (or xDAI), you will redeem parent outcome tokens, which can then be used to redeem in parent market.
+
+<Warning>
+Conditional markets are dependent on their parent market's outcome. If the parent market resolves to an outcome different from the one assumed by the child market, then the child market and all markets nested under it become obsolete, meaning your outcome tokens will redeem for zero.
+</Warning>

@@ -1,0 +1,40 @@
+---
+title: "Intro"
+---
+[https://github.com/seer-pm/demo/tree/main](https://github.com/seer-pm/demo/tree/main)
+
+### Actors and actions
+
+1. Market Creator:
+   * Action: Initiates the creation of a new prediction market.
+   * Can be performed by: Any address.
+2. Token Holder:
+   * Action: Interacts with `Router` to split and merge outcome tokens, as well as redeeming them upon market resolution. Buys and sells outcome tokens on a third-party decentralized exchange (DEX).
+   * Can be performed by: Any address with sufficient collateral/outcome tokens.
+3. Liquidity Provider:
+   * Action: Provides initial liquidity to the market by splitting positions and adding liquidity to a DEX.
+   * Can be performed by: Any address with sufficient collateral/outcome tokens.
+4. Answerer:
+   * Action: Provides answers to the market questions or challenges provided answers if believed to be incorrect.
+   * Can be performed by: Any address meeting the criteria set by the question (current bond required to submit an answer or arbitration fee for raising a dispute).
+5. Market Resolver:
+   * Action: Resolves the market by calling `Market.resolve()` or `RealityProxy.resolve(market)` after the reality questions are finalized.
+   * Can be performed by: Any address, as long as the questions are finalized.
+
+### Seer contracts
+
+1. MarketFactory: Creates new prediction markets.
+2. Market: Represents an individual prediction market.
+3. MarketView: Contains convenient view functions to retrieve information of one or more markets
+4. Router: Handles splitting, merging, and redeeming of positions.
+5. GnosisRouter: Router implementation with functions to use xDAI to split, merge and redeem outcome tokens on Gnosis Chain.
+6. MainnetRouter: Router implementation with functions to use DAI to split, merge and redeem outcome tokens on Ethereum Mainnet.
+7. RealityProxy: Resolves the market based on the answer provided.
+
+### External services
+
+1. Third-Party Decentralized Exchange: Facilitates trading of outcome tokens.
+2. Kleros: Handles arbitration in case of disputes.
+3. Reality: Oracle system for resolving market outcomes.
+4. ConditionalTokens: Creates and manages outcome tokens.
+5. Wrapped1155Factory: Wraps ERC1155 tokens to ERC20 tokens.

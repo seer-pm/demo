@@ -1,0 +1,126 @@
+---
+title: "MainnetRouter"
+---
+Router implementation with functions to interact with DAI on Ethereum Mainnet.
+
+## Variables
+
+### DAI
+
+```solidity
+contract IERC20 DAI
+```
+
+*DAI address.*
+
+### sDAI
+
+```solidity
+contract SavingsDai sDAI
+```
+
+*SavingsDai address.*
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IConditionalTokens _conditionalTokens, contract IWrapped1155Factory _wrapped1155Factory) public
+```
+
+*Constructor.*
+
+**Parameters**
+
+| Name                 | Type                         | Description                  |
+| -------------------- | ---------------------------- | ---------------------------- |
+| \_conditionalTokens  | contract IConditionalTokens  | Conditional Tokens contract. |
+| \_wrapped1155Factory | contract IWrapped1155Factory | Wrapped1155Factory contract. |
+
+### splitFromDai
+
+```solidity
+function splitFromDai(contract Market market, uint256 amount) external
+```
+
+Splits a position using DAI and sends the ERC20 outcome tokens back to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.*
+
+**Parameters**
+
+| Name   | Type            | Description                        |
+| ------ | --------------- | ---------------------------------- |
+| market | contract Market | The Market to split.               |
+| amount | uint256         | The amount of collateral to split. |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+
+**Logic**
+
+1. Transfer DAI from the user to `MainnetRouter`, which will be converted to Savings DAI (sDAI).
+2. Call `conditionalTokens.splitPosition`  to transfer sDAI from`MainnetRouter` to `ConditionalTokens`, while minting corresponding ERC1155 outcome tokens to `MainnetRouter`.
+3. Transfer ERC1155 outcome tokens from `MainnetRouter` to `Wrapped1155Factory` contract. There is a callback function in `Wrapped1155Factory` that will wrap the tokens into ERC20 tokens, then transfer the wrapped tokens back to the original user.
+
+### mergeToDai
+
+```solidity
+function mergeToDai(contract Market market, uint256 amount) external
+```
+
+Merges positions and sends DAI to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.*
+
+**Parameters**
+
+| Name   | Type            | Description                            |
+| ------ | --------------- | -------------------------------------- |
+| market | contract Market | The Market to merge.                   |
+| amount | uint256         | The amount of outcome tokens to merge. |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have \&lt;amount&gt; ERC20 tokens of all the outcomes of a market. For example, to call `mergeToDai` of a market with 3 outcomes: Yes, No, Invalid, the caller must have \&lt;amount&gt; tokens for each outcome.
+
+**Logic**
+
+Merging positions does precisely the opposite of what splitting a position does. 
+
+1. Unwraps ERC20 outcome tokens (which will burn these tokens and transfer corresponding ERC1155 outcome tokens tokens back to the `Router` contract). 
+2. Call `conditionalTokens.mergePositions` to burn ERC1155 outcome tokens.
+3. Return sDAI to `MainnetRouter` , which will then be converted to DAI and sent to the user.
+
+### redeemToDai
+
+```solidity
+function redeemToDai(contract Market market, uint256[] outcomeIndexes, uint256[] amounts) external
+```
+
+Redeems positions and sends DAI to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.*
+
+**Parameters**
+
+| Name           | Type            | Description                          |
+| -------------- | --------------- | ------------------------------------ |
+| market         | contract Market | The Market to redeem.                |
+| outcomeIndexes | uint256\[]      | The index of the outcomes to redeem. |
+| amounts        | uint256\[]      | Amount to redeem of each outcome.    |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have ERC20 tokens of the outcomes they want to redeem. For example, to call `redeemToDai` for outcome Yes of a market with 3 outcomes: Yes, No, Invalid, the caller must have Yes tokens. (The call will still be processed even if the caller does not have tokens, but it will have no effect).
+3. `conditionalTokens.reportPayouts` has been called by an oracle.
+
+**Logic**
+
+1. Unwraps ERC20 outcome tokens (which will burn these tokens and transfer corresponding ERC1155 outcome tokens back to the `MainnetRouter` contract). 
+2. Call `conditionalTokens.redeemPositions` to burn ERC1155 outcome tokens.
+3. Return sDAI to `MainnetRouter` . `MainnetRouter` will calculate the sDAI difference before and after redeeming, which will then be converted to DAI and sent to the user.

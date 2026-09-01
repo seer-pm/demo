@@ -1,0 +1,65 @@
+---
+title: "CTHelpers"
+---
+## Variables
+
+### P
+
+```solidity
+uint256 P
+```
+
+### B
+
+```solidity
+uint256 B
+```
+
+## Functions
+
+### getConditionId
+
+```solidity
+function getConditionId(address oracle, bytes32 questionId, uint256 outcomeSlotCount) internal pure returns (bytes32)
+```
+
+*Constructs a condition ID from an oracle, a question ID, and the outcome slot count for the question.*
+
+**Parameters**
+
+| Name             | Type    | Description                                                                               |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------- |
+| oracle           | address | The account assigned to report the result for the prepared condition.                     |
+| questionId       | bytes32 | An identifier for the question to be answered by the oracle.                              |
+| outcomeSlotCount | uint256 | The number of outcome slots which should be used for this condition. Must not exceed 256. |
+
+### getCollectionId
+
+```solidity
+function getCollectionId(bytes32 parentCollectionId, bytes32 conditionId, uint256 indexSet) internal view returns (bytes32)
+```
+
+*Constructs an outcome collection ID from a parent collection and an outcome collection.*
+
+**Parameters**
+
+| Name               | Type    | Description                                                                           |
+| ------------------ | ------- | ------------------------------------------------------------------------------------- |
+| parentCollectionId | bytes32 | Collection ID of the parent outcome collection, or bytes32(0) if there's no parent.   |
+| conditionId        | bytes32 | Condition ID of the outcome collection to combine with the parent outcome collection. |
+| indexSet           | uint256 | Index set of the outcome collection to combine with the parent outcome collection.    |
+
+### getPositionId
+
+```solidity
+function getPositionId(contract IERC20 collateralToken, bytes32 collectionId) internal pure returns (uint256)
+```
+
+*Constructs a position ID from a collateral token and an outcome collection. These IDs are used as the ERC-1155 ID for this contract.*
+
+**Parameters**
+
+| Name            | Type            | Description                                                 |
+| --------------- | --------------- | ----------------------------------------------------------- |
+| collateralToken | contract IERC20 | Collateral token which backs the position.                  |
+| collectionId    | bytes32         | ID of the outcome collection associated with this position. |

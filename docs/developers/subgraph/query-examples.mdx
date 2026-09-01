@@ -1,0 +1,128 @@
+---
+title: "Query Examples"
+---
+Here are some example queries to interact with Seer and third-party subgraphs. You can fetch data points like:
+
+* prediction markets you created
+* current liquidity of a pool
+* current prices for tokens in your portfolio
+
+and much more. To run a query, copy and paste it into the graph explorer. You can access the graph explorer url by replacing **\{subgraph-id\}** with the [actual subgraph id](/developers/subgraph/subgraph-id).
+
+Graph Explorer Url:
+
+```
+https://thegraph.com/explorer/subgraphs/{subgraph-id}
+```
+
+## Market Data
+
+To query market data you need to use [Seer Subgraph](https://thegraph.com/explorer/subgraphs/B4vyRqJaSHD8dRDb3BFRoAzuBK18c1QQcXq94JbxDxWH).
+
+You can choose to query multiple markets or a specific market by providing a market id.
+
+### Query markets
+
+To query the first 5 markets:
+
+```graphql
+{
+  markets(first: 5) {
+    id
+    factory
+    creator
+    marketName
+  }
+}
+```
+
+### Query a market
+
+To query a single market:
+
+```graphql
+{
+  market(id: "0x034a47d592c2456a0fa94df3fa1f21af421ec07d") {
+    id
+    factory
+    creator
+    marketName
+  }
+}
+```
+
+## Liquidity and price data
+
+To query liquidity and price data you need to use [Algebra Subgraph](https://thegraph.com/explorer/subgraphs/AAA1vYjxwFHzbt6qKwLHNcDSASyr1J1xVViDH8gTMFMR).
+
+Currently, Seer is using Swapr to create and provide liquidity for trading pools. Behind the scenes, Swapr uses Algebra and Algebra Subgraph, for which you can find the documentation [here](https://docs.algebra.finance/). Inside the docs you can find more information about Algebra Subgraph schemas, queries, and other related topics.
+
+### Query pools and liquidity
+
+To query multiple pools with liquidity information:
+
+&lt;pre&gt;&lt;code&gt;\{
+  pools(first:10, skip:5)\{
+    id
+<strong>    liquidity
+</strong>    sqrtPrice
+    token0 \{
+      id
+      symbol
+    \}
+    token1 \{
+      id
+      symbol
+    \}
+  \}
+\}
+&lt;/code&gt;&lt;/pre&gt;
+
+You may notice that we use skip here to get 10 pools after the first 5.
+
+### Query price changes over a certain period
+
+Every time the prices of a pool change, a record of `PoolHourData` is registered. You can query for these records and filter a specific time range using `periodStartUnix_lt` and `periodStartUnix_gt`.
+
+The following query retrieves the first 5 `PoolHourData` records from September 1, 2024, between 00:00 and 10:00 UTC:
+
+```graphql
+{
+  poolHourDatas(first: 5, where: {periodStartUnix_gt: 1725148800, periodStartUnix_lt: 1725184800}) {
+    token0Price
+    token1Price
+    pool {
+      id
+      token0 {
+        id
+        name
+      }
+      token1 {
+        id
+        name
+      }
+    }
+  }
+}
+```
+
+## Curate Data
+
+To query curate data you need to use [Curate Subgraph](https://thegraph.com/explorer/subgraphs/2hP3hyWreJSK8uvYwC4WMKi2qFXbPcnp7pCx7EzW24sp).
+
+Prediction markets on Seer can go through a [curation process](https://docs.kleros.io/products/curate) where you can submit images to help verify the legitimacy of a market. Each time a market enters the verification process, an LItem is created in the curate subgraph. Here, you can find information about the requester and links to market images.
+
+To query for LItems:
+
+```graphql
+{
+  litems(first:5){
+    itemID
+    status
+    registryAddress
+    key0
+    data
+    latestRequester
+  }
+}
+```

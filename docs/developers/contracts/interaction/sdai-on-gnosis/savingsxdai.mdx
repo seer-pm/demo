@@ -1,0 +1,113 @@
+---
+title: "SavingsXDai"
+---
+## Variables
+
+### wxdai
+
+```solidity
+contract IWXDAI wxdai
+```
+
+### deploymentChainId
+
+```solidity
+uint256 deploymentChainId
+```
+
+### PERMIT\_TYPEHASH
+
+```solidity
+bytes32 PERMIT_TYPEHASH
+```
+
+### VERSION
+
+```solidity
+string VERSION
+```
+
+## Errors
+
+### ERC2612ExpiredSignature
+
+```solidity
+error ERC2612ExpiredSignature(uint256 deadline)
+```
+
+*Permit deadline has expired.*
+
+### ERC2612InvalidSigner
+
+```solidity
+error ERC2612InvalidSigner(address signer, address owner)
+```
+
+*Mismatched signature.*
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(string _name, string _ticker) public
+```
+
+*Set the underlying asset contract. This must be an ERC20-compatible contract (ERC20 or ERC777).*
+
+### receive
+
+```solidity
+receive() external payable
+```
+
+### \_isValidSignature
+
+```solidity
+function _isValidSignature(address signer, bytes32 digest, bytes signature) internal view returns (bool)
+```
+
+### permit
+
+```solidity
+function permit(address owner, address spender, uint256 value, uint256 deadline, bytes signature) public
+```
+
+### permit
+
+```solidity
+function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external
+```
+
+\_Sets `value` as the allowance of `spender` over `owner`'s tokens, given `owner`'s signed approval.
+
+IMPORTANT: The same issues \{IERC20-approve\} has related to transaction ordering also apply here.
+
+Emits an \{Approval\} event.
+
+Requirements:
+
+* `spender` cannot be the zero address.
+* `deadline` must be a timestamp in the future.
+* `v`, `r` and `s` must be a valid `secp256k1` signature from `owner` over the EIP712-formatted function arguments.
+* the signature must use `owner`'s current nonce (see \{nonces\}).
+
+For more information on the signature format, see the [https://eips.ethereum.org/EIPS/eip-2612#specification\\[relevant](https://eips.ethereum.org/EIPS/eip-2612#specification\\[relevant) EIP section].
+
+CAUTION: See Security Considerations above.\_
+
+### nonces
+
+```solidity
+function nonces(address owner) public view virtual returns (uint256)
+```
+
+*See \{IERC20Permit-nonces\}.*
+
+### DOMAIN\_SEPARATOR
+
+```solidity
+function DOMAIN_SEPARATOR() external view virtual returns (bytes32)
+```
+
+*See \{IERC20Permit-DOMAIN\_SEPARATOR\}.*

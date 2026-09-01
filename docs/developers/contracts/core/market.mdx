@@ -1,0 +1,296 @@
+---
+title: "Market"
+---
+The market contract represents a single prediction market and is initialized in [MarketFactory](/developers/contracts/core/marketfactory).
+
+## Variables
+
+### initialized
+
+```solidity
+bool initialized
+```
+
+*Flag to initialize the market only once.*
+
+### RealityParams
+
+*Contains the information associated to Reality.*
+
+```solidity
+struct RealityParams {
+  bytes32[] questionsIds;
+  uint256 templateId;
+  string[] encodedQuestions;
+}
+```
+
+### ConditionalTokensParams
+
+*Contains the information associated to Conditional Tokens.*
+
+```solidity
+struct ConditionalTokensParams {
+  bytes32 conditionId;
+  bytes32 parentCollectionId;
+  uint256 parentOutcome;
+  address parentMarket;
+  bytes32 questionId;
+  contract IERC20[] wrapped1155;
+  bytes[] data;
+}
+```
+
+### marketName
+
+```solidity
+string marketName
+```
+
+*The name of the market.*
+
+### outcomes
+
+```solidity
+string[] outcomes
+```
+
+*The market outcomes, doesn't include the INVALID\_RESULT outcome.*
+
+### lowerBound
+
+```solidity
+uint256 lowerBound
+```
+
+*Lower bound, only used for scalar markets.*
+
+### upperBound
+
+```solidity
+uint256 upperBound
+```
+
+*Upper bound, only used for scalar markets.*
+
+### conditionalTokensParams
+
+```solidity
+struct Market.ConditionalTokensParams conditionalTokensParams
+```
+
+*Conditional Tokens parameters.*
+
+### realityParams
+
+```solidity
+struct Market.RealityParams realityParams
+```
+
+*Reality parameters.*
+
+### realityProxy
+
+```solidity
+contract RealityProxy realityProxy
+```
+
+*Oracle contract.*
+
+## Functions
+
+### initialize
+
+```solidity
+function initialize(string _marketName, string[] _outcomes, uint256 _lowerBound, uint256 _upperBound, struct Market.ConditionalTokensParams _conditionalTokensParams, struct Market.RealityParams _realityParams, contract RealityProxy _realityProxy) external
+```
+
+*Initializer.*
+
+**Parameters**
+
+| Name                      | Type                                  | Description                                                       |
+| ------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| \_marketName              | string                                | The name of the market.                                           |
+| \_outcomes                | string\[]                             | The market outcomes, doesn't include the INVALID\_RESULT outcome. |
+| \_lowerBound              | uint256                               | Lower bound, only used for scalar markets.                        |
+| \_upperBound              | uint256                               | Upper bound, only used for scalar markets.                        |
+| \_conditionalTokensParams | struct Market.ConditionalTokensParams | Conditional Tokens params.                                        |
+| \_realityParams           | struct Market.RealityParams           | Reality params.                                                   |
+| \_realityProxy            | contract RealityProxy                 | Oracle contract.                                                  |
+
+### templateId
+
+```solidity
+function templateId() external view returns (uint256)
+```
+
+*The templateId associated to the Reality question.*
+
+**Return Values**
+
+| Name | Type    | Description      |
+| ---- | ------- | ---------------- |
+| \[0] | uint256 | The template id. |
+
+### questionsIds
+
+```solidity
+function questionsIds() external view returns (bytes32[])
+```
+
+*Returns the Reality questions ids. Multi Scalar markets have one question for each outcome, while any other market has only one question.*
+
+**Return Values**
+
+| Name | Type       | Description                |
+| ---- | ---------- | -------------------------- |
+| \[0] | bytes32\[] | The Reality questions ids. |
+
+### encodedQuestions
+
+```solidity
+function encodedQuestions(uint256 index) external view returns (string)
+```
+
+*Encoded questions parameters, needed to create and reopen a question.*
+
+**Parameters**
+
+| Name  | Type    | Description         |
+| ----- | ------- | ------------------- |
+| index | uint256 | The question index. |
+
+**Return Values**
+
+| Name | Type   | Description           |
+| ---- | ------ | --------------------- |
+| \[0] | string | The encoded question. |
+
+### questionId
+
+```solidity
+function questionId() external view returns (bytes32)
+```
+
+*Conditional Tokens questionId.*
+
+**Return Values**
+
+| Name | Type    | Description      |
+| ---- | ------- | ---------------- |
+| \[0] | bytes32 | the question ID. |
+
+### conditionId
+
+```solidity
+function conditionId() external view returns (bytes32)
+```
+
+*Conditional Tokens conditionId.*
+
+**Return Values**
+
+| Name | Type    | Description       |
+| ---- | ------- | ----------------- |
+| \[0] | bytes32 | The condition ID. |
+
+### parentCollectionId
+
+```solidity
+function parentCollectionId() external view returns (bytes32)
+```
+
+*Conditional Tokens parentCollectionId.*
+
+**Return Values**
+
+| Name | Type    | Description               |
+| ---- | ------- | ------------------------- |
+| \[0] | bytes32 | The parent collection ID. |
+
+### parentMarket
+
+```solidity
+function parentMarket() external view returns (address)
+```
+
+*The parent market (optional). This market redeems to an outcome token of the parent market.*
+
+**Return Values**
+
+| Name | Type    | Description                |
+| ---- | ------- | -------------------------- |
+| \[0] | address | The parent market address. |
+
+### parentOutcome
+
+```solidity
+function parentOutcome() external view returns (uint256)
+```
+
+*The parent outcome (optional). The parent market's outcome token this market redeems for.*
+
+**Return Values**
+
+| Name | Type    | Description               |
+| ---- | ------- | ------------------------- |
+| \[0] | uint256 | The parent outcome index. |
+
+### wrappedOutcome
+
+```solidity
+function wrappedOutcome(uint256 index) external view returns (contract IERC20 wrapped1155, bytes data)
+```
+
+*Returns the wrapped1155 and the data corresponding to an outcome token.*
+
+**Parameters**
+
+| Name  | Type    | Description        |
+| ----- | ------- | ------------------ |
+| index | uint256 | The outcome index. |
+
+**Return Values**
+
+| Name        | Type            | Description        |
+| ----------- | --------------- | ------------------ |
+| wrapped1155 | contract IERC20 | The wrapped token. |
+| data        | bytes           | The token data.    |
+
+### parentWrappedOutcome
+
+```solidity
+function parentWrappedOutcome() external view returns (contract IERC20 wrapped1155, bytes data)
+```
+
+*Returns the wrapped1155 and the data corresponding to the parent market.*
+
+**Return Values**
+
+| Name        | Type            | Description        |
+| ----------- | --------------- | ------------------ |
+| wrapped1155 | contract IERC20 | The wrapped token. |
+| data        | bytes           | The token data.    |
+
+### numOutcomes
+
+```solidity
+function numOutcomes() external view returns (uint256)
+```
+
+*Returns the number of outcomes. Doesn't include the INVALID\_RESULT outcome.*
+
+**Return Values**
+
+| Name | Type    | Description             |
+| ---- | ------- | ----------------------- |
+| \[0] | uint256 | The number of outcomes. |
+
+### resolve
+
+```solidity
+function resolve() external
+```
+
+*Helper function to resolve the market.*

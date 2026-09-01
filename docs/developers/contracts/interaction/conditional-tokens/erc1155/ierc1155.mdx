@@ -1,0 +1,66 @@
+---
+title: "IERC1155"
+---
+## Events
+
+### TransferSingle
+
+```solidity
+event TransferSingle(address operator, address from, address to, uint256 id, uint256 value)
+```
+
+### TransferBatch
+
+```solidity
+event TransferBatch(address operator, address from, address to, uint256[] ids, uint256[] values)
+```
+
+### ApprovalForAll
+
+```solidity
+event ApprovalForAll(address owner, address operator, bool approved)
+```
+
+### URI
+
+```solidity
+event URI(string value, uint256 id)
+```
+
+## Functions
+
+### balanceOf
+
+```solidity
+function balanceOf(address owner, uint256 id) public view returns (uint256)
+```
+
+### balanceOfBatch
+
+```solidity
+function balanceOfBatch(address[] owners, uint256[] ids) public view returns (uint256[])
+```
+
+### setApprovalForAll
+
+```solidity
+function setApprovalForAll(address operator, bool approved) external
+```
+
+### isApprovedForAll
+
+```solidity
+function isApprovedForAll(address owner, address operator) external view returns (bool)
+```
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data) external
+```
+
+### safeBatchTransferFrom
+
+```solidity
+function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[] values, bytes data) external
+```

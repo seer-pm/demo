@@ -1,0 +1,272 @@
+---
+title: "Router"
+---
+The Router contract replicates the main Conditional Tokens functions, but allowing to work with ERC20 outcomes instead of the ERC1155.
+
+## Variables
+
+### conditionalTokens
+
+```solidity
+contract IConditionalTokens conditionalTokens
+```
+
+*Conditional Tokens contract.*
+
+### wrapped1155Factory
+
+```solidity
+contract IWrapped1155Factory wrapped1155Factory
+```
+
+*Wrapped1155Factory contract.*
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IConditionalTokens _conditionalTokens, contract IWrapped1155Factory _wrapped1155Factory) public
+```
+
+*Constructor.*
+
+**Parameters**
+
+| Name                 | Type                         | Description                  |
+| -------------------- | ---------------------------- | ---------------------------- |
+| \_conditionalTokens  | contract IConditionalTokens  | Conditional Tokens contract. |
+| \_wrapped1155Factory | contract IWrapped1155Factory | Wrapped1155Factory contract. |
+
+### splitPosition
+
+```solidity
+function splitPosition(contract IERC20 collateralToken, contract Market market, uint256 amount) public
+```
+
+Transfers the collateral to the Router, splits the position and sends the ERC20 outcome tokens back to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory. Collateral tokens are deposited only if we are not splitting a deep position (market.parentCollectionId is bytes32(0)).*
+
+**Parameters**
+
+| Name            | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| collateralToken | contract IERC20 | The address of the ERC20 used as collateral. |
+| market          | contract Market | The Market to split.                         |
+| amount          | uint256         | The amount of collateral to split.           |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have \&lt;amount&gt; collateral tokens or ERC20 parent outcome tokens (in the case `market.parentCollectionId` is not null).
+
+**Logic**
+
+When `market.parentCollectionId` is null:
+
+1. Transfer \&lt;amount&gt; collateral from the user to `Router`.
+2. Call `conditionalTokens.splitPosition`  to transfer \&lt;amount&gt; collateral from `Router` to `ConditionalTokens`, while minting corresponding ERC1155 outcome tokens to `Router`.
+
+When `market.parentCollectionId` is not null:
+
+1. Unwrap ERC20 parent outcome tokens back to ERC1155 tokens.
+2. Call `conditionalTokens.splitPosition`  to transfer ERC1155 parent outcome tokens from `Router` to `ConditionalTokens`, burning them while minting corresponding conditional outcome tokens to `Router`.
+
+Step 3 is the same in both cases:
+
+3. Transfer ERC1155 outcome tokens from `Router` to `Wrapped1155Factory` contract. There is a callback function in `Wrapped1155Factory` that will wrap the tokens into ERC20 tokens, then transfer the wrapped tokens back to the original user.
+
+### \_splitPosition
+
+```solidity
+function _splitPosition(contract IERC20 collateralToken, contract Market market, uint256 amount) internal
+```
+
+Splits a position and sends the ERC20 outcome tokens to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.*
+
+**Parameters**
+
+| Name            | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| collateralToken | contract IERC20 | The address of the ERC20 used as collateral. |
+| market          | contract Market | The Market to split.                         |
+| amount          | uint256         | The amount of collateral to split.           |
+
+### mergePositions
+
+```solidity
+function mergePositions(contract IERC20 collateralToken, contract Market market, uint256 amount) public
+```
+
+Merges positions and sends the collateral tokens to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory. Collateral tokens are withdrawn only if we are not merging a deep position (market.parentCollectionId is bytes32(0)).*
+
+**Parameters**
+
+| Name            | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| collateralToken | contract IERC20 | The address of the ERC20 used as collateral. |
+| market          | contract Market | The Market to merge.                         |
+| amount          | uint256         | The amount of outcome tokens to merge.       |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have \&lt;amount&gt; ERC20 tokens of all the outcomes of a market. For example, to call `mergePositions` of a market with 3 outcomes: Yes, No, Invalid, the caller must have \&lt;amount&gt; tokens for each outcome.
+
+**Logic**
+
+Merging positions does precisely the opposite of what splitting a position does. 
+
+1. Unwraps ERC20 outcome tokens (which will burn these tokens and transfer corresponding ERC1155 outcome tokens back to the `Router` contract). 
+2. Call `conditionalTokens.mergePositions` to burn ERC1155 outcome tokens. Then:
+
+When `market.parentCollectionId` is null:
+
+3. Return collateral to `Router` , which will then be sent to the user.
+
+When `market.parentCollectionId` is not null:
+
+3. `conditionalTokens` will mint ERC1155 parent outcome tokens and send to `Router`. `Router` will wrap these tokens to ERC20 and send to the user.
+
+### \_mergePositions
+
+```solidity
+function _mergePositions(contract IERC20 collateralToken, contract Market market, uint256 amount) internal
+```
+
+Merges positions and receives the collateral tokens.
+
+*Callers to this function must send the collateral to the user.*
+
+**Parameters**
+
+| Name            | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| collateralToken | contract IERC20 | The address of the ERC20 used as collateral. |
+| market          | contract Market | The Market to merge.                         |
+| amount          | uint256         | The amount of outcome tokens to merge.       |
+
+### redeemPositions
+
+```solidity
+function redeemPositions(contract IERC20 collateralToken, contract Market market, uint256[] outcomeIndexes, uint256[] amounts) public
+```
+
+Redeems positions and sends the collateral tokens to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory. Collateral tokens are withdrawn only if we are not redeeming a deep position (parentCollectionId is bytes32(0)).*
+
+**Parameters**
+
+| Name            | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| collateralToken | contract IERC20 | The address of the ERC20 used as collateral. |
+| market          | contract Market | The Market to redeem.                        |
+| outcomeIndexes  | uint256\[]      | The index of the outcomes to redeem.         |
+| amounts         | uint256\[]      | Amount to redeem of each outcome.            |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have ERC20 tokens of the outcomes they want to redeem. For example, to call `redeemPositions` for outcome Yes of a market with 3 outcomes: Yes, No, Invalid, the caller must have Yes tokens. (The call will still be processed even if the caller does not have tokens, but it will have no effect).
+3. `conditionalTokens.reportPayouts` has been called by an oracle.
+
+**Logic**
+
+1. Unwraps ERC20 outcome tokens (which will burn these tokens and transfer corresponding ERC1155 outcome tokens back to the `Router` contract). 
+2. Call `conditionalTokens.redeemPositions` to burn ERC1155 outcome tokens. Then:
+
+When `market.parentCollectionId` is null:
+
+3. Return collateral to `Router` .  The return amount is in proportion to the `ConditionalTokens` payouts. `Router` will calculate the collateral difference before and after redeeming and transfer the difference to the user.
+
+When `market.parentCollectionId` is not null:
+
+3. `conditionalTokens` will mint ERC1155 parent outcome tokens and send to `Router`. The amount is in proportion to the `ConditionalTokens` payouts. `Router` will calculate the ERC1155 outcome tokens difference before and after redeeming, wrap the difference to ERC20 and send to the user.
+
+### \_redeemPositions
+
+```solidity
+function _redeemPositions(contract IERC20 collateralToken, contract Market market, uint256[] outcomeIndexes, uint256[] amounts) internal
+```
+
+Redeems positions and receives the collateral tokens.
+
+*Callers to this function must send the collateral to the user.*
+
+**Parameters**
+
+| Name            | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| collateralToken | contract IERC20 | The address of the ERC20 used as collateral. |
+| market          | contract Market | The Market to redeem.                        |
+| outcomeIndexes  | uint256\[]      | The index of the outcomes to redeem.         |
+| amounts         | uint256\[]      | Amount to redeem of each outcome.            |
+
+### getPartition
+
+```solidity
+function getPartition(uint256 size) internal pure returns (uint256[])
+```
+
+*Returns a partition containing the full set of outcomes.*
+
+**Parameters**
+
+| Name | Type    | Description              |
+| ---- | ------- | ------------------------ |
+| size | uint256 | Number of outcome slots. |
+
+**Return Values**
+
+| Name | Type       | Description                                        |
+| ---- | ---------- | -------------------------------------------------- |
+| \[0] | uint256\[] | The partition containing the full set of outcomes. |
+
+### getTokenId
+
+```solidity
+function getTokenId(contract IERC20 collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256 indexSet) public view returns (uint256)
+```
+
+Constructs a tokenId from a collateral token and an outcome collection.
+
+**Parameters**
+
+| Name               | Type            | Description                                                                        |
+| ------------------ | --------------- | ---------------------------------------------------------------------------------- |
+| collateralToken    | contract IERC20 | The address of the ERC20 used as collateral.                                       |
+| parentCollectionId | bytes32         | The Conditional Tokens parent collection id.                                       |
+| conditionId        | bytes32         | The id of the condition used to redeem.                                            |
+| indexSet           | uint256         | Index set of the outcome collection to combine with the parent outcome collection. |
+
+**Return Values**
+
+| Name | Type    | Description   |
+| ---- | ------- | ------------- |
+| \[0] | uint256 | The token id. |
+
+### getWinningOutcomes
+
+```solidity
+function getWinningOutcomes(bytes32 conditionId) external view returns (bool[])
+```
+
+Helper function used to know the redeemable outcomes associated to a conditionId.
+
+**Parameters**
+
+| Name        | Type    | Description              |
+| ----------- | ------- | ------------------------ |
+| conditionId | bytes32 | The id of the condition. |
+
+**Return Values**
+
+| Name | Type    | Description                                                                       |
+| ---- | ------- | --------------------------------------------------------------------------------- |
+| \[0] | bool\[] | An array of outcomes where a true value indicates that the outcome is redeemable. |

@@ -1,0 +1,136 @@
+---
+title: "Glossary"
+---
+## Prediction Market
+
+### Prediction Market
+
+A prediction market is a market where participants can buy shares of future outcomes. For example, we could have a market « Who will win the 2028 presidential election? » with shares of « Joe Biden », « Donald Trump », « Someone else ». A share can be redeemed for 1\$ if the event happens (so after the election, a share of « Joe Biden » will be worth 1\$ if Biden is re-elected, 0\$ otherwise).
+
+### Scalar Market
+
+A type of prediction market that allows participants to bet on a continuous range of outcomes rather than discrete options. Scalar markets are used to predict numerical values or ranges, such as price levels, temperatures, or percentages.
+
+Unlike categorical markets where payouts are all-or-nothing, scalar markets offer proportional payouts. They work by establishing a \[min, max] range and creating DOWN and UP tokens. If the outcome is at or below the minimum, DOWN tokens are fully redeemed. If the outcome is at or above the maximum, UP tokens are fully redeemed. For outcomes within the range, both token types are partially redeemed, with the proportion based on where the outcome falls within the range.
+
+### Conditional Market
+
+A type of prediction market where the outcome is dependent on another event occurring. For example, "Who will win the Democratic nomination if Joe Biden doesn't run?" This market would only resolve if Joe Biden indeed doesn't run for re-election.
+
+### Parent Market
+
+The market on which the conditional market is dependent.
+
+## Market Concepts
+
+### Collateral
+
+The asset (usually stablecoin) used to back the value of outcome tokens in a prediction market. Collateral ensures that winners can be paid out when the market resolves.
+
+### Outcome
+
+A possible result or consequence of a specific event or situation that is being predicted in a prediction market. For example, possible outcomes for the 2028 presidential election would be "Joe Biden," "Donald Trump," or "Someone else."
+
+### Invalid Outcome
+
+An invalid outcome occurs when a prediction market cannot be resolved as initially specified, often due to unforeseen circumstances or ambiguities in the market question. This outcome is automatically considered for all markets on the Seer platform to account for situations where none of the predefined outcomes accurately represent the actual result.
+
+### Opening Date
+
+The earliest date the market can settle and the time after which the market is to be invalid if the outcome is still unknown.
+
+### Oracle
+
+In the context of blockchain technology, an oracle is a trusted third-party service or mechanism that provides external data to smart contracts. They act as a bridge between the blockchain and real-world data sources. For prediction markets, oracles supply the information needed to resolve markets accurately (answer market questions), ensuring that market outcomes are determined based on reliable and verifiable information.
+
+### Position
+
+A trader's financial stake in a particular outcome or set of outcomes within a prediction market. A position represents the exposure a participant has to potential gains or losses based on the market's resolution.
+
+### Portfolio
+
+A collection of positions held by a trader across one or multiple prediction markets.
+
+### Resolution Dispute
+
+A situation that arises when there is disagreement or uncertainty about the correct resolution of a prediction market.  Resolution disputes require intervention from a predefined dispute resolution mechanism to determine the final outcome and ensure fair settlement of the market.
+
+## Market tokens
+
+### Outcome Token
+
+A digital asset representing a specific outcome in a prediction market. Each token corresponds to a particular result and can be bought, sold, or traded by participants. The value of an outcome token fluctuates based on the perceived likelihood of that outcome occurring. Outcome tokens can be redeemed for the underlying tokens when the question is resolved.
+
+### Invalid Outcome Token
+
+Outcome tokens representing the possibility of an invalid outcome in a prediction market. Invalid outcome tokens can be redeemed for the underlying collateral if the market is resolved as invalid.
+
+### Conditional Outcome Token
+
+Outcome tokens specific to a conditional market. They represent possible outcomes that are dependent on a particular event occurring in a parent market. If the parent market resolves in favor of the condition, these tokens can be redeemed for the corresponding parent outcome tokens. However, if the parent market resolves against the condition, all related conditional outcome tokens become worthless.
+
+### Parent Outcome Token
+
+Outcome tokens of a primary market that serve as the foundation for a related conditional market. In the event that parent outcome tokens are redeemed for zero (meaning the outcome they represent did not occur), all conditional outcome tokens that depend on them will also be redeemed for zero.
+
+## Market Actions
+
+### Split
+
+The process of dividing a single token into multiple tokens. This can occur in two ways:
+
+1. Converting a collateral token into a complete set of outcome tokens for a market.
+2. Dividing a single outcome token into deeper position outcome tokens (in conditional markets).
+
+For example, someone can put 1000 sDAI to create 1000 « sDAI if Trump », 1000 « sDAI if Biden » and 1000 « sDAI if Other ».
+
+### Merge
+
+Opposite of split. The process of combining multiple tokens into a single token. This can occur in two ways:
+
+1. Combining a complete set of outcome tokens back into a collateral token.
+2. Combining multiple specific outcome tokens into a single, more general position outcome token. (in conditional markets)
+
+### Resolve
+
+The process of determining the final outcome of a prediction market and settling all outstanding tokens. This typically occurs when the predicted event has concluded and the result is known.
+
+### Redeem
+
+The act of exchanging winning outcome tokens for the collateral (usually at a 1:1 ratio) after the market has been resolved.
+
+## Trading and Liquidity
+
+### Liquidity
+
+The ease with which outcome tokens can be bought or sold in a prediction market without causing a significant price impact. The greater the liquidity, the more tokens need to be swapped to move the price by a given value.
+
+### Liquidity Pool
+
+Liquidity pools are a collection of assets that facilitates decentralized trading and lending. Users that provide liquidity (Liquidity Providers) take a small fee of each trade that occurs in their liquidity pool.
+
+### Slippage
+
+The difference between the expected price of a trade and the price at which the trade is actually executed. Slippage can occur when large trades are made, especially in markets with low liquidity.
+
+## Cryptocurrencies
+
+### DAI
+
+A decentralized, USD-pegged stablecoin created by MakerDAO on the Ethereum blockchain. DAI aims to maintain a stable value of \$1 USD through a system of smart contracts and collateralized debt positions.
+
+### Savings DAI (sDAI)
+
+Savings DAI is a tokenized representation of DAI deposited in the DAI Savings Rate (DSR), which enables any DAI holder to earn a savings rate on their DAI. The sDAI token enables users to receive returns on their DSR deposits while still being able to transfer, stake, lend and use it in any way they want.
+
+### xDAI
+
+xDAI is the native currency built on the Gnosis blockchain, it is generated when a DAI is sent to the xDAI bridge, the bridge validators mint the xDAI as part of the Gnosis reward native contract.
+
+### Wrapped xDAI (wxDAI)
+
+xDAI being a native token of the network does not comply with ERC-20 standard. Wrapped xDAI or wxDAI is the ERC-20 compatible xDAI. It allows easy integration with other DeFi primitives.
+
+### Savings xDAI (sDAI)
+
+DAI holders on Ethereum can earn interest by depositing their DAI into Savings DAI. Similarly, Savings xDAI offers an incentive for users on Gnosis Chain, allowing them to earn the DSR (Dai Savings Rate) directly by depositing their xDAI. Since sDAI is ERC-20 compatible, you can use it in DeFi applications just as you would normally use wxDAI.

@@ -1,0 +1,268 @@
+---
+title: "FutarchyRouter"
+---
+The FutarchyRouter contract replicates the main Conditional Tokens functions, but allowing to work with ERC20 outcomes instead of the ERC1155.
+
+## Variables
+
+### conditionalTokens
+
+```solidity
+contract IConditionalTokens conditionalTokens
+```
+
+*Conditional Tokens contract.*
+
+### wrapped1155Factory
+
+```solidity
+contract IWrapped1155Factory wrapped1155Factory
+```
+
+*Wrapped1155Factory contract.*
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IConditionalTokens _conditionalTokens, contract IWrapped1155Factory _wrapped1155Factory) public
+```
+
+*Constructor.*
+
+**Parameters**
+
+| Name                 | Type                         | Description                  |
+| -------------------- | ---------------------------- | ---------------------------- |
+| \_conditionalTokens  | contract IConditionalTokens  | Conditional Tokens contract. |
+| \_wrapped1155Factory | contract IWrapped1155Factory | Wrapped1155Factory contract. |
+
+### splitPosition
+
+```solidity
+function splitPosition(contract FutarchyProposal proposal, contract IERC20 collateralToken, uint256 amount) public
+```
+
+Transfers the collateral to the FutarchyRouter, splits the position and sends the ERC20 outcome tokens back to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory. Collateral tokens are deposited only if we are not splitting a deep position (proposal.parentCollectionId is bytes32(0)).*
+
+**Parameters**
+
+| Name            | Type              | Description                                  |
+| --------------- | ----------------- | -------------------------------------------- |
+| proposal        | contract Proposal | The Proposal to split.                       |
+| collateralToken | contract IERC20   | The address of the ERC20 used as collateral. |
+| amount          | uint256           | The amount of collateral to split.           |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have \&lt;amount&gt; collateral tokens or ERC20 parent outcome tokens (in the case `proposal.parentCollectionId` is not null).
+
+**Logic**
+
+When `proposal.parentCollectionId` is null:
+
+1. Transfer \&lt;amount&gt; collateral from the user to `FutarchyRouter`.
+2. Call `conditionalTokens.splitPosition`  to transfer \&lt;amount&gt; collateral from `FutarchyRouter`to `ConditionalTokens`, while minting corresponding ERC1155 outcome tokens to `FutarchyRouter`.
+
+When `proposal.parentCollectionId` is not null:
+
+1. Unwrap ERC20 parent outcome tokens back to ERC1155 tokens.
+2. Call `conditionalTokens.splitPosition`  to transfer ERC1155 parent outcome tokens from `FutarchyRouter`to `ConditionalTokens`, burning them while minting corresponding conditional outcome tokens to `FutarchyRouter`.
+
+Step 3 is the same in both cases:
+
+3. Transfer ERC1155 outcome tokens from `FutarchyRouter` to `Wrapped1155Factory` contract. There is a callback function in `Wrapped1155Factory` that will wrap the tokens into ERC20 tokens, then transfer the wrapped tokens back to the original user.
+
+### \_splitPosition
+
+```solidity
+function _splitPosition(contract FutarchyProposal proposal, contract IERC20 collateralToken, uint256 amount) internal
+```
+
+Splits a position and sends the ERC20 outcome tokens to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.*
+
+**Parameters**
+
+| Name            | Type                      | Description                                  |
+| --------------- | ------------------------- | -------------------------------------------- |
+| proposal        | contract FutarchyProposal | The Proposal to split.                       |
+| collateralToken | contract IERC20           | The address of the ERC20 used as collateral. |
+| amount          | uint256                   | The amount of collateral to split.           |
+
+### mergePositions
+
+```solidity
+function mergePositions(contract FutarchyProposal proposal, contract IERC20 collateralToken, uint256 amount) public
+```
+
+Merges positions and sends the collateral tokens to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory. Collateral tokens are withdrawn only if we are not merging a deep position (market.parentCollectionId is bytes32(0)).*
+
+**Parameters**
+
+| Name            | Type                      | Description                                  |
+| --------------- | ------------------------- | -------------------------------------------- |
+| proposal        | contract FutarchyProposal | The Proposal to merge.                       |
+| collateralToken | contract IERC20           | The address of the ERC20 used as collateral. |
+| amount          | uint256                   | The amount of outcome tokens to merge.       |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have \&lt;amount&gt; ERC20 tokens of all the outcomes of a proposal.
+
+**Logic**
+
+Merging positions does precisely the opposite of what splitting a position does. 
+
+1. Unwraps ERC20 outcome tokens (which will burn these tokens and transfer corresponding ERC1155 outcome tokens back to the `FutarchyRouter` contract). 
+2. Call `conditionalTokens.mergePositions` to burn ERC1155 outcome tokens. Then:
+
+When `market.parentCollectionId` is null:
+
+3. Return collateral to `FutarchyRouter` , which will then be sent to the user.
+
+When `proposal.parentCollectionId` is not null:
+
+3. `conditionalTokens` will mint ERC1155 parent outcome tokens and send to `FutarchyRouter` . `FutarchyRouter` will wrap these tokens to ERC20 and send to the user.
+
+### \_mergePositions
+
+```solidity
+function _mergePositions(contract FutarchyProposal proposal, contract IERC20 collateralToken, uint256 amount) internal
+```
+
+Merges positions and receives the collateral tokens.
+
+*Callers to this function must send the collateral to the user.*
+
+**Parameters**
+
+| Name            | Type                      | Description                                  |
+| --------------- | ------------------------- | -------------------------------------------- |
+| proposal        | contract FutarchyProposal | The proposal to merge.                       |
+| collateralToken | contract IERC20           | The address of the ERC20 used as collateral. |
+| amount          | uint256                   | The amount of outcome tokens to merge.       |
+
+### redeemPositions
+
+```solidity
+function redeemPositions(contract FutarchyProposal proposal, contract IERC20 collateralToken, uint256 amounts) public
+```
+
+Redeems positions and sends the collateral tokens to the user.
+
+*The ERC20 associated to each outcome must be previously created on the wrapped1155Factory. Collateral tokens are withdrawn only if we are not redeeming a deep position (parentCollectionId is bytes32(0)).*
+
+**Parameters**
+
+| Name            | Type                      | Description                                  |
+| --------------- | ------------------------- | -------------------------------------------- |
+| proposal        | contract FutarchyProposal | The Proposal to redeem.                      |
+| collateralToken | contract IERC20           | The address of the ERC20 used as collateral. |
+| amount          | uint256                   | Amount to redeem.                            |
+
+**Pre-condition**
+
+1. The ERC20 associated to each outcome must be previously created on the wrapped1155Factory.
+2. The caller must have ERC20 tokens of the outcome they want to redeem.
+3. `conditionalTokens.reportPayouts` has been called by an oracle.
+
+**Logic**
+
+1. Unwraps ERC20 outcome tokens (which will burn these tokens and transfer corresponding ERC1155 outcome tokens back to the `Router` contract). 
+2. Call `conditionalTokens.redeemPositions` to burn ERC1155 outcome tokens. Then:
+
+When `proposal.parentCollectionId` is null:
+
+3. Return collateral to `FutarchyRouter` .  The return amount is in proportion to the `ConditionalTokens` payouts. `FutarchyRouter` will calculate the collateral difference before and after redeeming and transfer the difference to the user.
+
+When `proposal.parentCollectionId` is not null:
+
+3. `conditionalTokens` will mint ERC1155 parent outcome tokens and send to `FutarchyRouter` . The amount is in proportion to the `ConditionalTokens` payouts. `FutarchyRouter` will calculate the ERC1155 outcome tokens difference before and after redeeming, wrap the difference to ERC20 and send to the user.
+
+### \_redeemPositions
+
+```solidity
+function _redeemPositions(contract FutarchyProposal proposal, contract IERC20 collateralToken, uint256 amount) internal
+```
+
+Redeems positions and sends the collateral tokens to the user.
+
+*Callers to this function must send the collateral to the user.*
+
+**Parameters**
+
+| Name            | Type                      | Description                                  |
+| --------------- | ------------------------- | -------------------------------------------- |
+| proposal        | contract FutarchyProposal | The Proposal to redeem.                      |
+| collateralToken | contract IERC20           | The address of the ERC20 used as collateral. |
+| amount          | uint256                   | Amount to redeem.                            |
+
+### redeemProposal
+
+```solidity
+function redeemProposal(contract FutarchyProposal proposal, uint256 amount1, uint256 amount2) internal
+```
+
+Redeems positions and receives the collateral tokens.
+
+It's a wrapper around `redeemPositions` that allows to redeem one or two collateral at the same time.
+
+**Parameters**
+
+| Name     | Type                      | Description                                  |
+| -------- | ------------------------- | -------------------------------------------- |
+| proposal | contract FutarchyProposal | The Proposal to redeem.                      |
+| amount1  | uint256                   | Amount of the token collateral to redeem.    |
+| amount2  | uint256                   | Amount of the currency collateral to redeem. |
+
+### getTokenId
+
+```solidity
+function getTokenId(contract IERC20 collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256 indexSet) public view returns (uint256)
+```
+
+Constructs a tokenId from a collateral token and an outcome collection.
+
+**Parameters**
+
+| Name               | Type            | Description                                                                        |
+| ------------------ | --------------- | ---------------------------------------------------------------------------------- |
+| collateralToken    | contract IERC20 | The address of the ERC20 used as collateral.                                       |
+| parentCollectionId | bytes32         | The Conditional Tokens parent collection id.                                       |
+| conditionId        | bytes32         | The id of the condition used to redeem.                                            |
+| indexSet           | uint256         | Index set of the outcome collection to combine with the parent outcome collection. |
+
+**Return Values**
+
+| Name | Type    | Description   |
+| ---- | ------- | ------------- |
+| \[0] | uint256 | The token id. |
+
+### getWinningOutcomes
+
+```solidity
+function getWinningOutcomes(bytes32 conditionId) external view returns (bool[])
+```
+
+Helper function used to know the redeemable outcomes associated to a conditionId.
+
+**Parameters**
+
+| Name        | Type    | Description              |
+| ----------- | ------- | ------------------------ |
+| conditionId | bytes32 | The id of the condition. |
+
+**Return Values**
+
+| Name | Type    | Description                                                                       |
+| ---- | ------- | --------------------------------------------------------------------------------- |
+| \[0] | bool\[] | An array of outcomes where a true value indicates that the outcome is redeemable. |

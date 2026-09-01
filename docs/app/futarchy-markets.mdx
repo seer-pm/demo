@@ -1,0 +1,73 @@
+---
+title: "Futarchy Markets"
+---
+In price-based futarchy markets, participants trade based on their expectations of how specific decisions will impact the price of a token, which serves as the key metric for evaluation.
+
+For example, Gnosis DAO could create a prediction market to determine whether a proposal should be accepted, using the GNO/wstETH trading pair as the measurable metric.
+
+The proposal would be accepted if the market predicts that the price of YES\_GNO/YES\_wstETH will exceed the price of the NO\_GNO/NO\_wstETH.
+
+Right now, futarchy markets are only available on Gnosis Chain.
+
+### Create a futarchy market
+
+On the Futarchy page, click the **Create new Proposal.**
+
+<Frame><img src="/images/app/futarchy-markets/01-image.png" alt="" /></Frame>
+
+1. **Input the proposal title:**
+
+   <Frame><img src="/images/app/futarchy-markets/02-image.png" alt="" /></Frame>
+
+2. **Choose the collateral tokens:**
+
+   In the previous example, GNO is the **token**, and wstETH is the **currency**.
+
+   The market will generate four outcome tokens: **YES\_GNO**, **NO\_GNO**, **YES\_wstETH**, and **NO\_wstETH**.
+
+   These tokens will be traded across two liquidity pools: **YES\_GNO/YES\_wstETH** (called "yes pool") and **NO\_GNO/NO\_wstETH** (called "no pool").
+
+   <Frame><img src="/images/app/futarchy-markets/03-image.png" alt="" /></Frame>
+
+3. **Specify an opening date. The market can only be resolved after the opening date:**
+
+   <Frame><img src="/images/app/futarchy-markets/04-image.png" alt="" /></Frame>
+
+4. **Preview the market:**
+
+   <Frame><img src="/images/app/futarchy-markets/05-image.png" alt="" /></Frame>
+
+After previewing, click **Create Market**. 
+
+An instance of the `FutarchyProposal` contract will be deployed at a new address as an on-chain representation of the proposal.
+
+You can view the proposal address by clicking the network icon in the top right corner of the market page:
+
+<Frame><img src="/images/app/futarchy-markets/06-image.png" alt="" /></Frame>
+
+The process for verifying the market follows the same steps outlined earlier for standard markets
+
+### Market Page
+
+Some differences with standard markets:
+
+1. YES and NO tokens can be traded directly with each other, instead of being traded against a shared collateral token like sDAI.\
+   \
+   To obtain these tokens, you first need to split either the token or the currency underlying.
+
+   For example, you can split GNO to receive **YES\_GNO** and **NO\_GNO**, and then trade **NO\_GNO** for **NO\_wstETH**.
+
+2. No invalid tokens: A proposal is well defined and can either pass or fail, so no need of invalid tokens. If the market resolves as invalid, the proposal is automatically considered failed.
+
+<Frame><img src="/images/app/futarchy-markets/07-image.png" alt="" /></Frame>
+
+### Mint, merge conditional outcome tokens
+
+The process is similar to that of a simple market, with a few key differences:
+
+1. **Minting**: You can mint outcome tokens using either the token or the currency underlying.
+2. **Merging**: Depending on the outcome tokens you hold, you can merge them back into either the token or the currency underlying.
+
+### Resolve conditional market and redeem conditional outcome tokens
+
+You would resolve the market [as normal](/app/resolve-market). However, after a futarchy market is resolved, instead of redeeming sDAI (or xDAI), you will redeem token and/or currency underlying.

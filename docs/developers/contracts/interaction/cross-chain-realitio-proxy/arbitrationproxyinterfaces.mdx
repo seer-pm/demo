@@ -1,0 +1,348 @@
+---
+title: "ArbitrationProxyInterfaces"
+---
+## IHomeArbitrationProxy
+
+### RequestNotified
+
+```solidity
+event RequestNotified(bytes32 _questionID, address _requester, uint256 _maxPrevious)
+```
+
+To be emitted when the Realitio contract has been notified of an arbitration request.
+
+**Parameters**
+
+| Name          | Type    | Description                                              |
+| ------------- | ------- | -------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question.                                  |
+| \_requester   | address | The address of the arbitration requester.                |
+| \_maxPrevious | uint256 | The maximum value of the previous bond for the question. |
+
+### RequestRejected
+
+```solidity
+event RequestRejected(bytes32 _questionID, address _requester, uint256 _maxPrevious, string _reason)
+```
+
+To be emitted when arbitration request is rejected.
+
+*This can happen if the current bond for the question is higher than maxPrevious or if the question is already finalized.*
+
+**Parameters**
+
+| Name          | Type    | Description                                             |
+| ------------- | ------- | ------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question.                                 |
+| \_requester   | address | The address of the arbitration requester.               |
+| \_maxPrevious | uint256 | The maximum value of the current bond for the question. |
+| \_reason      | string  | The reason why the request was rejected.                |
+
+### RequestAcknowledged
+
+```solidity
+event RequestAcknowledged(bytes32 _questionID, address _requester)
+```
+
+To be emitted when the arbitration request acknowledgement is sent to the Foreign Chain.
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### RequestCanceled
+
+```solidity
+event RequestCanceled(bytes32 _questionID, address _requester)
+```
+
+To be emitted when the arbitration request is canceled.
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### ArbitrationFailed
+
+```solidity
+event ArbitrationFailed(bytes32 _questionID, address _requester)
+```
+
+To be emitted when the dispute could not be created on the Foreign Chain.
+
+*This will happen if the arbitration fee increases in between the arbitration request and acknowledgement.*
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### ArbitratorAnswered
+
+```solidity
+event ArbitratorAnswered(bytes32 _questionID, bytes32 _answer)
+```
+
+To be emitted when receiving the answer from the arbitrator.
+
+**Parameters**
+
+| Name         | Type    | Description                     |
+| ------------ | ------- | ------------------------------- |
+| \_questionID | bytes32 | The ID of the question.         |
+| \_answer     | bytes32 | The answer from the arbitrator. |
+
+### ArbitrationFinished
+
+```solidity
+event ArbitrationFinished(bytes32 _questionID)
+```
+
+To be emitted when reporting the arbitrator answer to Realitio.
+
+**Parameters**
+
+| Name         | Type    | Description             |
+| ------------ | ------- | ----------------------- |
+| \_questionID | bytes32 | The ID of the question. |
+
+### receiveArbitrationRequest
+
+```solidity
+function receiveArbitrationRequest(bytes32 _questionID, address _requester, uint256 _maxPrevious) external
+```
+
+*Receives the requested arbitration for a question. TRUSTED.*
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                                                                                                                 |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question.                                                                                                                                                                     |
+| \_requester   | address | The address of the arbitration requester.                                                                                                                                                   |
+| \_maxPrevious | uint256 | The maximum value of the current bond for the question. The arbitration request will get rejected if the current bond is greater than \_maxPrevious. If set to 0, \_maxPrevious is ignored. |
+
+### handleNotifiedRequest
+
+```solidity
+function handleNotifiedRequest(bytes32 _questionID, address _requester) external
+```
+
+Handles arbitration request after it has been notified to Realitio for a given question.
+
+*This method exists because `receiveArbitrationRequest` is called by the AMB and cannot send messages back to it.*
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### handleRejectedRequest
+
+```solidity
+function handleRejectedRequest(bytes32 _questionID, address _requester) external
+```
+
+Handles arbitration request after it has been rejected.
+
+\_This method exists because `receiveArbitrationRequest` is called by the AMB and cannot send messages back to it. Reasons why the request might be rejected:
+
+* The question does not exist
+* The question was not answered yet
+* The question bond value changed while the arbitration was being requested
+* Another request was already accepted\_
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### receiveArbitrationFailure
+
+```solidity
+function receiveArbitrationFailure(bytes32 _questionID, address _requester) external
+```
+
+Receives a failed attempt to request arbitration. TRUSTED.
+
+*Currently this can happen only if the arbitration cost increased.*
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### receiveArbitrationAnswer
+
+```solidity
+function receiveArbitrationAnswer(bytes32 _questionID, bytes32 _answer) external
+```
+
+Receives the answer to a specified question. TRUSTED.
+
+**Parameters**
+
+| Name         | Type    | Description                     |
+| ------------ | ------- | ------------------------------- |
+| \_questionID | bytes32 | The ID of the question.         |
+| \_answer     | bytes32 | The answer from the arbitrator. |
+
+## IForeignArbitrationProxy
+
+### ArbitrationRequested
+
+```solidity
+event ArbitrationRequested(bytes32 _questionID, address _requester, uint256 _maxPrevious)
+```
+
+Should be emitted when the arbitration is requested.
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                                                                                                                 |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question with the request for arbitration.                                                                                                                                    |
+| \_requester   | address | The address of the arbitration requester.                                                                                                                                                   |
+| \_maxPrevious | uint256 | The maximum value of the current bond for the question. The arbitration request will get rejected if the current bond is greater than \_maxPrevious. If set to 0, \_maxPrevious is ignored. |
+
+### ArbitrationCreated
+
+```solidity
+event ArbitrationCreated(bytes32 _questionID, address _requester, uint256 _disputeID)
+```
+
+Should be emitted when the dispute is created.
+
+**Parameters**
+
+| Name         | Type    | Description                                              |
+| ------------ | ------- | -------------------------------------------------------- |
+| \_questionID | bytes32 | The ID of the question with the request for arbitration. |
+| \_requester  | address | The address of the arbitration requester.                |
+| \_disputeID  | uint256 | The ID of the dispute.                                   |
+
+### ArbitrationCanceled
+
+```solidity
+event ArbitrationCanceled(bytes32 _questionID, address _requester)
+```
+
+Should be emitted when the arbitration is canceled by the Home Chain.
+
+**Parameters**
+
+| Name         | Type    | Description                                              |
+| ------------ | ------- | -------------------------------------------------------- |
+| \_questionID | bytes32 | The ID of the question with the request for arbitration. |
+| \_requester  | address | The address of the arbitration requester.                |
+
+### ArbitrationFailed
+
+```solidity
+event ArbitrationFailed(bytes32 _questionID, address _requester)
+```
+
+Should be emitted when the dispute could not be created.
+
+*This will happen if there is an increase in the arbitration fees between the time the arbitration is made and the time it is acknowledged.*
+
+**Parameters**
+
+| Name         | Type    | Description                                              |
+| ------------ | ------- | -------------------------------------------------------- |
+| \_questionID | bytes32 | The ID of the question with the request for arbitration. |
+| \_requester  | address | The address of the arbitration requester.                |
+
+### requestArbitration
+
+```solidity
+function requestArbitration(bytes32 _questionID, uint256 _maxPrevious) external payable
+```
+
+Requests arbitration for the given question.
+
+**Parameters**
+
+| Name          | Type    | Description                                                                                                                                                                                 |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question.                                                                                                                                                                     |
+| \_maxPrevious | uint256 | The maximum value of the current bond for the question. The arbitration request will get rejected if the current bond is greater than \_maxPrevious. If set to 0, \_maxPrevious is ignored. |
+
+### receiveArbitrationAcknowledgement
+
+```solidity
+function receiveArbitrationAcknowledgement(bytes32 _questionID, address _requester) external
+```
+
+Receives the acknowledgement of the arbitration request for the given question and requester. TRUSTED.
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### receiveArbitrationCancelation
+
+```solidity
+function receiveArbitrationCancelation(bytes32 _questionID, address _requester) external
+```
+
+Receives the cancelation of the arbitration request for the given question and requester. TRUSTED.
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### handleFailedDisputeCreation
+
+```solidity
+function handleFailedDisputeCreation(bytes32 _questionID, address _requester) external
+```
+
+Cancels the arbitration in case the dispute could not be created.
+
+**Parameters**
+
+| Name         | Type    | Description                               |
+| ------------ | ------- | ----------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                   |
+| \_requester  | address | The address of the arbitration requester. |
+
+### getDisputeFee
+
+```solidity
+function getDisputeFee(bytes32 _questionID) external view returns (uint256)
+```
+
+Gets the fee to create a dispute.
+
+**Parameters**
+
+| Name         | Type    | Description             |
+| ------------ | ------- | ----------------------- |
+| \_questionID | bytes32 | the ID of the question. |
+
+**Return Values**
+
+| Name | Type    | Description                  |
+| ---- | ------- | ---------------------------- |
+| \[0] | uint256 | The fee to create a dispute. |

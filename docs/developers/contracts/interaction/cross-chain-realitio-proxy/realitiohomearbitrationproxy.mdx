@@ -1,0 +1,217 @@
+---
+title: "RealitioHomeArbitrationProxy"
+---
+This contract is meant to be deployed to side-chains (i.e.: xDAI) in which Reality.eth is deployed.
+
+## Variables
+
+### realitio
+
+```solidity
+contract RealitioInterface realitio
+```
+
+*The address of the Realitio contract (v2.1+ required). TRUSTED.*
+
+### amb
+
+```solidity
+contract IAMB amb
+```
+
+*ArbitraryMessageBridge contract address. TRUSTED.*
+
+### foreignProxy
+
+```solidity
+address foreignProxy
+```
+
+*Address of the counter-party proxy on the Foreign Chain. TRUSTED.*
+
+### foreignChainId
+
+```solidity
+bytes32 foreignChainId
+```
+
+*The chain ID where the foreign proxy is deployed.*
+
+### metadata
+
+```solidity
+string metadata
+```
+
+*Metadata for Realitio interface.*
+
+### Status
+
+```solidity
+enum Status {
+  None,
+  Rejected,
+  Notified,
+  AwaitingRuling,
+  Ruled,
+  Finished
+}
+```
+
+### Request
+
+```solidity
+struct Request {
+  enum RealitioHomeArbitrationProxy.Status status;
+  bytes32 arbitratorAnswer;
+}
+```
+
+### requests
+
+```solidity
+mapping(bytes32 => mapping(address => struct RealitioHomeArbitrationProxy.Request)) requests
+```
+
+*Associates an arbitration request with a question ID and a requester address. requests\[questionID]\[requester]*
+
+### questionIDToRequester
+
+```solidity
+mapping(bytes32 => address) questionIDToRequester
+```
+
+*Associates a question ID with the requester who succeeded in requesting arbitration. questionIDToRequester\[questionID]*
+
+## Modifiers
+
+### onlyForeignProxy
+
+```solidity
+modifier onlyForeignProxy()
+```
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IAMB _amb, address _foreignProxy, bytes32 _foreignChainId, contract RealitioInterface _realitio) public
+```
+
+Creates an arbitration proxy on the home chain.
+
+**Parameters**
+
+| Name             | Type                       | Description                                              |
+| ---------------- | -------------------------- | -------------------------------------------------------- |
+| \_amb            | contract IAMB              | ArbitraryMessageBridge contract address.                 |
+| \_foreignProxy   | address                    | The address of the proxy.                                |
+| \_foreignChainId | bytes32                    | The ID of the chain where the foreign proxy is deployed. |
+| \_realitio       | contract RealitioInterface | Realitio contract address.                               |
+
+### receiveArbitrationRequest
+
+```solidity
+function receiveArbitrationRequest(bytes32 _questionID, address _requester, uint256 _maxPrevious) external
+```
+
+*Receives the requested arbitration for a question. TRUSTED.*
+
+**Parameters**
+
+| Name          | Type    | Description                                              |
+| ------------- | ------- | -------------------------------------------------------- |
+| \_questionID  | bytes32 | The ID of the question.                                  |
+| \_requester   | address | The address of the user that requested arbitration.      |
+| \_maxPrevious | uint256 | The maximum value of the previous bond for the question. |
+
+### handleNotifiedRequest
+
+```solidity
+function handleNotifiedRequest(bytes32 _questionID, address _requester) external
+```
+
+Handles arbitration request after it has been notified to Realitio for a given question.
+
+*This method exists because `receiveArbitrationRequest` is called by the AMB and cannot send messages back to it.*
+
+**Parameters**
+
+| Name         | Type    | Description                                         |
+| ------------ | ------- | --------------------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                             |
+| \_requester  | address | The address of the user that requested arbitration. |
+
+### handleRejectedRequest
+
+```solidity
+function handleRejectedRequest(bytes32 _questionID, address _requester) external
+```
+
+Handles arbitration request after it has been rejected.
+
+\_This method exists because `receiveArbitrationRequest` is called by the AMB and cannot send messages back to it. Reasons why the request might be rejected:
+
+* The question does not exist
+* The question was not answered yet
+* The question bond value changed while the arbitration was being requested
+* Another request was already accepted\_
+
+**Parameters**
+
+| Name         | Type    | Description                                         |
+| ------------ | ------- | --------------------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                             |
+| \_requester  | address | The address of the user that requested arbitration. |
+
+### receiveArbitrationFailure
+
+```solidity
+function receiveArbitrationFailure(bytes32 _questionID, address _requester) external
+```
+
+Receives a failed attempt to request arbitration. TRUSTED.
+
+*Currently this can happen only if the arbitration cost increased.*
+
+**Parameters**
+
+| Name         | Type    | Description                                         |
+| ------------ | ------- | --------------------------------------------------- |
+| \_questionID | bytes32 | The ID of the question.                             |
+| \_requester  | address | The address of the user that requested arbitration. |
+
+### receiveArbitrationAnswer
+
+```solidity
+function receiveArbitrationAnswer(bytes32 _questionID, bytes32 _answer) external
+```
+
+Receives the answer to a specified question. TRUSTED.
+
+**Parameters**
+
+| Name         | Type    | Description                     |
+| ------------ | ------- | ------------------------------- |
+| \_questionID | bytes32 | The ID of the question.         |
+| \_answer     | bytes32 | The answer from the arbitrator. |
+
+### reportArbitrationAnswer
+
+```solidity
+function reportArbitrationAnswer(bytes32 _questionID, bytes32 _lastHistoryHash, bytes32 _lastAnswerOrCommitmentID, address _lastAnswerer) external
+```
+
+Reports the answer provided by the arbitrator to a specified question.
+
+*The Realitio contract validates the input parameters passed to this method, so making this publicly accessible is safe.*
+
+**Parameters**
+
+| Name                       | Type    | Description                                                                                                   |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| \_questionID               | bytes32 | The ID of the question.                                                                                       |
+| \_lastHistoryHash          | bytes32 | The history hash given with the last answer to the question in the Realitio contract.                         |
+| \_lastAnswerOrCommitmentID | bytes32 | The last answer given, or its commitment ID if it was a commitment, to the question in the Realitio contract. |
+| \_lastAnswerer             | address | The last answerer to the question in the Realitio contract.                                                   |

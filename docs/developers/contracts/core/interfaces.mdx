@@ -1,0 +1,160 @@
+---
+title: "Interfaces"
+---
+## IERC20
+
+### transferFrom
+
+```solidity
+function transferFrom(address from, address to, uint256 amount) external returns (bool)
+```
+
+### transfer
+
+```solidity
+function transfer(address to, uint256 amount) external returns (bool)
+```
+
+### approve
+
+```solidity
+function approve(address spender, uint256 amount) external returns (bool)
+```
+
+### balanceOf
+
+```solidity
+function balanceOf(address owner) external returns (uint256)
+```
+
+### totalSupply
+
+```solidity
+function totalSupply() external view returns (uint256)
+```
+
+## IRealityETH\_v3\_0
+
+### askQuestionWithMinBond
+
+```solidity
+function askQuestionWithMinBond(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) external payable returns (bytes32)
+```
+
+### resultForOnceSettled
+
+```solidity
+function resultForOnceSettled(bytes32 question_id) external view returns (bytes32)
+```
+
+### getContentHash
+
+```solidity
+function getContentHash(bytes32 question_id) external view returns (bytes32)
+```
+
+### getTimeout
+
+```solidity
+function getTimeout(bytes32 question_id) external view returns (uint32)
+```
+
+### submitAnswer
+
+```solidity
+function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable
+```
+
+## IConditionalTokens
+
+### payoutNumerators
+
+```solidity
+function payoutNumerators(bytes32 conditionId, uint256 index) external view returns (uint256)
+```
+
+### payoutDenominator
+
+```solidity
+function payoutDenominator(bytes32 conditionId) external view returns (uint256)
+```
+
+### prepareCondition
+
+```solidity
+function prepareCondition(address oracle, bytes32 questionId, uint256 outcomeSlotCount) external
+```
+
+### reportPayouts
+
+```solidity
+function reportPayouts(bytes32 questionId, uint256[] payouts) external
+```
+
+### splitPosition
+
+```solidity
+function splitPosition(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount) external
+```
+
+### mergePositions
+
+```solidity
+function mergePositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount) external
+```
+
+### redeemPositions
+
+```solidity
+function redeemPositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] indexSets) external
+```
+
+### getConditionId
+
+```solidity
+function getConditionId(address oracle, bytes32 questionId, uint256 outcomeSlotCount) external pure returns (bytes32)
+```
+
+### getCollectionId
+
+```solidity
+function getCollectionId(bytes32 parentCollectionId, bytes32 conditionId, uint256 indexSet) external view returns (bytes32)
+```
+
+### getPositionId
+
+```solidity
+function getPositionId(address collateralToken, bytes32 collectionId) external pure returns (uint256)
+```
+
+### getOutcomeSlotCount
+
+```solidity
+function getOutcomeSlotCount(bytes32 conditionId) external view returns (uint256)
+```
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data) external
+```
+
+### balanceOf
+
+```solidity
+function balanceOf(address owner, uint256 id) external view returns (uint256)
+```
+
+## IWrapped1155Factory
+
+### requireWrapped1155
+
+```solidity
+function requireWrapped1155(address multiToken, uint256 tokenId, bytes data) external returns (contract IERC20)
+```
+
+### unwrap
+
+```solidity
+function unwrap(address multiToken, uint256 tokenId, uint256 amount, address recipient, bytes data) external
+```

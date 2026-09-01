@@ -1,0 +1,254 @@
+---
+title: "FutarchyProposal"
+---
+The proposal contract represents a single futarchy market and is initialized in [FutarchyFactory](/developers/contracts/futarchy/futarchyfactory).
+
+## Variables
+
+### initialized
+
+```solidity
+bool initialized
+```
+
+*Flag to initialize the proposal only once.*
+
+### FutarchyProposalParams
+
+*Contains the information associated to Conditional Tokens.*
+
+```solidity
+struct ConditionalTokensParams {
+  bytes32 conditionId;
+  contract IERC20 collateralToken1;
+  contract IERC20 collateralToken2;
+  bytes32 parentCollectionId;
+  uint256 parentOutcome;
+  address parentMarket;
+  bytes32 questionId;
+  string encodedQuestion;
+  contract IERC20[] wrapped1155;
+  bytes[] data;
+}
+```
+
+### marketName
+
+```solidity
+string marketName
+```
+
+*The name of the market.*
+
+### outcomes
+
+```solidity
+string[] outcomes
+```
+
+*The market outcomes.*
+
+### futarchyProposalParams
+
+```solidity
+struct FutarchyProposal.FutarchyProposalParams futarchyProposalParams
+```
+
+*Futarchy proposal parameters.*
+
+### realityProxy
+
+```solidity
+contract FutarchyRealityProxy realityProxy
+```
+
+*Oracle contract.*
+
+## Functions
+
+### initialize
+
+```solidity
+function initialize(string _marketName, string[] _outcomes, struct FutarchyProposal.FutarchyProposalParams _futarchyProposalParams, contract FutarchyRealityProxy _realityProxy) external
+```
+
+*Initializer.*
+
+**Parameters**
+
+| Name                     | Type                                           | Description               |
+| ------------------------ | ---------------------------------------------- | ------------------------- |
+| \_marketName             | string                                         | The name of the market.   |
+| \_outcomes               | string\[]                                      | The market outcomes.      |
+| \_futarchyProposalParams | struct FutarchyProposal.FutarchyProposalParams | Futarchy proposal params. |
+| \_realityProxy           | contract FutarchyRealityProxy                  | Oracle contract.          |
+
+### encodedQuestion
+
+```solidity
+function encodedQuestion() external view returns (string)
+```
+
+*Encoded question parameters, needed to create and reopen a question.*
+
+**Return Values**
+
+| Name | Type   | Description           |
+| ---- | ------ | --------------------- |
+| \[0] | string | The encoded question. |
+
+### questionId
+
+```solidity
+function questionId() external view returns (bytes32)
+```
+
+*Conditional Tokens questionId.*
+
+**Return Values**
+
+| Name | Type    | Description      |
+| ---- | ------- | ---------------- |
+| \[0] | bytes32 | the question ID. |
+
+### conditionId
+
+```solidity
+function conditionId() external view returns (bytes32)
+```
+
+*Conditional Tokens conditionId.*
+
+**Return Values**
+
+| Name | Type    | Description       |
+| ---- | ------- | ----------------- |
+| \[0] | bytes32 | The condition ID. |
+
+### collateralToken1
+
+```solidity
+function collateralToken1() external view returns (IERC20)
+```
+
+*Token collateral.*
+
+**Return Values**
+
+| Name | Type   | Description           |
+| ---- | ------ | --------------------- |
+| \[0] | IERC20 | The token collateral. |
+
+### collateralToken2
+
+```solidity
+function collateralToken2() external view returns (IERC20)
+```
+
+*Currency collateral.*
+
+**Return Values**
+
+| Name | Type   | Description              |
+| ---- | ------ | ------------------------ |
+| \[0] | IERC20 | The Currency collateral. |
+
+### parentCollectionId
+
+```solidity
+function parentCollectionId() external view returns (bytes32)
+```
+
+*Conditional Tokens parentCollectionId.*
+
+**Return Values**
+
+| Name | Type    | Description               |
+| ---- | ------- | ------------------------- |
+| \[0] | bytes32 | The parent collection ID. |
+
+### parentMarket
+
+```solidity
+function parentMarket() external view returns (address)
+```
+
+*The parent market (optional). This market redeems to an outcome token of the parent market.*
+
+**Return Values**
+
+| Name | Type    | Description                |
+| ---- | ------- | -------------------------- |
+| \[0] | address | The parent market address. |
+
+### parentOutcome
+
+```solidity
+function parentOutcome() external view returns (uint256)
+```
+
+*The parent outcome (optional). The parent market's outcome token this market redeems for.*
+
+**Return Values**
+
+| Name | Type    | Description               |
+| ---- | ------- | ------------------------- |
+| \[0] | uint256 | The parent outcome index. |
+
+### wrappedOutcome
+
+```solidity
+function wrappedOutcome(uint256 index) external view returns (contract IERC20 wrapped1155, bytes data)
+```
+
+*Returns the wrapped1155 and the data corresponding to an outcome token.*
+
+**Parameters**
+
+| Name  | Type    | Description        |
+| ----- | ------- | ------------------ |
+| index | uint256 | The outcome index. |
+
+**Return Values**
+
+| Name        | Type            | Description        |
+| ----------- | --------------- | ------------------ |
+| wrapped1155 | contract IERC20 | The wrapped token. |
+| data        | bytes           | The token data.    |
+
+### parentWrappedOutcome
+
+```solidity
+function parentWrappedOutcome() external view returns (contract IERC20 wrapped1155, bytes data)
+```
+
+*Returns the wrapped1155 and the data corresponding to the parent market.*
+
+**Return Values**
+
+| Name        | Type            | Description        |
+| ----------- | --------------- | ------------------ |
+| wrapped1155 | contract IERC20 | The wrapped token. |
+| data        | bytes           | The token data.    |
+
+### numOutcomes
+
+```solidity
+function numOutcomes() external view returns (uint256)
+```
+
+*Returns the number of outcomes.*
+
+**Return Values**
+
+| Name | Type    | Description             |
+| ---- | ------- | ----------------------- |
+| \[0] | uint256 | The number of outcomes. |
+
+### resolve
+
+```solidity
+function resolve() external
+```
+
+*Helper function to resolve the proposal.*

@@ -1,0 +1,213 @@
+---
+title: "RealityProxy"
+---
+Contract used as a Reality Oracle. Is called to resolve a market based on the answer provided.
+
+## Variables
+
+### conditionalTokens
+
+```solidity
+contract IConditionalTokens conditionalTokens
+```
+
+*Conditional Tokens contract.*
+
+### realitio
+
+```solidity
+contract IRealityETH_v3_0 realitio
+```
+
+*Reality.eth contract.*
+
+### INVALID\_RESULT
+
+```solidity
+bytes32 INVALID_RESULT
+```
+
+*INVALID\_RESULT reserved value.*
+
+### REALITY\_UINT\_TEMPLATE
+
+```solidity
+uint256 REALITY_UINT_TEMPLATE
+```
+
+*Template for scalar and multi scalar markets.*
+
+### REALITY\_SINGLE\_SELECT\_TEMPLATE
+
+```solidity
+uint256 REALITY_SINGLE_SELECT_TEMPLATE
+```
+
+*Template for categorical markets.*
+
+### REALITY\_MULTI\_SELECT\_TEMPLATE
+
+```solidity
+uint256 REALITY_MULTI_SELECT_TEMPLATE
+```
+
+*Template for multi categorical markets.*
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(contract IConditionalTokens _conditionalTokens, contract IRealityETH_v3_0 _realitio) public
+```
+
+*Constructor.*
+
+**Parameters**
+
+| Name                | Type                        | Description                          |
+| ------------------- | --------------------------- | ------------------------------------ |
+| \_conditionalTokens | contract IConditionalTokens | Conditional Tokens contract address. |
+| \_realitio          | contract IRealityETH\_v3\_0 | Reality.eth contract address.        |
+
+### resolve
+
+```solidity
+function resolve(contract Market market) external
+```
+
+*Resolves the specified market.*
+
+**Parameters**
+
+| Name   | Type            | Description                   |
+| ------ | --------------- | ----------------------------- |
+| market | contract Market | Market to resolve. UNTRUSTED. |
+
+**Pre-condition**
+
+This market reality questions must be finalized. If there is a reopened question, that question need to be finalized instead.
+
+**Logic**
+
+1. From the provided market contract, hash back the original `questionId` from `questionsIds`, `outcomes.length`, `templateId`, `lowerBound`, `upperBound`.
+2. Call one of the 4 internal resolution functions corresponding to 4 market types, passing `questionId`, `questionsIds`, as well as `numOutcomes` or `low`, `high` depending on the market type.
+
+### resolveCategoricalMarket
+
+```solidity
+function resolveCategoricalMarket(bytes32 questionId, bytes32[] questionsIds, uint256 numOutcomes) internal
+```
+
+*Resolves to invalid if the answer is invalid or the result is greater than the amount of outcomes.*
+
+**Parameters**
+
+| Name         | Type       | Description                                                    |
+| ------------ | ---------- | -------------------------------------------------------------- |
+| questionId   | bytes32    | Conditional Tokens questionId.                                 |
+| questionsIds | bytes32\[] | Reality questions ids.                                         |
+| numOutcomes  | uint256    | The number of outcomes, excluding the INVALID\_RESULT outcome. |
+
+**Pre-condition**
+
+This market reality questions must be finalized. If there is a reopened question, that question need to be finalized instead.
+
+**Logic**
+
+1. Get reality final answer by calling `realitio.resultForOnceSettled()` for the first question in `questionsIds`.
+2. Create a payouts array defaulting to 0s. Its length is `numOutcomes+1` (last index is for INVALID outcome).
+3. Calculates the payout for each outcome based on the answer. A payout which index matches the answer will be set to 1. If the answer is INVALID\_RESULT or larger than or equal to the number of outcomes, sets the payout of the last index to 1.
+4. Reports the final payouts of the `questionId` to the `ConditionalTokens` contract.
+
+### resolveMultiCategoricalMarket
+
+```solidity
+function resolveMultiCategoricalMarket(bytes32 questionId, bytes32[] questionsIds, uint256 numOutcomes) internal
+```
+
+*Resolves to invalid if the answer is invalid or all the results are zero.*
+
+**Parameters**
+
+| Name         | Type       | Description                                                    |
+| ------------ | ---------- | -------------------------------------------------------------- |
+| questionId   | bytes32    | Conditional Tokens questionId.                                 |
+| questionsIds | bytes32\[] | Reality questions ids.                                         |
+| numOutcomes  | uint256    | The number of outcomes, excluding the INVALID\_RESULT outcome. |
+
+**Pre-condition**
+
+This market reality questions must be finalized. If there is a reopened question, that question need to be finalized instead.
+
+**Logic**
+
+1. Get reality final answer by calling `realitio.resultForOnceSettled()` for the first question in `questionsIds`.
+2. Create a payouts array defaulting to 0s. Its length is `numOutcomes+1` (last index is for INVALID outcome).
+3. Calculates payouts based on a binary representation of the answer. If the answer is INVALID\_RESULT, sets the payout of the last index to 1. Otherwise, it processes each bit of the answer:
+   1. For each outcome, sets the payout to 1 if the corresponding bit in the answer is set, otherwise 0.
+   2. Tracks if all outcomes have zero payouts.
+   3. If all outcomes have zero payouts after processing,  sets the payout of the last index to 1.
+4. Reports the final payouts of the `questionId` to the `ConditionalTokens` contract.
+
+### resolveScalarMarket
+
+```solidity
+function resolveScalarMarket(bytes32 questionId, bytes32[] questionsIds, uint256 low, uint256 high) internal
+```
+
+*Resolves to invalid if the answer is invalid.*
+
+**Parameters**
+
+| Name         | Type       | Description                    |
+| ------------ | ---------- | ------------------------------ |
+| questionId   | bytes32    | Conditional Tokens questionId. |
+| questionsIds | bytes32\[] | Reality questions ids.         |
+| low          | uint256    | Lower bound.                   |
+| high         | uint256    | Upper bound.                   |
+
+**Pre-condition**
+
+This market reality questions must be finalized. If there is a reopened question, that question need to be finalized instead.
+
+**Logic**
+
+1. Get reality final answer by calling `realitio.resultForOnceSettled()` for the first question in `questionsIds`.
+2. Create a payouts array defaulting to 0s. Its length is 3 (last index is for INVALID outcome).
+3. Calculates the payout for each outcome based on the answer:
+   1. If the answer is INVALID\_RESULT, sets the payout for the third outcome to 1.
+   2. If the answer is less than or equal to `lowerBound`, sets the payout for the first outcome to 1. If the answer is greater than or equal to `upperBound`, sets the payout for the second outcome to 1. 
+   3. For answers between `lowerBound` and `upperBound`, calculates proportional payouts for the first two outcomes based on the answer's position within the range.
+4. Reports the final payouts of the `questionId` to the `ConditionalTokens` contract.
+
+### resolveMultiScalarMarket
+
+```solidity
+function resolveMultiScalarMarket(bytes32 questionId, bytes32[] questionsIds, uint256 numOutcomes) internal
+```
+
+*If any individual result is invalid then the corresponding payout element is set to 0. If all the elements of the payout vector are 0 or all are invalid, the market resolves to invalid.*
+
+**Parameters**
+
+| Name         | Type       | Description                                                    |
+| ------------ | ---------- | -------------------------------------------------------------- |
+| questionId   | bytes32    | Conditional Tokens questionId.                                 |
+| questionsIds | bytes32\[] | Reality questions ids.                                         |
+| numOutcomes  | uint256    | The number of outcomes, excluding the INVALID\_RESULT outcome. |
+
+**Pre-condition**
+
+This market reality questions must be finalized. If there is one or more reopened questions, those questions need to be finalized instead.
+
+**Logic**
+
+1. Get reality final answers by calling `realitio.resultForOnceSettled()` for each question in `questionsIds`.
+2. Create a payouts array defaulting to 0s. Its length is `numOutcomes+1` (last index is for INVALID outcome).
+3. For each answer + index:
+   1. If the answer is INVALID\_RESULT, sets the payout at that index to 0.
+   2. If the answer exceeds the maximum payout, caps it at the maximum, otherwise sets the payout at that index to answer.
+   3. Tracks if all outcomes have zero payouts.
+   4. If all outcomes have zero payouts after processing, sets the payout of the last index to 1.
+4. Reports the final payouts of the `questionId` to the `ConditionalTokens` contract.

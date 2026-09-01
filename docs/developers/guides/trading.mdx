@@ -1,0 +1,268 @@
+---
+title: "Trading outcome tokens"
+---
+Outcome tokens (CTF positions) are traded on AMMs. Pools are always **outcome token / main collateral** for the chain.
+
+Quotes go through **Lens smart quoter** (`lensQuoter`), which picks the best DEX (Uniswap V3/V4 or Swapr) and returns calldata for that DEX’s own router. Swaps execute against the official DEX routers — Lens is not an AMM or a swap router.
+
+Use **@seer-pm/sdk** to get quotes and build swap flows. The SDK handles routing, amounts, and slippage for all supported chains (Gnosis, Ethereum, Base, Optimism).
+
+---
+
+## Main collateral by chain
+
+Each market’s pool is **outcome token / that market’s collateral** (`market.collateralToken`). On Gnosis, multiple primaries are registered (sDAI, s-gCRC); call `configureCollateral` for the profile your site uses, then use `getActivePrimaryCollateral` for quotes and swaps.
+
+```typescript
+import { getActivePrimaryCollateral, type Token } from "@seer-pm/sdk";
+
+const chainId = 100; // gnosis
+
+// After configureCollateral (defaults to "default" / sDAI):
+const collateralToken: Token = getActivePrimaryCollateral(chainId);
+```
+
+| Chain | Registered primaries (examples) |
+|-------|----------------------------------|
+| Gnosis (100) | sDAI `0xaf20…3701`, s-gCRC `0x548c…4bC1` |
+| Ethereum (1) | sDAI |
+| Base (8453) | sUSDS |
+| Optimism (10) | sUSDS |
+
+See [Collateral profiles](/developers/guides/collateral-profiles) for the full registry and white-label configuration.
+
+---
+
+## Getting quotes with @seer-pm/sdk
+
+**Chain coverage:**
+
+- **AMM via Lens smart quoter** on Gnosis, Ethereum, Base, Optimism: `fetchAmmQuote` with `TradeType` (exact-in / exact-out). Requires a viem `PublicClient`.
+
+**Result type:** `QuoteTradeResult` — `value` (bigint), `decimals`, `buyToken`, `sellToken`, `sellAmount`, `swapType`, and `trade` (`AmmTrade`).
+
+### Token and collateral
+
+```typescript
+import {
+  TradeType,
+  fetchAmmQuote,
+  getActivePrimaryCollateral,
+  type QuoteTradeResult,
+  type Token,
+} from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
+
+const chainId = gnosis.id;
+const collateralToken = getActivePrimaryCollateral(chainId);
+
+const outcomeToken: Token = {
+  address: "0x...", // wrapped outcome token address (e.g. market.wrappedTokens[i])
+  chainId,
+  symbol: "SEER_OUTCOME",
+  decimals: 18,
+};
+```
+
+### Quote: exact input (e.g. “I spend 10 collateral → how many outcome tokens?”)
+
+```typescript
+import {
+  TradeType,
+  fetchAmmQuote,
+  getActivePrimaryCollateral,
+  type QuoteTradeResult,
+  type Token,
+} from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
+
+const chainId = gnosis.id;
+const collateralToken = getActivePrimaryCollateral(chainId);
+const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
+
+const quote: QuoteTradeResult = await fetchAmmQuote(
+  publicClient as PublicClient,
+  TradeType.EXACT_INPUT,
+  chainId,
+  undefined, // or user address
+  "10", // amount in collateral (string)
+  outcomeToken,
+  collateralToken,
+  "buy", // swapType: "buy" = collateral → outcome
+  "1", // maxSlippage percent (e.g. "1" = 1%)
+);
+
+// quote.value = bigint amount of outcome tokens
+// quote.trade = AmmTrade (use for execution)
+const amountOut = quote.value;
+const amountOutMinimum = quote.trade.minimumAmountOut(); // AmmTrade helper with slippage
+```
+
+### Quote: exact output (e.g. “I want exactly N outcome tokens → how much collateral?”)
+
+```typescript
+import { TradeType, fetchAmmQuote, getActivePrimaryCollateral, type Token } from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
+import { gnosis } from "viem/chains";
+
+const chainId = gnosis.id;
+const collateralToken = getActivePrimaryCollateral(chainId);
+const outcomeToken: Token = { address: "0x...", chainId, symbol: "SEER_OUTCOME", decimals: 18 };
+
+const quote = await fetchAmmQuote(
+  publicClient as PublicClient,
+  TradeType.EXACT_OUTPUT,
+  chainId,
+  undefined,
+  "50", // exact amount of outcome tokens desired
+  outcomeToken,
+  collateralToken,
+  "buy",
+  "1",
+);
+
+// quote.value = bigint amount of collateral (input) needed
+const amountInMaximum = quote.trade.maximumAmountIn();
+```
+
+### Using TradeType for exact-in vs exact-out
+
+```typescript
+import { TradeType, fetchAmmQuote, getActivePrimaryCollateral, type Token } from "@seer-pm/sdk";
+import type { PublicClient } from "viem";
+import { mainnet } from "viem/chains";
+
+async function getQuote(
+  publicClient: PublicClient,
+  tradeType: TradeType,
+  chainId: number,
+  amount: string,
+  outcomeToken: Token,
+  collateralToken: Token,
+  swapType: "buy" | "sell",
+  maxSlippage: string,
+) {
+  return fetchAmmQuote(
+    publicClient,
+    tradeType,
+    chainId,
+    undefined,
+    amount,
+    outcomeToken,
+    collateralToken,
+    swapType,
+    maxSlippage,
+  );
+}
+
+const collateralToken = getActivePrimaryCollateral(mainnet.id);
+const outcomeToken: Token = { address: "0x...", chainId: mainnet.id, symbol: "SEER_OUTCOME", decimals: 18 };
+
+const exactInQuote = await getQuote(
+  publicClient,
+  TradeType.EXACT_INPUT,
+  mainnet.id,
+  "10",
+  outcomeToken,
+  collateralToken,
+  "buy",
+  "1",
+);
+
+const exactOutQuote = await getQuote(
+  publicClient,
+  TradeType.EXACT_OUTPUT,
+  mainnet.id,
+  "50",
+  outcomeToken,
+  collateralToken,
+  "buy",
+  "1",
+);
+```
+
+---
+
+## Executing the swap
+
+The SDK provides execution functions that take a `trade` (from a quote) and send the transaction. You need **wagmi** (config, `getConnectorClient`) and optionally a toast/notification layer for UX.
+
+### Execute any trade (AMM via Lens)
+
+Use `tradeTokens` to execute an AMM trade (including complete-set / PSM3 composite routes when present on the props):
+
+```typescript
+import { tradeTokens, type TradeTokensProps } from "@seer-pm/sdk";
+import { config } from "@/wagmi";
+import { getConnectorClient } from "@wagmi/core";
+
+const client = await getConnectorClient(config);
+const adapters = { client };
+
+const props: TradeTokensProps = {
+  trade: quote.trade,
+  account: "0x...",
+  isTradingCredits: false,
+};
+
+const result = await tradeTokens(props, adapters); // tx hash
+```
+
+Wrap with `toastifyTx` in your app to show "Executing..." and "Done!" notifications.
+
+### Execute AMM trade
+
+```typescript
+import { executeAmmTrade } from "@seer-pm/sdk";
+import { config } from "@/wagmi";
+import { getConnectorClient, waitForTransactionReceipt } from "@wagmi/core";
+
+const client = await getConnectorClient(config);
+
+const hash = await executeAmmTrade(
+  client,
+  trade, // AmmTrade from fetchAmmQuote
+  account,
+  false, // isTradingCredits
+);
+
+const receipt = await waitForTransactionReceipt(config, { hash });
+```
+
+### Execute with 7702 batch (approvals + swap)
+
+For wallets that support [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702), you can batch approvals and the swap in a single flow:
+
+```typescript
+import { buildTradeCalls7702, type TradeTokensProps } from "@seer-pm/sdk";
+import { config } from "@/wagmi";
+import { sendCalls, waitForCallsStatus, waitForTransactionReceipt } from "@wagmi/core";
+
+const props: TradeTokensProps = {
+  trade,
+  account: "0x...",
+  isTradingCredits: false,
+};
+
+const calls = await buildTradeCalls7702(props);
+const { id } = await sendCalls(config, { calls, chainId: trade.chainId });
+
+const { receipts = [] } = await waitForCallsStatus(config, { id });
+const receipt = await waitForTransactionReceipt(config, {
+  hash: receipts[0].transactionHash!,
+});
+```
+
+### Build execution without sending
+
+To build the transaction data and send it yourself:
+
+```typescript
+import { buildAmmTradeExecution } from "@seer-pm/sdk";
+import { sendTransaction } from "@wagmi/core";
+
+const exec = await buildAmmTradeExecution(trade, account, false);
+const hash = await sendTransaction(config, exec);
+```

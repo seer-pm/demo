@@ -1,0 +1,26 @@
+---
+title: "Practical Implementation = AMM + Auctions"
+---
+We can see this as a system with 2 components: an AMM and an auction system.
+
+Liquidity providers interact with the AMM contract while traders interact with the auction contract. The AMM only allows the auction contract to trade with it.
+
+PUT FIGURE
+
+When a trader makes an order, trading an underlying token (ex: stablecoin, sDAI) for an outcome token (ex: Biden token), it sends tokens A to the auction contract. This auction contract then makes a trade with the AMM such that the price given by the AMM is immediately updated.
+
+The auction contract now owns the outcome tokens being bought and auctions them. The auction starts with the original trader being the current winner and the bid price being the price paid by the original trader. If no one overbids the original trader, those outcome tokens are simply given to the original trader and the system would have functioned as a classic AMM (except the small settlement delay).
+
+Now, if another trader overbids, the auction contract reimburses the underlying tokens to the previous winner and keeps the difference (new\_bid - previous\_winner). The auction timer is reset. This can happen multiple times.
+
+When bidding, it is possible to make only a partial bid (this is particularly relevant if the order is large). When this happens, the auction is split into two auctions (the original one, minus the part which was overbid and the new one which consists of the amount overbid).
+
+At the end of the bidding period, the winner gets the outcome tokens. If there has been some overbidding, the auction contract will have some extra underlying tokens. Those are sent to the AMM contract and added to the rewards of the liquidity providers.
+
+**Chosen Curve**: Since the price of outcome token shares are bounded between 0 and 1, we chose a bounded linear AMM (where the price increases linearly from 0 to 1) in order to concentrate all the liquidity within the possible price range.
+
+**Minimum increment**: In order to prevent a situation where different bidders would simply overbid each other incrementing only of a base unit (ex: 1 Wei), there is a minimum bid increment (for example 0.1%).
+
+**Minimum order size**: In order to prevent malicious traders from starting auctions so small that the gas cost would be prohibitive compared to value auctioned, there is a minimum size (ex: 1DAI) for orders.
+
+**Selling orders**: Selling outcome tokens works in a similar manner, except bids are not made in the amount of outcome tokens for some money tokens, but in the amount of underlying tokens to receive from the outcome tokens. Traders participate in a descending auction bidding to accept the lowest amount of underlying from their outcome tokens. If a bid lower than the initial one is made, the remaining underlying tokens are sent back to the AMM as rewards for liquidity providers. Therefore liquidity providers rewards are always in the form of underlying tokens.

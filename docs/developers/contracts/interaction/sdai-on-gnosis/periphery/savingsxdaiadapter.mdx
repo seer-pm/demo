@@ -1,0 +1,106 @@
+---
+title: "SavingsXDaiAdapter"
+---
+## Variables
+
+### interestReceiver
+
+```solidity
+contract IBridgeInterestReceiver interestReceiver
+```
+
+### sDAI
+
+```solidity
+contract SavingsXDai sDAI
+```
+
+### wxdai
+
+```solidity
+contract IWXDAI wxdai
+```
+
+## Modifiers
+
+### claim
+
+```solidity
+modifier claim()
+```
+
+## Functions
+
+### constructor
+
+```solidity
+constructor(address interestReceiver_, address payable sDAI_) public
+```
+
+*Set the underlying asset contract. This must be an ERC20-compatible contract (ERC20 or ERC777).*
+
+### deposit
+
+```solidity
+function deposit(uint256 assets, address receiver) public returns (uint256)
+```
+
+### mint
+
+```solidity
+function mint(uint256 shares, address receiver) public returns (uint256)
+```
+
+### withdraw
+
+```solidity
+function withdraw(uint256 assets, address receiver) public returns (uint256)
+```
+
+### redeem
+
+```solidity
+function redeem(uint256 shares, address receiver) public returns (uint256)
+```
+
+### depositXDAI
+
+```solidity
+function depositXDAI(address receiver) public payable returns (uint256)
+```
+
+### withdrawXDAI
+
+```solidity
+function withdrawXDAI(uint256 assets, address receiver) public payable returns (uint256)
+```
+
+### redeemXDAI
+
+```solidity
+function redeemXDAI(uint256 shares, address receiver) public payable returns (uint256)
+```
+
+### redeemAll
+
+```solidity
+function redeemAll(address receiver) public returns (uint256)
+```
+
+### redeemAllXDAI
+
+```solidity
+function redeemAllXDAI(address receiver) public payable returns (uint256)
+```
+
+### vaultAPY
+
+```solidity
+function vaultAPY() external view returns (uint256)
+```
+
+### receive
+
+```solidity
+receive() external payable
+```
