@@ -401,10 +401,64 @@ Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`)
 | `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `all`). |
 | `limit` / `offset` | No | Pagination (limit max 200). |
 | `search` | No | Substring filter on address. |
+| `sort` | No | `pnl` \| `volume` \| `roi` \| `markets` \| `score` (default `pnl`). |
+| `dir` | No | `asc` \| `desc` (default `desc`). Null values (`roi` on dust capital, `score` below the gate) always sort last, in both directions. |
+| `rankFor` | No | Address; returns `{ address, rank, total }` instead of a page. |
+| `breakdown` | No | `1` or `true` to include `scoreBreakdown` on every row. |
 
 All rankings use **USD** (`pnl_usd` from materialization: native collateral PnL × spot collateral USD). Per-chain filters still return USD so ranks stay comparable; `chainId=all` sums `pnl_usd` across chains. App filter `all` is independent of `SEER_APPS` market lists.
 
----## markets-charts
+### Trader score
+
+Each row carries `score` (0-100, one decimal) and `tier` (`Elite` ≥85, `Great` ≥70, `Good` ≥55, `Average` ≥40, `Weak` below). It is a weighted mean of five clamped-linear components:
+
+| Component | Weight | Measure | 0 points | 100 points |
+|---|---|---|---|---|
+| `returns` | 25% | ROI = `pnl_usd / capital_usd` | −25% | +75% |
+| `profitFactor` | 25% | gross profit / gross loss, over markets | 0.5 | 3.0 |
+| `hitRate` | 20% | share of markets ending in profit | 35% | 75% |
+| `lossBurn` | 15% | gross loss / capital | 50% | 0% |
+| `breadth` | 15% | `1 − bestMarket / grossProfit` | 0 (one market) | 0.7 |
+
+`score` is `null`, never 0, when the wallet has fewer than 3 markets above $1 of capital at risk, or less than $100 of capital in the window. When it is null the row also carries `scoreUnavailable` — `{ reason: "markets" | "capital", scoredMarketCount, minScoredMarkets, minCapitalUsd }` — so a client can say which gate was missed. Note that `marketCount` counts every traded market while the gate counts only those above $1 of capital at risk, so a wallet can show a large `marketCount` and still be unscored. Two priors keep small books honest: the hit rate carries 5 pseudo-markets at 50%, and the profit factor carries symmetric prior mass of 5% of capital on both sides, so a book with no losing market reads a finite ratio rather than infinity.
+
+Read `score` as a summary of the wallet's **cross-market** distribution. It is not a time-series metric: `lossBurn` is a terminal-state loss and a strict lower bound on true drawdown (it cannot see a position that was deep underwater mid-window and recovered), `breadth` measures concentration across markets rather than the smoothness of an equity curve, and `returns` has a capital denominator but no risk denominator. `scoreBreakdown.method` is `"markets"` and identifies which implementation produced the number.
+
+The score is computed at read time from additive statistics stored on `pnl_leaderboard`, so it is correct after the executor→owner, app-scope and cross-chain merges. It is not stored per row, and it is not meaningful to average two scores.
+
+---
+
+## get-market-pnl-leaderboard
+
+Ranked wallet P/L within one market, including its conditional children. Reads `pnl_market_leaderboard` (apply `web/supabase/sql/pnl_market_leaderboard.sql` first) — same materialization pass as the global board, so freshness is identical.
+
+| Field | Detail |
+|-------|--------|
+| **Method** | `GET` |
+| **URL** | `https://app.seer.pm/.netlify/functions/get-market-pnl-leaderboard` |
+| **CORS** | `*` |
+
+### Query params
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `marketId` | Yes | Market address. Conditional children are expanded and aggregated in. |
+| `chainId` | Yes | Chain id. `all` is not supported. |
+| `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `all`). |
+| `limit` / `offset` | No | Pagination (limit max 100). |
+| `search` | No | Hex address fragment. |
+| `sort` | No | `pnl` \| `volume` \| `roi` \| `markets` (default `pnl`). **`score` is not accepted here** — see below. |
+| `dir` | No | `asc` \| `desc` (default `desc`). |
+
+### Response 200
+
+`{ marketId, marketIds, chainId, period, total, rows }`, where each row is `{ rank, address, pnl, volume, roi, unit: "USD", capitalUsd, score, tier, updatedAt, mergedWallets? }`.
+
+`score` and `tier` are the trader's **protocol-wide** score (the `app_id = 'all'` board for the same chain and period), not a score for this market: a single market can never clear the score's 3-market eligibility gate, so a market-scoped score would always be `null`. It is looked up for the current page only, after pagination — which is why this endpoint cannot rank by it. A failed lookup yields `score: null` rather than failing the board.
+
+---
+
+## markets-charts
 
 Returns chart data (hourly price/volume) for markets. If IDs are provided, only those markets; if omitted, all cached chart data.
 
@@ -454,7 +508,8 @@ type MarketsChartsResponse = Record<`0x${string}`, ChartDataSeries>;
 | get-portfolio | GET | `account`, opt. `chainId`/`all`, `collateralProfile` | Wallet positions (filtered by profile); each row has `chainId` |
 | get-portfolio-value | GET | `account`, `chainId` or `all`, opt. `collateralProfile` | Portfolio value + 24h delta (USD) |
 | get-portfolio-pl | GET | `account`, `chainId` or `all`, opt. `collateralProfile`, `period`, `marketId` / `marketIds` | Period P/L (global path USD; market-scoped native) |
-| get-pnl-leaderboard | GET | `app`, `chainId` or `all`, `period` | App-scoped P/L rankings |
+| get-pnl-leaderboard | GET | `app`, `chainId` or `all`, `period`, `sort` | App-scoped P/L rankings and trader score |
+| get-market-pnl-leaderboard | GET | `marketId`, `chainId`, `period` | P/L rankings within one market |
 | markets-charts | GET | opt. `ids` (market IDs) | Price/volume charts per market |
 
 All responses are JSON. Errors return `{ "error": "message" }` with the appropriate HTTP status code.

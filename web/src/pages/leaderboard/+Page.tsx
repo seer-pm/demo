@@ -1,6 +1,8 @@
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
+import { TraderScoreBadge, type TraderScoreBreakdown } from "@/components/TraderScoreBadge";
+import { TraderScoreLegend } from "@/components/TraderScoreLegend";
 import {
   SEER_APPS,
   SEER_APP_ALL_ID,
@@ -18,14 +20,15 @@ import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Filter } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { SCORE_UNAVAILABLE, type ScoreUnavailable } from "@/lib/traderScore";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
 type Period = "1d" | "1w" | "1m" | "all";
-type SortKey = "pnl" | "volume" | "roi" | "markets";
+type SortKey = "pnl" | "volume" | "roi" | "markets" | "score";
 type SortDir = "asc" | "desc";
 
 type LeaderboardApiResponse = {
@@ -48,6 +51,13 @@ type LeaderboardApiResponse = {
     unit: string;
     chainId?: number;
     marketCount: number;
+    /** 0-100; null when the wallet does not clear the score's eligibility gate. */
+    score: number | null;
+    tier: string | null;
+    /** Present only when `score` is null: which eligibility gate the wallet missed, and by how much. */
+    scoreUnavailable?: ScoreUnavailable;
+    /** Five weighted sub-scores. Requested with `breakdown=1` so the pill can explain its verdict. */
+    scoreBreakdown?: TraderScoreBreakdown;
     updatedAt: string | null;
   }[];
 };
@@ -72,6 +82,7 @@ const SORT_LABELS: Record<SortKey, string> = {
   volume: "Volume",
   roi: "ROI",
   markets: "Traded Markets",
+  score: "Score",
 };
 
 const SORT_DIR_LABELS: Record<SortDir, string> = {
@@ -79,7 +90,9 @@ const SORT_DIR_LABELS: Record<SortDir, string> = {
   asc: "low to high",
 };
 
-const ROI_UNAVAILABLE = "n/a";
+// One null convention across the table: two glyphs for the same "no value" claim in adjacent
+// columns read as two different states, and "N/A" is the one that says what it means.
+const ROI_UNAVAILABLE = SCORE_UNAVAILABLE;
 const ROI_UNAVAILABLE_TITLE = "Not enough capital in this period to compute ROI";
 
 function formatPnlUsd(value: number) {
@@ -108,6 +121,11 @@ function sortStatusText(sort: SortKey, dir: SortDir) {
   if (sort === "roi") {
     return `${ranking}. ${ROI_UNAVAILABLE} means a wallet had under $0.01 of capital.`;
   }
+  if (sort === "score") {
+    // Deliberately short: this string sits in an aria-live region and is re-announced on every sort
+    // toggle. The formula and the tier bands live in the Score header's legend instead.
+    return `${ranking}. ${SCORE_UNAVAILABLE} means the wallet has too little history to score.`;
+  }
   return ranking;
 }
 
@@ -133,6 +151,9 @@ async function fetchPnlLeaderboard(params: {
     dir: params.dir,
     limit: String(params.limit),
     offset: String(params.offset),
+    // The board renders 25 rows, and the pill's breakdown is what lets a wallet see which of the
+    // five components produced its tier. Cheap enough at this page size to always ask for it.
+    breakdown: "1",
   });
   if (params.search) qs.set("search", params.search);
   const res = await fetch(`/.netlify/functions/get-pnl-leaderboard?${qs.toString()}`);
@@ -188,32 +209,43 @@ function SortableHeader({
   activeSort,
   activeDir,
   onSort,
+  info,
 }: {
   label: string;
   sortKey: SortKey;
   activeSort: SortKey;
   activeDir: SortDir;
   onSort: (key: SortKey) => void;
+  /** Rendered beside the label, outside the sort button so opening it does not re-sort the table. */
+  info?: ReactNode;
 }) {
   const active = activeSort === sortKey;
   const currentDir = active ? (activeDir === "asc" ? "ascending" : "descending") : "not sorted";
   const nextDir = !active || activeDir === "asc" ? "descending" : "ascending";
 
   return (
-    <th className="text-right" aria-sort={active ? (activeDir === "asc" ? "ascending" : "descending") : "none"}>
-      <button
-        type="button"
-        className={clsx(
-          "inline-flex items-center justify-end gap-1 w-full min-h-11 font-semibold rounded-[1px] hover:text-base-content",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary",
-          active ? "text-base-content" : "text-black-secondary",
-        )}
-        onClick={() => onSort(sortKey)}
-        aria-label={`${label}, ${currentDir}. Activate to sort ${nextDir}.`}
-      >
-        {label}
-        <SortMark active={active} dir={active ? activeDir : "desc"} />
-      </button>
+    <th
+      className="text-right"
+      scope="col"
+      aria-sort={active ? (activeDir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <span className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          className={clsx(
+            "inline-flex items-center justify-end gap-1 min-h-11 font-semibold rounded-[1px] hover:text-base-content",
+            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary",
+            info ? "" : "w-full",
+            active ? "text-base-content" : "text-black-secondary",
+          )}
+          onClick={() => onSort(sortKey)}
+          aria-label={`${label}, ${currentDir}. Activate to sort ${nextDir}.`}
+        >
+          {label}
+          <SortMark active={active} dir={active ? activeDir : "desc"} />
+        </button>
+        {info}
+      </span>
     </th>
   );
 }
@@ -378,6 +410,19 @@ function LeaderboardPage() {
           Rankings of wallets by trading P/L in USD. <strong>All</strong> covers every Seer market on a chain (including
           markets not assigned to an app). App filters scope to that app&apos;s configured markets; Deepfunding and
           Foresight also offer per-market boards.
+        </p>
+        <p className="text-black-secondary max-w-2xl">
+          <strong className="font-semibold text-base-content">Trader Score</strong> rates each wallet 0–100 on returns,
+          profit factor, hit rate, loss burn and breadth across the markets it traded.{" "}
+          <a
+            className="text-purple-primary hover:underline"
+            href={paths.leaderboardGuide()}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            How it works
+          </a>
+          .
         </p>
       </div>
 
@@ -569,8 +614,18 @@ function LeaderboardPage() {
           <table className="table" aria-busy={query.isFetching} aria-describedby="leaderboard-sort-status">
             <thead>
               <tr>
-                <th className="w-16">#</th>
-                <th>Account</th>
+                <th className="w-16" scope="col">
+                  #
+                </th>
+                <th scope="col">Account</th>
+                <SortableHeader
+                  label={SORT_LABELS.score}
+                  sortKey="score"
+                  activeSort={sort}
+                  activeDir={dir}
+                  onSort={toggleSort}
+                  info={<TraderScoreLegend />}
+                />
                 <SortableHeader
                   label={SORT_LABELS.pnl}
                   sortKey="pnl"
@@ -604,13 +659,13 @@ function LeaderboardPage() {
             <tbody className={clsx(isRefreshing && "opacity-60")}>
               {isInitialLoad ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-black-secondary">
+                  <td colSpan={7} className="text-center py-10 text-black-secondary">
                     Loading leaderboard…
                   </td>
                 </tr>
               ) : query.error && rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10">
+                  <td colSpan={7} className="text-center py-10">
                     <div className="space-y-3">
                       <p className="text-error">{(query.error as Error).message || "Failed to load leaderboard"}</p>
                       <button type="button" className="btn btn-sm btn-primary" onClick={() => void query.refetch()}>
@@ -621,7 +676,7 @@ function LeaderboardPage() {
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-black-secondary">
+                  <td colSpan={7} className="text-center py-10 text-black-secondary">
                     No ranked wallets yet.
                   </td>
                 </tr>
@@ -648,6 +703,15 @@ function LeaderboardPage() {
                           ) : null}
                         </a>
                       </td>
+                      <td className="text-right">
+                        <TraderScoreBadge
+                          score={row.score}
+                          tier={row.tier}
+                          marketCount={row.marketCount}
+                          scoreUnavailable={row.scoreUnavailable}
+                          breakdown={row.scoreBreakdown}
+                        />
+                      </td>
                       <td className={`text-right font-semibold tabular-nums ${SIGNED_TONE_CLASS[signedTone(row.pnl)]}`}>
                         {formatPnlUsd(row.pnl)}
                       </td>
@@ -657,6 +721,7 @@ function LeaderboardPage() {
                           row.roi == null ? "text-black-secondary" : SIGNED_TONE_CLASS[signedTone(row.roi)]
                         }`}
                         title={row.roi == null ? ROI_UNAVAILABLE_TITLE : undefined}
+                        aria-label={row.roi == null ? `ROI not available. ${ROI_UNAVAILABLE_TITLE}` : undefined}
                       >
                         {formatRoi(row.roi)}
                       </td>

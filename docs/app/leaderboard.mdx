@@ -1,0 +1,63 @@
+---
+title: "Leaderboard and Trader Score"
+---
+
+The [leaderboard](https://app.seer.pm/leaderboard) ranks wallets by their trading profit and loss, in USD, across Seer markets. Alongside P/L, volume, ROI and traded markets, each wallet carries a **Trader Score**.
+
+## What the Trader Score is
+
+A 0–100 rating of how a wallet traded the markets in a period, derived from its per-market profit and loss distribution.
+
+It is a summary of *how* the profit was made, not just how much. Two wallets that both finished +$10,000 can score very differently: one that made it steadily across twenty markets while losing little scores well; one that made it all on a single lucky market, after losing heavily elsewhere, does not.
+
+## What each tier means
+
+| Tier | Score | What it says about the wallet |
+|---|---|---|
+| **Elite** | 85–100 | Strong returns spread across many markets, with small losses. |
+| **Great** | 70–84.9 | Profitable and consistent, with one weaker component. |
+| **Good** | 55–69.9 | Net positive, but concentrated or with meaningful losses. |
+| **Average** | 40–54.9 | Around break-even once losses and concentration are counted. |
+| **Weak** | 0–39.9 | Losses outweigh gains, or profit came from a single market. |
+
+A tier is only a label for the number — the score itself is what is ranked and sorted.
+
+## How the score is calculated
+
+The score is the weighted mean of five components. Each is measured, then mapped onto 0–100 between a floor and a ceiling, then weighted:
+
+| Weight | Component | What it measures | Scores 0 | Scores 100 |
+|---|---|---|---|---|
+| 25% | **Returns** | Profit ÷ capital deployed (ROI) | −25% | +75% |
+| 25% | **Profit factor** | Money made ÷ money lost, across markets | 0.5 | 3.0 |
+| 20% | **Hit rate** | Share of markets that ended in profit | 35% | 75% |
+| 15% | **Loss burn** | Total losses as a share of capital | 50% | 0% |
+| 15% | **Breadth** | Whether profit came from many markets or one | all from one market | spread over 3+ |
+
+Click any score on the leaderboard to see these five components for that wallet, with the raw value of each and the points it contributed.
+
+### Two corrections for small books
+
+A wallet that traded three markets and won all three has not proven it can trade — it has a small sample. Two adjustments stop small books from posting perfect numbers:
+
+- **Hit rate** carries five pseudo-markets at 50%, so three wins out of three reads about 73%, not 100%.
+- **Profit factor** carries prior mass on both sides worth 5% of capital, so a wallet that never lost reads a finite ratio instead of infinity.
+
+## Why some wallets show no score
+
+A wallet shows **N/A** instead of a score when there is not enough history to judge it fairly:
+
+- fewer than **3 markets** with more than **$1** of capital at risk, or
+- less than **$100** of total capital at risk in the period.
+
+This is deliberately N/A and not a `0`: "too little history to judge" is not the same claim as "judged and scored badly". Hover or tap it to see which of the two conditions the wallet missed.
+
+<Note>
+The **Traded Markets** column counts every market a wallet touched, while the score only counts markets where more than $1 was at risk. That is why a wallet can show a large number of traded markets and still be unscored — dusted and airdropped positions do not count toward the score.
+</Note>
+
+## What the score does not measure
+
+The score reads a wallet's distribution **across markets**, not over time. It cannot see a position that was deep underwater mid-period and recovered, because it only sees where each market finished. "Loss burn" is a total of realised losses, not a maximum drawdown, and "breadth" measures how concentrated the profit was, not how smooth the equity curve looked.
+
+Scores are computed fresh for whatever period, app and chain filter you have selected. Because the score is a weighted mean of ratios, two scores cannot be meaningfully averaged together.

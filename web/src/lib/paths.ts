@@ -46,6 +46,7 @@ export const paths = {
     return "#";
   },
   dappGuide: () => `${DOCS_URL}/documentation/what-is-seer`,
+  leaderboardGuide: () => `${DOCS_URL}/app/leaderboard`,
   bugReport: () => "https://github.com/seer-pm/demo/issues",
   getHelp: () => "https://discord.com/invite/rBEB4MYQwV",
   beginnerGuide: () => "https://ethereum.org/en/wallets/",

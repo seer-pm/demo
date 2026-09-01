@@ -131,6 +131,7 @@
             "group": "Using the app",
             "pages": [
               "app/navigate-our-site",
+              "app/leaderboard",
               "app/create-a-market",
               "app/verify-market",
               "app/mint-merge-redeem-outcome-tokens",

@@ -41,6 +41,7 @@ describe("aggregateBucketsForScope", () => {
       byMarketPeriod: BUCKETS,
       period: "all",
       scope: { appId: "all", marketIds: undefined },
+      collateralPriceUsd: 1,
     });
     expect(t.pnl).toBeCloseTo(7, 10);
     expect(t.volume).toBeCloseTo(145, 10);
@@ -53,6 +54,7 @@ describe("aggregateBucketsForScope", () => {
       byMarketPeriod: BUCKETS,
       period: "all",
       scope: { appId: "app", marketIds: new Set([A]) },
+      collateralPriceUsd: 1,
     });
     expect(t.pnl).toBeCloseTo(10, 10);
     expect(t.volume).toBeCloseTo(100, 10);
@@ -63,9 +65,39 @@ describe("aggregateBucketsForScope", () => {
       byMarketPeriod: BUCKETS,
       period: "all",
       scope: { appId: "all", marketIds: undefined },
+      collateralPriceUsd: 1,
     });
     // Three buckets, but C never traded.
     expect(all.marketCount).toBe(2);
+  });
+
+  it("accumulates the trader score statistics over non-dust markets", () => {
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: BUCKETS,
+      period: "all",
+      scope: { appId: "all", marketIds: undefined },
+      collateralPriceUsd: 1,
+    });
+    // C carries no capital, so it is dust and stays out of the distribution even though it profited.
+    expect(t.scoredMarketCount).toBe(2);
+    expect(t.winningMarketCount).toBe(1);
+    expect(t.grossProfit).toBeCloseTo(10, 10);
+    expect(t.grossLoss).toBeCloseTo(4, 10);
+    expect(t.bestMarketPnl).toBeCloseTo(10, 10);
+  });
+
+  it("excludes a market whose capital is below the dust threshold in USD, not in native units", () => {
+    // 5 native units of capital is $5 at price 1 (scored) but $0.50 at price 0.1 (dust).
+    const buckets = perPeriod([bucket(A, { pnl: 2, capitalDeployed: 5, traded: true })]);
+    const scope = { appId: "all", marketIds: undefined };
+    expect(
+      aggregateBucketsForScope({ byMarketPeriod: buckets, period: "all", scope, collateralPriceUsd: 1 })
+        .scoredMarketCount,
+    ).toBe(1);
+    expect(
+      aggregateBucketsForScope({ byMarketPeriod: buckets, period: "all", scope, collateralPriceUsd: 0.1 })
+        .scoredMarketCount,
+    ).toBe(0);
   });
 
   it("matches the allowlist case-insensitively", () => {
@@ -73,6 +105,7 @@ describe("aggregateBucketsForScope", () => {
       byMarketPeriod: perPeriod([bucket(A.toUpperCase(), { pnl: 3 })]),
       period: "all",
       scope: { appId: "app", marketIds: new Set([A]) },
+      collateralPriceUsd: 1,
     });
     expect(t.pnl).toBeCloseTo(3, 10);
   });
@@ -133,6 +166,23 @@ describe("deriveLeaderboardRows", () => {
     expect(row.value_start).toBeCloseTo(-30, 10);
     // pnl_usd 5 over capital 30, not over (−30 + 30) = 0.
     expect(row.roi).toBeCloseTo(5 / 30, 10);
+  });
+
+  it("converts the score statistics to USD, like pnl_usd and volume_usd", () => {
+    const all = rows.find((r) => r.app_id === "all" && r.period === "all")!;
+    expect(all.scored_market_count).toBe(2);
+    expect(all.winning_market_count).toBe(1);
+    // Native 10 / 4 / 10 at the refresh price of 2.
+    expect(all.gross_profit_usd).toBeCloseTo(20, 10);
+    expect(all.gross_loss_usd).toBeCloseTo(8, 10);
+    expect(all.best_market_pnl_usd).toBeCloseTo(20, 10);
+  });
+
+  it("scopes the score statistics to the app allowlist, like every other total", () => {
+    const app = rows.find((r) => r.app_id === "foresight:movies-1" && r.period === "all")!;
+    expect(app.scored_market_count).toBe(1);
+    expect(app.winning_market_count).toBe(1);
+    expect(app.gross_loss_usd).toBeCloseTo(0, 10);
   });
 
   it("lowercases the address so it joins with the per-market table", () => {

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { parseOwnerMapRecord } from "./ownerMapRecord";
 import type { LeaderboardCandidate, MaterializedLeaderboardRow, RolledUpLeaderboardRow } from "./pnlLeaderboardRollup";
 import {
+  aggregateRowsAcrossChains,
   matchesAddressSearch,
   rankForAddress,
   rollUpRows,
@@ -35,6 +36,11 @@ function row(overrides: Partial<MaterializedLeaderboardRow>): MaterializedLeader
     capitalDeployed: 0,
     collateralPriceUsd: 1,
     marketCount: 0,
+    scoredMarketCount: 0,
+    winningMarketCount: 0,
+    grossProfitUsd: 0,
+    grossLossUsd: 0,
+    bestMarketPnlUsd: 0,
     updatedAt: null,
     ...overrides,
   };
@@ -59,6 +65,13 @@ function rolled(overrides: Partial<RolledUpLeaderboardRow>): RolledUpLeaderboard
     marketCount: 0,
     updatedAt: null,
     roi: 0,
+    scoredMarketCount: 0,
+    winningMarketCount: 0,
+    grossProfitUsd: 0,
+    grossLossUsd: 0,
+    bestMarketPnlUsd: 0,
+    score: null,
+    scoreBreakdown: null,
     members: [address],
     ...overrides,
   };
@@ -288,5 +301,75 @@ describe("jobUsesTradeExecutors", () => {
     expect(jobUsesTradeExecutors("deepfund:octant", gnosis.id)).toBe(false);
     expect(jobUsesTradeExecutors("foresight:movies-1", optimism.id)).toBe(false);
     expect(jobUsesTradeExecutors("foresight:movies-1", 1)).toBe(false);
+  });
+});
+
+describe("trader score across merges", () => {
+  /** A profitable book: 3 markets, all won, +$100 on $100 of capital. */
+  const WINNER = {
+    scoredMarketCount: 3,
+    winningMarketCount: 3,
+    grossProfitUsd: 100,
+    grossLossUsd: 0,
+    bestMarketPnlUsd: 40,
+    pnlUsd: 100,
+    capitalDeployed: 100,
+    collateralPriceUsd: 1,
+  };
+  /** Its mirror: 3 markets, none won, −$100 on $100 of capital. */
+  const LOSER = {
+    scoredMarketCount: 3,
+    winningMarketCount: 0,
+    grossProfitUsd: 0,
+    grossLossUsd: 100,
+    bestMarketPnlUsd: 0,
+    pnlUsd: -100,
+    capitalDeployed: 100,
+    collateralPriceUsd: 1,
+  };
+
+  it("sums the additive statistics and takes the max of the best market", () => {
+    const [merged] = rollUpRows([row({ ...WINNER, address: OWNER }), row({ ...LOSER, address: OWNER })], {});
+    expect(merged.scoredMarketCount).toBe(6);
+    expect(merged.winningMarketCount).toBe(3);
+    expect(merged.grossProfitUsd).toBeCloseTo(100, 10);
+    expect(merged.grossLossUsd).toBeCloseTo(100, 10);
+    // A max over the union, not a sum: the best single market is still $40.
+    expect(merged.bestMarketPnlUsd).toBeCloseTo(40, 10);
+  });
+
+  it("scores the merged book, not an average of the per-chain scores", () => {
+    // This is why the score is derived at read time instead of stored per (app, chain, wallet).
+    const [onGnosis] = rollUpRows([row({ ...WINNER, address: OWNER, chainId: 100 })], {});
+    const [onOptimism] = rollUpRows([row({ ...LOSER, address: OWNER, chainId: 10 })], {});
+    const [allChains] = aggregateRowsAcrossChains([onGnosis, onOptimism]);
+
+    expect(onGnosis.score).toBeCloseTo(94.7, 1);
+    expect(onOptimism.score).toBeCloseTo(0, 1);
+
+    // The combined wallet is flat: ROI 0, profit factor 1. Around 32, not the ~47 either an
+    // average or a capital-weighted average of the two stored scores would give.
+    expect(allChains.score).toBeCloseTo(31.6, 1);
+    const averaged = (onGnosis.score! + onOptimism.score!) / 2;
+    expect(allChains.score!).toBeLessThan(averaged - 10);
+  });
+
+  it("scores the owner's whole book after executor rollup, not each contract separately", () => {
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const [merged] = rollUpRows([row({ ...WINNER, address: OWNER }), row({ ...LOSER, address: EXECUTOR })], owners);
+    expect(merged.members).toHaveLength(2);
+    expect(merged.score).toBeCloseTo(31.6, 1);
+  });
+
+  it("leaves an ineligible wallet null rather than scoring it zero", () => {
+    const [only] = rollUpRows([row({ ...WINNER, address: OTHER, scoredMarketCount: 1 })], {});
+    expect(only.score).toBeNull();
+    expect(only.scoreBreakdown).toBeNull();
+  });
+
+  it("sorts null scores last in both directions", () => {
+    const rows = [rolled({ address: OTHER, score: null }), rolled({ address: OWNER, score: 50 })];
+    expect(sortLeaderboardRows(rows, "score", "desc").map((r) => r.score)).toEqual([50, null]);
+    expect(sortLeaderboardRows(rows, "score", "asc").map((r) => r.score)).toEqual([50, null]);
   });
 });

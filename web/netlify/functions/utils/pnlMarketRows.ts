@@ -3,6 +3,7 @@ import type { MarketPeriodBucket } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import { PORTFOLIO_PL_PERIODS, type PortfolioPlPeriod } from "./seerIndexerPortfolio";
 import type { TablesInsert } from "./supabase";
+import { TRADER_SCORE_CONFIG } from "./traderScore";
 
 export type PnlMarketInsert = TablesInsert<"pnl_market_leaderboard">;
 export type PnlLeaderboardInsert = TablesInsert<"pnl_leaderboard">;
@@ -110,11 +111,18 @@ export type LeaderboardScope = {
  *
  * `roi` is deliberately left to `computeRoiUsd` on the caller: it is not additive, so it has to be
  * recomputed from the summed pnl and capital rather than aggregated from anywhere.
+ *
+ * The trailing five totals are the trader score's sufficient statistics. They are accumulated here
+ * because this loop already visits every bucket, and because the per-market distribution they
+ * summarise is gone by the time the read path sees a `pnl_leaderboard` row. Like `roi`, the score
+ * itself is never stored — see `traderScore.ts` for why.
  */
 export function aggregateBucketsForScope(args: {
   byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
   period: PortfolioPlPeriod;
   scope: LeaderboardScope;
+  /** Needed only for the score's dust gate, which is denominated in USD. */
+  collateralPriceUsd: number;
 }): {
   pnl: number;
   valueStart: number;
@@ -127,8 +135,15 @@ export function aggregateBucketsForScope(args: {
   volume: number;
   capitalDeployed: number;
   marketCount: number;
+  /** Markets carrying more than dust capital. Not `marketCount`: an LP position never swaps. */
+  scoredMarketCount: number;
+  winningMarketCount: number;
+  grossProfit: number;
+  /** Positive. */
+  grossLoss: number;
+  bestMarketPnl: number;
 } {
-  const { byMarketPeriod, period, scope } = args;
+  const { byMarketPeriod, period, scope, collateralPriceUsd } = args;
   const totals = {
     pnl: 0,
     valueStart: 0,
@@ -139,6 +154,11 @@ export function aggregateBucketsForScope(args: {
     volume: 0,
     capitalDeployed: 0,
     marketCount: 0,
+    scoredMarketCount: 0,
+    winningMarketCount: 0,
+    grossProfit: 0,
+    grossLoss: 0,
+    bestMarketPnl: 0,
   };
 
   for (const bucket of byMarketPeriod[period] ?? []) {
@@ -152,6 +172,17 @@ export function aggregateBucketsForScope(args: {
     totals.volume += bucket.volume;
     totals.capitalDeployed += bucket.capitalDeployed;
     if (bucket.traded) totals.marketCount += 1;
+
+    // Dust markets are excluded from the distribution so they cannot pad breadth or the hit rate.
+    if (bucket.capitalDeployed * collateralPriceUsd < TRADER_SCORE_CONFIG.MARKET_SCORE_DUST_USD) continue;
+    totals.scoredMarketCount += 1;
+    if (bucket.pnl > 0) {
+      totals.winningMarketCount += 1;
+      totals.grossProfit += bucket.pnl;
+      if (bucket.pnl > totals.bestMarketPnl) totals.bestMarketPnl = bucket.pnl;
+    } else if (bucket.pnl < 0) {
+      totals.grossLoss += -bucket.pnl;
+    }
   }
   return totals;
 }
@@ -170,7 +201,12 @@ export function deriveLeaderboardRows(args: {
 
   for (const scope of scopes) {
     for (const period of PORTFOLIO_PL_PERIODS) {
-      const t = aggregateBucketsForScope({ byMarketPeriod, period, scope });
+      const t = aggregateBucketsForScope({
+        byMarketPeriod,
+        period,
+        scope,
+        collateralPriceUsd,
+      });
       const pnlUsd = t.pnl * collateralPriceUsd;
       rows.push({
         app_id: scope.appId,
@@ -187,8 +223,19 @@ export function deriveLeaderboardRows(args: {
         volume: t.volume,
         volume_usd: t.volume * collateralPriceUsd,
         capital_deployed: t.capitalDeployed,
-        roi: computeRoiUsd({ pnlUsd, capitalDeployed: t.capitalDeployed, collateralPriceUsd }),
+        roi: computeRoiUsd({
+          pnlUsd,
+          capitalDeployed: t.capitalDeployed,
+          collateralPriceUsd,
+        }),
         market_count: t.marketCount,
+        // Trader score statistics. Stored in USD, like pnl_usd / volume_usd, because they are only
+        // ever consumed together with capital_usd; the score itself is derived at read time.
+        scored_market_count: t.scoredMarketCount,
+        winning_market_count: t.winningMarketCount,
+        gross_profit_usd: t.grossProfit * collateralPriceUsd,
+        gross_loss_usd: t.grossLoss * collateralPriceUsd,
+        best_market_pnl_usd: t.bestMarketPnl * collateralPriceUsd,
         updated_at: writtenAt,
       });
     }

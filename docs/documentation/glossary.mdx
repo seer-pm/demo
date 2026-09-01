@@ -113,6 +113,20 @@ Liquidity pools are a collection of assets that facilitates decentralized tradin
 
 The difference between the expected price of a trade and the price at which the trade is actually executed. Slippage can occur when large trades are made, especially in markets with low liquidity.
 
+## Leaderboard
+
+### Trader Score
+
+A 0-100 rating of how a wallet traded the markets in a period, shown on the [leaderboard](/app/leaderboard). It is a weighted mean of five components — returns (25%), profit factor (25%), hit rate (20%), loss burn (15%) and breadth (15%) — so it reflects *how* a profit was made, not only how large it was. Scores map to five tiers: Elite (85+), Great (70+), Good (55+), Average (40+) and Weak (below 40).
+
+### Loss burn
+
+A wallet's total realised losses as a share of the capital it put at risk. One of the five Trader Score components. It is a terminal-state total, not a maximum drawdown: it measures where each market finished, so it cannot see a position that was deep underwater during the period and recovered.
+
+### Breadth
+
+Whether a wallet's profit came from many markets or from a single one. One of the five Trader Score components, computed as `1 − bestMarket / grossProfit`. It measures concentration across markets, not consistency over time.
+
 ## Cryptocurrencies
 
 ### DAI

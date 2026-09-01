@@ -265,7 +265,7 @@ export function SlideCard({ market }: { market: Market }) {
           <div className="flex items-center gap-2">
             {market.liquidityUSD > 0 ? (
               <Popover
-                trigger={<p className="text-[12px]">${liquidityUSD}</p>}
+                trigger={<span className="text-[12px]">${liquidityUSD}</span>}
                 content={
                   <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                     <p className="text-purple-primary">Liquidity:</p>

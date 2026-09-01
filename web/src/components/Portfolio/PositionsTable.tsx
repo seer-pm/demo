@@ -127,9 +127,9 @@ function PositionsTableInner({
               {position.parentMarketId && (
                 <Popover
                   trigger={
-                    <div title="Conditional Market">
+                    <span title="Conditional Market">
                       <ConditionalMarketIcon width="24" fill="#9747ff" />
-                    </div>
+                    </span>
                   }
                   content={
                     <p className="text-base-content/70 text-[14px]">
