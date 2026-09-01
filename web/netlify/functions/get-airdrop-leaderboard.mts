@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { holdingsSeerFromShare, pohSeerFromShare } from "./utils/airdropAllocation";
 import { CORS_HEADERS } from "./utils/common";
+import { pagedCsvChunks } from "./utils/csv";
 import type { Database } from "./utils/supabase";
 import { withRetry } from "./utils/withRetry";
 
@@ -22,6 +23,25 @@ const SORT_DIRS = ["asc", "desc"] as const;
 type SortDir = (typeof SORT_DIRS)[number];
 
 const MAX_LIMIT = 200;
+
+const FORMATS = ["json", "csv"] as const;
+type Format = (typeof FORMATS)[number];
+
+/**
+ * CSV export paging. The board is served through PostgREST, which caps any response at roughly
+ * 1000 rows regardless of the range asked for (see the note in
+ * utils/airdropCalculation/computeDailyAirdrop.ts), so the whole board cannot come back in one
+ * call. The export walks `get_airdrop_leaderboard_page` a page at a time and streams each page out
+ * as it arrives, which keeps memory flat and avoids buffering a multi-megabyte body.
+ *
+ * The loop trusts `total_count` rather than "a short page means the end": if the gateway ever caps
+ * below CSV_PAGE_SIZE, a length check would silently truncate the export instead of paging on.
+ * CSV_MAX_ROWS is the runaway guard.
+ */
+const CSV_PAGE_SIZE = 1000;
+const CSV_MAX_ROWS = 500_000;
+
+const CSV_COLUMNS = ["rank", "address", "seer", "holdings", "poh", "poh_verified", "days"] as const;
 
 export type AirdropLeaderboardRow = {
   /** Position on the whole board for the current period/sort — not within a search result. */
@@ -136,6 +156,80 @@ async function loadPage(args: {
   }, "airdropLeaderboard.page");
 }
 
+/** `airdrop-leaderboard-all-seer-desc-2026-09-01.csv`. All four parts are whitelisted values. */
+function csvFilename(period: Period, sort: SortKey, dir: SortDir): string {
+  return `airdrop-leaderboard-${period}-${sort}-${dir}-${new Date().toISOString().slice(0, 10)}.csv`;
+}
+
+/**
+ * The whole board (or the whole search result) as a streamed CSV.
+ *
+ * `firstPage` is fetched by the caller before the Response is constructed so a dead database still
+ * produces a JSON 500 rather than a 200 whose body aborts halfway through the download. Once the
+ * stream has started the status is already committed, so later page failures can only abort it.
+ *
+ * Rows go through the same `loadPage` + `toApiRow` path as the JSON list, so the export's order,
+ * ranks and SEER amounts are exactly what the table shows — the RPC's ORDER BY (sort column, then
+ * address) is what keeps ranks and paging in agreement, and re-sorting here would break it.
+ */
+function csvResponse(args: {
+  period: Period;
+  sort: SortKey;
+  dir: SortDir;
+  search: string;
+  firstPage: { rows: PageRow[]; total: number };
+}): Response {
+  const chunks = pagedCsvChunks<PageRow>({
+    header: CSV_COLUMNS,
+    firstPage: args.firstPage,
+    maxRows: CSV_MAX_ROWS,
+    toRow: (raw) => {
+      const row = toApiRow(raw);
+      return [row.rank, row.address, row.seer, row.holdings, row.poh, row.isPoh, row.days];
+    },
+    fetchPage: (offset) =>
+      loadPage({
+        period: args.period,
+        sort: args.sort,
+        dir: args.dir,
+        search: args.search,
+        limit: CSV_PAGE_SIZE,
+        offset,
+      }),
+  });
+
+  const encoder = new TextEncoder();
+  // One chunk per `pull`, so the next page is only fetched once the client has taken the previous
+  // one and a slow consumer cannot make the whole board pile up in the queue.
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const next = await chunks.next();
+        if (next.done) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(encoder.encode(next.value));
+      } catch (e) {
+        // The 200 and its headers are already committed by this point, so the only honest signal
+        // left is aborting the body — the client sees a failed download rather than a short one.
+        console.error("get-airdrop-leaderboard csv stream", e);
+        controller.error(e);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${csvFilename(args.period, args.sort, args.dir)}"`,
+      // Same window as the JSON path: the board is rebuilt once a day.
+      "Cache-Control": "public, max-age=600",
+      ...CORS_HEADERS,
+    },
+  });
+}
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
@@ -159,10 +253,20 @@ export default async (req: Request) => {
       return jsonResponse({ error: `dir must be one of: ${SORT_DIRS.join(", ")}` }, 400);
     }
 
+    const format = (url.searchParams.get("format") ?? "json").toLowerCase() as Format;
+    if (!(FORMATS as readonly string[]).includes(format)) {
+      return jsonResponse({ error: `format must be one of: ${FORMATS.join(", ")}` }, 400);
+    }
+
     // rankFor is the same query with the full address as the search term: the RPC ranks before
     // filtering, so the single matching row already carries its board position.
     const rankForRaw = (url.searchParams.get("rankFor") ?? "").trim().toLowerCase();
     if (rankForRaw) {
+      if (format === "csv") {
+        // rankFor answers "where is this wallet"; csv exports the board. Silently ignoring one of
+        // them would hand back the wrong artefact.
+        return jsonResponse({ error: "rankFor cannot be combined with format=csv" }, 400);
+      }
       if (!/^0x[a-f0-9]{40}$/.test(rankForRaw)) {
         return jsonResponse({ error: "rankFor must be a 0x-prefixed address" }, 400);
       }
@@ -194,6 +298,12 @@ export default async (req: Request) => {
       return jsonResponse({ error: "search must be a hex address fragment" }, 400);
     }
     const search = searchParsed.kind === "fragment" ? searchParsed.hex : "";
+
+    if (format === "csv") {
+      // limit/offset are deliberately ignored: the export is every matching row, not a page.
+      const firstPage = await loadPage({ period, sort, dir, search, limit: CSV_PAGE_SIZE, offset: 0 });
+      return csvResponse({ period, sort, dir, search, firstPage });
+    }
 
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50) || 50, 1), MAX_LIMIT);
     const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);

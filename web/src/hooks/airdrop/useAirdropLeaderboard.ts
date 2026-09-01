@@ -65,6 +65,29 @@ async function getJson<T>(qs: URLSearchParams): Promise<T> {
   return data as T;
 }
 
+/**
+ * URL of the CSV export for the current view. The endpoint ignores limit/offset in this mode and
+ * streams every matching row, so this covers the whole board rather than the visible page.
+ *
+ * Handed to a plain <a download> rather than fetched: the browser then streams straight to disk,
+ * and the filename comes from the response's Content-Disposition.
+ */
+export function airdropLeaderboardCsvUrl(params: {
+  period: LeaderboardPeriod;
+  sort: AirdropSortKey;
+  dir: SortDir;
+  search: string;
+}): string {
+  const qs = new URLSearchParams({
+    period: params.period,
+    sort: params.sort,
+    dir: params.dir,
+    format: "csv",
+  });
+  if (params.search) qs.set("search", params.search);
+  return `${ENDPOINT}?${qs.toString()}`;
+}
+
 export interface AirdropLeaderboardParams {
   period: LeaderboardPeriod;
   sort: AirdropSortKey;

@@ -3,8 +3,14 @@ import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import { LeaderboardTabs } from "@/components/Leaderboard/LeaderboardTabs";
 import { PeriodFilter } from "@/components/Leaderboard/PeriodFilter";
 import { type SortDir, SortableHeader } from "@/components/Leaderboard/SortableHeader";
-import { type AirdropSortKey, fetchAirdropRank, useAirdropLeaderboard } from "@/hooks/airdrop/useAirdropLeaderboard";
+import {
+  type AirdropSortKey,
+  airdropLeaderboardCsvUrl,
+  fetchAirdropRank,
+  useAirdropLeaderboard,
+} from "@/hooks/airdrop/useAirdropLeaderboard";
 import { formatSeer } from "@/lib/airdropFormat";
+import { ExportIcon } from "@/lib/icons";
 import type { LeaderboardPeriod } from "@/lib/leaderboardPeriods";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -58,6 +64,7 @@ function AirdropLeaderboardPage() {
   const isInitialLoad = query.isPending && !query.data;
   const isRefreshing = query.isFetching && !!query.data;
   const totalPages = Math.max(1, Math.ceil((query.data?.total ?? 0) / PAGE_SIZE));
+  const hasRowsToExport = (query.data?.total ?? 0) > 0;
 
   useEffect(() => {
     if (!highlightAddress) return;
@@ -128,6 +135,20 @@ function AirdropLeaderboardPage() {
         />
 
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <a
+            href={airdropLeaderboardCsvUrl({ period, sort, dir, search })}
+            download
+            className={clsx(
+              "btn btn-sm btn-ghost border border-separator-100 gap-2",
+              !hasRowsToExport && "pointer-events-none opacity-50",
+            )}
+            aria-disabled={!hasRowsToExport}
+            tabIndex={hasRowsToExport ? undefined : -1}
+          >
+            <ExportIcon />
+            Export CSV
+          </a>
+
           {connectedAddress ? (
             <button
               type="button"
@@ -189,13 +210,12 @@ function AirdropLeaderboardPage() {
           </div>
         ) : null}
 
-        <p
-          id="airdrop-leaderboard-sort-status"
-          className="text-sm text-black-secondary px-4 pt-3 pb-1"
-          aria-live="polite"
-        >
-          {sortStatusText(sort, dir)}
-          {isRefreshing ? " Updating…" : ""}
+        <p className="text-sm text-black-secondary px-4 pt-3 pb-1">
+          <span id="airdrop-leaderboard-sort-status" aria-live="polite">
+            {sortStatusText(sort, dir)}
+            {isRefreshing ? " Updating…" : ""}
+          </span>{" "}
+          Export CSV downloads every row for this period and sort, not just this page.
         </p>
 
         <table className="table" aria-busy={query.isFetching} aria-describedby="airdrop-leaderboard-sort-status">

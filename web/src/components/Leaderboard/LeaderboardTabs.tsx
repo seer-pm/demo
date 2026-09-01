@@ -9,8 +9,9 @@ const TABS = [
 export type LeaderboardTabId = (typeof TABS)[number]["id"];
 
 /**
- * Switcher between the two boards. The header keeps a single "Leaderboard" link, so this is how
- * the airdrop board is discovered — render it on both pages.
+ * Switcher between the two boards — render it on both pages. The header links to each board
+ * directly ("Leaderboard" and "Airdrop"), so this is the in-page way to move between them rather
+ * than the only way to reach the airdrop board.
  */
 export function LeaderboardTabs({ active }: { active: LeaderboardTabId }) {
   return (
