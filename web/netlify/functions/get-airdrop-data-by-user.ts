@@ -53,14 +53,31 @@ async function getTotalsFromRpc(address: string, weekStart: Date): Promise<Airdr
  * Node, as this endpoint did originally.
  */
 async function getTotalsFromRows(address: string, weekStart: Date): Promise<AirdropTotals> {
-  const { data, error } = await supabase
-    .from("airdrops")
-    .select("timestamp,share_of_holding,share_of_holding_poh,seer_tokens_count")
-    .eq("address", address)
-    .order("timestamp", { ascending: true });
-  if (error) throw error;
-
-  const rows = data ?? [];
+  // Paged explicitly: PostgREST caps a response independently of the requested range (observed at
+  // 1000 rows), and this table holds one row per user per snapshot day since the Oct 2024 genesis.
+  // An unpaged select silently truncated once a wallet passed the cap, quietly understating totals.
+  const PAGE_SIZE = 1000;
+  const rows: {
+    timestamp: string;
+    share_of_holding: number;
+    share_of_holding_poh: number;
+    seer_tokens_count: number;
+  }[] = [];
+  for (let offset = 0; ; ) {
+    const { data, error } = await supabase
+      .from("airdrops")
+      .select("timestamp,share_of_holding,share_of_holding_poh,seer_tokens_count")
+      .eq("address", address)
+      .order("timestamp", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    if (page.length === 0) {
+      break;
+    }
+    rows.push(...page);
+    offset += page.length;
+  }
   let outcomeTokenHoldingAllocation = 0;
   let pohUserAllocation = 0;
   let totalAllocation = 0;

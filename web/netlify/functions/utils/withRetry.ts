@@ -16,7 +16,12 @@ export async function withRetry<T>(fn: () => Promise<T>, label = "query", retrie
         err?.code === "57014" || // statement timeout
         err?.code === "540" ||
         err?.name === "AbortError" ||
-        /timeout|fetch failed|ECONNRESET|ETIMEDOUT|network/i.test(message);
+        /timeout|fetch failed|ECONNRESET|ETIMEDOUT|network/i.test(message) ||
+        // The Graph's decentralised gateway routes to indexers that can transiently 404 or return
+        // a non-JSON body ("bad indexers: {0x..: BadResponse(404)}"). Observed killing a multi-hour
+        // airdrop backfill on a chain that had loaded fine minutes earlier, so it is transient
+        // routing, not a real absence of data.
+        /bad indexers|BadResponse|bad gateway|service unavailable|socket hang up|ECONNREFUSED|EAI_AGAIN/i.test(message);
       if (!retriable || attempt === retries) {
         throw error;
       }

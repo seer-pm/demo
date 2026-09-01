@@ -1,12 +1,8 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
-import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import pLimit from "p-limit";
-import type { Address } from "viem";
 import { Database } from "../supabase";
 import { withRetry } from "../withRetry";
-import { START_TIME } from "./constants";
 
 const supabase: SupabaseClient<Database> = createClient<Database>(
   process.env.SUPABASE_PROJECT_URL!,
@@ -55,73 +51,6 @@ function mapRowToPoolHourData(row: Database["public"]["Tables"]["dex_pool_hour_p
       },
     },
   };
-}
-
-export async function getPoolHourDatasByTokenPair(chainId: SupportedChain, tokenPair: Token0Token1) {
-  let allData: PoolHourData[] = [];
-
-  const initialPeriodStartUnix = START_TIME[chainId] ?? 0;
-  let currentPeriodStartUnix = initialPeriodStartUnix;
-
-  const PAGE_SIZE = 1000;
-  const maxRetries = 3;
-
-  while (true) {
-    let retries = 0;
-    let success = false;
-    let poolHourDatas: PoolHourData[] = [];
-
-    while (retries < maxRetries && !success) {
-      try {
-        const { data, error } = await supabase
-          .from("dex_pool_hour_prices")
-          .select("*")
-          .eq("chain_id", chainId)
-          .eq("token0_id", tokenPair.token0.toLowerCase())
-          .eq("token1_id", tokenPair.token1.toLowerCase())
-          .gt("period_start_unix", currentPeriodStartUnix)
-          .order("period_start_unix", { ascending: true })
-          .limit(PAGE_SIZE);
-
-        if (error) {
-          throw error;
-        }
-
-        poolHourDatas = (data ?? []).map(mapRowToPoolHourData);
-
-        success = true;
-      } catch (error) {
-        retries++;
-
-        if (retries === maxRetries) {
-          throw new Error(
-            `Max retries reached for periodStartUnix ${currentPeriodStartUnix}. ${(error as Error).message}`,
-          );
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** retries));
-      }
-    }
-
-    allData = allData.concat(poolHourDatas);
-
-    if (
-      poolHourDatas.length === 0 ||
-      poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix === currentPeriodStartUnix
-    ) {
-      break;
-    }
-
-    if (poolHourDatas.length < PAGE_SIZE) {
-      break;
-    }
-
-    currentPeriodStartUnix = poolHourDatas[poolHourDatas.length - 1]?.periodStartUnix;
-
-    await new Promise((res) => setTimeout(res, 300));
-  }
-
-  return allData;
 }
 
 export async function getAllPoolHourDatas(chainId: SupportedChain, initialStartTime?: number) {
@@ -183,53 +112,44 @@ async function fetchPoolHourDatasTimeRange(
   endTime: number,
   pageSize = 1000,
 ): Promise<PoolHourData[]> {
-  let allData: PoolHourData[] = [];
-  let currentTimestamp = startTime;
+  const allData: PoolHourData[] = [];
 
-  while (currentTimestamp < endTime) {
+  // Offset paging over a TOTAL order, not a cursor on period_start_unix alone.
+  //
+  // The primary key is (chain_id, pool_id, period_start_unix), so one hour holds one row per pool.
+  // The previous cursor advanced to `last.period_start_unix + 1`, and because period_start_unix is
+  // hour-aligned that skipped every remaining row of whatever hour a page happened to end in — up
+  // to ~45% of Optimism's candles, which has ~22k rows in a single 24h chunk. Ordering by pool_id
+  // as well makes the order total, so offsets are stable and nothing is skipped or duplicated.
+  let offset = 0;
+  for (;;) {
     const data = await withRetry(async () => {
       const res = await supabase
         .from("dex_pool_hour_prices")
         .select("*")
         .eq("chain_id", chainId)
-        .gte("period_start_unix", currentTimestamp)
+        .gte("period_start_unix", startTime)
         .lt("period_start_unix", endTime)
         .order("period_start_unix", { ascending: true })
-        .limit(pageSize);
+        .order("pool_id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
       if (res.error) throw res.error;
       return res.data;
     }, "poolhour.range");
 
-    const mappedData = (data ?? []).map(mapRowToPoolHourData);
-
-    allData = allData.concat(mappedData);
-
-    if (mappedData.length < pageSize) {
+    const mapped = (data ?? []).map(mapRowToPoolHourData);
+    // Stop on an empty page and advance by what actually arrived, rather than breaking on a short
+    // page: the gateway caps responses independently of the requested range, so a short page is
+    // not evidence of the end. Breaking on it would be the same class of silent truncation as the
+    // cursor this replaces.
+    if (mapped.length === 0) {
       break;
     }
-
-    currentTimestamp = Number(mappedData[mappedData.length - 1].periodStartUnix) + 1;
+    for (const row of mapped) {
+      allData.push(row);
+    }
+    offset += mapped.length;
   }
-
-  return allData;
-}
-
-export async function getPoolHourDatasByTokenPairs(
-  chainId: SupportedChain,
-  tokenPairs: { tokenId: Address; parentTokenId?: Address; collateralToken: Address }[],
-) {
-  const limit = pLimit(10);
-
-  const sortedTokenPairs = tokenPairs.map(({ tokenId, parentTokenId, collateralToken }) => {
-    const collateral = (parentTokenId ?? collateralToken).toLowerCase();
-    return getToken0Token1(tokenId, collateral as Address);
-  });
-
-  const promises = sortedTokenPairs.map((tokenPair) => limit(() => getPoolHourDatasByTokenPair(chainId, tokenPair)));
-
-  const allData = (await Promise.all(promises)).flat();
-
-  allData.sort((a, b) => Number(b.periodStartUnix) - Number(a.periodStartUnix));
 
   return allData;
 }

@@ -1,86 +1,128 @@
 import { isTwoStringsEqual } from "@/lib/utils";
-import type { SupportedChain } from "@seer-pm/sdk";
 import { getToken0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Address } from "viem";
-import { PoolHourData, getAllPoolHourDatas } from "./getPoolHourDatas";
+import type { PoolHourData } from "./getPoolHourDatas";
 
-type TokenPair = { tokenId: Address; parentTokenId?: Address; collateralToken: Address };
+export type TokenPair = { tokenId: Address; parentTokenId?: Address; collateralToken: Address };
+
+/** Pool state at one snapshot, keyed by `token0 + token1` (both lowercase, canonically ordered). */
+export type PoolStateMap = Map<string, PoolHourData>;
 
 /**
- * Fetches the full pool-hour price history for the chain once (time-chunked, not per token pair —
- * chains like Optimism have tens of thousands of outcome tokens, so a per-pair fetch does not
- * scale). `computePrices` filters this array in memory, so extra pools are harmless. The result
- * can be reused to compute prices at many timestamps (see backfill), avoiding per-day fetches.
+ * The newest candle at or before `startTime` for each pool.
+ *
+ * `poolHourDatas` is sorted by periodStartUnix desc, so the first entry seen per pool is the one we
+ * want.
+ *
+ * Two deliberate limitations, both accepted rather than fixed:
+ *
+ *  - **No staleness bound.** A pool that last traded a year ago still supplies "the price". Bounding
+ *    it would zero out holdings in markets that are simply illiquid but still valuable, which is
+ *    worse than a stale quote. Much of the staleness that used to show up here was really the
+ *    pagination bug in `fetchPoolHourDatasTimeRange` discarding candles; that is fixed.
+ *  - **One entry per token pair, not per pool.** Uniswap can host several fee tiers for the same
+ *    pair; whichever traded most recently wins. `dex_pool_hour_prices` stores no liquidity, so
+ *    there is nothing to weight by. The `pool_id` tiebreak keeps the choice deterministic across
+ *    runs instead of depending on row order.
  */
-export async function fetchPoolHourDatas(chainId: SupportedChain) {
-  return getAllPoolHourDatas(chainId);
-}
-
-// `poolHourDatas` is sorted by periodStartUnix desc, so the first entry per pool with
-// periodStartUnix <= startTime is the latest price at/ before that time.
-function getLatestPoolHourDataMap(poolHourDatas: PoolHourData[], startTime: number) {
-  const resolvedMap = new Map<string, PoolHourData>();
+export function buildPoolStateAt(poolHourDatas: PoolHourData[], startTime: number): PoolStateMap {
+  const resolvedMap: PoolStateMap = new Map();
   for (const entry of poolHourDatas) {
+    if (Number(entry.periodStartUnix) > startTime) {
+      continue;
+    }
     const key = entry.pool.token0.id + entry.pool.token1.id;
-    if (!resolvedMap.has(key) && Number(entry.periodStartUnix) <= startTime) {
+    const existing = resolvedMap.get(key);
+    if (!existing) {
+      resolvedMap.set(key, entry);
+      continue;
+    }
+    // Same hour from two fee tiers: pick deterministically rather than by arrival order.
+    if (Number(entry.periodStartUnix) === Number(existing.periodStartUnix) && entry.pool.id < existing.pool.id) {
       resolvedMap.set(key, entry);
     }
   }
   return resolvedMap;
 }
 
-/**
- * Computes the price (in collateral terms) of each outcome token at `startTime` from a
- * pre-fetched `poolHourDatas` array. Pure — no network — so it is safe to call once per day
- * over the same fetched data.
- */
-export function computePrices(poolHourDatas: PoolHourData[], tokens: TokenPair[] | undefined, startTime: number) {
-  if (!tokens?.length) return {};
-  const latestPoolHourDataMap = getLatestPoolHourDataMap(poolHourDatas, startTime);
-  const [simpleTokens, conditionalTokens] = tokens.reduce(
-    (acc, curr) => {
-      acc[curr.parentTokenId ? 1 : 0].push(curr);
-      return acc;
-    },
-    [[], []] as TokenPair[][],
-  );
-
-  const simpleTokensMapping = simpleTokens.reduce(
-    (acc, { tokenId, collateralToken }) => {
-      const { token0, token1 } = getToken0Token1(tokenId, collateralToken);
-      const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
-      acc[tokenId.toLocaleLowerCase()] = correctPoolHourData
-        ? isTwoStringsEqual(tokenId, token0)
-          ? Number(correctPoolHourData.token1Price)
-          : Number(correctPoolHourData.token0Price)
-        : 0;
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
-
-  const conditionalTokensMapping = conditionalTokens.reduce(
-    (acc, { tokenId, parentTokenId }) => {
-      const { token0, token1 } = getToken0Token1(tokenId, parentTokenId!);
-      const correctPoolHourData = latestPoolHourDataMap.get(token0 + token1);
-      const relativePrice = correctPoolHourData
-        ? isTwoStringsEqual(tokenId, token0)
-          ? Number(correctPoolHourData.token1Price)
-          : Number(correctPoolHourData.token0Price)
-        : 0;
-
-      acc[tokenId.toLocaleLowerCase()] =
-        relativePrice * (simpleTokensMapping?.[parentTokenId!.toLocaleLowerCase()] || 0);
-      return acc;
-    },
-    {} as { [key: string]: number },
-  );
-  return { ...simpleTokensMapping, ...conditionalTokensMapping };
+/** Price of `tokenId` denominated in `quoteId`, from the pool the two share. 0 when there is none. */
+function relativePrice(poolState: PoolStateMap, tokenId: Address, quoteId: Address): number {
+  const { token0, token1 } = getToken0Token1(tokenId, quoteId);
+  const poolHourData = poolState.get(token0 + token1);
+  if (!poolHourData) {
+    return 0;
+  }
+  return isTwoStringsEqual(tokenId, token0) ? Number(poolHourData.token1Price) : Number(poolHourData.token0Price);
 }
 
-/** Convenience: fetch + compute for a single timestamp. */
-export async function getPrices(tokens: TokenPair[] | undefined, chainId: SupportedChain, startTime: number) {
+/**
+ * Price of every token in collateral terms.
+ *
+ * Conditional outcome tokens trade against their PARENT outcome token, not against collateral, so
+ * their collateral price is the product down the chain: price(child) = relative(child, parent) *
+ * price(parent). This resolves that chain to any depth. The previous implementation handled exactly
+ * one level — it looked the parent up in a map built only from non-conditional tokens, so a token
+ * whose parent was itself conditional fell through to `|| 0` and the whole position priced at zero.
+ *
+ * Cycles cannot occur in well-formed market data but are guarded anyway: a token caught mid-
+ * resolution resolves to 0 rather than recursing forever.
+ *
+ * Prices are in COLLATERAL terms, not USD. sDAI (gnosis/mainnet) and sUSDS (optimism/base) are
+ * summed 1:1 across chains by the caller; both are ~$1 yield-bearing stables, so the error is the
+ * drift between their accrued yields. Accepted deliberately — a real fix needs per-timestamp USD
+ * rates that are not ingested anywhere.
+ */
+export function computePrices(
+  poolHourDatas: PoolHourData[],
+  tokens: TokenPair[] | undefined,
+  startTime: number,
+): { [tokenId: string]: number } {
   if (!tokens?.length) return {};
-  const poolHourDatas = await fetchPoolHourDatas(chainId);
-  return computePrices(poolHourDatas, tokens, startTime);
+  return computePricesFromPoolState(buildPoolStateAt(poolHourDatas, startTime), tokens);
+}
+
+export function computePricesFromPoolState(
+  poolState: PoolStateMap,
+  tokens: TokenPair[] | undefined,
+): { [tokenId: string]: number } {
+  if (!tokens?.length) return {};
+
+  const byTokenId = new Map<string, TokenPair>();
+  for (const token of tokens) {
+    byTokenId.set(token.tokenId.toLowerCase(), token);
+  }
+
+  const prices: { [tokenId: string]: number } = {};
+  const resolving = new Set<string>();
+
+  const priceOf = (token: TokenPair): number => {
+    const key = token.tokenId.toLowerCase();
+    const cached = prices[key];
+    if (cached !== undefined) {
+      return cached;
+    }
+    if (resolving.has(key)) {
+      return 0; // cycle guard
+    }
+    resolving.add(key);
+
+    let price: number;
+    if (!token.parentTokenId) {
+      price = relativePrice(poolState, token.tokenId, token.collateralToken);
+    } else {
+      const relative = relativePrice(poolState, token.tokenId, token.parentTokenId);
+      const parent = byTokenId.get(token.parentTokenId.toLowerCase());
+      // A parent outside `tokens` (its market was filtered out) leaves the child unpriceable.
+      price = parent ? relative * priceOf(parent) : 0;
+    }
+
+    resolving.delete(key);
+    prices[key] = price;
+    return price;
+  };
+
+  for (const token of tokens) {
+    priceOf(token);
+  }
+  return prices;
 }
