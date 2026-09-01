@@ -17,6 +17,15 @@ import {
 } from "./utils/curate.ts";
 import { seerEnvioSdk } from "./utils/envioClient.ts";
 import { type EnvioMarket, envioMarketToLegacySubgraphMarket, mapGraphMarketFromDbResult } from "./utils/markets.ts";
+import {
+  CURSOR_OVERLAP_SECONDS,
+  advanceCheckpoint,
+  marketsUpdatedAtCursor,
+  maxUpdatedAt,
+  readMarketsImportCheckpoint,
+  verificationSince,
+  writeMarketsImportCheckpoint,
+} from "./utils/marketsImportCheckpoint.ts";
 import type { Database } from "./utils/supabase.ts";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -129,8 +138,9 @@ function getLiquidityAccount() {
 }
 
 const MARKETS_PAGE_SIZE = 1000;
+const UPSERT_CHUNK_SIZE = 250;
 
-/** Latest persisted creation time for this chain — import cursor for Envio `updatedAt`. */
+/** Latest persisted market creation time for this chain — only used to detect brand-new markets. */
 async function getMaxBlockTimestamp(chainId: SupportedChain): Promise<number> {
   const { data, error } = await supabase
     .from("markets_search")
@@ -157,7 +167,9 @@ async function fetchAllSubgraphMarkets(chainId: SupportedChain, sinceUpdatedAt: 
     const { Market: markets } = await sdk.GetMarkets({
       limit: MARKETS_PAGE_SIZE,
       offset,
-      orderBy: { [Market_Select_Column.BlockNumber]: Order_By.Desc },
+      // Ascending on the cursor field keeps offset pagination stable against a live index:
+      // new updates land at the end instead of shifting the pages already read.
+      orderBy: { [Market_Select_Column.UpdatedAt]: Order_By.Asc },
       where: {
         chainId: { _eq: String(chainId) },
         updatedAt: { _gt: String(sinceUpdatedAt) },
@@ -197,15 +209,37 @@ type ProcessChainResult = {
 };
 
 async function processChain(chainId: SupportedChain): Promise<ProcessChainResult> {
+  const runStartedAt = Math.floor(Date.now() / 1000);
+  const checkpoint = await readMarketsImportCheckpoint(supabase, chainId);
+  const sinceUpdatedAt = marketsUpdatedAtCursor(checkpoint);
+  // Read before the upsert so newly imported markets don't count as pre-existing.
   const maxBlockTimestamp = await getMaxBlockTimestamp(chainId);
-  const markets = await fetchAllSubgraphMarkets(chainId, maxBlockTimestamp);
+  const markets = await fetchAllSubgraphMarkets(chainId, sinceUpdatedAt);
+
+  // Curate activity runs on its own timeline, so the verification sync and its cursor advance even
+  // on a run that found no market changes. Called only once every market of the run is persisted,
+  // so a mid-import failure re-runs the same window instead of skipping it.
+  const syncVerificationAndCheckpoint = async (fetchedMaxUpdatedAt: number | null) => {
+    if (isVerificationEnabled(chainId)) {
+      await updateVerificationForRecentlyChangedItems(supabase, chainId, verificationSince(checkpoint, runStartedAt));
+    }
+    await writeMarketsImportCheckpoint(
+      supabase,
+      chainId,
+      advanceCheckpoint(checkpoint, {
+        fetchedMaxUpdatedAt,
+        verificationSyncedAt: runStartedAt - CURSOR_OVERLAP_SECONDS,
+      }),
+    );
+  };
 
   if (markets.length === 0) {
     console.log(`No markets found for chain ${chainId}`);
+    await syncVerificationAndCheckpoint(null);
     return { chainId, hasNewMarkets: false, success: true };
   }
 
-  console.log(`Chain ${chainId}: fetched ${markets.length} markets (watermark block_timestamp=${maxBlockTimestamp})`);
+  console.log(`Chain ${chainId}: fetched ${markets.length} markets (cursor updatedAt>${sinceUpdatedAt})`);
 
   const hasNewMarkets = markets.some((market) => Number(market.blockTimestamp) > maxBlockTimestamp);
 
@@ -226,40 +260,41 @@ async function processChain(chainId: SupportedChain): Promise<ProcessChainResult
   const { data: weatherMarkets } = await supabase.from("weather_markets").select("tx_hash");
   const weatherTxHashSet = new Set((weatherMarkets ?? []).map((weatherMarket) => weatherMarket.tx_hash));
   const liquidityAccount = getLiquidityAccount();
-  const { error: upsertError } = await supabase.from("markets").upsert(
-    markets.map((market) => {
-      const legacySubgraphMarket = envioMarketToLegacySubgraphMarket(market);
-      return {
-        id: market.address,
-        chain_id: chainId,
-        status: getMarketStatus(
-          mapGraphMarketFromDbResult(legacySubgraphMarket, {
-            id: market.address,
-            chain_id: chainId,
-            open_interest_usd: 0,
-          }),
-        ),
-        subgraph_data: legacySubgraphMarket,
-        verification: verificationStatusList[market.address as `0x${string}`] ?? {
-          status: "not_verified",
-        },
-        // check if it's a weather market
-        ...(weatherTxHashSet.has(market.transactionHash) && {
-          creator: liquidityAccount.address.toLowerCase(),
-          categories: [WEATHER_CATEGORY],
+  const rows = markets.map((market) => {
+    const legacySubgraphMarket = envioMarketToLegacySubgraphMarket(market);
+    return {
+      id: market.address,
+      chain_id: chainId,
+      status: getMarketStatus(
+        mapGraphMarketFromDbResult(legacySubgraphMarket, {
+          id: market.address,
+          chain_id: chainId,
+          open_interest_usd: 0,
         }),
-      };
-    }),
-  );
+      ),
+      subgraph_data: legacySubgraphMarket,
+      verification: verificationStatusList[market.address as `0x${string}`] ?? {
+        status: "not_verified",
+      },
+      // check if it's a weather market
+      ...(weatherTxHashSet.has(market.transactionHash) && {
+        creator: liquidityAccount.address.toLowerCase(),
+        categories: [WEATHER_CATEGORY],
+      }),
+    };
+  });
 
-  if (upsertError) {
-    console.error(`Chain ${chainId}: markets upsert failed:`, upsertError);
-    return { chainId, hasNewMarkets: false, success: false, error: upsertError };
+  // A bootstrap run (no checkpoint yet) imports every market on the chain, which is far more than
+  // one PostgREST request can carry.
+  for (let i = 0; i < rows.length; i += UPSERT_CHUNK_SIZE) {
+    const { error: upsertError } = await supabase.from("markets").upsert(rows.slice(i, i + UPSERT_CHUNK_SIZE));
+    if (upsertError) {
+      console.error(`Chain ${chainId}: markets upsert failed at offset ${i}:`, upsertError);
+      return { chainId, hasNewMarkets: false, success: false, error: upsertError };
+    }
   }
 
-  if (isVerificationEnabled(chainId)) {
-    await updateVerificationForRecentlyChangedItems(supabase, chainId, maxBlockTimestamp);
-  }
+  await syncVerificationAndCheckpoint(maxUpdatedAt(markets));
 
   return {
     chainId,

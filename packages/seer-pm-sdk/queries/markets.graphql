@@ -63,6 +63,7 @@ fragment Market on Market {
   creator
   outcomesSupply
   blockTimestamp
+  updatedAt
   transactionHash
 }
 
