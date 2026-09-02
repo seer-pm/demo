@@ -108,6 +108,56 @@ from public.airdrop_leaderboard group by period order by period;
 
 5. If PostgREST answers `PGRST202`, the `notify pgrst, 'reload schema'` did not land — re-run it.
 
+## Apply for SER-LPP in the board total
+
+Adding the SER-LPP column and ranking on the combined total needs `airdrop_leaderboard.sql`
+re-applied — the whole file, one paste, in the SQL editor. It is idempotent: the table is created
+`IF NOT EXISTS` and the two new columns go on with `alter table ... add column if not exists`.
+
+Two things in it are not just `create or replace`:
+
+- `get_airdrop_leaderboard_page` gained two output columns, and Postgres will not let
+  `CREATE OR REPLACE` change a function's return type, so the file drops it first. The drop names
+  the exact signature `(text, text, text, text, integer, integer)`. If production somehow holds a
+  different overload the drop is a no-op and the create then fails with *cannot change return type
+  of existing function* — list what is actually there before blaming the script:
+
+```sql
+select oid::regprocedure from pg_proc where proname = 'get_airdrop_leaderboard_page';
+```
+
+- `airdrop_leaderboard_period_seer_idx` is dropped in favour of
+  `airdrop_leaderboard_period_total_idx`, since the default view now orders on `total_seer`.
+
+The file ends by rebuilding all four periods, and only the `'all'` pass reads `ser_lpp_balances`,
+so **the rebuild is what puts SER-LPP on the board** — until it runs, every row reads 0. If the
+editor times out on `'all'`, the other three are already committed; finish with:
+
+```sql
+select public.refresh_airdrop_leaderboard('all');
+```
+
+Then check the new columns, and that `'all'` is the only period carrying a balance:
+
+```sql
+select period,
+       count(*)                            as rows,
+       count(*) filter (where ser_lpp > 0) as with_lpp,
+       sum(ser_lpp)                        as lpp_total,
+       max(total_seer - seer_tokens)       as max_lpp
+from public.airdrop_leaderboard group by period order by period;
+```
+
+`with_lpp` must be 0 on `1d` / `1w` / `1m`. On `'all'` it should match
+
+```sql
+select count(distinct lower(address)) from public.ser_lpp_balances where balance > 0;
+```
+
+minus any holder that is somehow absent from the board — there should be none, the refresh full
+joins. Expect the `'all'` row count to grow by however many LP-only wallets have no `airdrops`
+history; they land with `day_count = 0`.
+
 ## Not yet captured
 
 Several objects are called from application code but their definitions still live only in the

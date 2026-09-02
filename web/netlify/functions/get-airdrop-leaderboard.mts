@@ -26,6 +26,10 @@ const PERIOD_SNAPSHOT_DAYS: Record<Period, number | null> = { "1d": 1, "1w": 7, 
  * SEER amounts this endpoint returns. That is exact, not an approximation: the conversion in
  * utils/airdropAllocation.ts is multiplication by a strictly positive constant, so it preserves
  * order and maps ties to ties. See the header of web/supabase/sql/airdrop_leaderboard.sql.
+ *
+ * `seer` ranks on the stored `total_seer` — airdrop SEER plus the SER-LPP balance, which is what
+ * the board shows as Total. There is no sort key for SER-LPP on its own: it is 0 on every period
+ * but 'all', so three of the four boards would order by nothing but the address tiebreak.
  */
 const SORT_KEYS = ["seer", "holdings", "poh", "days"] as const;
 type SortKey = (typeof SORT_KEYS)[number];
@@ -55,7 +59,9 @@ const CSV_MAX_ROWS = 500_000;
 const CSV_COLUMNS = [
   "rank",
   "address",
+  "total",
   "seer",
+  "ser_lpp",
   "holdings",
   "pct_of_airdrop_holdings",
   "poh",
@@ -68,8 +74,22 @@ export type AirdropLeaderboardRow = {
   /** Position on the whole board for the current period/sort — not within a search result. */
   rank: number;
   address: string;
-  /** Total SEER earned in the period. */
+  /**
+   * What the board ranks on and shows as Total: `seer` plus `serLpp`, or just `seer` on the
+   * windowed periods where SER-LPP does not apply.
+   */
+  total: number;
+  /** SEER earned from the daily airdrop emission in the period — holdings + PoH, no SER-LPP. */
   seer: number;
+  /**
+   * SEER from the SER liquidity program, as a current cumulative balance across Gnosis and
+   * Mainnet. Same unit as `seer` (1 SER-LPP is 1 SEER of allocation).
+   *
+   * `null` on '1d'/'1w'/'1m': it is a running balance with no per-day history, so it cannot be
+   * attributed to a window. Null rather than 0 so the UI can say "not applicable" instead of
+   * showing every wallet as having earned nothing.
+   */
+  serLpp: number | null;
   /** SEER from outcome-token holdings. */
   holdings: number;
   /** SEER from the Proof of Humanity pool. */
@@ -98,6 +118,8 @@ type PageRow = {
   rank: number | string;
   address: string;
   seer_tokens: number | string | null;
+  ser_lpp: number | string | null;
+  total_seer: number | string | null;
   sum_share_of_holding: number | string | null;
   sum_share_of_holding_poh: number | string | null;
   is_poh: boolean | null;
@@ -128,15 +150,27 @@ function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invali
   return { kind: "fragment", hex };
 }
 
-function toApiRow(row: PageRow, snapshotDays: number): AirdropLeaderboardRow {
+function toApiRow(row: PageRow, period: Period, snapshotDays: number): AirdropLeaderboardRow {
   // seer_tokens_count is already a SEER amount in the source table; the share sums are not.
   const seer = Number(row.seer_tokens) || 0;
   const holdings = holdingsSeerFromShare(Number(row.sum_share_of_holding) || 0);
   const poh = pohSeerFromShare(Number(row.sum_share_of_holding_poh) || 0);
+  // Only 'all' carries a SER-LPP balance; the refresh leaves the windowed rows at 0. The null
+  // check also covers the pre-migration RPC, which returns neither column — see `total` below.
+  const serLpp = period === "all" && row.ser_lpp != null ? Number(row.ser_lpp) || 0 : null;
   return {
     rank: Number(row.rank) || 0,
     address: row.address.toLowerCase(),
+    // Read back rather than re-added: total_seer is a generated column, so this is the exact
+    // value the RPC ranked on and the page order always agrees with the number shown.
+    //
+    // The fallback is for the window where this deploy is live but airdrop_leaderboard.sql has
+    // not been applied yet — the SQL in supabase/sql/ goes on by hand (see its README), so the
+    // two cannot land atomically. Without it every Total would read 0 until someone ran the
+    // migration; with it the board is merely missing SER-LPP.
+    total: row.total_seer == null ? seer + (serLpp ?? 0) : Number(row.total_seer) || 0,
     seer,
+    serLpp,
     holdings,
     poh,
     isPoh: row.is_poh ?? false,
@@ -251,11 +285,13 @@ function csvResponse(args: {
     firstPage: args.firstPage,
     maxRows: CSV_MAX_ROWS,
     toRow: (raw) => {
-      const row = toApiRow(raw, args.snapshotDays);
+      const row = toApiRow(raw, args.period, args.snapshotDays);
       return [
         row.rank,
         row.address,
+        row.total,
         row.seer,
+        row.serLpp,
         row.holdings,
         row.pctOfHoldings,
         row.poh,
@@ -400,7 +436,7 @@ export default async (req: Request) => {
       getProgrammeDays(),
     ]);
     const snapshotDays = periodSnapshotDays(period, programmeDays);
-    const rows = page.rows.map((row) => toApiRow(row, snapshotDays));
+    const rows = page.rows.map((row) => toApiRow(row, period, snapshotDays));
 
     return jsonResponse(
       {

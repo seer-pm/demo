@@ -38,6 +38,9 @@ export type Database = {
           address: string;
           period: string;
           seer_tokens: number;
+          ser_lpp: number;
+          /** GENERATED ALWAYS AS (seer_tokens + ser_lpp) STORED — never written directly. */
+          total_seer: number;
           sum_share_of_holding: number;
           sum_share_of_holding_poh: number;
           is_poh: boolean;
@@ -48,6 +51,7 @@ export type Database = {
           address: string;
           period: string;
           seer_tokens?: number;
+          ser_lpp?: number;
           sum_share_of_holding?: number;
           sum_share_of_holding_poh?: number;
           is_poh?: boolean;
@@ -58,6 +62,7 @@ export type Database = {
           address?: string;
           period?: string;
           seer_tokens?: number;
+          ser_lpp?: number;
           sum_share_of_holding?: number;
           sum_share_of_holding_poh?: number;
           is_poh?: boolean;
@@ -948,6 +953,8 @@ export type Database = {
           rank: number;
           address: string;
           seer_tokens: number;
+          ser_lpp: number;
+          total_seer: number;
           sum_share_of_holding: number;
           sum_share_of_holding_poh: number;
           is_poh: boolean;

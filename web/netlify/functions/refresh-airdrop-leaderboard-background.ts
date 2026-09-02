@@ -14,7 +14,10 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 const PERIODS = ["1d", "1w", "1m", "all"] as const;
 
 /**
- * Rebuilds `airdrop_leaderboard` from `airdrops`, one period per RPC call.
+ * Rebuilds `airdrop_leaderboard` from `airdrops`, one period per RPC call. The 'all' pass also
+ * folds in `ser_lpp_balances` (see the SER-LPP section of supabase/sql/airdrop_leaderboard.sql),
+ * which ser-lpp-calculation-background rewrites every 12h — so a wallet's SER-LPP figure on the
+ * board trails its on-chain balance by up to that plus this job's own interval.
  *
  * Deliberately a separate job from `airdrop-calculation-background` rather than a tail call
  * inside it:

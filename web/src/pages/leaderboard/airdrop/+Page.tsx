@@ -11,7 +11,7 @@ import {
 } from "@/hooks/airdrop/useAirdropLeaderboard";
 import { formatPct, formatSeer } from "@/lib/airdropFormat";
 import { ExportIcon } from "@/lib/icons";
-import type { LeaderboardPeriod } from "@/lib/leaderboardPeriods";
+import { type LeaderboardPeriod, PERIOD_LABELS } from "@/lib/leaderboardPeriods";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
@@ -31,10 +31,15 @@ const SORT_DIR_LABELS: Record<SortDir, string> = {
 
 const PAGE_SIZE = 25;
 
-function sortStatusText(sort: AirdropSortKey, dir: SortDir) {
+function sortStatusText(sort: AirdropSortKey, dir: SortDir, period: LeaderboardPeriod) {
   const ranking = `Sorted by ${SORT_LABELS[sort]}, ${SORT_DIR_LABELS[dir]}`;
   if (sort === "days") {
     return `${ranking}. Days counts the daily snapshots a wallet earned in, so it can be lower than the period length.`;
+  }
+  if (sort === "seer") {
+    return period === "all"
+      ? `${ranking}. Total is Holdings + Proof of Humanity + SER-LPP.`
+      : `${ranking}. Total is Holdings + Proof of Humanity; SER-LPP is a running balance and is not counted in a ${PERIOD_LABELS[period]} window.`;
   }
   return ranking;
 }
@@ -125,7 +130,10 @@ function AirdropLeaderboardPage() {
           unique person; together they make up the total. The two <strong>% of airdrop</strong> columns measure each of
           those against everything emitted in the period, the separate SER LPP liquidity programme included, so they add
           up to the wallet's share of the whole. Each of these two pools is a quarter of that whole, so a wallet holding
-          a tenth of the PoH pool reads as 2.5%. These are estimates and are not claimable.
+          a tenth of the PoH pool reads as 2.5%. <strong>SER-LPP</strong> is the reward for providing liquidity on
+          incentivized markets, in the same SEER unit — a running balance rather than a daily emission, so it is counted
+          in <strong>Total</strong> on ALL only and left out of the two percentages. These are estimates and are not
+          claimable.
         </p>
       </div>
 
@@ -216,7 +224,7 @@ function AirdropLeaderboardPage() {
 
         <p className="text-sm text-black-secondary px-4 pt-3 pb-1">
           <span id="airdrop-leaderboard-sort-status" aria-live="polite">
-            {sortStatusText(sort, dir)}
+            {sortStatusText(sort, dir, period)}
             {isRefreshing ? " Updating…" : ""}
           </span>{" "}
           Export CSV downloads every row for this period and sort, not just this page.
@@ -258,7 +266,16 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
-              <th className="text-right">% of airdrop (PoH)</th>
+              {/*
+               * Not sortable, unlike the SEER columns beside it: ser_lpp is 0 on every period but
+               * ALL, so on three of the four boards this header would order by nothing at all.
+               */}
+              <th
+                className="text-right"
+                title="SEER from the liquidity program. A running balance, counted on ALL only."
+              >
+                SER-LPP
+              </th>
               <SortableHeader
                 label={SORT_LABELS.days}
                 sortKey="days"
@@ -272,13 +289,13 @@ function AirdropLeaderboardPage() {
           <tbody className={clsx(isRefreshing && "opacity-60")}>
             {isInitialLoad ? (
               <tr>
-                <td colSpan={8} className="text-center py-10 text-black-secondary">
+                <td colSpan={9} className="text-center py-10 text-black-secondary">
                   Loading leaderboard…
                 </td>
               </tr>
             ) : query.error && rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-10">
+                <td colSpan={9} className="text-center py-10">
                   <div className="space-y-3">
                     <p className="text-error">{query.error.message || "Failed to load leaderboard"}</p>
                     <button type="button" className="btn btn-sm btn-primary" onClick={() => void query.refetch()}>
@@ -289,7 +306,7 @@ function AirdropLeaderboardPage() {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-10 text-black-secondary">
+                <td colSpan={9} className="text-center py-10 text-black-secondary">
                   {search ? "No wallets match that address." : "No airdrop allocations in this period yet."}
                 </td>
               </tr>
@@ -316,7 +333,7 @@ function AirdropLeaderboardPage() {
                         ) : null}
                       </a>
                     </td>
-                    <td className="text-right font-semibold tabular-nums">{formatSeer(row.seer)}</td>
+                    <td className="text-right font-semibold tabular-nums">{formatSeer(row.total)}</td>
                     <td className="text-right tabular-nums">{formatSeer(row.holdings)}</td>
                     <td className="text-right tabular-nums">{formatPct(row.pctOfHoldings)}</td>
                     <td className="text-right tabular-nums">
@@ -333,6 +350,7 @@ function AirdropLeaderboardPage() {
                       ) : null}
                     </td>
                     <td className="text-right tabular-nums">{formatPct(row.pctOfPoh)}</td>
+                    <td className="text-right tabular-nums">{formatSeer(row.serLpp)}</td>
                     <td className="text-right tabular-nums">{row.days}</td>
                   </tr>
                 );

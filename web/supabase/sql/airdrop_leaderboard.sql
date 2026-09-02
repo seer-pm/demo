@@ -50,12 +50,36 @@
 -- Consequence worth knowing: '1w' is the last 7 *snapshot* days, not the last 7 calendar days.
 -- If the airdrop job misses a day the window stretches. day_count is surfaced in the UI so this
 -- is visible rather than silent.
+--
+-- SER-LPP IS 'all' ONLY
+-- ---------------------
+-- ser_lpp is the wallet's CURRENT SER LP-program balance, summed over Gnosis and Mainnet from
+-- `ser_lpp_balances` (rewritten every 12h by ser-lpp-calculation-background). It is a running
+-- balance, not a per-day emission: there is no history to slice, so it cannot be windowed and is
+-- stored as 0 on '1d'/'1w'/'1m'. Only the 'all' rows carry it, and the endpoint reports it as
+-- null on the other three so the UI shows "not applicable" rather than a real zero.
+--
+-- It is in the same unit as seer_tokens (1 SER-LPP = 1 SEER of allocation), which is why
+-- total_seer can add them. It does NOT feed the holdings/PoH percentages: those measure the two
+-- daily-emission pools against the whole programme, and the LP half was always in their
+-- denominator.
+--
+-- The 'all' refresh FULL JOINs the two sources, so a wallet that only ever provided liquidity —
+-- no outcome-token holdings, no PoH, no `airdrops` rows at all — now appears on the board with
+-- day_count 0. That is intended: it has an allocation. Note `ser_lpp_balances` holds whatever
+-- addresses hold the LP token, contracts included, and nothing prunes a wallet that has since
+-- exited (getTokenHolders filters balance > 0, but the writer only upserts, never deletes).
 
 CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
   address                   text             NOT NULL,
   period                    text             NOT NULL CHECK (period IN ('1d', '1w', '1m', 'all')),
-  -- sum(seer_tokens_count) over the window. Already a SEER amount.
+  -- sum(seer_tokens_count) over the window. Already a SEER amount. Airdrop only: no SER-LPP.
   seer_tokens               numeric          NOT NULL DEFAULT 0,
+  -- Current SER LP-program balance across chains, same unit as seer_tokens. 'all' rows only.
+  ser_lpp                   numeric          NOT NULL DEFAULT 0,
+  -- What the board ranks and the UI shows as Total. GENERATED so the ranking column and the two
+  -- parts of it cannot drift: there is no code path that can write one without the other.
+  total_seer                numeric          GENERATED ALWAYS AS (seer_tokens + ser_lpp) STORED,
   -- Raw share sums; multiplied by SEER_PER_DAY * 0.25 in TypeScript.
   sum_share_of_holding      double precision NOT NULL DEFAULT 0,
   sum_share_of_holding_poh  double precision NOT NULL DEFAULT 0,
@@ -68,6 +92,13 @@ CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
   PRIMARY KEY (address, period)
 );
 
+-- Existing deployments: add the two columns in place. Both are no-ops on a fresh CREATE above.
+-- total_seer must come second, it reads ser_lpp.
+ALTER TABLE public.airdrop_leaderboard
+  ADD COLUMN IF NOT EXISTS ser_lpp numeric NOT NULL DEFAULT 0;
+ALTER TABLE public.airdrop_leaderboard
+  ADD COLUMN IF NOT EXISTS total_seer numeric GENERATED ALWAYS AS (seer_tokens + ser_lpp) STORED;
+
 -- Every numeric column is NOT NULL DEFAULT 0 on purpose: the read path orders on all four, and
 -- NULLs would need explicit NULLS FIRST/LAST handling in the SQL, the endpoint and the page —
 -- the mess pnl_leaderboard.roi already has.
@@ -76,14 +107,17 @@ CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
 -- single period partition to assign ranks, so extra indexes would not be used for that anyway
 -- while costing write time on every nightly delete+insert. Add more only if EXPLAIN on real
 -- data asks for them.
-CREATE INDEX IF NOT EXISTS airdrop_leaderboard_period_seer_idx
-  ON public.airdrop_leaderboard (period, seer_tokens DESC);
+CREATE INDEX IF NOT EXISTS airdrop_leaderboard_period_total_idx
+  ON public.airdrop_leaderboard (period, total_seer DESC);
+
+-- Superseded: the default view ranks on total_seer now, so an index on seer_tokens serves nothing.
+DROP INDEX IF EXISTS public.airdrop_leaderboard_period_seer_idx;
 
 -- Rewritten wholesale every night, so dead tuples accumulate fast relative to live rows.
 ALTER TABLE public.airdrop_leaderboard SET (autovacuum_vacuum_scale_factor = 0.05);
 
 COMMENT ON TABLE public.airdrop_leaderboard IS
-  'Materialized airdrop leaderboard (address x period) for /leaderboard/airdrop. seer_tokens = sum(seer_tokens_count); the share sums are RAW (multiply by SEER_PER_DAY * 0.25 in TypeScript). Windows are the last N distinct snapshot days, not calendar days. Cross-chain: airdrops.chain_ids is an array, so there is no chain dimension. Rebuilt daily by refresh-airdrop-leaderboard-background.';
+  'Materialized airdrop leaderboard (address x period) for /leaderboard/airdrop. seer_tokens = sum(seer_tokens_count), airdrop only; ser_lpp = current SER LP-program balance, ''all'' rows only (it is a running balance and cannot be windowed); total_seer = the two added, and what the board ranks on. The share sums are RAW (multiply by SEER_PER_DAY * 0.25 in TypeScript). Windows are the last N distinct snapshot days, not calendar days. Cross-chain: airdrops.chain_ids is an array, so there is no chain dimension. Rebuilt daily by refresh-airdrop-leaderboard-background.';
 
 -- Refresh writes require SUPABASE_API_KEY = service_role. anon/authenticated are SELECT-only,
 -- same reasoning as pnl_leaderboard.sql: an anon-key write can return 200 with 0 rows under
@@ -165,25 +199,49 @@ BEGIN
   -- The two branches are deliberately not folded into `WHERE v_since IS NULL OR ...`: that
   -- predicate defeats the index for the windowed periods.
   IF v_since IS NULL THEN
+    -- 'all' is the only period that carries ser_lpp: the balance has no history to window.
+    -- FULL JOIN, not LEFT: a wallet with liquidity and no `airdrops` rows still has an
+    -- allocation and belongs on the board, with day_count 0.
     INSERT INTO public.airdrop_leaderboard (
-      address, period, seer_tokens, sum_share_of_holding, sum_share_of_holding_poh,
+      address, period, seer_tokens, ser_lpp, sum_share_of_holding, sum_share_of_holding_poh,
       is_poh, day_count, updated_at
     )
-    SELECT a.address,
+    WITH air AS (
+      SELECT a.address,
+             coalesce(sum(a.seer_tokens_count::numeric), 0)          AS seer_tokens,
+             coalesce(sum(a.share_of_holding::double precision), 0)  AS share_holding,
+             coalesce(sum(a.share_of_holding_poh::double precision), 0) AS share_poh,
+             bool_or(a.is_poh)                                        AS is_poh,
+             count(*)::integer                                        AS day_count
+      FROM public.airdrops a
+      GROUP BY a.address
+    ),
+    lpp AS (
+      -- One row per (address, chain_id) upstream, so this sums Gnosis + Mainnet. lower() because
+      -- the board joins on `airdrops.address`, which is always lowercase.
+      SELECT lower(s.address) AS address,
+             coalesce(sum(s.balance::numeric), 0) AS ser_lpp
+      FROM public.ser_lpp_balances s
+      GROUP BY lower(s.address)
+      HAVING coalesce(sum(s.balance::numeric), 0) > 0
+    )
+    SELECT coalesce(air.address, lpp.address),
            p_period,
-           coalesce(sum(a.seer_tokens_count::numeric), 0),
-           coalesce(sum(a.share_of_holding::double precision), 0),
-           coalesce(sum(a.share_of_holding_poh::double precision), 0),
-           bool_or(a.is_poh),
-           count(*)::integer,
+           coalesce(air.seer_tokens, 0),
+           coalesce(lpp.ser_lpp, 0),
+           coalesce(air.share_holding, 0),
+           coalesce(air.share_poh, 0),
+           coalesce(air.is_poh, false),
+           coalesce(air.day_count, 0),
            now()
-    FROM public.airdrops a
-    GROUP BY a.address;
+    FROM air
+    FULL JOIN lpp ON lpp.address = air.address;
   ELSE
     INSERT INTO public.airdrop_leaderboard (
       address, period, seer_tokens, sum_share_of_holding, sum_share_of_holding_poh,
       is_poh, day_count, updated_at
     )
+    -- ser_lpp is left at its DEFAULT 0 here: a running balance cannot be attributed to a window.
     SELECT a.address,
            p_period,
            coalesce(sum(a.seer_tokens_count::numeric), 0),
@@ -231,6 +289,14 @@ GRANT EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text) TO service_ro
 --
 -- p_sort / p_dir are whitelisted into identifiers below; no caller text reaches the SQL text.
 -- p_search is passed as a bind parameter, never interpolated.
+--
+-- 'seer' sorts on total_seer (airdrop + SER-LPP), which is what the UI labels Total. Outside the
+-- 'all' period ser_lpp is 0, so there total_seer IS seer_tokens and the ordering is unchanged.
+--
+-- DROP first: CREATE OR REPLACE cannot change an existing function's return type, and this
+-- signature gained two output columns.
+DROP FUNCTION IF EXISTS public.get_airdrop_leaderboard_page(text, text, text, text, integer, integer);
+
 CREATE OR REPLACE FUNCTION public.get_airdrop_leaderboard_page(
   p_period text,
   p_sort   text DEFAULT 'seer',
@@ -243,6 +309,8 @@ RETURNS TABLE (
   rank                     bigint,
   address                  text,
   seer_tokens              numeric,
+  ser_lpp                  numeric,
+  total_seer               numeric,
   sum_share_of_holding     double precision,
   sum_share_of_holding_poh double precision,
   is_poh                   boolean,
@@ -267,7 +335,7 @@ BEGIN
   END IF;
 
   v_col := CASE p_sort
-             WHEN 'seer'     THEN 'seer_tokens'
+             WHEN 'seer'     THEN 'total_seer'
              WHEN 'holdings' THEN 'sum_share_of_holding'
              WHEN 'poh'      THEN 'sum_share_of_holding_poh'
              WHEN 'days'     THEN 'day_count'
@@ -284,7 +352,8 @@ BEGIN
 
   RETURN QUERY EXECUTE format($f$
     WITH ranked AS (
-      SELECT l.address, l.seer_tokens, l.sum_share_of_holding, l.sum_share_of_holding_poh,
+      SELECT l.address, l.seer_tokens, l.ser_lpp, l.total_seer,
+             l.sum_share_of_holding, l.sum_share_of_holding_poh,
              l.is_poh, l.day_count, l.updated_at,
              -- The address tiebreak makes the order total, so row_number() is the true
              -- position. The endpoint must not re-sort the rows it gets back.
@@ -299,7 +368,8 @@ BEGIN
       -- Explicit ::text so the parameter's type never has to be inferred from `= ''`.
       WHERE $2::text = '' OR position($2::text IN r.address) > 0
     )
-    SELECT f.rank, f.address, f.seer_tokens, f.sum_share_of_holding, f.sum_share_of_holding_poh,
+    SELECT f.rank, f.address, f.seer_tokens, f.ser_lpp, f.total_seer,
+           f.sum_share_of_holding, f.sum_share_of_holding_poh,
            f.is_poh, f.day_count, f.updated_at,
            -- Window functions run before LIMIT, so this is the full filtered count.
            count(*) OVER () AS total_count,

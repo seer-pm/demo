@@ -8,8 +8,16 @@ export interface AirdropLeaderboardRow {
   /** Position on the whole board — correct even while a search filter is applied. */
   rank: number;
   address: string;
-  /** Total SEER earned in the period. */
+  /** What the board ranks on and shows as Total: `seer` + `serLpp`. */
+  total: number;
+  /** SEER from the daily airdrop emission in the period — holdings + PoH, no SER-LPP. */
   seer: number;
+  /**
+   * SEER from the SER liquidity program: a current cumulative balance across Gnosis and Mainnet,
+   * in the same unit as `seer`. `null` outside the 'all' period, where a running balance cannot
+   * be attributed to a window.
+   */
+  serLpp: number | null;
   /** SEER from outcome-token holdings. */
   holdings: number;
   /** SEER from the Proof of Humanity pool. */
