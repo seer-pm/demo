@@ -4,7 +4,6 @@ import {
   POOL_SHARE_FACTOR,
   SEER_PER_DAY,
   computePctOfAirdrop,
-  computePctOfPool,
   countSnapshotDays,
 } from "./constants";
 
@@ -53,45 +52,26 @@ describe("computePctOfAirdrop", () => {
     expect(computePctOfAirdrop(accrue(1, days) * 2, days)).toBeCloseTo(50, 10);
   });
 
-  it("returns 0 before any snapshot exists instead of dividing by zero", () => {
-    expect(computePctOfAirdrop(1234, 0)).toBe(0);
-    expect(Number.isFinite(computePctOfAirdrop(1234, 0))).toBe(true);
-  });
-});
-
-describe("computePctOfPool", () => {
-  /** What a user accruing `shareOfPool` of one pool every day ends up holding. */
-  const accrue = (shareOfPool: number, days: number) => days * SEER_PER_DAY * POOL_SHARE_FACTOR * shareOfPool;
-
-  it("reports a tenth of a pool as 10% of that pool", () => {
+  it("tops out at 25% for one pool taken entirely", () => {
+    // The leaderboard scores holdings and PoH separately against this same denominator, so each
+    // of its two percentage columns caps at a quarter and the pair adds to the wallet's share of
+    // everything emitted.
     const days = 690;
-    expect(computePctOfPool(accrue(0.1, days), days)).toBeCloseTo(10, 10);
+    expect(computePctOfAirdrop(accrue(1, days), days)).toBeCloseTo(25, 10);
   });
 
-  it("is independent of how many days the program has run", () => {
-    for (const days of [1, 30, 690, 5000]) {
-      expect(computePctOfPool(accrue(0.1, days), days)).toBeCloseTo(10, 10);
-    }
-  });
-
-  it("tops out at 100% for someone taking a pool entirely", () => {
+  it("is additive across the two pools", () => {
     const days = 690;
-    expect(computePctOfPool(accrue(1, days), days)).toBeCloseTo(100, 10);
-  });
-
-  it("is the whole-airdrop percentage scaled up by the pool's share of it", () => {
-    // The two functions differ only by POOL_SHARE_FACTOR, which is what keeps the leaderboard's
-    // per-pool columns and the portfolio tab's single figure describing the same allocation.
-    const days = 690;
-    const allocation = accrue(0.37, days);
-    expect(computePctOfPool(allocation, days)).toBeCloseTo(
-      computePctOfAirdrop(allocation, days) / POOL_SHARE_FACTOR,
+    const holdings = accrue(0.4, days);
+    const poh = accrue(0.1, days);
+    expect(computePctOfAirdrop(holdings, days) + computePctOfAirdrop(poh, days)).toBeCloseTo(
+      computePctOfAirdrop(holdings + poh, days),
       10,
     );
   });
 
   it("returns 0 before any snapshot exists instead of dividing by zero", () => {
-    expect(computePctOfPool(1234, 0)).toBe(0);
-    expect(Number.isFinite(computePctOfPool(1234, 0))).toBe(true);
+    expect(computePctOfAirdrop(1234, 0)).toBe(0);
+    expect(Number.isFinite(computePctOfAirdrop(1234, 0))).toBe(true);
   });
 });

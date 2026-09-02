@@ -122,10 +122,10 @@ function AirdropLeaderboardPage() {
         <p className="text-black-secondary max-w-2xl">
           Rankings of wallets by SEER earned from the airdrop, across all chains. <strong>Holdings</strong> comes from
           outcome tokens held at each daily snapshot, and <strong>Proof of Humanity</strong> from being a verified
-          unique person; together they make up the total. The two percentage columns measure each of those against{" "}
-          <em>its own pool</em> — a wallet with a tenth of the PoH pool reads as 10% there — so they are separate
-          standings and are not meant to be added together. The pools are a quarter of the whole airdrop each; the other
-          half is the separate SER LPP liquidity programme. These are estimates and are not claimable.
+          unique person; together they make up the total. The two <strong>% of airdrop</strong> columns measure each of
+          those against everything emitted in the period, the separate SER LPP liquidity programme included, so they add
+          up to the wallet's share of the whole. Each of these two pools is a quarter of that whole, so a wallet holding
+          a tenth of the PoH pool reads as 2.5%. These are estimates and are not claimable.
         </p>
       </div>
 
@@ -245,11 +245,11 @@ function AirdropLeaderboardPage() {
               />
               {/*
                * Neither percentage is sortable: within a period every row divides by the same
-               * snapshot-day count, so ranking by a pool percentage is the same ordering as ranking
-               * by the SEER column it sits next to. A header doing exactly what its neighbour does
+               * snapshot-day count, so ranking by a percentage is the same ordering as ranking by
+               * the SEER column it sits next to. A header doing exactly what its neighbour does
                * would only be a second way to get the same board.
                */}
-              <th className="text-right">% of holdings pool</th>
+              <th className="text-right">% of airdrop (holdings)</th>
               <SortableHeader
                 label={SORT_LABELS.poh}
                 sortKey="poh"
@@ -258,7 +258,7 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
-              <th className="text-right">% of PoH pool</th>
+              <th className="text-right">% of airdrop (PoH)</th>
               <SortableHeader
                 label={SORT_LABELS.days}
                 sortKey="days"

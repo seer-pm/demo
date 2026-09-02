@@ -38,12 +38,15 @@ export function countSnapshotDays(lastTimestamp: number): number {
 }
 
 /**
- * A cumulative allocation from the holdings + PoH pools as a percentage of the WHOLE airdrop, LP
- * program included.
+ * An allocation as a percentage of the WHOLE airdrop emitted over `snapshotDays`, LP program
+ * included.
  *
- * Every day the program emits `SEER_PER_DAY` in total, of which these two pools take half
+ * `allocation` is one pool's SEER or both pools' together — the denominator is the same either
+ * way, which is what lets the leaderboard's holdings and PoH columns be read side by side and
+ * added. Every day the program emits `SEER_PER_DAY` in total, of which these two pools take half
  * (`POOL_SHARE_FACTOR` each), so over `snapshotDays` days the whole airdrop is
- * `snapshotDays * SEER_PER_DAY` and this is simply the user's slice of it. `SEER_PER_DAY` cancels
+ * `snapshotDays * SEER_PER_DAY` and this is simply the user's slice of it. One pool taken entirely
+ * is 25%; a tenth of the PoH pool is 2.5%. `SEER_PER_DAY` cancels
  * between numerator and denominator, which is what makes this number trustworthy while the absolute
  * SEER figures are not: `SEER_PER_DAY` is defined as 200M over 30 days, but snapshots have accrued
  * daily since genesis with no stop, so the amounts run far above the nominal budget. A share is
@@ -56,25 +59,4 @@ export function computePctOfAirdrop(allocation: number, snapshotDays: number): n
     return 0;
   }
   return (allocation / (snapshotDays * SEER_PER_DAY)) * 100;
-}
-
-/**
- * An allocation from ONE pool (holdings or PoH) as a percentage of that pool alone.
- *
- * The pool emits `SEER_PER_DAY * POOL_SHARE_FACTOR` a day, so over `snapshotDays` this is the
- * wallet's slice of everything that pool has paid out: a wallet holding a tenth of the PoH pool
- * reads as 10%, and the column sums to 100% across the whole board. That is the difference from
- * `computePctOfAirdrop`, which measures the same allocation against the WHOLE emission (LP
- * programme included) and would report the same wallet as 2.5%.
- *
- * `SEER_PER_DAY` cancels between numerator and denominator here too, so the figure is unaffected
- * by the nominal budget being long since overrun.
- *
- * Returns 0 rather than dividing by zero before the first snapshot exists.
- */
-export function computePctOfPool(allocation: number, snapshotDays: number): number {
-  if (snapshotDays <= 0) {
-    return 0;
-  }
-  return (allocation / (snapshotDays * SEER_PER_DAY * POOL_SHARE_FACTOR)) * 100;
 }
