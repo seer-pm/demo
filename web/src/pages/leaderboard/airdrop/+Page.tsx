@@ -2,7 +2,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import { LeaderboardTabs } from "@/components/Leaderboard/LeaderboardTabs";
 import { PeriodFilter } from "@/components/Leaderboard/PeriodFilter";
-import type { SortDir } from "@/components/Leaderboard/SortableHeader";
+import { type SortDir, SortableHeader } from "@/components/Leaderboard/SortableHeader";
 import {
   type AirdropSortKey,
   airdropLeaderboardCsvUrl,
@@ -17,27 +17,43 @@ import { useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
+const SORT_LABELS: Record<AirdropSortKey, string> = {
+  seer: "Total",
+  holdings: "Holdings",
+  poh: "Proof of Humanity",
+  days: "Days",
+};
+
 const PAGE_SIZE = 25;
 
-const DAYS_HINT = "Daily snapshots the wallet earned in, so it can be lower than the period length.";
+const DAYS_HINT = "Days counts the daily snapshots a wallet earned in, so it can be lower than the period length.";
 
 const SER_LPP_HINT = "SEER from the liquidity program. A running balance, counted on ALL only.";
 
-/** What the board is ranked by. There is no column picker, so this only varies with the period. */
-function rankingText(period: LeaderboardPeriod) {
-  return period === "all"
-    ? "Ranked by Total, high to low. Total is Holdings + Proof of Humanity + SER-LPP."
-    : `Ranked by Total, high to low. Total is Holdings + Proof of Humanity; SER-LPP is a running balance and is not counted in a ${PERIOD_LABELS[period]} window.`;
+/**
+ * What the board is ranked by. Direction is never in it: clicking a header changes the column, and
+ * the board is always highest-first, so there is no second state to announce.
+ */
+function sortStatusText(sort: AirdropSortKey, period: LeaderboardPeriod) {
+  const ranking = `Sorted by ${SORT_LABELS[sort]}, high to low`;
+  if (sort === "days") {
+    return `${ranking}. ${DAYS_HINT}`;
+  }
+  if (sort === "seer") {
+    return period === "all"
+      ? `${ranking}. Total is Holdings + Proof of Humanity + SER-LPP.`
+      : `${ranking}. Total is Holdings + Proof of Humanity — SER-LPP is a running balance, so it appears on ALL only, not in a ${PERIOD_LABELS[period]} window.`;
+  }
+  return `${ranking}.`;
 }
 
 function AirdropLeaderboardPage() {
   const { address: connectedAddress } = useAccount();
   const [period, setPeriod] = useState<LeaderboardPeriod>("all");
-  // Ranking is fixed: by Total, highest first. A leaderboard is read top-down, and every other
-  // column was only ever a second route to the same board — holdings and PoH are components of
-  // Total, and each percentage is a positive multiple of the SEER column beside it. The API and
-  // the CSV export still take both, so they stay values rather than disappearing.
-  const sort: AirdropSortKey = "seer";
+  const [sort, setSort] = useState<AirdropSortKey>("seer");
+  // Direction is fixed. A header click picks WHAT the board ranks by; a leaderboard is read
+  // top-down and ascending only ever surfaced the smallest holders, so there is no second
+  // direction to toggle into. The API and the CSV export still take one, so it stays a value.
   const dir: SortDir = "desc";
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -54,6 +70,12 @@ function AirdropLeaderboardPage() {
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
+
+  // SER-LPP is a running balance with no per-day history, so the windowed boards have no column
+  // for it at all — every row would read the same "not applicable" dash. The note above the table
+  // says where it went, so switching to 1D does not look like data quietly disappearing.
+  const showSerLpp = period === "all";
+  const columnCount = showSerLpp ? 9 : 8;
 
   const rows = query.data?.rows ?? [];
   const isInitialLoad = query.isPending && !query.data;
@@ -73,6 +95,14 @@ function AirdropLeaderboardPage() {
     setPage(0);
     setHighlightAddress(undefined);
     setRankStatus("idle");
+  };
+
+  const toggleSort = (key: AirdropSortKey) => {
+    if (sort === key) {
+      return; // already ranking by this column, and there is no other direction to go to
+    }
+    setSort(key);
+    resetPaging();
   };
 
   const jumpToMyRank = async () => {
@@ -203,7 +233,7 @@ function AirdropLeaderboardPage() {
 
         <p className="text-sm text-black-secondary px-4 pt-3 pb-1">
           <span id="airdrop-leaderboard-note" aria-live="polite">
-            {rankingText(period)}
+            {sortStatusText(sort, period)}
             {isRefreshing ? " Updating…" : ""}
           </span>{" "}
           Export CSV downloads every row for this period, not just this page.
@@ -214,34 +244,69 @@ function AirdropLeaderboardPage() {
             <tr>
               <th className="w-16">#</th>
               <th>Account</th>
+              <SortableHeader
+                label={SORT_LABELS.seer}
+                sortKey="seer"
+                activeSort={sort}
+                activeDir={dir}
+                onSort={toggleSort}
+                lockDescending
+              />
+              <SortableHeader
+                label={SORT_LABELS.holdings}
+                sortKey="holdings"
+                activeSort={sort}
+                activeDir={dir}
+                onSort={toggleSort}
+                lockDescending
+              />
               {/*
-               * Plain headers, no sorting. Every column here is either a component of Total or a
-               * positive multiple of the SEER column beside it, so each one only re-ranked the
-               * same board; SER-LPP is the exception but is 0 on three of the four periods.
+               * Neither percentage is sortable: within a period every row divides by the same
+               * snapshot-day count, so ranking by a percentage is the same ordering as ranking by
+               * the SEER column it sits next to. A header doing exactly what its neighbour does
+               * would only be a second way to get the same board.
                */}
-              <th className="text-right">Total</th>
-              <th className="text-right">Holdings</th>
               <th className="text-right">% of airdrop (holdings)</th>
-              <th className="text-right">Proof of Humanity</th>
+              <SortableHeader
+                label={SORT_LABELS.poh}
+                sortKey="poh"
+                activeSort={sort}
+                activeDir={dir}
+                onSort={toggleSort}
+                lockDescending
+              />
               <th className="text-right">% of airdrop (PoH)</th>
-              <th className="text-right" title={SER_LPP_HINT}>
-                SER-LPP
-              </th>
-              <th className="text-right" title={DAYS_HINT}>
-                Days
-              </th>
+              {/*
+               * Not sortable, unlike the SEER columns beside it: the RPC only whitelists
+               * seer/holdings/poh/days, so ranking by SER-LPP would need a new sort key in the SQL
+               * as well as here. Worth adding if it is asked for — the column is only rendered on
+               * ALL, which is the one period where the values are not all zero.
+               */}
+              {showSerLpp ? (
+                <th className="text-right" title={SER_LPP_HINT}>
+                  SER-LPP
+                </th>
+              ) : null}
+              <SortableHeader
+                label={SORT_LABELS.days}
+                sortKey="days"
+                activeSort={sort}
+                activeDir={dir}
+                onSort={toggleSort}
+                lockDescending
+              />
             </tr>
           </thead>
           <tbody className={clsx(isRefreshing && "opacity-60")}>
             {isInitialLoad ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-black-secondary">
+                <td colSpan={columnCount} className="text-center py-10 text-black-secondary">
                   Loading leaderboard…
                 </td>
               </tr>
             ) : query.error && rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-10">
+                <td colSpan={columnCount} className="text-center py-10">
                   <div className="space-y-3">
                     <p className="text-error">{query.error.message || "Failed to load leaderboard"}</p>
                     <button type="button" className="btn btn-sm btn-primary" onClick={() => void query.refetch()}>
@@ -252,7 +317,7 @@ function AirdropLeaderboardPage() {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-black-secondary">
+                <td colSpan={columnCount} className="text-center py-10 text-black-secondary">
                   {search ? "No wallets match that address." : "No airdrop allocations in this period yet."}
                 </td>
               </tr>
@@ -296,7 +361,7 @@ function AirdropLeaderboardPage() {
                       ) : null}
                     </td>
                     <td className="text-right tabular-nums">{formatPct(row.pctOfPoh)}</td>
-                    <td className="text-right tabular-nums">{formatSeer(row.serLpp)}</td>
+                    {showSerLpp ? <td className="text-right tabular-nums">{formatSeer(row.serLpp)}</td> : null}
                     <td className="text-right tabular-nums">{row.days}</td>
                   </tr>
                 );
