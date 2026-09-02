@@ -9,10 +9,8 @@ import { type Address, privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { chainIds } from "./utils/config.ts";
 import {
-  type CurateItem,
   fetchAndStoreMetadata,
-  getVerification,
-  getVerificationStatusList,
+  getSubgraphVerificationStatusList,
   updateVerificationForRecentlyChangedItems,
 } from "./utils/curate.ts";
 import { seerEnvioSdk } from "./utils/envioClient.ts";
@@ -243,18 +241,23 @@ async function processChain(chainId: SupportedChain): Promise<ProcessChainResult
 
   const hasNewMarkets = markets.some((market) => Number(market.blockTimestamp) > maxBlockTimestamp);
 
-  let verificationStatusList: Record<Address, VerificationResult> = {};
+  // The map comes from the curate subgraph rather than the `curate` table, which is filled only a
+  // handful of metadata rows per run: a market whose item has not been backfilled there yet is
+  // indistinguishable from one that was never submitted, and would be written as `not_verified` over
+  // a verification it actually holds. `fetchAndStoreMetadata` still runs, because `updateImages`
+  // reads the metadata it stores.
+  let verificationStatusList: Record<Address, VerificationResult | undefined> = {};
+  // Chains without curation have no registry to consult, so they keep writing the default.
+  let shouldWriteVerification = true;
   if (isVerificationEnabled(chainId)) {
     await fetchAndStoreMetadata(supabase, chainId);
-
-    const { data: curateItems } = await supabase
-      .from("curate")
-      .select("chain_id, item_id, metadata_path, metadata")
-      .eq("chain_id", chainId)
-      .not("metadata", "is", null);
-
-    const verificationItems = await getVerification(chainId, (curateItems as CurateItem[]) || []);
-    verificationStatusList = getVerificationStatusList(verificationItems);
+    verificationStatusList = await getSubgraphVerificationStatusList(chainId);
+    shouldWriteVerification = Object.keys(verificationStatusList).length > 0;
+    if (!shouldWriteVerification) {
+      // An empty registry on a chain that curates markets means the subgraph answered but told us
+      // nothing. Writing the map anyway would reset every market on the chain to `not_verified`.
+      console.error(`Chain ${chainId}: empty curate verification map, leaving stored verification untouched`);
+    }
   }
 
   const { data: weatherMarkets } = await supabase.from("weather_markets").select("tx_hash");
@@ -273,9 +276,12 @@ async function processChain(chainId: SupportedChain): Promise<ProcessChainResult
         }),
       ),
       subgraph_data: legacySubgraphMarket,
-      verification: verificationStatusList[market.address as `0x${string}`] ?? {
-        status: "not_verified",
-      },
+      // Omitted entirely when we have no map, so the upsert preserves what is already stored.
+      ...(shouldWriteVerification && {
+        verification: verificationStatusList[market.address as `0x${string}`] ?? {
+          status: "not_verified",
+        },
+      }),
       // check if it's a weather market
       ...(weatherTxHashSet.has(market.transactionHash) && {
         creator: liquidityAccount.address.toLowerCase(),

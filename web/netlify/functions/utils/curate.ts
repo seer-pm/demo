@@ -3,22 +3,16 @@ import { isUndefined } from "@/lib/utils.ts";
 import { CURATE_STATUS, type SupportedChain, type VerificationResult } from "@seer-pm/sdk";
 import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { curateGraphQLClient } from "@seer-pm/sdk/subgraph";
-import { type GetRecentlyChangedLItemsQuery, getSdk as getCurateSdk } from "@seer-pm/sdk/subgraph/curate";
+import {
+  type GetImagesQuery,
+  type GetRecentlyChangedLItemsQuery,
+  getSdk as getCurateSdk,
+} from "@seer-pm/sdk/subgraph/curate";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, parseAbiItem } from "viem";
 import { getLogs, readContract } from "viem/actions";
 import { getPublicClientByChainId } from "./config.ts";
-import { readContractsInBatch } from "./readContractsInBatch.ts";
 import type { Json } from "./supabase.ts";
-
-interface VerificationItem {
-  itemID: `0x${string}`;
-  metadata: Json;
-  status: number;
-  disputed: boolean;
-  deadline?: number;
-  marketId?: string;
-}
 
 export interface CurateItem {
   chain_id: number;
@@ -140,121 +134,29 @@ export async function updateVerificationForRecentlyChangedItems(
   return updates.length;
 }
 
-/**
- * Retrieves verification information for a list of curate items from the LightGeneralizedTCR contract.
- *
- * This function:
- * 1. Fetches the current status of each item from the blockchain using the 'items' function
- * 2. Gets the latest request information for each item using 'getRequestInfo'
- * 3. Combines the data to determine if items are registered, disputed, or in other states
- * 4. Maps the blockchain data to a structured format with verification status and metadata
- *
- * @param chainId - The blockchain network ID to query
- * @param curateItems - Array of items from the curate database table
- * @returns Array of verification items with status information
- */
-export async function getVerification(chainId: SupportedChain, curateItems: CurateItem[]): Promise<VerificationItem[]> {
-  let challengePeriodDuration: bigint;
-  try {
-    challengePeriodDuration = await readContract(getPublicClientByChainId(chainId), {
-      address: lightGeneralizedTcrAddress[chainId],
-      abi: lightGeneralizedTcrAbi,
-      functionName: "challengePeriodDuration",
+/** Page size for the curate registry crawl. A single unpaginated fetch silently truncates. */
+const LITEMS_PAGE_SIZE = 1000;
+
+/** Every LItem of a registry, paged — the registry grows without bound, so one page is not enough. */
+async function fetchAllRegistryLItems(client: ReturnType<typeof curateGraphQLClient>, registryAddress: string) {
+  const all: GetImagesQuery["LItem"] = [];
+  let skip = 0;
+
+  while (true) {
+    const { LItem } = await getCurateSdk(client).GetImages({
+      where: {
+        registryAddress: { _eq: registryAddress.toLowerCase() },
+      },
+      skip,
+      first: LITEMS_PAGE_SIZE,
     });
-  } catch {}
 
-  const readItemsCall = {
-    address: lightGeneralizedTcrAddress[chainId],
-    abi: lightGeneralizedTcrAbi,
-    functionName: "items",
-    chainId,
-  } as const;
-
-  const items: (readonly [number, bigint, bigint])[] = await readContractsInBatch(
-    curateItems.map(({ item_id: itemID }) => ({
-      ...readItemsCall,
-      args: [itemID],
-    })),
-    chainId,
-    50,
-    true,
-  );
-
-  const getRequestInfoCall = {
-    address: lightGeneralizedTcrAddress[chainId],
-    abi: lightGeneralizedTcrAbi,
-    functionName: "getRequestInfo",
-    chainId,
-  } as const;
-
-  const lastRequestInfo: (readonly [
-    boolean,
-    bigint,
-    bigint,
-    boolean,
-    readonly [`0x${string}`, `0x${string}`, `0x${string}`],
-    bigint,
-    number,
-    `0x${string}`,
-    `0x${string}`,
-    bigint,
-  ])[] = await readContractsInBatch(
-    curateItems.map(({ item_id: itemID }) => {
-      const requestCount = BigInt(items[0]?.[2] || 1);
-      return {
-        ...getRequestInfoCall,
-        args: [itemID, requestCount - 1n],
-      };
-    }),
-    chainId,
-    50,
-    true,
-  );
-
-  return curateItems.map((item, n) => {
-    const marketId =
-      typeof item.metadata === "object" && item.metadata !== null
-        ? // biome-ignore lint/suspicious/noExplicitAny:
-          (item.metadata as any)?.values?.Market?.toLowerCase()
-        : undefined;
-
-    return {
-      itemID: item.item_id,
-      metadata: item.metadata,
-      status: items[n]?.[0],
-      disputed: lastRequestInfo[n]?.[0] && !lastRequestInfo[n]?.[3],
-      deadline:
-        lastRequestInfo[n]?.[2] && challengePeriodDuration
-          ? Number(lastRequestInfo[n][2]) + Number(challengePeriodDuration)
-          : undefined,
-      marketId,
-    };
-  });
-}
-
-export function getVerificationStatusList(verificationItems: VerificationItem[]): Record<Address, VerificationResult> {
-  return verificationItems.reduce(
-    (acc, item) => {
-      if (item.marketId) {
-        let status: VerificationResult["status"] = "not_verified";
-
-        // 0 Absent, 1 Registered, 2 RegistrationRequested, 3 ClearingRequested
-        if (item.status === 1) {
-          status = "verified";
-        } else if (item.status === 2) {
-          status = item.disputed ? "challenged" : "verifying";
-        }
-
-        acc[item.marketId as Address] = {
-          status,
-          itemID: item.itemID,
-          deadline: item.deadline,
-        };
-      }
-      return acc;
-    },
-    {} as Record<Address, VerificationResult>,
-  );
+    all.push(...LItem);
+    if (LItem.length < LITEMS_PAGE_SIZE) {
+      return all;
+    }
+    skip += LITEMS_PAGE_SIZE;
+  }
 }
 
 export async function getSubgraphVerificationStatusList(
@@ -266,13 +168,8 @@ export async function getSubgraphVerificationStatusList(
   if (client && !isUndefined(registryAddress)) {
     const challengePeriodDuration = await getChallengePeriodDuration(chainId);
 
-    const { LItem } = await getCurateSdk(client).GetImages({
-      where: {
-        registryAddress: { _eq: registryAddress.toLowerCase() },
-      },
-      first: 1000,
-    });
-    return LItem.reduce(
+    const items = await fetchAllRegistryLItems(client, registryAddress);
+    return items.reduce(
       (obj, item) => {
         const marketId = getMarketIdFromLItem(item);
         if (!marketId) {

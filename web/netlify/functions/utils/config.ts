@@ -1,3 +1,9 @@
+import {
+  BASE_RPC as FALLBACK_BASE_RPC,
+  GNOSIS_RPC as FALLBACK_GNOSIS_RPC,
+  MAINNET_RPC as FALLBACK_MAINNET_RPC,
+  OPTIMISM_RPC as FALLBACK_OPTIMISM_RPC,
+} from "@/lib/rpc.ts";
 import { configurePublicRpcUrls, initApiHost } from "@seer-pm/sdk";
 import {
   http,
@@ -11,10 +17,14 @@ import { base, gnosis, mainnet, optimism, sepolia } from "viem/chains";
 
 export { gnosis, mainnet, optimism, base };
 
-const GNOSIS_RPC = process.env.PRIVATE_RPC_GNOSIS || "https://gnosis-pokt.nodies.app";
-const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || "https://eth-pokt.nodies.app";
-const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || "https://mainnet.optimism.io";
-const BASE_RPC = process.env.PRIVATE_RPC_BASE || "https://base.llamarpc.com";
+// Prod sets PRIVATE_RPC_*; the fallbacks are the same dRPC endpoints the frontend uses, so a missing
+// env var still lands on an endpoint that answers. Callers that swallow RPC errors — such as
+// `getChallengePeriodDuration` — return a degraded result rather than failing, so an unreachable
+// fallback is not something a run would report.
+const GNOSIS_RPC = process.env.PRIVATE_RPC_GNOSIS || FALLBACK_GNOSIS_RPC;
+const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || FALLBACK_MAINNET_RPC;
+const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || FALLBACK_OPTIMISM_RPC;
+const BASE_RPC = process.env.PRIVATE_RPC_BASE || FALLBACK_BASE_RPC;
 
 initApiHost(process.env.API_HOST || process.env.URL || "https://app.seer.pm");
 
