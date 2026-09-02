@@ -2,7 +2,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import { LeaderboardTabs } from "@/components/Leaderboard/LeaderboardTabs";
 import { PeriodFilter } from "@/components/Leaderboard/PeriodFilter";
-import { type SortDir, SortableHeader } from "@/components/Leaderboard/SortableHeader";
+import type { SortDir } from "@/components/Leaderboard/SortableHeader";
 import {
   type AirdropSortKey,
   airdropLeaderboardCsvUrl,
@@ -17,40 +17,27 @@ import { useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
-const SORT_LABELS: Record<AirdropSortKey, string> = {
-  seer: "Total",
-  holdings: "Holdings",
-  poh: "Proof of Humanity",
-  days: "Days",
-};
-
-const SORT_DIR_LABELS: Record<SortDir, string> = {
-  desc: "high to low",
-  asc: "low to high",
-};
-
 const PAGE_SIZE = 25;
 
-function sortStatusText(sort: AirdropSortKey, dir: SortDir, period: LeaderboardPeriod) {
-  const ranking = `Sorted by ${SORT_LABELS[sort]}, ${SORT_DIR_LABELS[dir]}`;
-  if (sort === "days") {
-    return `${ranking}. Days counts the daily snapshots a wallet earned in, so it can be lower than the period length.`;
-  }
-  if (sort === "seer") {
-    return period === "all"
-      ? `${ranking}. Total is Holdings + Proof of Humanity + SER-LPP.`
-      : `${ranking}. Total is Holdings + Proof of Humanity; SER-LPP is a running balance and is not counted in a ${PERIOD_LABELS[period]} window.`;
-  }
-  return ranking;
+const DAYS_HINT = "Daily snapshots the wallet earned in, so it can be lower than the period length.";
+
+const SER_LPP_HINT = "SEER from the liquidity program. A running balance, counted on ALL only.";
+
+/** What the board is ranked by. There is no column picker, so this only varies with the period. */
+function rankingText(period: LeaderboardPeriod) {
+  return period === "all"
+    ? "Ranked by Total, high to low. Total is Holdings + Proof of Humanity + SER-LPP."
+    : `Ranked by Total, high to low. Total is Holdings + Proof of Humanity; SER-LPP is a running balance and is not counted in a ${PERIOD_LABELS[period]} window.`;
 }
 
 function AirdropLeaderboardPage() {
   const { address: connectedAddress } = useAccount();
   const [period, setPeriod] = useState<LeaderboardPeriod>("all");
-  const [sort, setSort] = useState<AirdropSortKey>("seer");
-  // Ranking direction is fixed. A leaderboard is read top-down; ascending only ever surfaced the
-  // smallest holders, so the columns choose WHAT to rank by, never which end to show first. The
-  // API and the CSV export still take a direction, so it stays a value rather than disappearing.
+  // Ranking is fixed: by Total, highest first. A leaderboard is read top-down, and every other
+  // column was only ever a second route to the same board — holdings and PoH are components of
+  // Total, and each percentage is a positive multiple of the SEER column beside it. The API and
+  // the CSV export still take both, so they stay values rather than disappearing.
+  const sort: AirdropSortKey = "seer";
   const dir: SortDir = "desc";
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -86,14 +73,6 @@ function AirdropLeaderboardPage() {
     setPage(0);
     setHighlightAddress(undefined);
     setRankStatus("idle");
-  };
-
-  const toggleSort = (key: AirdropSortKey) => {
-    if (sort === key) {
-      return; // already ranking by this column, and there is no other direction to go to
-    }
-    setSort(key);
-    resetPaging();
   };
 
   const jumpToMyRank = async () => {
@@ -223,67 +202,34 @@ function AirdropLeaderboardPage() {
         ) : null}
 
         <p className="text-sm text-black-secondary px-4 pt-3 pb-1">
-          <span id="airdrop-leaderboard-sort-status" aria-live="polite">
-            {sortStatusText(sort, dir, period)}
+          <span id="airdrop-leaderboard-note" aria-live="polite">
+            {rankingText(period)}
             {isRefreshing ? " Updating…" : ""}
           </span>{" "}
-          Export CSV downloads every row for this period and sort, not just this page.
+          Export CSV downloads every row for this period, not just this page.
         </p>
 
-        <table className="table" aria-busy={query.isFetching} aria-describedby="airdrop-leaderboard-sort-status">
+        <table className="table" aria-busy={query.isFetching} aria-describedby="airdrop-leaderboard-note">
           <thead>
             <tr>
               <th className="w-16">#</th>
               <th>Account</th>
-              <SortableHeader
-                label={SORT_LABELS.seer}
-                sortKey="seer"
-                activeSort={sort}
-                activeDir={dir}
-                onSort={toggleSort}
-                lockDescending
-              />
-              <SortableHeader
-                label={SORT_LABELS.holdings}
-                sortKey="holdings"
-                activeSort={sort}
-                activeDir={dir}
-                onSort={toggleSort}
-                lockDescending
-              />
               {/*
-               * Neither percentage is sortable: within a period every row divides by the same
-               * snapshot-day count, so ranking by a percentage is the same ordering as ranking by
-               * the SEER column it sits next to. A header doing exactly what its neighbour does
-               * would only be a second way to get the same board.
+               * Plain headers, no sorting. Every column here is either a component of Total or a
+               * positive multiple of the SEER column beside it, so each one only re-ranked the
+               * same board; SER-LPP is the exception but is 0 on three of the four periods.
                */}
+              <th className="text-right">Total</th>
+              <th className="text-right">Holdings</th>
               <th className="text-right">% of airdrop (holdings)</th>
-              <SortableHeader
-                label={SORT_LABELS.poh}
-                sortKey="poh"
-                activeSort={sort}
-                activeDir={dir}
-                onSort={toggleSort}
-                lockDescending
-              />
-              {/*
-               * Not sortable, unlike the SEER columns beside it: ser_lpp is 0 on every period but
-               * ALL, so on three of the four boards this header would order by nothing at all.
-               */}
-              <th
-                className="text-right"
-                title="SEER from the liquidity program. A running balance, counted on ALL only."
-              >
+              <th className="text-right">Proof of Humanity</th>
+              <th className="text-right">% of airdrop (PoH)</th>
+              <th className="text-right" title={SER_LPP_HINT}>
                 SER-LPP
               </th>
-              <SortableHeader
-                label={SORT_LABELS.days}
-                sortKey="days"
-                activeSort={sort}
-                activeDir={dir}
-                onSort={toggleSort}
-                lockDescending
-              />
+              <th className="text-right" title={DAYS_HINT}>
+                Days
+              </th>
             </tr>
           </thead>
           <tbody className={clsx(isRefreshing && "opacity-60")}>

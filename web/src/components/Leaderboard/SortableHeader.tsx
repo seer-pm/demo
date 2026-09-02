@@ -23,10 +23,9 @@ function SortMark({ active, dir }: { active: boolean; dir: SortDir }) {
  *
  * Generic over the board's sort-key union so each page keeps its own keys type-checked.
  *
- * `lockDescending` drops the ascending half of the toggle: the column still picks what the board
- * ranks by, but always highest-first. A leaderboard has no bottom-first reading — ascending only
- * ever surfaced the smallest holders — so the airdrop board opts in. The P&L board leaves it off
- * and keeps the full toggle.
+ * Only the P&L board uses this now: the airdrop board dropped sorting entirely, since every one of
+ * its columns was either a component of Total or a positive multiple of its neighbour, so each
+ * header only ever produced the same ranking. The `lockDescending` variant it used went with it.
  */
 export function SortableHeader<K extends string>({
   label,
@@ -34,21 +33,16 @@ export function SortableHeader<K extends string>({
   activeSort,
   activeDir,
   onSort,
-  lockDescending = false,
 }: {
   label: string;
   sortKey: K;
   activeSort: K;
   activeDir: SortDir;
   onSort: (key: K) => void;
-  lockDescending?: boolean;
 }) {
   const active = activeSort === sortKey;
   const currentDir = active ? (activeDir === "asc" ? "ascending" : "descending") : "not sorted";
   const nextDir = !active || activeDir === "asc" ? "descending" : "ascending";
-  // Announcing "activate to sort descending" on the column that is already sorted descending would
-  // promise an action the button no longer performs, so a locked column that is active is inert.
-  const inert = lockDescending && active;
 
   return (
     <th className="text-right" aria-sort={active ? (activeDir === "asc" ? "ascending" : "descending") : "none"}>
@@ -60,11 +54,10 @@ export function SortableHeader<K extends string>({
           active ? "text-base-content" : "text-black-secondary",
         )}
         onClick={() => onSort(sortKey)}
-        disabled={inert}
-        aria-label={inert ? `${label}, ${currentDir}.` : `${label}, ${currentDir}. Activate to sort ${nextDir}.`}
+        aria-label={`${label}, ${currentDir}. Activate to sort ${nextDir}.`}
       >
         {label}
-        <SortMark active={active} dir={lockDescending ? "desc" : active ? activeDir : "desc"} />
+        <SortMark active={active} dir={active ? activeDir : "desc"} />
       </button>
     </th>
   );
