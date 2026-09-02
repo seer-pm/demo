@@ -17,6 +17,12 @@ export interface AirdropLeaderboardRow {
   isPoh: boolean;
   /** Daily snapshots this wallet appears in within the period. */
   days: number;
+  /**
+   * `seer` as a percentage of the whole airdrop emitted over this period, the SER LPP liquidity
+   * programme included. Holdings and PoH take a quarter each, so a tenth of the PoH pool reads
+   * as 2.5%.
+   */
+  pctOfAirdrop: number;
   updatedAt: string | null;
 }
 
@@ -25,6 +31,8 @@ export interface AirdropLeaderboardResponse {
   sort: AirdropSortKey;
   dir: SortDir;
   unit: "SEER";
+  /** Snapshot days the percentages are measured over — the period's window, not the wallet's. */
+  snapshotDays: number;
   updatedAt: string | null;
   /** Rows matching the current search; drives pagination. */
   total: number;

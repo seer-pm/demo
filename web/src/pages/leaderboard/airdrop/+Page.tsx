@@ -9,7 +9,7 @@ import {
   fetchAirdropRank,
   useAirdropLeaderboard,
 } from "@/hooks/airdrop/useAirdropLeaderboard";
-import { formatSeer } from "@/lib/airdropFormat";
+import { formatPct, formatSeer } from "@/lib/airdropFormat";
 import { ExportIcon } from "@/lib/icons";
 import type { LeaderboardPeriod } from "@/lib/leaderboardPeriods";
 import clsx from "clsx";
@@ -18,7 +18,7 @@ import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
 const SORT_LABELS: Record<AirdropSortKey, string> = {
-  seer: "SEER",
+  seer: "Total",
   holdings: "Holdings",
   poh: "Proof of Humanity",
   days: "Days",
@@ -122,7 +122,9 @@ function AirdropLeaderboardPage() {
         <p className="text-black-secondary max-w-2xl">
           Rankings of wallets by SEER earned from the airdrop, across all chains. <strong>Holdings</strong> comes from
           outcome tokens held at each daily snapshot, and <strong>Proof of Humanity</strong> from being a verified
-          unique person; together they make up the total. These are estimates and are not claimable.
+          unique person; together they make up the total. <strong>% of airdrop</strong> measures that total against
+          everything emitted in the period, the separate SER LPP liquidity programme included, so each of these two
+          pools is a quarter of the whole. These are estimates and are not claimable.
         </p>
       </div>
 
@@ -232,6 +234,12 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
+              {/*
+               * Not sortable: within a period every row divides by the same snapshot-day count, so
+               * ranking by percentage is the same ordering as ranking by Total. A second column
+               * doing exactly what its neighbour does would only be a way to get the same board.
+               */}
+              <th className="text-right">% of airdrop</th>
               <SortableHeader
                 label={SORT_LABELS.holdings}
                 sortKey="holdings"
@@ -261,13 +269,13 @@ function AirdropLeaderboardPage() {
           <tbody className={clsx(isRefreshing && "opacity-60")}>
             {isInitialLoad ? (
               <tr>
-                <td colSpan={6} className="text-center py-10 text-black-secondary">
+                <td colSpan={7} className="text-center py-10 text-black-secondary">
                   Loading leaderboard…
                 </td>
               </tr>
             ) : query.error && rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-10">
+                <td colSpan={7} className="text-center py-10">
                   <div className="space-y-3">
                     <p className="text-error">{query.error.message || "Failed to load leaderboard"}</p>
                     <button type="button" className="btn btn-sm btn-primary" onClick={() => void query.refetch()}>
@@ -278,7 +286,7 @@ function AirdropLeaderboardPage() {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-10 text-black-secondary">
+                <td colSpan={7} className="text-center py-10 text-black-secondary">
                   {search ? "No wallets match that address." : "No airdrop allocations in this period yet."}
                 </td>
               </tr>
@@ -306,6 +314,7 @@ function AirdropLeaderboardPage() {
                       </a>
                     </td>
                     <td className="text-right font-semibold tabular-nums">{formatSeer(row.seer)}</td>
+                    <td className="text-right tabular-nums">{formatPct(row.pctOfAirdrop)}</td>
                     <td className="text-right tabular-nums">{formatSeer(row.holdings)}</td>
                     <td className="text-right tabular-nums">
                       <span className={clsx(row.isPoh && "text-purple-primary dark:text-purple-secondary font-medium")}>

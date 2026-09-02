@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { holdingsSeerFromShare, pohSeerFromShare } from "./utils/airdropAllocation";
+import { computePctOfAirdrop, countSnapshotDays } from "./utils/airdropCalculation/constants";
 import { CORS_HEADERS } from "./utils/common";
 import { pagedCsvChunks } from "./utils/csv";
 import type { Database } from "./utils/supabase";
@@ -9,6 +10,15 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 
 const PERIODS = ["1d", "1w", "1m", "all"] as const;
 type Period = (typeof PERIODS)[number];
+
+/**
+ * Snapshot days each period spans, mirroring `v_days` in `refresh_airdrop_leaderboard`. These are
+ * the denominator of `pctOfAirdrop`: a windowed period's rows only accumulate over its own window,
+ * so measuring them against the whole programme's emission would understate every wallet.
+ *
+ * `null` is 'all', which has no cutoff and spans every snapshot since genesis.
+ */
+const PERIOD_SNAPSHOT_DAYS: Record<Period, number | null> = { "1d": 1, "1w": 7, "1m": 30, all: null };
 
 /**
  * `holdings` and `poh` rank on the RAW share sums stored in airdrop_leaderboard rather than the
@@ -41,7 +51,7 @@ type Format = (typeof FORMATS)[number];
 const CSV_PAGE_SIZE = 1000;
 const CSV_MAX_ROWS = 500_000;
 
-const CSV_COLUMNS = ["rank", "address", "seer", "holdings", "poh", "poh_verified", "days"] as const;
+const CSV_COLUMNS = ["rank", "address", "seer", "pct_of_airdrop", "holdings", "poh", "poh_verified", "days"] as const;
 
 export type AirdropLeaderboardRow = {
   /** Position on the whole board for the current period/sort — not within a search result. */
@@ -57,6 +67,13 @@ export type AirdropLeaderboardRow = {
   isPoh: boolean;
   /** Daily snapshots the wallet appears in within the period. */
   days: number;
+  /**
+   * `seer` as a percentage of the WHOLE airdrop emitted over this period, the SER LPP liquidity
+   * programme included. The holdings and PoH pools take a quarter each, so a wallet holding a tenth
+   * of the PoH pool reads as 2.5%, not 10%. LP itself is a separate calculation that this endpoint
+   * never sees — it only ever appears in the denominator.
+   */
+  pctOfAirdrop: number;
   updatedAt: string | null;
 };
 
@@ -97,18 +114,50 @@ function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invali
   return { kind: "fragment", hex };
 }
 
-function toApiRow(row: PageRow): AirdropLeaderboardRow {
+function toApiRow(row: PageRow, snapshotDays: number): AirdropLeaderboardRow {
+  // seer_tokens_count is already a SEER amount in the source table; the share sums are not.
+  const seer = Number(row.seer_tokens) || 0;
   return {
     rank: Number(row.rank) || 0,
     address: row.address.toLowerCase(),
-    // seer_tokens_count is already a SEER amount in the source table; the share sums are not.
-    seer: Number(row.seer_tokens) || 0,
+    seer,
     holdings: holdingsSeerFromShare(Number(row.sum_share_of_holding) || 0),
     poh: pohSeerFromShare(Number(row.sum_share_of_holding_poh) || 0),
     isPoh: row.is_poh ?? false,
     days: row.day_count ?? 0,
+    pctOfAirdrop: computePctOfAirdrop(seer, snapshotDays),
     updatedAt: row.updated_at,
   };
+}
+
+/**
+ * Snapshot days to measure this period's allocations against.
+ *
+ * Clamped to the programme's own length so an early period cannot claim a longer window than has
+ * actually been emitted — `refresh_airdrop_leaderboard` clamps the same way, by taking `min` over
+ * however many distinct snapshots `LIMIT v_days` returned.
+ */
+function periodSnapshotDays(period: Period, programmeDays: number): number {
+  const windowed = PERIOD_SNAPSHOT_DAYS[period];
+  return windowed === null ? programmeDays : Math.min(windowed, programmeDays);
+}
+
+/**
+ * `airdrop_state.last_timestamp` — the newest snapshot, and so the end of the emission window the
+ * percentage is measured over. Mirrors get-airdrop-data-by-user.ts so the portfolio Airdrop tab and
+ * this board derive the figure the same way. A missing state row means nothing has been computed
+ * yet, and 0 makes computePctOfAirdrop return 0 rather than dividing by zero.
+ */
+async function getProgrammeDays(): Promise<number> {
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from("airdrop_state")
+      .select("last_timestamp")
+      .eq("id", "latest_day")
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    return data?.last_timestamp ? countSnapshotDays(Number(data.last_timestamp)) : 0;
+  }, "airdropLeaderboard.snapshotDays");
 }
 
 function latestUpdatedAt(rows: { updatedAt: string | null }[]): string | null {
@@ -177,6 +226,7 @@ function csvResponse(args: {
   sort: SortKey;
   dir: SortDir;
   search: string;
+  snapshotDays: number;
   firstPage: { rows: PageRow[]; total: number };
 }): Response {
   const chunks = pagedCsvChunks<PageRow>({
@@ -184,8 +234,8 @@ function csvResponse(args: {
     firstPage: args.firstPage,
     maxRows: CSV_MAX_ROWS,
     toRow: (raw) => {
-      const row = toApiRow(raw);
-      return [row.rank, row.address, row.seer, row.holdings, row.poh, row.isPoh, row.days];
+      const row = toApiRow(raw, args.snapshotDays);
+      return [row.rank, row.address, row.seer, row.pctOfAirdrop, row.holdings, row.poh, row.isPoh, row.days];
     },
     fetchPage: (offset) =>
       loadPage({
@@ -301,15 +351,29 @@ export default async (req: Request) => {
 
     if (format === "csv") {
       // limit/offset are deliberately ignored: the export is every matching row, not a page.
-      const firstPage = await loadPage({ period, sort, dir, search, limit: CSV_PAGE_SIZE, offset: 0 });
-      return csvResponse({ period, sort, dir, search, firstPage });
+      const [firstPage, programmeDays] = await Promise.all([
+        loadPage({ period, sort, dir, search, limit: CSV_PAGE_SIZE, offset: 0 }),
+        getProgrammeDays(),
+      ]);
+      return csvResponse({
+        period,
+        sort,
+        dir,
+        search,
+        snapshotDays: periodSnapshotDays(period, programmeDays),
+        firstPage,
+      });
     }
 
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50) || 50, 1), MAX_LIMIT);
     const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
 
-    const page = await loadPage({ period, sort, dir, search, limit, offset });
-    const rows = page.rows.map(toApiRow);
+    const [page, programmeDays] = await Promise.all([
+      loadPage({ period, sort, dir, search, limit, offset }),
+      getProgrammeDays(),
+    ]);
+    const snapshotDays = periodSnapshotDays(period, programmeDays);
+    const rows = page.rows.map((row) => toApiRow(row, snapshotDays));
 
     return jsonResponse(
       {
@@ -317,6 +381,8 @@ export default async (req: Request) => {
         sort,
         dir,
         unit: "SEER",
+        /** Denominator behind every row's pctOfAirdrop, so the UI can explain the figure. */
+        snapshotDays,
         updatedAt: latestUpdatedAt(rows),
         total: page.total,
         boardTotal: page.boardTotal,
