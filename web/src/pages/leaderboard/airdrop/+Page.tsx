@@ -122,9 +122,10 @@ function AirdropLeaderboardPage() {
         <p className="text-black-secondary max-w-2xl">
           Rankings of wallets by SEER earned from the airdrop, across all chains. <strong>Holdings</strong> comes from
           outcome tokens held at each daily snapshot, and <strong>Proof of Humanity</strong> from being a verified
-          unique person; together they make up the total. <strong>% of airdrop</strong> measures that total against
-          everything emitted in the period, the separate SER LPP liquidity programme included, so each of these two
-          pools is a quarter of the whole. These are estimates and are not claimable.
+          unique person; together they make up the total. The two percentage columns measure each of those against{" "}
+          <em>its own pool</em> — a wallet with a tenth of the PoH pool reads as 10% there — so they are separate
+          standings and are not meant to be added together. The pools are a quarter of the whole airdrop each; the other
+          half is the separate SER LPP liquidity programme. These are estimates and are not claimable.
         </p>
       </div>
 
@@ -234,12 +235,6 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
-              {/*
-               * Not sortable: within a period every row divides by the same snapshot-day count, so
-               * ranking by percentage is the same ordering as ranking by Total. A second column
-               * doing exactly what its neighbour does would only be a way to get the same board.
-               */}
-              <th className="text-right">% of airdrop</th>
               <SortableHeader
                 label={SORT_LABELS.holdings}
                 sortKey="holdings"
@@ -248,6 +243,13 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
+              {/*
+               * Neither percentage is sortable: within a period every row divides by the same
+               * snapshot-day count, so ranking by a pool percentage is the same ordering as ranking
+               * by the SEER column it sits next to. A header doing exactly what its neighbour does
+               * would only be a second way to get the same board.
+               */}
+              <th className="text-right">% of holdings pool</th>
               <SortableHeader
                 label={SORT_LABELS.poh}
                 sortKey="poh"
@@ -256,6 +258,7 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
+              <th className="text-right">% of PoH pool</th>
               <SortableHeader
                 label={SORT_LABELS.days}
                 sortKey="days"
@@ -269,13 +272,13 @@ function AirdropLeaderboardPage() {
           <tbody className={clsx(isRefreshing && "opacity-60")}>
             {isInitialLoad ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-black-secondary">
+                <td colSpan={8} className="text-center py-10 text-black-secondary">
                   Loading leaderboard…
                 </td>
               </tr>
             ) : query.error && rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10">
+                <td colSpan={8} className="text-center py-10">
                   <div className="space-y-3">
                     <p className="text-error">{query.error.message || "Failed to load leaderboard"}</p>
                     <button type="button" className="btn btn-sm btn-primary" onClick={() => void query.refetch()}>
@@ -286,7 +289,7 @@ function AirdropLeaderboardPage() {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-black-secondary">
+                <td colSpan={8} className="text-center py-10 text-black-secondary">
                   {search ? "No wallets match that address." : "No airdrop allocations in this period yet."}
                 </td>
               </tr>
@@ -314,8 +317,8 @@ function AirdropLeaderboardPage() {
                       </a>
                     </td>
                     <td className="text-right font-semibold tabular-nums">{formatSeer(row.seer)}</td>
-                    <td className="text-right tabular-nums">{formatPct(row.pctOfAirdrop)}</td>
                     <td className="text-right tabular-nums">{formatSeer(row.holdings)}</td>
+                    <td className="text-right tabular-nums">{formatPct(row.pctOfHoldings)}</td>
                     <td className="text-right tabular-nums">
                       <span className={clsx(row.isPoh && "text-purple-primary dark:text-purple-secondary font-medium")}>
                         {formatSeer(row.poh)}
@@ -329,6 +332,7 @@ function AirdropLeaderboardPage() {
                         </span>
                       ) : null}
                     </td>
+                    <td className="text-right tabular-nums">{formatPct(row.pctOfPoh)}</td>
                     <td className="text-right tabular-nums">{row.days}</td>
                   </tr>
                 );

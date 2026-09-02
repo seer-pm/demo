@@ -57,3 +57,24 @@ export function computePctOfAirdrop(allocation: number, snapshotDays: number): n
   }
   return (allocation / (snapshotDays * SEER_PER_DAY)) * 100;
 }
+
+/**
+ * An allocation from ONE pool (holdings or PoH) as a percentage of that pool alone.
+ *
+ * The pool emits `SEER_PER_DAY * POOL_SHARE_FACTOR` a day, so over `snapshotDays` this is the
+ * wallet's slice of everything that pool has paid out: a wallet holding a tenth of the PoH pool
+ * reads as 10%, and the column sums to 100% across the whole board. That is the difference from
+ * `computePctOfAirdrop`, which measures the same allocation against the WHOLE emission (LP
+ * programme included) and would report the same wallet as 2.5%.
+ *
+ * `SEER_PER_DAY` cancels between numerator and denominator here too, so the figure is unaffected
+ * by the nominal budget being long since overrun.
+ *
+ * Returns 0 rather than dividing by zero before the first snapshot exists.
+ */
+export function computePctOfPool(allocation: number, snapshotDays: number): number {
+  if (snapshotDays <= 0) {
+    return 0;
+  }
+  return (allocation / (snapshotDays * SEER_PER_DAY * POOL_SHARE_FACTOR)) * 100;
+}

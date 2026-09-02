@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { holdingsSeerFromShare, pohSeerFromShare } from "./utils/airdropAllocation";
-import { computePctOfAirdrop, countSnapshotDays } from "./utils/airdropCalculation/constants";
+import { computePctOfPool, countSnapshotDays } from "./utils/airdropCalculation/constants";
 import { CORS_HEADERS } from "./utils/common";
 import { pagedCsvChunks } from "./utils/csv";
 import type { Database } from "./utils/supabase";
@@ -13,8 +13,9 @@ type Period = (typeof PERIODS)[number];
 
 /**
  * Snapshot days each period spans, mirroring `v_days` in `refresh_airdrop_leaderboard`. These are
- * the denominator of `pctOfAirdrop`: a windowed period's rows only accumulate over its own window,
- * so measuring them against the whole programme's emission would understate every wallet.
+ * the denominator behind `pctOfHoldings` / `pctOfPoh`: a windowed period's rows only accumulate
+ * over its own window, so measuring them against the whole programme's emission would understate
+ * every wallet.
  *
  * `null` is 'all', which has no cutoff and spans every snapshot since genesis.
  */
@@ -51,7 +52,17 @@ type Format = (typeof FORMATS)[number];
 const CSV_PAGE_SIZE = 1000;
 const CSV_MAX_ROWS = 500_000;
 
-const CSV_COLUMNS = ["rank", "address", "seer", "pct_of_airdrop", "holdings", "poh", "poh_verified", "days"] as const;
+const CSV_COLUMNS = [
+  "rank",
+  "address",
+  "seer",
+  "holdings",
+  "pct_of_holdings_pool",
+  "poh",
+  "pct_of_poh_pool",
+  "poh_verified",
+  "days",
+] as const;
 
 export type AirdropLeaderboardRow = {
   /** Position on the whole board for the current period/sort — not within a search result. */
@@ -68,12 +79,16 @@ export type AirdropLeaderboardRow = {
   /** Daily snapshots the wallet appears in within the period. */
   days: number;
   /**
-   * `seer` as a percentage of the WHOLE airdrop emitted over this period, the SER LPP liquidity
-   * programme included. The holdings and PoH pools take a quarter each, so a wallet holding a tenth
-   * of the PoH pool reads as 2.5%, not 10%. LP itself is a separate calculation that this endpoint
-   * never sees — it only ever appears in the denominator.
+   * `holdings` as a percentage of the holdings pool alone, and `poh` as a percentage of the PoH
+   * pool alone — the two pools are sized independently, so a wallet's standing in one says nothing
+   * about the other and the two figures are deliberately NOT summed. Each column sums to 100%
+   * across the whole board.
+   *
+   * These are shares of a pool, not of the whole airdrop: the pools take a quarter each, so a
+   * wallet holding a tenth of the PoH pool reads as 10% here but is 2.5% of everything emitted.
    */
-  pctOfAirdrop: number;
+  pctOfHoldings: number;
+  pctOfPoh: number;
   updatedAt: string | null;
 };
 
@@ -117,15 +132,18 @@ function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invali
 function toApiRow(row: PageRow, snapshotDays: number): AirdropLeaderboardRow {
   // seer_tokens_count is already a SEER amount in the source table; the share sums are not.
   const seer = Number(row.seer_tokens) || 0;
+  const holdings = holdingsSeerFromShare(Number(row.sum_share_of_holding) || 0);
+  const poh = pohSeerFromShare(Number(row.sum_share_of_holding_poh) || 0);
   return {
     rank: Number(row.rank) || 0,
     address: row.address.toLowerCase(),
     seer,
-    holdings: holdingsSeerFromShare(Number(row.sum_share_of_holding) || 0),
-    poh: pohSeerFromShare(Number(row.sum_share_of_holding_poh) || 0),
+    holdings,
+    poh,
     isPoh: row.is_poh ?? false,
     days: row.day_count ?? 0,
-    pctOfAirdrop: computePctOfAirdrop(seer, snapshotDays),
+    pctOfHoldings: computePctOfPool(holdings, snapshotDays),
+    pctOfPoh: computePctOfPool(poh, snapshotDays),
     updatedAt: row.updated_at,
   };
 }
@@ -144,9 +162,9 @@ function periodSnapshotDays(period: Period, programmeDays: number): number {
 
 /**
  * `airdrop_state.last_timestamp` — the newest snapshot, and so the end of the emission window the
- * percentage is measured over. Mirrors get-airdrop-data-by-user.ts so the portfolio Airdrop tab and
- * this board derive the figure the same way. A missing state row means nothing has been computed
- * yet, and 0 makes computePctOfAirdrop return 0 rather than dividing by zero.
+ * percentages are measured over. Mirrors get-airdrop-data-by-user.ts so the portfolio Airdrop tab
+ * and this board count snapshot days the same way. A missing state row means nothing has been computed
+ * yet, and 0 makes computePctOfPool return 0 rather than dividing by zero.
  */
 async function getProgrammeDays(): Promise<number> {
   return withRetry(async () => {
@@ -235,7 +253,17 @@ function csvResponse(args: {
     maxRows: CSV_MAX_ROWS,
     toRow: (raw) => {
       const row = toApiRow(raw, args.snapshotDays);
-      return [row.rank, row.address, row.seer, row.pctOfAirdrop, row.holdings, row.poh, row.isPoh, row.days];
+      return [
+        row.rank,
+        row.address,
+        row.seer,
+        row.holdings,
+        row.pctOfHoldings,
+        row.poh,
+        row.pctOfPoh,
+        row.isPoh,
+        row.days,
+      ];
     },
     fetchPage: (offset) =>
       loadPage({
@@ -381,7 +409,7 @@ export default async (req: Request) => {
         sort,
         dir,
         unit: "SEER",
-        /** Denominator behind every row's pctOfAirdrop, so the UI can explain the figure. */
+        /** Denominator behind every row's pool percentages, so the UI can explain the figures. */
         snapshotDays,
         updatedAt: latestUpdatedAt(rows),
         total: page.total,
