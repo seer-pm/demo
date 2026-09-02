@@ -5,7 +5,7 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { Question } from "@seer-pm/sdk";
 import { writeRealityReopenQuestion } from "@seer-pm/sdk/contracts/reality";
 import { useMutation } from "@tanstack/react-query";
-import { TransactionReceipt, zeroHash } from "viem";
+import { TransactionReceipt } from "viem";
 
 interface ResolveMarketProps {
   question: Question;
@@ -17,12 +17,6 @@ interface ResolveMarketProps {
 async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () => {
-      if (props.question.base_question === zeroHash) {
-        // this question was loaded using marketView, it doesn't have information about the baseQuestion
-        // it needs to be loadad using the subgraph
-        throw new Error("Incorrect base question, please try again later.");
-      }
-
       return writeRealityReopenQuestion(config, {
         args: [
           props.templateId,

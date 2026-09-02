@@ -23,15 +23,17 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 
 | Contract | Address |
 |----------|---------|
+| CirclesMarketFactory | [0x2e3937cefF8e0AC5563B5D212Bbe8f6CB8ECB68E](https://gnosisscan.io/address/0x2e3937cefF8e0AC5563B5D212Bbe8f6CB8ECB68E) |
 | ConditionalRouter | [0x774284d5cDFeC3A0a0eBc7283aD4d5b33013c29c](https://gnosisscan.io/address/0x774284d5cDFeC3A0a0eBc7283aD4d5b33013c29c) |
-| FutarchyFactory | [0xe789e4A240d153AC55e32106821e785E71f6b792](https://gnosisscan.io/address/0xe789e4A240d153AC55e32106821e785E71f6b792) |
+| FutarchyFactory | [0xa6cb18fcdc17a2b44e5cad2d80a6d5942d30a345](https://gnosisscan.io/address/0xa6cb18fcdc17a2b44e5cad2d80a6d5942d30a345) |
 | FutarchyProposal | [0xec4fb999Db0e8cA28011D85EAD177810055b484c](https://gnosisscan.io/address/0xec4fb999Db0e8cA28011D85EAD177810055b484c) |
 | FutarchyRealityProxy | [0x03E1fCfE3F1edc5833001588fb6377cB50A61cfc](https://gnosisscan.io/address/0x03E1fCfE3F1edc5833001588fb6377cB50A61cfc) |
 | FutarchyRouter | [0xE2996f6BC88ba0f2Ad3a6E2A71ac55884ec9F74E](https://gnosisscan.io/address/0xE2996f6BC88ba0f2Ad3a6E2A71ac55884ec9F74E) |
 | GnosisRouter | [0xeC9048b59b3467415b1a38F63416407eA0c70fB8](https://gnosisscan.io/address/0xeC9048b59b3467415b1a38F63416407eA0c70fB8) |
 | Market | [0x8F76bC35F8C72E5e2Ec55ebED785da5efaa9636a](https://gnosisscan.io/address/0x8F76bC35F8C72E5e2Ec55ebED785da5efaa9636a) |
 | MarketFactory | [0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1](https://gnosisscan.io/address/0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1) |
-| MarketView | [0x95493F3e3F151eD9ee9338a4Fc1f49c00890F59C](https://gnosisscan.io/address/0x95493F3e3F151eD9ee9338a4Fc1f49c00890F59C) |
+| MarketView | [0xdC4c9B3B49ad229B14879Ab22D10F607437c930f](https://gnosisscan.io/address/0xdC4c9B3B49ad229B14879Ab22D10F607437c930f) |
+| OpportunityCredits | [0xD2002562012BF42dEc477313CD1bcE1C24e780F6](https://gnosisscan.io/address/0xD2002562012BF42dEc477313CD1bcE1C24e780F6) |
 | RealityProxy | [0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C](https://gnosisscan.io/address/0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C) |
 | Wrapped1155Factory | [0xD194319D1804C1051DD21Ba1Dc931cA72410B79f](https://gnosisscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f) |
 
@@ -43,7 +45,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | MainnetRouter | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
 | Market | [0x8bdC504dC3A05310059c1c67E0A2667309D27B93](https://etherscan.io/address/0x8bdC504dC3A05310059c1c67E0A2667309D27B93) |
 | MarketFactory | [0x1F728c2fD6a3008935c1446a965a313E657b7904](https://etherscan.io/address/0x1F728c2fD6a3008935c1446a965a313E657b7904) |
-| MarketView | [0xB2aB74afe47e6f9D8c392FA15b139Ac02684771a](https://etherscan.io/address/0xB2aB74afe47e6f9D8c392FA15b139Ac02684771a) |
+| MarketView | [0x25A3E57E3070EA5b43e14F7796Fa13806BC9DA05](https://etherscan.io/address/0x25A3E57E3070EA5b43e14F7796Fa13806BC9DA05) |
 | Realitio_v2_1_ArbitratorWithAppeals | [0x2018038203aEE8e7a29dABd73771b0355D4F85ad](https://etherscan.io/address/0x2018038203aEE8e7a29dABd73771b0355D4F85ad) |
 | RealityProxy | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://etherscan.io/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
 | Wrapped1155Factory | [0xD194319D1804C1051DD21Ba1Dc931cA72410B79f](https://etherscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f) |
@@ -55,7 +57,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | ConditionalRouter | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://optimistic.etherscan.io/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |
 | Market | [0xAb797C4C6022A401c31543E316D3cd04c67a87fC](https://optimistic.etherscan.io/address/0xAb797C4C6022A401c31543E316D3cd04c67a87fC) |
 | MarketFactory | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://optimistic.etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
-| MarketView | [0x44921b4c7510Fb306d8E58cF3894fA2bc8a79F00](https://optimistic.etherscan.io/address/0x44921b4c7510Fb306d8E58cF3894fA2bc8a79F00) |
+| MarketView | [0x14662A441C72cBE609155A02A5B433FC0D4C1443](https://optimistic.etherscan.io/address/0x14662A441C72cBE609155A02A5B433FC0D4C1443) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://optimistic.etherscan.io/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
 | Router | [0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD](https://optimistic.etherscan.io/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD) |
 | Wrapped1155Factory | [0xd194319d1804c1051dd21ba1dc931ca72410b79f](https://optimistic.etherscan.io/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f) |
@@ -67,7 +69,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | ConditionalRouter | [0xF5ccbf74121edBa492725F325D55356D517723B9](https://basescan.org/address/0xF5ccbf74121edBa492725F325D55356D517723B9) |
 | Market | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://basescan.org/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
 | MarketFactory | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://basescan.org/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
-| MarketView | [0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD](https://basescan.org/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD) |
+| MarketView | [0x14662A441C72cBE609155A02A5B433FC0D4C1443](https://basescan.org/address/0x14662A441C72cBE609155A02A5B433FC0D4C1443) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://basescan.org/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
 | Router | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://basescan.org/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |
 | Wrapped1155Factory | [0xd194319d1804c1051dd21ba1dc931ca72410b79f](https://basescan.org/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f) |
@@ -141,12 +143,28 @@ yarn hh-local-deploy
 yarn hardhat deploy --network gnosis
 ```
 
-**Verify contracts on Gnosis**
-1. Get an api key from [Gnosis Scan](https://docs.gnosisscan.io/getting-started/viewing-api-usage-statistics)
-2. Add `GNOSISSCAN_API_KEY` to `.env` file
-3. Run
+**Verify contracts**
+
+Run the verification right after deploying:
+
+Gnosis contracts are verified on [Blockscout](https://gnosisscan.io) (the old Gnosisscan by Etherscan was deprecated; gnosisscan.io is now a Blockscout instance). No API key is needed:
+```
+yarn verify:gnosis
+# optional: also submit the sources to Sourcify
+yarn sourcify:gnosis
+```
+
+Ethereum, Optimism, Base and Sepolia are verified through the Etherscan API v2, which uses a single [etherscan.io](https://etherscan.io/apidashboard) key for every chain:
+1. Add `ETHERSCAN_API_KEY` to the `.env` file
+2. Run the script for the network, e.g.
     ```
-    yarn verify:gnosis
+    yarn verify:ethereum
+    yarn verify:optimism
+    yarn verify:base
+    yarn verify:sepolia
     ```
+   To verify a single deployment: `npx hardhat --network base verify-deployments --contract MarketView`
+
+   `verify-deployments` compares the deployed bytecode with the current local artifacts, so run it right after deploying. Deployments whose source changed since they were deployed will report a bytecode mismatch (they are normally already verified). External contracts saved in `deployments/` without compiler metadata are skipped.
 
 

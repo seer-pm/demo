@@ -72,6 +72,13 @@ contract MarketView {
         uint256[] payoutNumerators;
     }
 
+    struct QuestionsInfo {
+        IRealityETH_v3_0.Question[] questions;
+        string[] encodedQuestions;
+        bytes32[] questionsIds;
+        bytes32[] baseQuestionsIds;
+    }
+
     struct MarketInfo {
         address id;
         string marketName;
@@ -91,6 +98,7 @@ contract MarketView {
         uint256 templateId;
         IRealityETH_v3_0.Question[] questions;
         bytes32[] questionsIds;
+        bytes32[] baseQuestionsIds;
         string[] encodedQuestions;
         bool payoutReported;
         uint256[] payoutNumerators;
@@ -106,8 +114,7 @@ contract MarketView {
         (string[] memory outcomes, address[] memory wrappedTokens) =
             getOutcomesAndTokens(conditionalTokens, market, conditionId, collateralToken1 != address(0));
 
-        (IRealityETH_v3_0.Question[] memory questions, string[] memory encodedQuestions, bytes32[] memory questionsIds)
-        = getQuestions(market, marketFactory);
+        QuestionsInfo memory questionsInfo = getQuestions(market, marketFactory);
 
         return MarketInfo({
             id: address(market),
@@ -126,9 +133,10 @@ contract MarketView {
             conditionId: conditionId,
             questionId: market.questionId(),
             templateId: getTemplateId(market),
-            questions: questions,
-            questionsIds: questionsIds,
-            encodedQuestions: encodedQuestions,
+            questions: questionsInfo.questions,
+            questionsIds: questionsInfo.questionsIds,
+            baseQuestionsIds: questionsInfo.baseQuestionsIds,
+            encodedQuestions: questionsInfo.encodedQuestions,
             payoutReported: conditionalTokens.payoutDenominator(conditionId) > 0,
             payoutNumerators: getPayoutNumerators(conditionalTokens, market.conditionId())
         });
@@ -266,29 +274,25 @@ contract MarketView {
     function getQuestions(
         Market market,
         IMarketFactory marketFactory
-    )
-        internal
-        view
-        returns (
-            IRealityETH_v3_0.Question[] memory questions,
-            string[] memory encodedQuestions,
-            bytes32[] memory questionsIds
-        )
-    {
-        bytes32[] memory initialQuestionsIds = getQuestionsIds(market);
-        questions = new IRealityETH_v3_0.Question[](initialQuestionsIds.length);
-        encodedQuestions = new string[](questions.length);
-        questionsIds = new bytes32[](questions.length);
-        {
-            IRealityETH_v3_0 realitio = marketFactory.realitio();
-            for (uint256 i = 0; i < questions.length; i++) {
-                questionsIds[i] = getQuestionId(initialQuestionsIds[i], realitio);
-                questions[i] = realitio.questions(questionsIds[i]);
-                encodedQuestions[i] = getEncodedQuestion(market, i);
-            }
+    ) internal view returns (QuestionsInfo memory questionsInfo) {
+        // baseQuestionsIds are the questions created together with the market.
+        // questionsIds are the currently active questions: the same as baseQuestionsIds
+        // unless a question was reopened, in which case it's the latest reopened question.
+        questionsInfo.baseQuestionsIds = getQuestionsIds(market);
+
+        uint256 length = questionsInfo.baseQuestionsIds.length;
+        questionsInfo.questions = new IRealityETH_v3_0.Question[](length);
+        questionsInfo.encodedQuestions = new string[](length);
+        questionsInfo.questionsIds = new bytes32[](length);
+
+        IRealityETH_v3_0 realitio = marketFactory.realitio();
+        for (uint256 i = 0; i < length; i++) {
+            questionsInfo.questionsIds[i] = getQuestionId(questionsInfo.baseQuestionsIds[i], realitio);
+            questionsInfo.questions[i] = realitio.questions(questionsInfo.questionsIds[i]);
+            questionsInfo.encodedQuestions[i] = getEncodedQuestion(market, i);
         }
 
-        return (questions, encodedQuestions, questionsIds);
+        return questionsInfo;
     }
 
     function getQuestionsIds(Market market) internal view returns (bytes32[] memory) {

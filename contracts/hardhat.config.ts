@@ -8,6 +8,7 @@ import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
+import "./tasks/verify-deployments";
 const glob = require("glob");
 const path = require("path");
 
@@ -81,7 +82,7 @@ const config: HardhatUserConfig = {
     },
     ethereum: {
       chainId: 1,
-      url: "https://eth.llamarpc.com",
+      url: "https://mainnet.gateway.tenderly.co",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
     },
@@ -90,9 +91,14 @@ const config: HardhatUserConfig = {
       url: process.env.GNOSIS_RPC || "https://rpc.gnosischain.com",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
+      // Gnosisscan (by Etherscan) was deprecated; gnosisscan.io is now served by Blockscout, whose
+      // Etherscan-compatible API needs no key. gnosis.blockscout.com redirects here with a 301,
+      // which breaks the verification POST, so use gnosisscan.io directly.
+      // Verified with hardhat-deploy's `etherscan-verify` task (see `yarn verify:gnosis`).
       verify: {
         etherscan: {
-          apiKey: process.env.GNOSISSCAN_API_KEY!,
+          apiKey: "blockscout",
+          apiUrl: "https://gnosisscan.io",
         },
       },
     },
@@ -101,45 +107,27 @@ const config: HardhatUserConfig = {
       url: process.env.OPTIMISM_RPC || "https://optimism-mainnet.public.blastapi.io",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
-      verify: {
-        etherscan: {
-          apiKey: process.env.OPTIMISM_API_KEY!,
-        },
-      },
     },
     base: {
       chainId: 8453,
       url: process.env.BASE_RPC || "https://base.llamarpc.com",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
-      verify: {
-        etherscan: {
-          apiKey: process.env.BASE_API_KEY!,
-        },
-      },
-    },
-    goerli: {
-      chainId: 5,
-      url: process.env.GOERLI_RPC || "https://rpc.ankr.com/eth_goerli",
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      saveDeployments: true,
-      verify: {
-        etherscan: {
-          apiKey: process.env.ETHERSCAN_API_KEY!,
-        },
-      },
     },
     sepolia: {
       chainId: 11155111,
-      url: process.env.SEPOLIA_RPC || "https://rpc2.sepolia.org",
+      url: process.env.SEPOLIA_RPC || "https://ethereum-sepolia-rpc.publicnode.com",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
-      verify: {
-        etherscan: {
-          apiKey: process.env.ETHERSCAN_API_KEY!,
-        },
-      },
     },
+  },
+  // Etherscan API v2: a single etherscan.io key works for every Etherscan-run explorer
+  // (Ethereum, Optimism, Base, Sepolia). Used by the `verify-deployments` task.
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY ?? "",
+  },
+  sourcify: {
+    enabled: false,
   },
   paths: {
     sources: "./src",

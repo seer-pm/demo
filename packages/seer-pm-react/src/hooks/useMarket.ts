@@ -4,6 +4,7 @@ import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
 import { readMarketViewGetMarket } from "@seer-pm/sdk/contracts/market-view";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { useConfig } from "wagmi";
@@ -80,11 +81,11 @@ export function useMarket(marketId: Address, chainId: SupportedChain) {
 export function useMarketQuestions(market: Market | undefined, chainId: SupportedChain) {
   const { data: onChainMarket } = useOnChainMarket(market?.id ?? zeroAddress, chainId);
 
-  if (market === undefined || onChainMarket === undefined) {
-    return market;
-  }
+  return useMemo(() => {
+    if (market === undefined || onChainMarket === undefined) {
+      return market;
+    }
 
-  return Object.assign(market, {
-    questions: onChainMarket.questions,
-  });
+    return { ...market, questions: onChainMarket.questions };
+  }, [market, onChainMarket]);
 }

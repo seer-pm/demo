@@ -255,7 +255,7 @@ export function mapGraphMarket(
           bond: BigInt(question.question.bond),
           min_bond: BigInt(question.question.min_bond),
           // Base question is not yet available for futarchy markets
-          base_question: baseQuestion || zeroAddress,
+          base_question: baseQuestion || zeroHash,
         },
       ];
     }),
