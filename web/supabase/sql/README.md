@@ -129,6 +129,12 @@ select oid::regprocedure from pg_proc where proname = 'get_airdrop_leaderboard_p
 - `airdrop_leaderboard_period_seer_idx` is dropped in favour of
   `airdrop_leaderboard_period_total_idx`, since the default view now orders on `total_seer`.
 
+If you applied this file once already and are picking up the `'lpp'` sort key added afterwards,
+re-apply it: `get_airdrop_leaderboard_page` gained a `when 'lpp' then 'ser_lpp'` branch, and
+without it the board answers `sort must be one of seer, holdings, poh, lpp, days` — as a 500 —
+the moment someone clicks the SER-LPP header. The rebuild at the end is not needed for that
+change alone, only the function; re-running the whole file is still the simplest way to get it.
+
 The file ends by rebuilding all four periods, and only the `'all'` pass reads `ser_lpp_balances`,
 so **the rebuild is what puts SER-LPP on the board** — until it runs, every row reads 0. If the
 editor times out on `'all'`, the other three are already committed; finish with:

@@ -28,10 +28,11 @@ const PERIOD_SNAPSHOT_DAYS: Record<Period, number | null> = { "1d": 1, "1w": 7, 
  * order and maps ties to ties. See the header of web/supabase/sql/airdrop_leaderboard.sql.
  *
  * `seer` ranks on the stored `total_seer` — airdrop SEER plus the SER-LPP balance, which is what
- * the board shows as Total. There is no sort key for SER-LPP on its own: it is 0 on every period
- * but 'all', so three of the four boards would order by nothing but the address tiebreak.
+ * the board shows as Total. `lpp` ranks on the SER-LPP balance alone, and is only meaningful on
+ * 'all': the other three periods store 0 for every wallet, so the board would come back in address
+ * order. The page hides the column and falls back to `seer` there rather than offering it.
  */
-const SORT_KEYS = ["seer", "holdings", "poh", "days"] as const;
+const SORT_KEYS = ["seer", "holdings", "poh", "lpp", "days"] as const;
 type SortKey = (typeof SORT_KEYS)[number];
 
 const SORT_DIRS = ["asc", "desc"] as const;

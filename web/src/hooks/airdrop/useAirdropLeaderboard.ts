@@ -2,7 +2,8 @@ import type { SortDir } from "@/components/Leaderboard/SortableHeader";
 import type { LeaderboardPeriod } from "@/lib/leaderboardPeriods";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-export type AirdropSortKey = "seer" | "holdings" | "poh" | "days";
+/** `lpp` only applies to the "all" period; every other period stores 0 for every wallet. */
+export type AirdropSortKey = "seer" | "holdings" | "poh" | "lpp" | "days";
 
 export interface AirdropLeaderboardRow {
   /** Position on the whole board — correct even while a search filter is applied. */

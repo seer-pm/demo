@@ -17,10 +17,34 @@ import { useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
-const SORT_LABELS: Record<AirdropSortKey, string> = {
+/**
+ * The column the user clicked, which is not quite the key the API ranks by.
+ *
+ * Each percentage divides its SEER column by the same snapshot-day count for every row in the
+ * period, so ranking by `% of airdrop (holdings)` IS ranking by Holdings — same order, same ties.
+ * The two get their own column keys purely so the arrow lands on the header that was clicked and
+ * exactly one header reads as active; `COLUMN_SORT_KEY` folds them back onto the real sort keys,
+ * which is why they need no `p_sort` branch in the SQL and no re-apply.
+ */
+type ColumnKey = AirdropSortKey | "pctHoldings" | "pctPoh";
+
+const COLUMN_SORT_KEY: Record<ColumnKey, AirdropSortKey> = {
+  seer: "seer",
+  holdings: "holdings",
+  pctHoldings: "holdings",
+  poh: "poh",
+  pctPoh: "poh",
+  lpp: "lpp",
+  days: "days",
+};
+
+const SORT_LABELS: Record<ColumnKey, string> = {
   seer: "Total",
   holdings: "Holdings",
+  pctHoldings: "% of airdrop (holdings)",
   poh: "Proof of Humanity",
+  pctPoh: "% of airdrop (PoH)",
+  lpp: "SER-LPP",
   days: "Days",
 };
 
@@ -34,12 +58,20 @@ const SER_LPP_HINT = "SEER from the liquidity program. A running balance, counte
  * What the board is ranked by. Direction is never in it: clicking a header changes the column, and
  * the board is always highest-first, so there is no second state to announce.
  */
-function sortStatusText(sort: AirdropSortKey, period: LeaderboardPeriod) {
-  const ranking = `Sorted by ${SORT_LABELS[sort]}, high to low`;
-  if (sort === "days") {
+function sortStatusText(column: ColumnKey, period: LeaderboardPeriod) {
+  const ranking = `Sorted by ${SORT_LABELS[column]}, high to low`;
+  if (column === "days") {
     return `${ranking}. ${DAYS_HINT}`;
   }
-  if (sort === "seer") {
+  if (column === "lpp") {
+    return `${ranking}. ${SER_LPP_HINT}`;
+  }
+  if (column === "pctHoldings" || column === "pctPoh") {
+    // Worth saying out loud: the board did not change when they clicked, and that is not a bug.
+    const twin = column === "pctHoldings" ? SORT_LABELS.holdings : SORT_LABELS.poh;
+    return `${ranking}. Every wallet divides by the same number of days here, so this is the same ranking as ${twin}.`;
+  }
+  if (column === "seer") {
     return period === "all"
       ? `${ranking}. Total is Holdings + Proof of Humanity + SER-LPP.`
       : `${ranking}. Total is Holdings + Proof of Humanity — SER-LPP is a running balance, so it appears on ALL only, not in a ${PERIOD_LABELS[period]} window.`;
@@ -50,7 +82,10 @@ function sortStatusText(sort: AirdropSortKey, period: LeaderboardPeriod) {
 function AirdropLeaderboardPage() {
   const { address: connectedAddress } = useAccount();
   const [period, setPeriod] = useState<LeaderboardPeriod>("all");
-  const [sort, setSort] = useState<AirdropSortKey>("seer");
+  const [column, setColumn] = useState<ColumnKey>("seer");
+  // What the endpoint and the CSV export actually rank by. The two percentage columns collapse
+  // onto their SEER twin here.
+  const sort = COLUMN_SORT_KEY[column];
   // Direction is fixed. A header click picks WHAT the board ranks by; a leaderboard is read
   // top-down and ascending only ever surfaced the smallest holders, so there is no second
   // direction to toggle into. The API and the CSV export still take one, so it stays a value.
@@ -97,11 +132,11 @@ function AirdropLeaderboardPage() {
     setRankStatus("idle");
   };
 
-  const toggleSort = (key: AirdropSortKey) => {
-    if (sort === key) {
+  const toggleSort = (key: ColumnKey) => {
+    if (column === key) {
       return; // already ranking by this column, and there is no other direction to go to
     }
-    setSort(key);
+    setColumn(key);
     resetPaging();
   };
 
@@ -151,6 +186,11 @@ function AirdropLeaderboardPage() {
           value={period}
           onChange={(p) => {
             setPeriod(p);
+            // The SER-LPP column only exists on ALL, so leaving it would rank the board by a
+            // hidden column that is 0 for every wallet — an ordering with no visible cause.
+            if (p !== "all" && column === "lpp") {
+              setColumn("seer");
+            }
             resetPaging();
           }}
         />
@@ -233,7 +273,7 @@ function AirdropLeaderboardPage() {
 
         <p className="text-sm text-black-secondary px-4 pt-3 pb-1">
           <span id="airdrop-leaderboard-note" aria-live="polite">
-            {sortStatusText(sort, period)}
+            {sortStatusText(column, period)}
             {isRefreshing ? " Updating…" : ""}
           </span>{" "}
           Export CSV downloads every row for this period, not just this page.
@@ -247,7 +287,7 @@ function AirdropLeaderboardPage() {
               <SortableHeader
                 label={SORT_LABELS.seer}
                 sortKey="seer"
-                activeSort={sort}
+                activeSort={column}
                 activeDir={dir}
                 onSort={toggleSort}
                 lockDescending
@@ -255,42 +295,58 @@ function AirdropLeaderboardPage() {
               <SortableHeader
                 label={SORT_LABELS.holdings}
                 sortKey="holdings"
-                activeSort={sort}
+                activeSort={column}
                 activeDir={dir}
                 onSort={toggleSort}
                 lockDescending
               />
               {/*
-               * Neither percentage is sortable: within a period every row divides by the same
-               * snapshot-day count, so ranking by a percentage is the same ordering as ranking by
-               * the SEER column it sits next to. A header doing exactly what its neighbour does
-               * would only be a second way to get the same board.
+               * Clickable, though it produces the same board as Holdings beside it — see
+               * ColumnKey. Left as a plain header it read as broken to anyone who tried it.
                */}
-              <th className="text-right">% of airdrop (holdings)</th>
+              <SortableHeader
+                label={SORT_LABELS.pctHoldings}
+                sortKey="pctHoldings"
+                activeSort={column}
+                activeDir={dir}
+                onSort={toggleSort}
+                lockDescending
+              />
               <SortableHeader
                 label={SORT_LABELS.poh}
                 sortKey="poh"
-                activeSort={sort}
+                activeSort={column}
                 activeDir={dir}
                 onSort={toggleSort}
                 lockDescending
               />
-              <th className="text-right">% of airdrop (PoH)</th>
+              <SortableHeader
+                label={SORT_LABELS.pctPoh}
+                sortKey="pctPoh"
+                activeSort={column}
+                activeDir={dir}
+                onSort={toggleSort}
+                lockDescending
+              />
               {/*
-               * Not sortable, unlike the SEER columns beside it: the RPC only whitelists
-               * seer/holdings/poh/days, so ranking by SER-LPP would need a new sort key in the SQL
-               * as well as here. Worth adding if it is asked for — the column is only rendered on
-               * ALL, which is the one period where the values are not all zero.
+               * Sortable only where it is rendered. `ser_lpp` is 0 on every period but ALL, so the
+               * period switch above resets the key rather than leaving the board ranked by a
+               * column that is neither visible nor discriminating.
                */}
               {showSerLpp ? (
-                <th className="text-right" title={SER_LPP_HINT}>
-                  SER-LPP
-                </th>
+                <SortableHeader
+                  label={SORT_LABELS.lpp}
+                  sortKey="lpp"
+                  activeSort={column}
+                  activeDir={dir}
+                  onSort={toggleSort}
+                  lockDescending
+                />
               ) : null}
               <SortableHeader
                 label={SORT_LABELS.days}
                 sortKey="days"
-                activeSort={sort}
+                activeSort={column}
                 activeDir={dir}
                 onSort={toggleSort}
                 lockDescending

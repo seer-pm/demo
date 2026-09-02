@@ -293,6 +293,12 @@ GRANT EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text) TO service_ro
 -- 'seer' sorts on total_seer (airdrop + SER-LPP), which is what the UI labels Total. Outside the
 -- 'all' period ser_lpp is 0, so there total_seer IS seer_tokens and the ordering is unchanged.
 --
+-- 'lpp' sorts on ser_lpp itself. It is only meaningful on 'all' — everywhere else the column is
+-- uniformly 0 and the board falls back to the address tiebreak. The UI hides the column and drops
+-- the sort key on those periods, so this is only reachable by hand-crafting a request; it returns
+-- a well-defined (if useless) ordering rather than an error, the same as sorting a board where
+-- every wallet happens to tie.
+--
 -- DROP first: CREATE OR REPLACE cannot change an existing function's return type, and this
 -- signature gained two output columns.
 DROP FUNCTION IF EXISTS public.get_airdrop_leaderboard_page(text, text, text, text, integer, integer);
@@ -338,11 +344,12 @@ BEGIN
              WHEN 'seer'     THEN 'total_seer'
              WHEN 'holdings' THEN 'sum_share_of_holding'
              WHEN 'poh'      THEN 'sum_share_of_holding_poh'
+             WHEN 'lpp'      THEN 'ser_lpp'
              WHEN 'days'     THEN 'day_count'
              ELSE NULL
            END;
   IF v_col IS NULL THEN
-    RAISE EXCEPTION 'get_airdrop_leaderboard_page: sort must be one of seer, holdings, poh, days (got %)', p_sort;
+    RAISE EXCEPTION 'get_airdrop_leaderboard_page: sort must be one of seer, holdings, poh, lpp, days (got %)', p_sort;
   END IF;
 
   v_dir := CASE lower(p_dir) WHEN 'asc' THEN 'ASC' WHEN 'desc' THEN 'DESC' ELSE NULL END;
