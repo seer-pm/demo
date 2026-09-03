@@ -2,7 +2,7 @@ import type { PortfolioPosition, Token, TransactionData } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { describe, expect, it } from "vitest";
 import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
-import { buildMarketPeriodBuckets } from "./marketPeriodBuckets";
+import { buildMarketPeriodBuckets, mergeMarketPeriodBuckets } from "./marketPeriodBuckets";
 import { computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents } from "./netPrimaryCollateralSwapFlow";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
 import { PORTFOLIO_PL_PERIODS, type PortfolioPlPeriod } from "./seerIndexerPortfolio";
@@ -229,5 +229,61 @@ describe("buildMarketPeriodBuckets", () => {
     expect(split.routerPrimaryCumStart).toBe(0);
     expect(split.routerPrimaryCumEnd).toBeCloseTo(-12, 10);
     expect(split.pnl).toBeCloseTo(-12, 10);
+  });
+});
+
+describe("mergeMarketPeriodBuckets over a TradeExecutor sweep", () => {
+  /**
+   * The pattern behind the withheld scores: the executor spends 9 of primary collateral on outcome
+   * tokens, then transfers the tokens to its owner EOA. The transfer moves no collateral, so the
+   * executor keeps the capital and books the loss of the position leaving, while the owner ends up
+   * holding 16 units worth 0.75 with no capital of its own.
+   */
+  function bucketsFor(args: { swaps: TransactionData[]; positions: PortfolioPosition[] }) {
+    const swapFlow = computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents(
+      args.swaps,
+      [START],
+      END,
+      PRIMARY,
+      new Map(),
+      undefined,
+      { limitRows: 0 },
+    );
+    return buildMarketPeriodBuckets({
+      positions: args.positions,
+      positionsAtStartByPeriod: perPeriod([]),
+      historyPrices: perPeriod({} as Record<string, number | undefined>),
+      swapFlow,
+      swaps: args.swaps,
+      lpFlow: null,
+      conditionalEvents: [],
+      primaryCollateral: PRIMARY,
+      startTimeByPeriod: perPeriod(START),
+      endTime: END,
+    });
+  }
+
+  const executor = bucketsFor({ swaps, positions: [] });
+  const owner = bucketsFor({ swaps: [], positions: [position(M_TRADED, 16, 0.75)] });
+
+  it("leaves each member unscorable on its own", () => {
+    const executorBucket = executor["1d"].find((b) => b.marketId === M_TRADED)!;
+    // Bought and swept: the capital is here, the value is not.
+    expect(executorBucket.capitalDeployed).toBeCloseTo(9, 10);
+    expect(executorBucket.pnl).toBeCloseTo(-9, 10);
+
+    const ownerBucket = owner["1d"].find((b) => b.marketId === M_TRADED)!;
+    // Holds the tokens against no capital at all, so the dust gate drops it and its P/L with it.
+    expect(ownerBucket.capitalDeployed).toBe(0);
+    expect(ownerBucket.pnl).toBeCloseTo(12, 10);
+    expect(ownerBucket.traded).toBe(false);
+  });
+
+  it("reads as one real position once the group is merged", () => {
+    const merged = mergeMarketPeriodBuckets([executor, owner])["1d"].find((b) => b.marketId === M_TRADED)!;
+    // 9 spent, 12 held: a winning market with capital at risk, which neither member showed alone.
+    expect(merged.capitalDeployed).toBeCloseTo(9, 10);
+    expect(merged.pnl).toBeCloseTo(3, 10);
+    expect(merged.traded).toBe(true);
   });
 });

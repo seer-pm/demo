@@ -404,27 +404,37 @@ Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`)
 | `sort` | No | `pnl` \| `volume` \| `roi` \| `markets` \| `score` (default `pnl`). |
 | `dir` | No | `asc` \| `desc` (default `desc`). Null values (`roi` on dust capital, `score` below the gate) always sort last, in both directions. |
 | `rankFor` | No | Address; returns `{ address, rank, total }` instead of a page. |
-| `breakdown` | No | `1` or `true` to include `scoreBreakdown` on every row. |
+| `breakdown` | No | `1` or `true` to include `scoreBreakdown` on every row — `{ method, score, tier, components, sampleShrink, inputs }`, where `components` values are 0-100 sub-scores rather than weighted points. |
 
 All rankings use **USD** (`pnl_usd` from materialization: native collateral PnL × spot collateral USD). Per-chain filters still return USD so ranks stay comparable; `chainId=all` sums `pnl_usd` across chains. App filter `all` is independent of `SEER_APPS` market lists.
 
 ### Trader score
 
-Each row carries `score` (0-100, one decimal) and `tier` (`Elite` ≥85, `Great` ≥70, `Good` ≥55, `Average` ≥40, `Weak` below). It is a weighted mean of five clamped-linear components:
+Each row carries `score` (0-100, one decimal) and `tier` (`Elite` ≥85, `Great` ≥70, `Good` ≥55, `Average` ≥40, `Weak` below). It is a weighted mean of five clamped-linear components, shrunk toward 50 afterwards:
 
 | Component | Weight | Measure | 0 points | 100 points |
 |---|---|---|---|---|
-| `returns` | 25% | ROI = `pnl_usd / capital_usd` | −25% | +75% |
-| `profitFactor` | 25% | gross profit / gross loss, over markets | 0.5 | 3.0 |
-| `hitRate` | 20% | share of markets ending in profit | 35% | 75% |
-| `lossBurn` | 15% | gross loss / capital | 50% | 0% |
+| `returns` | 25% | ROI = `(grossProfit − grossLoss) / scoredCapitalUsd` | −25% | +75% |
+| `profitFactor` | 30% | gross profit / gross loss, over markets | 0.5 | 3.0 |
+| `hitRate` | 15% | `hitRate − breakEvenHitRate`, in probability | −0.10 | +0.15 |
+| `lossBurn` | 15% | gross loss / `scoredCapitalUsd` | 50% | 0% |
 | `breadth` | 15% | `1 − bestMarket / grossProfit` | 0 (one market) | 0.7 |
 
-`score` is `null`, never 0, when the wallet has fewer than 3 markets above $1 of capital at risk, or less than $100 of capital in the window. When it is null the row also carries `scoreUnavailable` — `{ reason: "markets" | "capital", scoredMarketCount, minScoredMarkets, minCapitalUsd }` — so a client can say which gate was missed. Note that `marketCount` counts every traded market while the gate counts only those above $1 of capital at risk, so a wallet can show a large `marketCount` and still be unscored. Two priors keep small books honest: the hit rate carries 5 pseudo-markets at 50%, and the profit factor carries symmetric prior mass of 5% of capital on both sides, so a book with no losing market reads a finite ratio rather than infinity.
+Every ratio is taken over the **same market set**: those carrying more than $1 of capital at risk. `scoredCapitalUsd` is the capital in exactly that set, which is why `returns` can differ slightly from the row's `roi` (whole-wallet).
+
+`hitRate` scores the wallet against its own break-even rate — `avgLoss / (avgWin + avgLoss)`, from the realised per-market payoffs — rather than a fixed band, because a prediction market pays out inversely to the price paid and a fixed band marks down every long-shot strategy regardless of profitability. `scoreBreakdown.inputs` carries `hitRate`, `breakEvenHitRate` and their difference `hitEdge`; the component scores `hitEdge`.
+
+`scoreBreakdown.sampleShrink` is `{ scoredMarketCount, factor, rawScore }`, where `factor` is `n / (n + 10)` and `score = 50 + (rawScore − 50) × factor`. The weighted component points sum to `rawScore`, **not** to `score` — a client rendering the breakdown has to show the shrink or it will look like an arithmetic error.
+
+`score` is `null`, never 0, when the wallet has fewer than 3 markets above $1 of capital at risk, less than $100 of capital across those markets, or more than 25% of its `pnl_usd` outside them. When it is null the row also carries `scoreUnavailable` — `{ reason: "markets" | "capital" | "coverage", scoredMarketCount, minScoredMarkets, minCapitalUsd, dustUsd, unscoredPnlFraction, maxUnscoredPnlFraction }` — so a client can say which gate was missed. Note that `marketCount` counts every traded market while the gate counts only those above $1 of capital at risk, so a wallet can show a large `marketCount` and still be unscored, or (for a pure LP wallet, which never swaps) a smaller one. Two priors keep small books honest on top of the shrink: the hit rate carries 5 pseudo-markets at 50%, and the profit factor carries symmetric prior mass of 2% of the book's own gross flow on both sides, so a book with no losing market reads a finite ratio rather than infinity.
+
+`reason: "coverage"` means the scored markets do not account for the wallet's P/L. Positions that move value without putting primary collateral at risk — conditional markets, whose pool trades one outcome token against another, and outcome tokens received by transfer — carry P/L into `pnl_usd` against no measured capital, so they never enter the scored set. `pnl` and `roi` on the row still include them.
 
 Read `score` as a summary of the wallet's **cross-market** distribution. It is not a time-series metric: `lossBurn` is a terminal-state loss measure — negative terminal market P/L over capital — and says nothing about the path taken to get there (it cannot see a position that was deep underwater mid-window and recovered), `breadth` measures concentration across markets rather than the smoothness of an equity curve, and `returns` has a capital denominator but no risk denominator. `scoreBreakdown.method` is `"markets"` and identifies which implementation produced the number.
 
 The score is computed at read time from additive statistics stored on `pnl_leaderboard`, so it is correct after the executor→owner, app-scope and cross-chain merges. It is not stored per row, and it is not meaningful to average two scores.
+
+Those statistics describe an **owner's** book, not an address's. A wallet that trades through a TradeExecutor contract holds its capital on one address and, after the contract sweeps the outcome tokens out, its value on another; each market would fall below the $1 gate on both. So the per-market books of an owner and its executors are combined at materialization, before the gate, and the resulting statistics are stored on the owner's row while the executors' rows carry zeros. Their `pnl_usd`, `volume_usd`, `capital_deployed` and `market_count` stay per address and still sum across the merge, so a row read straight from the table is unchanged.
 
 ---
 

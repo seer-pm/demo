@@ -68,6 +68,11 @@ function LegendContent() {
             ))}
           </tbody>
         </table>
+        <p className="text-black-secondary mt-1.5">
+          The weighted mean is then pulled toward 50 by <span className="tabular-nums">n ÷ (n + 10)</span>, where{" "}
+          <span className="tabular-nums">n</span> is the number of markets counted, so a wallet with few of them reads
+          undecided rather than excellent. Click a score to see both numbers.
+        </p>
       </div>
 
       <p className="text-black-secondary border-t border-separator-100 pt-2">{SCORE_ELIGIBILITY_HINT}</p>

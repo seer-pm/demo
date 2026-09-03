@@ -5,13 +5,29 @@ import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { getDexScreenerPriceUSD } from "./common";
-import { jobUsesTradeExecutors, resolveOwnerMap } from "./executorOwners";
+import { jobUsesTradeExecutors, readOwnerMap, resolveOwnerMap } from "./executorOwners";
 import { expandMarketIdsWithChildren } from "./expandMarketsCache";
+import { fetchMarketFamilyRoots } from "./marketFamilies";
+import type { MarketPeriodBucket } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
-import { type LeaderboardCandidate, rankRefreshCandidates, withExecutors } from "./pnlLeaderboardRollup";
-import { type LeaderboardScope, type PnlMarketInsert, buildMarketRows, deriveLeaderboardRows } from "./pnlMarketRows";
+import {
+  type LeaderboardCandidate,
+  type OwnerGroup,
+  ownerGroupsForBatch,
+  rankRefreshCandidates,
+  withExecutors,
+} from "./pnlLeaderboardRollup";
+import {
+  type LeaderboardScope,
+  type PnlMarketInsert,
+  buildMarketRows,
+  deriveLeaderboardRows,
+  deriveOwnerGroupRows,
+} from "./pnlMarketRows";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
+import type { PortfolioPlPeriod } from "./seerIndexerPortfolio";
 import type { Database, TablesInsert } from "./supabase";
+import type { OwnerMap } from "./tradeExecutorOwnersCore";
 
 /** Serialize wallets so Envio pacing (~200/min) is not burst by parallel computes. */
 export const PNL_LEADERBOARD_CONCURRENCY = 1;
@@ -255,6 +271,8 @@ export type RefreshAppChainResult = {
   marketCount?: number;
   /** Rows written to `pnl_market_leaderboard` (global job only). */
   marketRowsUpserted: number;
+  /** Owner groups walked this run; equals `processed` on chains without TradeExecutors. */
+  ownerGroups: number;
 };
 
 export { expandMarketIdsWithChildren } from "./expandMarketsCache";
@@ -396,6 +414,13 @@ export async function refreshPnlLeaderboardForAppChain(
     deadlineMs?: number;
     /** If set, compute exactly these wallets (no analytics candidate list / stale rotation). */
     candidates?: LeaderboardCandidate[];
+    /**
+     * Where the candidate list comes from. `analytics` (default) is the activity-driven rotation;
+     * `ownerMap` walks every wallet in the chain's TradeExecutor owner map instead, which is how the
+     * owner-grouped statistics are backfilled. Both go through the staleness ranking, so a run cut
+     * short by the budget resumes where it stopped rather than restarting at the top.
+     */
+    candidateSource?: "analytics" | "ownerMap";
   },
 ): Promise<RefreshAppChainResult> {
   const concurrency = opts?.concurrency ?? PNL_LEADERBOARD_CONCURRENCY;
@@ -424,6 +449,7 @@ export async function refreshPnlLeaderboardForAppChain(
       scope: isGlobal ? "global" : "markets",
       marketCount: scopedMarketIds?.length,
       marketRowsUpserted: 0,
+      ownerGroups: 0,
     };
   }
 
@@ -431,36 +457,46 @@ export async function refreshPnlLeaderboardForAppChain(
   let batch: LeaderboardCandidate[];
   let skippedStale: number;
   const expandExecutors = jobUsesTradeExecutors(appId, chainId);
+  // Hoisted: the refresh loop groups the batch by owner, so it needs the map the candidate
+  // expansion built.
+  let owners: OwnerMap = {};
+
+  const expandWithOwners = async (list: LeaderboardCandidate[]): Promise<LeaderboardCandidate[]> => {
+    if (!expandExecutors) return list;
+    try {
+      owners = await resolveOwnerMap(
+        chainId,
+        list.map((candidate) => candidate.address),
+      );
+    } catch (e) {
+      console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
+    }
+    return withExecutors(list, owners);
+  };
 
   if (opts?.candidates) {
-    candidates = opts.candidates;
-    if (expandExecutors) {
-      const candidateAddresses = candidates.map((candidate) => candidate.address);
-      let owners = {};
-      try {
-        owners = await resolveOwnerMap(chainId, candidateAddresses);
-      } catch (e) {
-        console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
-      }
-      candidates = withExecutors(candidates, owners);
-    }
+    candidates = await expandWithOwners(opts.candidates);
     batch = candidates;
     skippedStale = 0;
+  } else if (opts?.candidateSource === "ownerMap") {
+    // Backfill: the wallets whose stored statistics are wrong rather than missing, so they cannot
+    // heal by failing the eligibility gate. Read-only (the KV cache, no RPC probe), and still
+    // ranked and sliced, so repeated calls walk the remainder instead of the same head.
+    owners = await readOwnerMap(chainId);
+    const addresses = new Set<string>();
+    for (const [executor, owner] of Object.entries(owners)) {
+      addresses.add(executor.toLowerCase());
+      addresses.add(owner.toLowerCase());
+    }
+    candidates = [...addresses].map((address) => ({ address, lastActivityDay: 0 }));
+    batch = await selectStaleLeaderboardBatch(supabase, appId, chainId, candidates, batchSize);
+    skippedStale = Math.max(0, candidates.length - batch.length);
   } else {
     // No recency cutoff: `rankRefreshCandidates` decides what is worth recomputing, and the fixed
     // 5-day window was starving every chain but gnosis.
-    candidates = await listLeaderboardCandidates(supabase, chainId, scopedMarketIds, { cutoffDay: 0 });
-
-    if (expandExecutors) {
-      const candidateAddresses = candidates.map((candidate) => candidate.address);
-      let owners = {};
-      try {
-        owners = await resolveOwnerMap(chainId, candidateAddresses);
-      } catch (e) {
-        console.error("pnl-leaderboard: owner map resolve failed", e instanceof Error ? e.message : e);
-      }
-      candidates = withExecutors(candidates, owners);
-    }
+    candidates = await expandWithOwners(
+      await listLeaderboardCandidates(supabase, chainId, scopedMarketIds, { cutoffDay: 0 }),
+    );
 
     batch = await selectStaleLeaderboardBatch(supabase, appId, chainId, candidates, batchSize);
     skippedStale = Math.max(0, candidates.length - batch.length);
@@ -486,112 +522,177 @@ export async function refreshPnlLeaderboardForAppChain(
   // has to recompute the wallet.
   const deriveScopes = isGlobal;
   const scopes = deriveScopes ? await leaderboardScopesForChain(chainId) : [];
+  // The score's dust gate runs per conditional family, so the chain's parent links are read once
+  // per run and shared by every wallet in the batch. Fetched before the first compute and allowed
+  // to throw: falling back to per-market gating would silently withhold the score of every wallet
+  // that trades conditionals, and flip it back on at the next refresh.
+  const familyRoots = deriveScopes ? await fetchMarketFamilyRoots(supabase, chainId) : undefined;
+
+  // The trader score's statistics are gathered per market after a dust gate, so they only describe a
+  // real book once an owner's addresses are merged: a TradeExecutor buys and sweeps the tokens to
+  // its owner, leaving the capital on one address and the value on the other. The unit of work is
+  // therefore the owner group, not the wallet — see `deriveOwnerGroupRows`.
+  const groups: OwnerGroup[] = ownerGroupsForBatch(batch, owners);
 
   const { abortedByBudget } = await mapPool(
-    batch,
+    groups,
     concurrency,
-    async (candidate) => {
-      try {
-        const computed = await computePortfolioPlAllPeriods({
-          supabase,
-          account: candidate.address as Address,
-          chainId: supportedChain,
-          chainIdNum: chainId,
-          endTime,
-          // Global: omit marketIds so compute uses full-chain portfolio PL.
-          marketIds: isGlobal ? undefined : scopedMarketIds,
-          collateralProfile: DEFAULT_COLLATERAL_PROFILE,
-          primaryCollateral,
-          withMarketBreakdown: writeMarketRows,
-        });
-        if (!computed) {
-          failures += 1;
-          return;
-        }
-        if (computed.timings) {
-          const total = Object.values(computed.timings).reduce((a, b) => a + b, 0);
-          console.log(
-            `pnl-leaderboard timings ${candidate.address} total=${total}ms ${Object.entries(computed.timings)
-              .sort((a, b) => b[1] - a[1])
-              .map(([phase, ms]) => `${phase}=${ms}`)
-              .join(" ")}`,
-          );
-        }
+    async (group) => {
+      const computedMembers: { address: string; byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]> }[] =
+        [];
+      let groupFailed = false;
 
-        const writtenAt = new Date().toISOString();
-        const rows: PnlLeaderboardInsert[] =
-          deriveScopes && computed.byMarketPeriod
-            ? deriveLeaderboardRows({
-                address: candidate.address,
-                chainId,
-                byMarketPeriod: computed.byMarketPeriod,
-                scopes,
-                collateralPriceUsd,
-                writtenAt,
-              })
-            : PORTFOLIO_PL_PERIODS.map((period) => {
-                const snap = computed.byPeriod[period];
-                const pnl = Number(snap.pnl) || 0;
-                const pnlUsd = pnl * collateralPriceUsd;
-                const valueStart = Number(snap.valueStart) || 0;
-                const tradingCollateralNetOut = Number(snap.tradingCollateralNetOut) || 0;
-                const lpCollateralNetOut = Number(snap.lpCollateralNetOut) || 0;
-                const volume = Number(snap.volume) || 0;
-                const capitalDeployed = Number(snap.capitalDeployed) || 0;
-                return {
-                  app_id: appId,
-                  chain_id: chainId,
-                  address: candidate.address.toLowerCase(),
-                  period,
-                  pnl,
-                  pnl_usd: pnlUsd,
-                  collateral_price_usd: collateralPriceUsd,
-                  value_start: valueStart,
-                  value_end: Number(snap.valueEnd) || 0,
-                  trading_collateral_net_out: tradingCollateralNetOut,
-                  lp_collateral_net_out: lpCollateralNetOut,
-                  volume,
-                  volume_usd: volume * collateralPriceUsd,
-                  capital_deployed: capitalDeployed,
-                  roi: computeRoiUsd({ pnlUsd, capitalDeployed, collateralPriceUsd }),
-                  market_count: Number(snap.marketCount) || 0,
-                  // No trader score statistics on this path by construction: it has only the
-                  // scalar per-period snapshot, and the score is a statement about the per-market
-                  // distribution. The columns keep their DB default of 0, so the wallet fails the
-                  // eligibility gate and reads `score: null` rather than a wrong number. Only
-                  // non-global jobs reach here, and `listPnlLeaderboardRefreshJobs` emits none.
-                  updated_at: writtenAt,
-                };
-              });
-
-        if (writeMarketRows && computed.byMarketPeriod) {
-          const marketRows = buildMarketRows({
-            account: candidate.address,
-            chainId,
-            byMarketPeriod: computed.byMarketPeriod,
-            periods: PORTFOLIO_PL_PERIODS,
-            startTimeByPeriod: computed.startTimeByPeriod,
-            endTime,
-            collateralPriceUsd,
-            writtenAt,
-          });
-          marketRowsUpserted += await upsertMarketRows(supabase, candidate.address, marketRows, chainId, writtenAt);
-        }
-
+      for (const member of group.members) {
+        // Checked per member, not only per group: `mapPool` claims a whole group at a time, and a
+        // group's members are computed one after another.
+        if (shouldAbort?.()) return;
         try {
-          await upsertLeaderboardRows(supabase, candidate.address, rows);
+          const computed = await computePortfolioPlAllPeriods({
+            supabase,
+            account: member.address as Address,
+            chainId: supportedChain,
+            chainIdNum: chainId,
+            endTime,
+            // Global: omit marketIds so compute uses full-chain portfolio PL.
+            marketIds: isGlobal ? undefined : scopedMarketIds,
+            collateralProfile: DEFAULT_COLLATERAL_PROFILE,
+            primaryCollateral,
+            withMarketBreakdown: writeMarketRows,
+          });
+          if (!computed) {
+            failures += 1;
+            groupFailed = true;
+            continue;
+          }
+          if (computed.timings) {
+            const total = Object.values(computed.timings).reduce((a, b) => a + b, 0);
+            console.log(
+              `pnl-leaderboard timings ${member.address} total=${total}ms ${Object.entries(computed.timings)
+                .sort((a, b) => b[1] - a[1])
+                .map(([phase, ms]) => `${phase}=${ms}`)
+                .join(" ")}`,
+            );
+          }
+
+          if (writeMarketRows && computed.byMarketPeriod) {
+            // Per-market rows stay per wallet, and their superseded-row sweep keys on the address,
+            // so each member is written as soon as it is computed with a stamp of its own.
+            const marketWrittenAt = new Date().toISOString();
+            const marketRows = buildMarketRows({
+              account: member.address,
+              chainId,
+              byMarketPeriod: computed.byMarketPeriod,
+              periods: PORTFOLIO_PL_PERIODS,
+              startTimeByPeriod: computed.startTimeByPeriod,
+              endTime,
+              collateralPriceUsd,
+              writtenAt: marketWrittenAt,
+            });
+            marketRowsUpserted += await upsertMarketRows(
+              supabase,
+              member.address,
+              marketRows,
+              chainId,
+              marketWrittenAt,
+            );
+          }
+
+          if (deriveScopes && computed.byMarketPeriod) {
+            computedMembers.push({ address: member.address, byMarketPeriod: computed.byMarketPeriod });
+          } else if (deriveScopes) {
+            // Global job with no per-market breakdown: writing the rest of the group would gather
+            // the owner's statistics without this member's markets, silently understating the book.
+            console.error("pnl-leaderboard: no market breakdown for", member.address);
+            failures += 1;
+            groupFailed = true;
+          } else {
+            // Non-global job: the scalar snapshot carries no per-market distribution, so this member
+            // is written on its own with no score statistics at all (the columns keep their DB
+            // default of 0, so the wallet fails the eligibility gate and reads `score: null` rather
+            // than a wrong number). `listPnlLeaderboardRefreshJobs` emits no such job today.
+            const writtenAt = new Date().toISOString();
+            const rows = PORTFOLIO_PL_PERIODS.map((period) => {
+              const snap = computed.byPeriod[period];
+              const pnl = Number(snap.pnl) || 0;
+              const pnlUsd = pnl * collateralPriceUsd;
+              const volume = Number(snap.volume) || 0;
+              const capitalDeployed = Number(snap.capitalDeployed) || 0;
+              return {
+                app_id: appId,
+                chain_id: chainId,
+                address: member.address.toLowerCase(),
+                period,
+                pnl,
+                pnl_usd: pnlUsd,
+                collateral_price_usd: collateralPriceUsd,
+                value_start: Number(snap.valueStart) || 0,
+                value_end: Number(snap.valueEnd) || 0,
+                trading_collateral_net_out: Number(snap.tradingCollateralNetOut) || 0,
+                lp_collateral_net_out: Number(snap.lpCollateralNetOut) || 0,
+                volume,
+                volume_usd: volume * collateralPriceUsd,
+                capital_deployed: capitalDeployed,
+                roi: computeRoiUsd({ pnlUsd, capitalDeployed, collateralPriceUsd }),
+                market_count: Number(snap.marketCount) || 0,
+                updated_at: writtenAt,
+              };
+            });
+            try {
+              await upsertLeaderboardRows(supabase, member.address, rows);
+              upserted += 1;
+            } catch (e) {
+              if (isFatalLeaderboardUpsertError(e)) throw e;
+              console.error("pnl-leaderboard upsert failed", member.address, e instanceof Error ? e.message : e);
+              failures += 1;
+            }
+          }
         } catch (e) {
           if (isFatalLeaderboardUpsertError(e)) throw e;
-          console.error("pnl-leaderboard upsert failed", candidate.address, e instanceof Error ? e.message : e);
+          console.error("pnl-leaderboard wallet compute failed", member.address, e);
           failures += 1;
-          return;
+          groupFailed = true;
         }
-        upserted += 1;
+      }
+
+      if (computedMembers.length === 0) return;
+      if (groupFailed) {
+        // Fail closed. Writing the survivors would zero the statistics of a member that is still
+        // in the group while the owner's row keeps stale numbers gathered without it — worse than
+        // leaving the whole group one refresh behind.
+        console.error(
+          `pnl-leaderboard: skipping leaderboard write for owner group ${group.canonical}; ${group.members.length - computedMembers.length}/${group.members.length} member(s) failed`,
+        );
+        return;
+      }
+
+      // Stamped only now: `upsertLeaderboardRows` rejects rows whose returned `updated_at` is more
+      // than five minutes old, and a group takes as long as all of its members to compute.
+      const writtenAt = new Date().toISOString();
+      const rows = deriveOwnerGroupRows({
+        canonical: group.canonical,
+        members: computedMembers,
+        chainId,
+        scopes,
+        collateralPriceUsd,
+        familyRoots,
+        writtenAt,
+      });
+
+      // One upsert for the whole group: the owner's row carries the statistics and its executors'
+      // carry zeros, a split that must never be applied by halves.
+      const label =
+        computedMembers.length > 1
+          ? `${group.canonical} (+${computedMembers.length - 1} executor(s))`
+          : group.canonical;
+      try {
+        await upsertLeaderboardRows(supabase, label, rows);
       } catch (e) {
         if (isFatalLeaderboardUpsertError(e)) throw e;
-        console.error("pnl-leaderboard wallet compute failed", candidate.address, e);
-        failures += 1;
+        console.error("pnl-leaderboard upsert failed", label, e instanceof Error ? e.message : e);
+        failures += computedMembers.length;
+        return;
       }
+      upserted += computedMembers.length;
     },
     shouldAbort,
   );
@@ -609,6 +710,7 @@ export async function refreshPnlLeaderboardForAppChain(
     scope: isGlobal ? "global" : "markets",
     marketCount: scopedMarketIds?.length,
     marketRowsUpserted,
+    ownerGroups: groups.length,
   };
 }
 

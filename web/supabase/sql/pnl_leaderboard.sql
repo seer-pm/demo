@@ -26,14 +26,20 @@ CREATE TABLE IF NOT EXISTS public.pnl_leaderboard (
   market_count integer NOT NULL DEFAULT 0,
   -- Trader score sufficient statistics, over markets carrying more than dust capital.
   -- The score itself is NOT stored: it is a weighted mean of clamped ratios, so it is not additive,
-  -- for the same reason `pnl_market_leaderboard` has no `roi` column. These five are (counts and
+  -- for the same reason `pnl_market_leaderboard` has no `roi` column. These six are (counts and
   -- sums over disjoint market sets, plus one max), so they survive the executor, app-scope and
   -- cross-chain merges the read path performs before ranking. See utils/traderScore.ts.
+  --
+  -- scored_capital_usd is capital_deployed_usd restricted to that same above-dust market set. It
+  -- exists so every component of the score reads one market set: capital_deployed and pnl_usd span
+  -- every market, including conditional ones that book MTM P/L against zero primary collateral, and
+  -- mixing the two domains produced rows whose profit factor said "losing" beside a +$26k P/L.
   scored_market_count integer NOT NULL DEFAULT 0,
   winning_market_count integer NOT NULL DEFAULT 0,
   gross_profit_usd numeric NOT NULL DEFAULT 0,
   gross_loss_usd numeric NOT NULL DEFAULT 0,
   best_market_pnl_usd numeric NOT NULL DEFAULT 0,
+  scored_capital_usd numeric NOT NULL DEFAULT 0,
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (app_id, chain_id, address, period)
 );
@@ -49,6 +55,7 @@ ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS winning_market_count
 ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS gross_profit_usd numeric NOT NULL DEFAULT 0;
 ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS gross_loss_usd numeric NOT NULL DEFAULT 0;
 ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS best_market_pnl_usd numeric NOT NULL DEFAULT 0;
+ALTER TABLE public.pnl_leaderboard ADD COLUMN IF NOT EXISTS scored_capital_usd numeric NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS pnl_leaderboard_chain_period_pnl_idx
   ON public.pnl_leaderboard (chain_id, period, pnl DESC);
@@ -66,7 +73,7 @@ CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_updated_at_idx
   ON public.pnl_leaderboard (app_id, chain_id, period, updated_at);
 
 COMMENT ON TABLE public.pnl_leaderboard IS
-  'Materialized wallet PnL for Seer app leaderboards. Native pnl/volume/capital_deployed stored for audit; public rankings use pnl_usd / volume_usd (spot collateral USD at refresh). roi = pnl_usd / capital_deployed_usd (peak capital at risk, including the position open at window start); NULL when capital < $0.01. market_count = distinct markets with a market-collateral swap leg in the row period. scored_market_count / winning_market_count / gross_profit_usd / gross_loss_usd / best_market_pnl_usd are the trader score inputs, over markets above the USD dust threshold; the score is derived at read time from the merged totals and, like roi, is never stored.';
+  'Materialized wallet PnL for Seer app leaderboards. Native pnl/volume/capital_deployed stored for audit; public rankings use pnl_usd / volume_usd (spot collateral USD at refresh). roi = pnl_usd / capital_deployed_usd (peak capital at risk, including the position open at window start); NULL when capital < $0.01. market_count = distinct markets with a market-collateral swap leg in the row period. scored_market_count / winning_market_count / gross_profit_usd / gross_loss_usd / best_market_pnl_usd / scored_capital_usd are the trader score inputs, all over the same set of markets above the USD dust threshold (scored_capital_usd is the score''s own capital denominator, narrower than capital_deployed); the score is derived at read time from the merged totals and, like roi, is never stored.';
 
 -- Refresh job (`refresh-pnl-leaderboard-background`) uses SUPABASE_API_KEY.
 -- That must be the service_role key: anon/authenticated are SELECT-only (public

@@ -117,7 +117,11 @@ The difference between the expected price of a trade and the price at which the 
 
 ### Trader Score
 
-A 0-100 rating of how a wallet traded the markets in a period, shown on the [leaderboard](/app/leaderboard). It is a weighted mean of five components — returns (25%), profit factor (25%), hit rate (20%), loss burn (15%) and breadth (15%) — so it reflects *how* a profit was made, not only how large it was. Scores map to five tiers: Elite (85+), Great (70+), Good (55+), Average (40+) and Weak (below 40).
+A 0-100 rating of how a wallet traded the markets in a period, shown on the [leaderboard](/app/leaderboard). It is a weighted mean of five components — returns (25%), profit factor (30%), [hit rate edge](#hit-rate-edge) (15%), loss burn (15%) and breadth (15%) — so it reflects *how* a profit was made, not only how large it was. The mean is then pulled toward 50 by `n / (n + 10)`, where `n` is the number of markets counted, so a thin book reads undecided rather than excellent. Scores map to five tiers: Elite (85+), Great (70+), Good (55+), Average (40+) and Weak (below 40).
+
+### Hit rate edge
+
+How far a wallet's share of winning markets sits above the rate its own realised payoffs need to break even, in points of probability. One of the five Trader Score components. Because a prediction market pays out inversely to the price paid, a wallet whose winners average ten times its losers breaks even at about a 9% hit rate, while one trading near even money breaks even near 50% — so a bare hit rate is not comparable across strategies, and a fixed band marks down every long-shot strategy whether or not it is profitable.
 
 ### Loss burn
 

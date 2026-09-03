@@ -21,6 +21,11 @@ export type TraderScoreStats = {
   grossProfitUsd: number;
   grossLossUsd: number;
   bestMarketPnlUsd: number;
+  /**
+   * Capital at risk over those same scored markets — the score's own denominator, narrower than the
+   * row's `capitalDeployed`, which spans every market. See `traderScore.ts`.
+   */
+  scoredCapitalUsd: number;
 };
 
 /** One materialized row from `pnl_leaderboard` before executor rollup. */
@@ -84,7 +89,15 @@ function metricValue(row: RolledUpLeaderboardRow, sort: LeaderboardSortKey): num
   }
 }
 
-/** Merge score statistics across executor wallets, app scopes or chains. */
+/**
+ * Merge score statistics across executor wallets, app scopes or chains.
+ *
+ * Within one chain the statistics are already gathered per owner at materialization, with the
+ * executors' rows holding zeros (`deriveOwnerGroupRows`), so this sum returns the group's own
+ * numbers. It still does real work on the other two axes — app scopes and chains are materialized
+ * separately — and on rows written before that change, or while the owner map transiently drops a
+ * mapping, in which case an executor reads standalone until the next refresh reaches its group.
+ */
 export function mergeScoreStats(items: readonly TraderScoreStats[]): TraderScoreStats {
   const merged: TraderScoreStats = {
     scoredMarketCount: 0,
@@ -92,6 +105,7 @@ export function mergeScoreStats(items: readonly TraderScoreStats[]): TraderScore
     grossProfitUsd: 0,
     grossLossUsd: 0,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 0,
   };
   for (const item of items) {
     merged.scoredMarketCount += item.scoredMarketCount;
@@ -99,6 +113,7 @@ export function mergeScoreStats(items: readonly TraderScoreStats[]): TraderScore
     merged.grossProfitUsd += item.grossProfitUsd;
     merged.grossLossUsd += item.grossLossUsd;
     merged.bestMarketPnlUsd = Math.max(merged.bestMarketPnlUsd, item.bestMarketPnlUsd);
+    merged.scoredCapitalUsd += item.scoredCapitalUsd;
   }
   return merged;
 }
@@ -234,6 +249,72 @@ export function withExecutors(candidates: LeaderboardCandidate[], owners: OwnerM
   return [...byAddress.values()].sort((a, b) => a.address.localeCompare(b.address));
 }
 
+/** Invert the owner map: every owner's TradeExecutor contracts, all lowercase. */
+export function executorsByOwner(owners: OwnerMap): Map<string, string[]> {
+  const byOwner = new Map<string, string[]>();
+  for (const [executor, owner] of Object.entries(owners)) {
+    const key = owner.toLowerCase();
+    const list = byOwner.get(key);
+    if (list) list.push(executor.toLowerCase());
+    else byOwner.set(key, [executor.toLowerCase()]);
+  }
+  return byOwner;
+}
+
+/** One owner and every wallet that has to be computed with it. */
+export type OwnerGroup = {
+  /** The owner EOA, or the address itself when it maps to no owner. */
+  canonical: string;
+  /** The canonical first, then its executors. Members absent from the batch are synthesized. */
+  members: LeaderboardCandidate[];
+};
+
+/**
+ * Partition a refresh batch into owner groups — the unit the trader score is materialized over.
+ *
+ * The score's statistics are gathered per market *after* a dust gate, so they only describe a real
+ * book when the owner's addresses are merged first (see `deriveOwnerGroupRows`). That means a
+ * refresh cannot compute one member without the others, and the batch does not deliver them
+ * together: `selectStaleLeaderboardBatch` ranks per address and slices, so a group straddles the
+ * cut, and `?accounts=<executor>` names one member on purpose. Missing members are pulled in here
+ * and computed even though they were not claimed.
+ *
+ * A synthesized member inherits the claimed member's activity day, exactly as `withExecutors` does:
+ * it has no analytics activity of its own and it moves when its owner moves. Addresses that map to
+ * no owner come back as singletons, so a chain without TradeExecutors is unaffected. Batch order is
+ * preserved, by first appearance of the group.
+ */
+export function ownerGroupsForBatch(batch: LeaderboardCandidate[], owners: OwnerMap): OwnerGroup[] {
+  const executors = executorsByOwner(owners);
+  const groups = new Map<string, OwnerGroup>();
+
+  for (const candidate of batch) {
+    const address = candidate.address.toLowerCase();
+    const canonical = canonicalAddress(address, owners);
+    const lastActivityDay = candidate.lastActivityDay ?? 0;
+
+    const existing = groups.get(canonical);
+    if (existing) {
+      for (const member of existing.members) {
+        if (member.address === address) member.lastActivityDay = Math.max(member.lastActivityDay ?? 0, lastActivityDay);
+      }
+      continue;
+    }
+
+    const members: LeaderboardCandidate[] = [{ address: canonical, lastActivityDay }];
+    for (const executor of executors.get(canonical) ?? []) {
+      members.push({ address: executor, lastActivityDay });
+    }
+    // The claimed address is an executor: keep the day on it too, not only on the owner.
+    for (const member of members) {
+      if (member.address === address) member.lastActivityDay = lastActivityDay;
+    }
+    groups.set(canonical, { canonical, members });
+  }
+
+  return [...groups.values()];
+}
+
 /**
  * Collapse executor rows into the owner EOA, summing additive metrics and recomputing ROI.
  */
@@ -258,7 +339,7 @@ export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap)
       }, null) ?? null;
 
     const stats = mergeScoreStats(group);
-    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd, capitalUsd });
+    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd });
 
     return {
       address,
@@ -289,13 +370,7 @@ export function globalScoreWallets(
   rows: readonly { address: string; members: readonly string[] }[],
   owners: OwnerMap,
 ): Map<string, string[]> {
-  const walletsByOwner = new Map<string, string[]>();
-  for (const [executor, owner] of Object.entries(owners)) {
-    const key = owner.toLowerCase();
-    const list = walletsByOwner.get(key);
-    if (list) list.push(executor.toLowerCase());
-    else walletsByOwner.set(key, [executor.toLowerCase()]);
-  }
+  const walletsByOwner = executorsByOwner(owners);
 
   return new Map(
     rows.map((row) => {
@@ -330,7 +405,7 @@ export function aggregateRowsAcrossChains(rows: RolledUpLeaderboardRow[]): Rolle
       }, null) ?? null;
 
     const stats = mergeScoreStats(group);
-    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd, capitalUsd });
+    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd });
 
     return {
       address,
