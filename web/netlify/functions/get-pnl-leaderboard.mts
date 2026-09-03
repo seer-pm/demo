@@ -124,6 +124,7 @@ function mapDbRow(row: {
   gross_profit_usd: number | string | null;
   gross_loss_usd: number | string | null;
   best_market_pnl_usd: number | string | null;
+  scored_capital_usd: number | string | null;
   updated_at: string | null;
 }): MaterializedLeaderboardRow {
   return {
@@ -140,6 +141,7 @@ function mapDbRow(row: {
     grossProfitUsd: Number(row.gross_profit_usd) || 0,
     grossLossUsd: Number(row.gross_loss_usd) || 0,
     bestMarketPnlUsd: Number(row.best_market_pnl_usd) || 0,
+    scoredCapitalUsd: Number(row.scored_capital_usd) || 0,
     updatedAt: row.updated_at,
   };
 }
@@ -161,7 +163,7 @@ async function loadMaterializedRows(args: {
     let query = supabase
       .from("pnl_leaderboard")
       .select(
-        "address, chain_id, pnl_usd, volume_usd, value_start, capital_deployed, collateral_price_usd, market_count, scored_market_count, winning_market_count, gross_profit_usd, gross_loss_usd, best_market_pnl_usd, updated_at",
+        "address, chain_id, pnl_usd, volume_usd, value_start, capital_deployed, collateral_price_usd, market_count, scored_market_count, winning_market_count, gross_profit_usd, gross_loss_usd, best_market_pnl_usd, scored_capital_usd, updated_at",
       )
       .in("app_id", args.appIds)
       .eq("period", args.period)
@@ -196,12 +198,9 @@ function materializedToRolledUp(row: MaterializedLeaderboardRow): RolledUpLeader
     grossProfitUsd: row.grossProfitUsd,
     grossLossUsd: row.grossLossUsd,
     bestMarketPnlUsd: row.bestMarketPnlUsd,
+    scoredCapitalUsd: row.scoredCapitalUsd,
   };
-  const scoreBreakdown = computeTraderScore({
-    ...stats,
-    pnlUsd: row.pnlUsd,
-    capitalUsd,
-  });
+  const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd: row.pnlUsd });
 
   return {
     address: row.address,
@@ -333,8 +332,13 @@ function toApiRow(
     ...(row.score == null
       ? {
           scoreUnavailable:
-            traderScoreIneligibility({ scoredMarketCount: row.scoredMarketCount, capitalUsd: row.capitalUsd }) ??
-            undefined,
+            traderScoreIneligibility({
+              scoredMarketCount: row.scoredMarketCount,
+              scoredCapitalUsd: row.scoredCapitalUsd,
+              grossProfitUsd: row.grossProfitUsd,
+              grossLossUsd: row.grossLossUsd,
+              pnlUsd: row.pnlUsd,
+            }) ?? undefined,
         }
       : {}),
     // Five sub-scores on every row is noise for most consumers; opt in with ?breakdown=1.

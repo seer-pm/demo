@@ -21,6 +21,11 @@ export type TraderScoreStats = {
   grossProfitUsd: number;
   grossLossUsd: number;
   bestMarketPnlUsd: number;
+  /**
+   * Capital at risk over those same scored markets — the score's own denominator, narrower than the
+   * row's `capitalDeployed`, which spans every market. See `traderScore.ts`.
+   */
+  scoredCapitalUsd: number;
 };
 
 /** One materialized row from `pnl_leaderboard` before executor rollup. */
@@ -92,6 +97,7 @@ export function mergeScoreStats(items: readonly TraderScoreStats[]): TraderScore
     grossProfitUsd: 0,
     grossLossUsd: 0,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 0,
   };
   for (const item of items) {
     merged.scoredMarketCount += item.scoredMarketCount;
@@ -99,6 +105,7 @@ export function mergeScoreStats(items: readonly TraderScoreStats[]): TraderScore
     merged.grossProfitUsd += item.grossProfitUsd;
     merged.grossLossUsd += item.grossLossUsd;
     merged.bestMarketPnlUsd = Math.max(merged.bestMarketPnlUsd, item.bestMarketPnlUsd);
+    merged.scoredCapitalUsd += item.scoredCapitalUsd;
   }
   return merged;
 }
@@ -258,7 +265,7 @@ export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap)
       }, null) ?? null;
 
     const stats = mergeScoreStats(group);
-    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd, capitalUsd });
+    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd });
 
     return {
       address,
@@ -330,7 +337,7 @@ export function aggregateRowsAcrossChains(rows: RolledUpLeaderboardRow[]): Rolle
       }, null) ?? null;
 
     const stats = mergeScoreStats(group);
-    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd, capitalUsd });
+    const scoreBreakdown = computeTraderScore({ ...stats, pnlUsd });
 
     return {
       address,

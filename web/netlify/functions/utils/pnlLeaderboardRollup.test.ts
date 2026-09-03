@@ -42,6 +42,7 @@ function row(overrides: Partial<MaterializedLeaderboardRow>): MaterializedLeader
     grossProfitUsd: 0,
     grossLossUsd: 0,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 0,
     updatedAt: null,
     ...overrides,
   };
@@ -71,6 +72,7 @@ function rolled(overrides: Partial<RolledUpLeaderboardRow>): RolledUpLeaderboard
     grossProfitUsd: 0,
     grossLossUsd: 0,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 100,
     score: null,
     scoreBreakdown: null,
     members: [address],
@@ -335,6 +337,7 @@ describe("trader score across merges", () => {
     grossProfitUsd: 100,
     grossLossUsd: 0,
     bestMarketPnlUsd: 40,
+    scoredCapitalUsd: 100,
     pnlUsd: 100,
     capitalDeployed: 100,
     collateralPriceUsd: 1,
@@ -346,6 +349,7 @@ describe("trader score across merges", () => {
     grossProfitUsd: 0,
     grossLossUsd: 100,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 100,
     pnlUsd: -100,
     capitalDeployed: 100,
     collateralPriceUsd: 1,
@@ -357,6 +361,7 @@ describe("trader score across merges", () => {
     expect(merged.winningMarketCount).toBe(3);
     expect(merged.grossProfitUsd).toBeCloseTo(100, 10);
     expect(merged.grossLossUsd).toBeCloseTo(100, 10);
+    expect(merged.scoredCapitalUsd).toBeCloseTo(200, 10);
     // A max over the union, not a sum: the best single market is still $40.
     expect(merged.bestMarketPnlUsd).toBeCloseTo(40, 10);
   });
@@ -367,21 +372,28 @@ describe("trader score across merges", () => {
     const [onOptimism] = rollUpRows([row({ ...LOSER, address: OWNER, chainId: 10 })], {});
     const [allChains] = aggregateRowsAcrossChains([onGnosis, onOptimism]);
 
-    expect(onGnosis.score).toBeCloseTo(94.7, 1);
-    expect(onOptimism.score).toBeCloseTo(0, 1);
+    expect(onGnosis.score).toBeCloseTo(61, 1);
+    expect(onOptimism.score).toBeCloseTo(38.5, 1);
 
-    // The combined wallet is flat: ROI 0, profit factor 1. Around 32, not the ~47 either an
+    // The combined wallet is flat: ROI 0, profit factor 1. Around 43, not the ~50 either an
     // average or a capital-weighted average of the two stored scores would give.
-    expect(allChains.score).toBeCloseTo(31.6, 1);
+    expect(allChains.score).toBeCloseTo(42.9, 1);
     const averaged = (onGnosis.score! + onOptimism.score!) / 2;
-    expect(allChains.score!).toBeLessThan(averaged - 10);
+    expect(allChains.score!).toBeLessThan(averaged);
+
+    // The visible gap is narrowed by the confidence shrink, which is *weaker* on the merged book
+    // (6 markets, not 3) and so pulls it less toward neutral. The claim here is about the scoring,
+    // not the shrink, so it is cleanest on the pre-shrink means: 31 against the 49 an average of
+    // the two stored scores would report.
+    const rawOf = (r: RolledUpLeaderboardRow) => r.scoreBreakdown!.sampleShrink.rawScore;
+    expect(rawOf(allChains)).toBeLessThan((rawOf(onGnosis) + rawOf(onOptimism)) / 2 - 10);
   });
 
   it("scores the owner's whole book after executor rollup, not each contract separately", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
     const [merged] = rollUpRows([row({ ...WINNER, address: OWNER }), row({ ...LOSER, address: EXECUTOR })], owners);
     expect(merged.members).toHaveLength(2);
-    expect(merged.score).toBeCloseTo(31.6, 1);
+    expect(merged.score).toBeCloseTo(42.9, 1);
   });
 
   it("leaves an ineligible wallet null rather than scoring it zero", () => {

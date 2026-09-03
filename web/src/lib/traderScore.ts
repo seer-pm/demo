@@ -71,8 +71,13 @@ export function tierBandLabel(band: (typeof TRADER_TIER_BANDS)[number]): string 
  */
 export const TRADER_SCORE_COMPONENTS: { key: string; label: string; weight: number; description: string }[] = [
   { key: "returns", label: "Returns", weight: 25, description: "Profit ÷ capital deployed (ROI)." },
-  { key: "profitFactor", label: "Profit factor", weight: 25, description: "Money made ÷ money lost, across markets." },
-  { key: "hitRate", label: "Hit rate", weight: 20, description: "Share of markets that ended in profit." },
+  { key: "profitFactor", label: "Profit factor", weight: 30, description: "Money made ÷ money lost, across markets." },
+  {
+    key: "hitRate",
+    label: "Hit rate edge",
+    weight: 15,
+    description: "How far the share of markets won sits above the rate this wallet's own odds need to break even.",
+  },
   { key: "lossBurn", label: "Loss burn", weight: 15, description: "Total losses as a share of capital." },
   { key: "breadth", label: "Breadth", weight: 15, description: "Whether profit came from many markets or one." },
 ];
@@ -85,41 +90,58 @@ export const TRADER_SCORE_COMPONENTS: { key: string; label: string; weight: numb
  */
 export const SCORE_UNAVAILABLE = "N/A";
 
-/** Mirrors `MIN_SCORED_MARKETS` / `MIN_CAPITAL_USD` in the scoring module. */
+/** Mirrors `MIN_SCORED_MARKETS` / `MIN_CAPITAL_USD` / `MARKET_SCORE_DUST_USD` in the scoring module. */
 export const MIN_SCORED_MARKETS = 3;
 export const MIN_CAPITAL_USD = 100;
+export const MARKET_SCORE_DUST_USD = 1;
 
 export const SCORE_ELIGIBILITY_HINT =
-  `Wallets with fewer than ${MIN_SCORED_MARKETS} markets above $1 of capital at risk, or under ` +
-  `$${MIN_CAPITAL_USD} of capital in this period, show ${SCORE_UNAVAILABLE} rather than a low score.`;
+  `Wallets with fewer than ${MIN_SCORED_MARKETS} markets above $${MARKET_SCORE_DUST_USD} of capital at risk, under ` +
+  `$${MIN_CAPITAL_USD} of capital in those markets, or most of their P/L outside them, show ` +
+  `${SCORE_UNAVAILABLE} rather than a low score.`;
 
 export const SCORE_FORMULA_HINT =
-  "Trader Score 0-100: returns 25% · profit factor 25% · hit rate 20% · loss burn 15% · breadth 15%";
+  "Trader Score 0-100: returns 25% · profit factor 30% · hit rate edge 15% · loss burn 15% · breadth 15%, " +
+  "shrunk toward 50 on thin books";
 
 /** Shape of `scoreUnavailable` on a leaderboard row — see `traderScoreIneligibility` on the server. */
 export type ScoreUnavailable = {
-  reason: "markets" | "capital";
+  reason: "markets" | "capital" | "coverage";
   scoredMarketCount: number;
   minScoredMarkets: number;
   minCapitalUsd: number;
+  dustUsd?: number;
+  /** Share of the wallet's P/L the scored markets do not account for. Only set for `coverage`. */
+  unscoredPnlFraction?: number;
+  maxUnscoredPnlFraction?: number;
 };
 
 /**
  * Why this wallet has no score, in one sentence.
  *
- * `marketCount` is every traded market; the gate counts only markets over $1 of capital at risk. A
- * row reading "182 traded markets" beside "needs at least 3 markets" is a flat contradiction, so
- * the markets case always names both numbers.
+ * `marketCount` is every traded market; the gate counts only markets over the dust threshold of
+ * capital at risk. A row reading "182 traded markets" beside "needs at least 3 markets" is a flat
+ * contradiction, so the markets case names both numbers — except that the two count different
+ * things (`marketCount` needs a swap leg, the gate needs capital), so a pure LP wallet can have
+ * more scored markets than traded ones and "3 of 0" has to be avoided.
  */
 export function scoreUnavailableReason(unavailable: ScoreUnavailable | undefined, marketCount: number): string {
   if (!unavailable) return `Not enough history to score. ${SCORE_ELIGIBILITY_HINT}`;
+  const dust = unavailable.dustUsd ?? MARKET_SCORE_DUST_USD;
   if (unavailable.reason === "capital") {
-    return `Not scored: under $${unavailable.minCapitalUsd} of capital at risk in this period.`;
+    return `Not scored: under $${unavailable.minCapitalUsd} of capital at risk in the markets that count.`;
+  }
+  if (unavailable.reason === "coverage") {
+    const share = Math.round((unavailable.unscoredPnlFraction ?? 1) * 100);
+    const why =
+      "positions that moved value without putting primary collateral at risk, such as conditional " +
+      "markets or received tokens. Its P/L and ROI are still shown.";
+    return `Not scored: about ${share}% of this wallet's P/L sits in markets the score cannot read — ${why}`;
   }
   const { scoredMarketCount, minScoredMarkets } = unavailable;
-  return (
-    `Not scored: only ${scoredMarketCount} of ${marketCount} traded ` +
-    `${marketCount === 1 ? "market" : "markets"} had over $1 of capital at risk, and scoring needs ` +
-    `${minScoredMarkets}.`
-  );
+  const scoped =
+    scoredMarketCount <= marketCount
+      ? `only ${scoredMarketCount} of ${marketCount} traded ${marketCount === 1 ? "market" : "markets"} had`
+      : `only ${scoredMarketCount} ${scoredMarketCount === 1 ? "market" : "markets"} had`;
+  return `Not scored: ${scoped} over $${dust} of capital at risk, and scoring needs ${minScoredMarkets}.`;
 }

@@ -18,12 +18,14 @@ export type TraderScoreBreakdown = {
   tier: string;
   components: Record<string, number>;
   inputs: Record<string, number>;
+  /** Present from the `"markets"` method on; the points below sum to `rawScore`, not to `score`. */
+  sampleShrink?: { scoredMarketCount: number; factor: number; rawScore: number };
 };
 
 interface TraderScoreBadgeProps {
   score: number | null;
   tier: string | null;
-  /** Every traded market, for the unscored explanation. The gate counts only those over $1. */
+  /** Every traded market, for the unscored explanation. The gate counts only non-dust ones. */
   marketCount: number;
   scoreUnavailable?: ScoreUnavailable;
   breakdown?: TraderScoreBreakdown;
@@ -32,17 +34,21 @@ interface TraderScoreBadgeProps {
 const pct = (value: number) =>
   `${(value * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
+/** Signed points of probability, the unit the hit-rate edge is scored in. */
+const signedPp = (value: number) => `${value >= 0 ? "+" : "−"}${Math.abs(value * 100).toFixed(1)}pp`;
+
 /**
- * `TraderScoreBreakdown.inputs` names the returns ratio `roi`, while the weighted component is
- * `returns`. Every other component uses the same key on both sides.
+ * `TraderScoreBreakdown.inputs` names the returns ratio `roi` and the hit-rate component's measure
+ * `hitEdge` (the raw `hitRate` and the `breakEvenHitRate` it is the difference of are also there).
+ * Every other component uses the same key on both sides.
  */
-const INPUT_KEY: Record<string, string> = { returns: "roi" };
+const INPUT_KEY: Record<string, string> = { returns: "roi", hitRate: "hitEdge" };
 
 /** How each component's raw ratio reads in the breakdown, in the unit the component is defined in. */
 const FORMAT_INPUT: Record<string, (value: number) => string> = {
   returns: pct,
   profitFactor: (v) => (Number.isFinite(v) ? `${v.toFixed(2)}×` : "∞"),
-  hitRate: pct,
+  hitRate: signedPp,
   lossBurn: pct,
   breadth: pct,
 };
@@ -53,6 +59,10 @@ const FORMAT_INPUT: Record<string, (value: number) => string> = {
  * The server already computes this on every row; showing it is what turns a bare "Weak" from an
  * accusation into a diagnosis. Each row reports the raw ratio, the 0-100 sub-score it maps to, and
  * the points it actually contributed — so a trader can see which component cost them.
+ *
+ * The points sum to the weighted mean, which is not the score: a confidence shrink scales the
+ * distance from 50 by `n / (n + 10)` afterwards. Leaving that out would make the table look like it
+ * had an arithmetic error on every thin book, so it gets its own footer row.
  */
 function ScoreBreakdownPanel({
   score,
@@ -100,6 +110,17 @@ function ScoreBreakdownPanel({
           })}
         </tbody>
       </table>
+      {breakdown.sampleShrink && breakdown.sampleShrink.factor < 0.995 ? (
+        <p className="mt-2 pt-2 border-t border-black-medium text-[11px] text-black-secondary">
+          Weighted <span className="tabular-nums text-black-primary">{breakdown.sampleShrink.rawScore.toFixed(1)}</span>
+          , held{" "}
+          <span className="tabular-nums text-black-primary">{Math.round(breakdown.sampleShrink.factor * 100)}%</span> of
+          the way from 50 on {breakdown.sampleShrink.scoredMarketCount}{" "}
+          {breakdown.sampleShrink.scoredMarketCount === 1 ? "scored market" : "scored markets"} →{" "}
+          <span className="tabular-nums text-black-primary">{score.toFixed(1)}</span>. Thin books read undecided rather
+          than excellent.
+        </p>
+      ) : null}
     </div>
   );
 }

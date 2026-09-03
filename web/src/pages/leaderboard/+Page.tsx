@@ -413,7 +413,8 @@ function LeaderboardPage() {
         </p>
         <p className="text-black-secondary max-w-2xl">
           <strong className="font-semibold text-base-content">Trader Score</strong> rates each wallet 0–100 on returns,
-          profit factor, hit rate, loss burn and breadth across the markets it traded.{" "}
+          profit factor, hit rate edge, loss burn and breadth across the markets it traded, shrunk toward the middle
+          when it traded few of them.{" "}
           <a
             className="text-purple-primary hover:underline"
             href={paths.leaderboardGuide()}

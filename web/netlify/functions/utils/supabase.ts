@@ -442,6 +442,7 @@ export type Database = {
           pnl: number;
           pnl_usd: number;
           roi: number | null;
+          scored_capital_usd: number;
           scored_market_count: number;
           trading_collateral_net_out: number;
           updated_at: string;
@@ -466,6 +467,7 @@ export type Database = {
           pnl?: number;
           pnl_usd?: number;
           roi?: number | null;
+          scored_capital_usd?: number;
           scored_market_count?: number;
           trading_collateral_net_out?: number;
           updated_at?: string;
@@ -490,6 +492,7 @@ export type Database = {
           pnl?: number;
           pnl_usd?: number;
           roi?: number | null;
+          scored_capital_usd?: number;
           scored_market_count?: number;
           trading_collateral_net_out?: number;
           updated_at?: string;

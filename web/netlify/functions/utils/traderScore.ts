@@ -14,6 +14,25 @@
  * plus one max — which merge with `+` and `Math.max` along all three axes, and the score is derived
  * once from the merged totals, at read time, beside the existing `roi`.
  *
+ * ## One market set, or none
+ *
+ * Every ratio below divides two numbers gathered over the *same* markets: those carrying more than
+ * `MARKET_SCORE_DUST_USD` of capital. That is why `scoredCapitalUsd` exists as its own statistic
+ * rather than reusing the row's `capital_deployed`.
+ *
+ * The first version did reuse it, and the mix was visible on the public board: one wallet showed
+ * +$26,466 and +2014% ROI beside a score built from three markets holding $43.59 of gross profit
+ * and $99.80 of gross loss — `returns` came from the whole book and read 100, `profitFactor` came
+ * from the scored subset and read 0.66, and the row asserted both at once. The cause is upstream:
+ * `peakCapitalDeployedByMarket` only counts primary-collateral moves, so a conditional market (whose
+ * pool is `childOutcome ↔ parentOutcome`) books full MTM P/L against zero capital and never clears
+ * the dust gate, while its P/L still lands in `pnl_usd`.
+ *
+ * Sharing a denominator fixes the arithmetic but not the omission, so `MAX_UNSCORED_PNL_FRACTION`
+ * gates it directly: when the scored markets do not account for the wallet's P/L, the score is
+ * `null` with `reason: "coverage"`. A dash is the honest answer there — the alternative is a
+ * confident number about markets we cannot see.
+ *
  * ## What this measures, and what it does not
  *
  * The reference these bands are calibrated against scores a *daily* series: R² of the equity curve,
@@ -23,8 +42,13 @@
  * cross-*market* analogues:
  *
  *  - `profitFactor` is near-direct — the same ratio, over markets instead of days.
- *  - `hitRate` is a genuine proxy with a different unit. For a prediction market, "share of markets
- *    called right" is arguably the better event than "share of green days".
+ *  - `hitRate` is scored against the wallet's own break-even rate, not a fixed band. A prediction
+ *    market pays out inversely to the price paid, so "won 30% of markets" is excellent at 4:1
+ *    average odds and ruinous at 1:2. The fixed 35% floor this replaced assumed even money and
+ *    zeroed every long-shot strategy by construction, including profitable ones: a real wallet with
+ *    a 4.94 profit factor scored 0 on it. The cost is that the edge over break-even is monotone in
+ *    the profit factor (`PF = (h/(1−h))·(avgWin/avgLoss)`), so the two components are not
+ *    independent; the weights account for that by favouring `profitFactor`.
  *  - `lossBurn` is a **terminal-state** loss, not a drawdown, and not a bound on one either: it
  *    cannot see a wallet that was 80% down mid-window and recovered, and losses realized in
  *    different markets at different times need not line up into any single portfolio drawdown.
@@ -35,6 +59,14 @@
  *
  * Name them accordingly in any UI. `method` ships from day one so a later daily-series
  * implementation can coexist with this one and say which produced a given number.
+ *
+ * ## Small books are shrunk, not gated
+ *
+ * `MIN_SCORED_MARKETS` is a floor on having any opinion at all; it is not a confidence adjustment,
+ * and on its own it let three-market wallets top the board over wallets with a hundred markets and
+ * twenty times the profit. `SAMPLE_SHRINK_K` pulls the weighted mean toward `NEUTRAL_SCORE` by
+ * `n / (n + K)`, symmetrically: too little evidence reads *undecided*, in both directions, rather
+ * than excellent. A three-market book can no longer reach the top tier, which is the point.
  */
 
 /** Every calibration constant, in one object, so recalibration is a single reviewable edit. */
@@ -42,8 +74,8 @@ export const TRADER_SCORE_CONFIG = {
   /** Weights sum to 100. */
   WEIGHTS: {
     returns: 25,
-    profitFactor: 25,
-    hitRate: 20,
+    profitFactor: 30,
+    hitRate: 15,
     lossBurn: 15,
     breadth: 15,
   },
@@ -59,11 +91,22 @@ export const TRADER_SCORE_CONFIG = {
    */
   MARKET_SCORE_DUST_USD: 1,
 
+  /**
+   * How much of the wallet's P/L may sit outside the scored markets before the score is withheld,
+   * as a fraction of the larger of |pnl| and the scored capital. At 0.25 the worst offenders on the
+   * live board (ratios 1.00, 1.13, 0.97) go to `null` while a healthy wallet reads 0.002.
+   */
+  MAX_UNSCORED_PNL_FRACTION: 0.25,
+
   ROI_FLOOR: -0.25,
   ROI_CEIL: 0.75,
 
-  HIT_FLOOR: 0.35,
-  HIT_CEIL: 0.75,
+  /**
+   * Hit rate is scored as its distance from the wallet's own break-even rate, in points of
+   * probability: 10pp below break-even scores 0, 15pp above scores 100.
+   */
+  HIT_EDGE_FLOOR: -0.1,
+  HIT_EDGE_CEIL: 0.15,
   /** Laplace prior on the hit rate: `PRIOR_N` pseudo-markets at `PRIOR_P`. Stops 1-for-1 reading 1.0. */
   HIT_PRIOR_P: 0.5,
   HIT_PRIOR_N: 5,
@@ -71,17 +114,32 @@ export const TRADER_SCORE_CONFIG = {
   PF_FLOOR: 0.5,
   PF_CEIL: 3.0,
   /**
-   * Symmetric prior mass, as a fraction of capital, added to both sides of the profit factor.
-   * Without it a wallet with no losing market divides by zero and reads `Infinity`; with it, $200
-   * of profit and no loss on $10k of capital reads 1.4 — "three tiny wins", which is correct.
+   * Symmetric prior mass added to both sides of the profit factor, as a fraction of the book's own
+   * gross flow (profit + loss). Without any prior a wallet with no losing market divides by zero.
+   *
+   * It used to be a fraction of *peak capital*, which made it a sample-size penalty in disguise and
+   * a badly aimed one: on a large, clean book the prior dwarfed the real losses, so a live wallet
+   * with $53.9k of profit against $10.9k of losses — a true factor of 4.94 — carried a $26.2k prior
+   * and reported 2.16, costing it ~8 points of score. Another reported 1.87 against a true 380.
+   * Scaling to the book's own flow makes the prior self-normalizing; `SAMPLE_SHRINK_K` now does the
+   * sample-size job it was quietly doing.
    */
-  PF_PRIOR_FRACTION: 0.05,
+  PF_PRIOR_FRACTION: 0.02,
+  /** Floor for that prior, so a book with no gross flow at all reads 1.0 rather than `NaN`. */
+  PF_PRIOR_MIN_USD: 1,
 
-  /** Gross loss as a fraction of capital. 0 → 100 points, this or worse → 0. */
+  /** Gross loss as a fraction of scored capital. 0 → 100 points, this or worse → 0. */
   LOSS_BURN_CEIL: 0.5,
 
   /** `1 − bestMarket/grossProfit` at or above this scores 100 (≈ profit spread over 3+ markets). */
   BREADTH_CEIL: 0.7,
+
+  /**
+   * Confidence shrink toward `NEUTRAL_SCORE`, in markets. The weighted mean keeps `n / (n + K)` of
+   * its distance from neutral, so n=3 keeps 23% and n=98 keeps 91%.
+   */
+  SAMPLE_SHRINK_K: 10,
+  NEUTRAL_SCORE: 50,
 } as const;
 
 export const TRADER_TIERS = [
@@ -102,7 +160,7 @@ export function tierForScore(score: number): TraderTier {
 }
 
 /**
- * Which eligibility gate a wallet missed, or `null` when it clears both.
+ * Which eligibility gate a wallet missed, or `null` when it clears all three.
  *
  * `computeTraderScore` returns a bare `null` because the score itself has no value to report. The
  * UI needs more than that: the leaderboard renders `marketCount` (every traded market) in a column
@@ -111,23 +169,56 @@ export function tierForScore(score: number): TraderTier {
  * say which of the two numbers it is actually talking about.
  */
 export type TraderScoreIneligibility = {
-  reason: "markets" | "capital";
+  reason: "markets" | "capital" | "coverage";
   scoredMarketCount: number;
   minScoredMarkets: number;
   minCapitalUsd: number;
+  dustUsd: number;
+  /** Share of the wallet's P/L the scored markets do not account for. Only meaningful for `coverage`. */
+  unscoredPnlFraction: number;
+  maxUnscoredPnlFraction: number;
 };
 
-export function traderScoreIneligibility(
-  inputs: Pick<TraderScoreInputs, "scoredMarketCount" | "capitalUsd">,
-): TraderScoreIneligibility | null {
+/** The gate inputs, in the order `computeTraderScore` applies them. */
+type GateInputs = Pick<
+  TraderScoreInputs,
+  "scoredMarketCount" | "scoredCapitalUsd" | "grossProfitUsd" | "grossLossUsd" | "pnlUsd"
+>;
+
+/**
+ * How much of `pnlUsd` the scored markets fail to explain, relative to the size of the book.
+ *
+ * Over the scored set `Σ pnl` is `grossProfit − grossLoss` by construction, so any gap is P/L the
+ * score cannot see — a conditional market, an airdropped position, anything that moved value
+ * without moving primary collateral.
+ */
+function unscoredPnlFraction(inputs: GateInputs): number {
+  const scoredPnlUsd = (Number(inputs.grossProfitUsd) || 0) - (Number(inputs.grossLossUsd) || 0);
+  const pnlUsd = Number(inputs.pnlUsd) || 0;
+  const scoredCapitalUsd = Math.max(0, Number(inputs.scoredCapitalUsd) || 0);
+  const base = Math.max(Math.abs(pnlUsd), scoredCapitalUsd);
+  if (base <= 0) return 0;
+  return Math.abs(pnlUsd - scoredPnlUsd) / base;
+}
+
+export function traderScoreIneligibility(inputs: GateInputs): TraderScoreIneligibility | null {
   const C = TRADER_SCORE_CONFIG;
   const scoredMarketCount = Math.max(0, Math.trunc(Number(inputs.scoredMarketCount) || 0));
-  const capitalUsd = Math.max(0, Number(inputs.capitalUsd) || 0);
+  const scoredCapitalUsd = Math.max(0, Number(inputs.scoredCapitalUsd) || 0);
+  const fraction = unscoredPnlFraction(inputs);
 
   // Same order as computeTraderScore, so the reported reason is the gate that actually fired.
-  const base = { scoredMarketCount, minScoredMarkets: C.MIN_SCORED_MARKETS, minCapitalUsd: C.MIN_CAPITAL_USD };
+  const base = {
+    scoredMarketCount,
+    minScoredMarkets: C.MIN_SCORED_MARKETS,
+    minCapitalUsd: C.MIN_CAPITAL_USD,
+    dustUsd: C.MARKET_SCORE_DUST_USD,
+    unscoredPnlFraction: fraction,
+    maxUnscoredPnlFraction: C.MAX_UNSCORED_PNL_FRACTION,
+  };
   if (scoredMarketCount < C.MIN_SCORED_MARKETS) return { reason: "markets", ...base };
-  if (capitalUsd < C.MIN_CAPITAL_USD) return { reason: "capital", ...base };
+  if (scoredCapitalUsd < C.MIN_CAPITAL_USD) return { reason: "capital", ...base };
+  if (fraction > C.MAX_UNSCORED_PNL_FRACTION) return { reason: "coverage", ...base };
   return null;
 }
 
@@ -146,10 +237,14 @@ export type TraderScoreInputs = {
   grossLossUsd: number;
   /** max(pnl) over scored markets, floored at 0. Merges with `Math.max`. */
   bestMarketPnlUsd: number;
-  /** Net P/L; not `grossProfit − grossLoss`, which excludes dust markets. */
+  /** Peak primary collateral at risk over the scored markets. Every ratio's denominator. */
+  scoredCapitalUsd: number;
+  /**
+   * Net P/L over *every* market, dust included — the number the leaderboard displays. It is not a
+   * denominator anywhere; it is here only so the coverage gate can compare it against
+   * `grossProfitUsd − grossLossUsd` and refuse to score a book it cannot account for.
+   */
   pnlUsd: number;
-  /** Peak primary collateral at risk — `capitalUsdFromRow`. The ROI denominator. */
-  capitalUsd: number;
 };
 
 export type TraderScoreComponents = {
@@ -167,11 +262,27 @@ export type TraderScoreBreakdown = {
   tier: TraderTier;
   /** Each component's 0-100 contribution before weighting. */
   components: TraderScoreComponents;
+  /**
+   * The confidence shrink applied after weighting. Without this the components cannot be reconciled
+   * with the score — their weighted points sum to `rawScore`, not to `score`.
+   */
+  sampleShrink: {
+    scoredMarketCount: number;
+    /** `n / (n + SAMPLE_SHRINK_K)`. */
+    factor: number;
+    /** The weighted mean before shrinking. */
+    rawScore: number;
+  };
   /** The raw ratios the components were derived from, for display and debugging. */
   inputs: {
     roi: number;
     profitFactor: number;
+    /** Prior-adjusted share of scored markets that ended in profit. */
     hitRate: number;
+    /** The hit rate this wallet's own payoff ratio needs to break even. */
+    breakEvenHitRate: number;
+    /** `hitRate − breakEvenHitRate`. What the component actually scores. */
+    hitEdge: number;
     lossBurn: number;
     breadth: number;
   };
@@ -201,33 +312,48 @@ export function computeTraderScore(inputs: TraderScoreInputs): TraderScoreBreakd
   const C = TRADER_SCORE_CONFIG;
 
   const scoredMarketCount = Math.max(0, Math.trunc(Number(inputs.scoredMarketCount) || 0));
-  const capitalUsd = Math.max(0, Number(inputs.capitalUsd) || 0);
+  const scoredCapitalUsd = Math.max(0, Number(inputs.scoredCapitalUsd) || 0);
   if (scoredMarketCount < C.MIN_SCORED_MARKETS) return null;
-  if (capitalUsd < C.MIN_CAPITAL_USD) return null;
+  if (scoredCapitalUsd < C.MIN_CAPITAL_USD) return null;
+  if (unscoredPnlFraction(inputs) > C.MAX_UNSCORED_PNL_FRACTION) return null;
 
   const winningMarketCount = Math.max(0, Math.trunc(Number(inputs.winningMarketCount) || 0));
   const grossProfitUsd = Math.max(0, Number(inputs.grossProfitUsd) || 0);
   const grossLossUsd = Math.max(0, Number(inputs.grossLossUsd) || 0);
   const bestMarketPnlUsd = Math.max(0, Number(inputs.bestMarketPnlUsd) || 0);
-  const pnlUsd = Number(inputs.pnlUsd) || 0;
 
-  const roi = pnlUsd / capitalUsd;
+  // Over the scored markets this *is* the net P/L; `pnlUsd` spans dust markets too, and the
+  // coverage gate above has already established the two are close.
+  const roi = (grossProfitUsd - grossLossUsd) / scoredCapitalUsd;
 
-  // Symmetric prior, in dollars, scaled to the size of the book.
-  const prior = C.PF_PRIOR_FRACTION * capitalUsd;
+  // Symmetric prior, in dollars, scaled to the book's own gross flow.
+  const prior = Math.max(C.PF_PRIOR_FRACTION * (grossProfitUsd + grossLossUsd), C.PF_PRIOR_MIN_USD);
   const profitFactor = (grossProfitUsd + prior) / (grossLossUsd + prior);
 
   const hitRate = (winningMarketCount + C.HIT_PRIOR_P * C.HIT_PRIOR_N) / (scoredMarketCount + C.HIT_PRIOR_N);
 
-  const lossBurn = grossLossUsd / capitalUsd;
+  // The hit rate this book's own payoff ratio needs to break even. A wallet whose winners pay 4x
+  // its losers only has to be right 20% of the time; one trading even money has to be right half.
+  const losingMarketCount = Math.max(0, scoredMarketCount - winningMarketCount);
+  const avgWinUsd = winningMarketCount > 0 ? grossProfitUsd / winningMarketCount : 0;
+  const avgLossUsd = losingMarketCount > 0 ? grossLossUsd / losingMarketCount : 0;
+  const breakEvenHitRate =
+    avgWinUsd + avgLossUsd > 0
+      ? avgLossUsd / (avgWinUsd + avgLossUsd)
+      : // No gross flow at all: no payoff ratio to infer, so demand a coin flip rather than handing
+        // a book that never moved a full component.
+        0.5;
+  const hitEdge = hitRate - breakEvenHitRate;
+
+  const lossBurn = grossLossUsd / scoredCapitalUsd;
 
   // A book with no material profit has no distribution to be broad over; 0, not 1.
-  const breadth = grossProfitUsd <= prior ? 0 : 1 - bestMarketPnlUsd / grossProfitUsd;
+  const breadth = grossProfitUsd <= C.PF_PRIOR_MIN_USD ? 0 : 1 - bestMarketPnlUsd / grossProfitUsd;
 
   const components: TraderScoreComponents = {
     returns: lin(roi, C.ROI_FLOOR, C.ROI_CEIL),
     profitFactor: lin(profitFactor, C.PF_FLOOR, C.PF_CEIL),
-    hitRate: lin(hitRate, C.HIT_FLOOR, C.HIT_CEIL),
+    hitRate: lin(hitEdge, C.HIT_EDGE_FLOOR, C.HIT_EDGE_CEIL),
     lossBurn: lin(C.LOSS_BURN_CEIL - lossBurn, 0, C.LOSS_BURN_CEIL),
     breadth: lin(breadth, 0, C.BREADTH_CEIL),
   };
@@ -240,7 +366,9 @@ export function computeTraderScore(inputs: TraderScoreInputs): TraderScoreBreakd
       components.breadth * C.WEIGHTS.breadth) /
     100;
 
-  const score = round1(weighted);
+  // Symmetric confidence shrink: a thin book reads undecided, not excellent and not terrible.
+  const factor = scoredMarketCount / (scoredMarketCount + C.SAMPLE_SHRINK_K);
+  const score = round1(C.NEUTRAL_SCORE + (weighted - C.NEUTRAL_SCORE) * factor);
 
   return {
     method: "markets",
@@ -253,10 +381,17 @@ export function computeTraderScore(inputs: TraderScoreInputs): TraderScoreBreakd
       lossBurn: round1(components.lossBurn),
       breadth: round1(components.breadth),
     },
+    sampleShrink: {
+      scoredMarketCount,
+      factor,
+      rawScore: round1(weighted),
+    },
     inputs: {
       roi,
       profitFactor,
       hitRate,
+      breakEvenHitRate,
+      hitEdge,
       lossBurn,
       breadth,
     },

@@ -84,6 +84,27 @@ describe("aggregateBucketsForScope", () => {
     expect(t.grossProfit).toBeCloseTo(10, 10);
     expect(t.grossLoss).toBeCloseTo(4, 10);
     expect(t.bestMarketPnl).toBeCloseTo(10, 10);
+    expect(t.scoredCapital).toBeCloseTo(70, 10);
+  });
+
+  it("keeps scored capital narrower than capital deployed, so every ratio shares one market set", () => {
+    // B carries capital, but only $0.50 of it: it is dust, so its $4 of profit and its capital both
+    // stay out of the score while remaining in `pnl` and `capitalDeployed`. That gap is what the
+    // score's coverage gate measures — see `traderScore.ts`.
+    const buckets = perPeriod([
+      bucket(A, { pnl: 10, capitalDeployed: 50, traded: true }),
+      bucket(B, { pnl: 4, capitalDeployed: 0.5, traded: true }),
+    ]);
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: buckets,
+      period: "all",
+      scope: { appId: "all", marketIds: undefined },
+      collateralPriceUsd: 1,
+    });
+    expect(t.capitalDeployed).toBeCloseTo(50.5, 10);
+    expect(t.scoredCapital).toBeCloseTo(50, 10);
+    expect(t.pnl).toBeCloseTo(14, 10);
+    expect(t.grossProfit).toBeCloseTo(10, 10);
   });
 
   it("excludes a market whose capital is below the dust threshold in USD, not in native units", () => {
@@ -176,6 +197,8 @@ describe("deriveLeaderboardRows", () => {
     expect(all.gross_profit_usd).toBeCloseTo(20, 10);
     expect(all.gross_loss_usd).toBeCloseTo(8, 10);
     expect(all.best_market_pnl_usd).toBeCloseTo(20, 10);
+    // Native 70 at the same price.
+    expect(all.scored_capital_usd).toBeCloseTo(140, 10);
   });
 
   it("scopes the score statistics to the app allowlist, like every other total", () => {
@@ -183,6 +206,7 @@ describe("deriveLeaderboardRows", () => {
     expect(app.scored_market_count).toBe(1);
     expect(app.winning_market_count).toBe(1);
     expect(app.gross_loss_usd).toBeCloseTo(0, 10);
+    expect(app.scored_capital_usd).toBeCloseTo(100, 10);
   });
 
   it("lowercases the address so it joins with the per-market table", () => {
