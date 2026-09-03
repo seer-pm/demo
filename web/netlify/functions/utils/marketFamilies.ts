@@ -82,6 +82,7 @@ export async function fetchMarketFamilyRoots(
       .from("markets")
       .select("id, parent_id:subgraph_data->parentMarket->>id")
       .eq("chain_id", chainId)
+      .order("id", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw new Error(`market family roots for chain ${chainId}: ${error.message}`);
 
