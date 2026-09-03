@@ -177,3 +177,60 @@ export function buildMarketPeriodBuckets(args: {
 
   return out;
 }
+
+/**
+ * Fold several wallets' buckets into one book, market by market.
+ *
+ * This is the trader score's aggregation point for an owner and its TradeExecutor contracts. The
+ * executor buys and periodically sweeps the outcome tokens to the owner EOA, so per wallet one side
+ * holds the capital and the other the value: both fail the dust gate separately, and no read-time
+ * merge of already-gated statistics can put them back together. Merged first, the market is one
+ * position with capital from one address and value from the other.
+ *
+ * Every field is extensive, so the sum is the group quantity. `pnl` is linear in its terms
+ * (`Δ(mtm + routerCum) − tradingNetOut − lpNetOut`), so Σ member pnl is the group's pnl per market and
+ * the intra-group ERC20 transfer cancels: it is not a primary-collateral move on either side.
+ * `capitalDeployed` is a per-address peak; the sum is an upper bound of the joint peak, the same
+ * convention the board already uses for `capital_deployed` across executors (`rollUpRows`) and
+ * `peakCapitalDeployedByMarket` uses across markets. `traded` is an OR.
+ *
+ * Known limit, left as is: `dedupeConditionalEventLegs` attributes fanned-out legs using each
+ * wallet's own market universe, so an executor's split filed under parent A and the owner's MTM
+ * under child B do not net inside one bucket (gross profit and loss both inflated; net correct).
+ *
+ * A single member comes back as an equal structure, so a wallet without executors is unaffected.
+ */
+export function mergeMarketPeriodBuckets(
+  members: readonly Record<PortfolioPlPeriod, MarketPeriodBucket[]>[],
+): Record<PortfolioPlPeriod, MarketPeriodBucket[]> {
+  const out = {} as Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
+
+  for (const period of PORTFOLIO_PL_PERIODS) {
+    const byMarket = new Map<string, MarketPeriodBucket>();
+    for (const member of members) {
+      for (const bucket of member[period] ?? []) {
+        const marketId = bucket.marketId.toLowerCase();
+        const merged = byMarket.get(marketId);
+        if (!merged) {
+          byMarket.set(marketId, { ...bucket, marketId });
+          continue;
+        }
+        merged.valueStartMtm += bucket.valueStartMtm;
+        merged.valueEndMtm += bucket.valueEndMtm;
+        merged.routerPrimaryCumStart += bucket.routerPrimaryCumStart;
+        merged.routerPrimaryCumEnd += bucket.routerPrimaryCumEnd;
+        merged.routerPrimarySplitGross += bucket.routerPrimarySplitGross;
+        merged.tradingCollateralNetOut += bucket.tradingCollateralNetOut;
+        merged.lpCollateralNetOut += bucket.lpCollateralNetOut;
+        merged.volume += bucket.volume;
+        merged.capitalDeployed += bucket.capitalDeployed;
+        merged.capitalDeployedGross += bucket.capitalDeployedGross;
+        merged.traded = merged.traded || bucket.traded;
+        merged.pnl += bucket.pnl;
+      }
+    }
+    out[period] = [...byMarket.values()];
+  }
+
+  return out;
+}

@@ -76,6 +76,8 @@ Every ratio in the score is taken over the same set of markets: the ones carryin
 
 Your **P/L and ROI columns still count them**. The score cannot, and a score built from a small measurable corner of a wallet would describe a different trader than the row it sits on. When that corner accounts for too little of the wallet, the score reads N/A rather than guessing.
 
+One case that looks like this but is not: a wallet that trades through a TradeExecutor contract. The contract buys and periodically transfers the outcome tokens to the wallet, so the capital sits on one address and the value on the other. Both are the same trader, and the score treats them as one book — the addresses merged into a row are listed on it.
+
 ## What the score does not measure
 
 The score reads a wallet's distribution **across markets**, not over time. It cannot see a position that was deep underwater mid-period and recovered, because it only sees where each market finished. "Loss burn" is a total of realised losses, not a maximum drawdown, and "breadth" measures how concentrated the profit was, not how smooth the equity curve looked.

@@ -434,6 +434,8 @@ Read `score` as a summary of the wallet's **cross-market** distribution. It is n
 
 The score is computed at read time from additive statistics stored on `pnl_leaderboard`, so it is correct after the executor→owner, app-scope and cross-chain merges. It is not stored per row, and it is not meaningful to average two scores.
 
+Those statistics describe an **owner's** book, not an address's. A wallet that trades through a TradeExecutor contract holds its capital on one address and, after the contract sweeps the outcome tokens out, its value on another; each market would fall below the $1 gate on both. So the per-market books of an owner and its executors are combined at materialization, before the gate, and the resulting statistics are stored on the owner's row while the executors' rows carry zeros. Their `pnl_usd`, `volume_usd`, `capital_deployed` and `market_count` stay per address and still sum across the merge, so a row read straight from the table is unchanged.
+
 ---
 
 ## get-market-pnl-leaderboard

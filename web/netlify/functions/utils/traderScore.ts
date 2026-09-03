@@ -14,6 +14,19 @@
  * plus one max — which merge with `+` and `Math.max` along all three axes, and the score is derived
  * once from the merged totals, at read time, beside the existing `roi`.
  *
+ * ## Where the statistics are gathered
+ *
+ * Merging them is not enough on the executor axis, because the dust gate below runs *before* the
+ * merge would. A TradeExecutor buys and periodically sweeps the outcome tokens to its owner EOA, so
+ * per address one side holds the capital and the other the value, and every market is dust on both:
+ * the wallet in the report that motivated this read $43.59 of gross profit against +$26,466 of P/L,
+ * and the coverage gate below withheld its score. Summing two already-gated sets cannot undo that.
+ *
+ * The statistics are therefore gathered over the owner's addresses *together*
+ * (`mergeMarketPeriodBuckets`, `deriveOwnerGroupRows`) and stored on the owner's row, with the
+ * executors' rows carrying zeros. The `+`/`Math.max` merge still runs on the read path, for the app
+ * and chain axes, and remains a no-op on the executor one.
+ *
  * ## One market set, or none
  *
  * Every ratio below divides two numbers gathered over the *same* markets: those carrying more than
