@@ -7,6 +7,7 @@ import type { Address } from "viem";
 import { getDexScreenerPriceUSD } from "./common";
 import { jobUsesTradeExecutors, readOwnerMap, resolveOwnerMap } from "./executorOwners";
 import { expandMarketIdsWithChildren } from "./expandMarketsCache";
+import { fetchMarketFamilyRoots } from "./marketFamilies";
 import type { MarketPeriodBucket } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import {
@@ -521,6 +522,11 @@ export async function refreshPnlLeaderboardForAppChain(
   // has to recompute the wallet.
   const deriveScopes = isGlobal;
   const scopes = deriveScopes ? await leaderboardScopesForChain(chainId) : [];
+  // The score's dust gate runs per conditional family, so the chain's parent links are read once
+  // per run and shared by every wallet in the batch. Fetched before the first compute and allowed
+  // to throw: falling back to per-market gating would silently withhold the score of every wallet
+  // that trades conditionals, and flip it back on at the next refresh.
+  const familyRoots = deriveScopes ? await fetchMarketFamilyRoots(supabase, chainId) : undefined;
 
   // The trader score's statistics are gathered per market after a dust gate, so they only describe a
   // real book once an owner's addresses are merged: a TradeExecutor buys and sweeps the tokens to
@@ -668,6 +674,7 @@ export async function refreshPnlLeaderboardForAppChain(
         chainId,
         scopes,
         collateralPriceUsd,
+        familyRoots,
         writtenAt,
       });
 

@@ -197,6 +197,8 @@ export function buildMarketPeriodBuckets(args: {
  * Known limit, left as is: `dedupeConditionalEventLegs` attributes fanned-out legs using each
  * wallet's own market universe, so an executor's split filed under parent A and the owner's MTM
  * under child B do not net inside one bucket (gross profit and loss both inflated; net correct).
+ * The score no longer sees that particular split, because `aggregateBucketsForScope` folds A and B
+ * into one family before its gate; the per-market rows still carry it.
  *
  * A single member comes back as an equal structure, so a wallet without executors is unaffected.
  */

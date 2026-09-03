@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import { type MarketFamilyRoots, rootMarketId } from "./marketFamilies";
 import { type MarketPeriodBucket, mergeMarketPeriodBuckets } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import { PORTFOLIO_PL_PERIODS, type PortfolioPlPeriod } from "./seerIndexerPortfolio";
@@ -121,6 +122,10 @@ export type LeaderboardScope = {
  * buckets of the owner and its TradeExecutors merged together, and writes the result on the owner's
  * row alone. An executor's own row carries zeros, because the read path sums the statistics of every
  * member and counting the same market twice is worse than counting it once.
+ *
+ * They are also per conditional *family*, not per market: `familyRoots` folds a market conditioned
+ * on another into the root that holds its capital, before the dust gate. Only the statistics move —
+ * the totals above, and every row of `pnl_market_leaderboard`, stay per market.
  */
 export function aggregateBucketsForScope(args: {
   byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
@@ -128,6 +133,11 @@ export function aggregateBucketsForScope(args: {
   scope: LeaderboardScope;
   /** Needed only for the score's dust gate, which is denominated in USD. */
   collateralPriceUsd: number;
+  /**
+   * Market id → family root, used only by the score's gate. Omitted, every market is its own
+   * family and the gate runs per market, exactly as it did before conditional families existed.
+   */
+  familyRoots?: MarketFamilyRoots;
 }): {
   pnl: number;
   valueStart: number;
@@ -140,7 +150,11 @@ export function aggregateBucketsForScope(args: {
   volume: number;
   capitalDeployed: number;
   marketCount: number;
-  /** Markets carrying more than dust capital. Not `marketCount`: an LP position never swaps. */
+  /**
+   * Conditional families carrying more than dust capital — a root market plus everything
+   * conditioned on it, which is one position and one capital commitment. Not `marketCount`: an LP
+   * position never swaps.
+   */
   scoredMarketCount: number;
   winningMarketCount: number;
   grossProfit: number;
@@ -151,13 +165,11 @@ export function aggregateBucketsForScope(args: {
    * `capitalDeployed` restricted to the scored markets — the score's own denominator.
    *
    * Not the same number as `capitalDeployed`, and deliberately so: that one spans every market,
-   * including the conditional ones that carry MTM P/L against zero primary collateral, so dividing
-   * a gross profit gathered here by a capital gathered there mixes two market sets. See
-   * `traderScore.ts`.
+   * while this one spans the scored families. See `traderScore.ts`.
    */
   scoredCapital: number;
 } {
-  const { byMarketPeriod, period, scope, collateralPriceUsd } = args;
+  const { byMarketPeriod, period, scope, collateralPriceUsd, familyRoots } = args;
   const totals = {
     pnl: 0,
     valueStart: 0,
@@ -176,6 +188,21 @@ export function aggregateBucketsForScope(args: {
     scoredCapital: 0,
   };
 
+  /**
+   * The score's distribution, gathered per conditional family rather than per market.
+   *
+   * A conditional market's pool is `childOutcome ↔ parentOutcome`, so `peakCapitalDeployedByMarket`
+   * — which only sees primary collateral — books it zero capital while its MTM P/L still lands in
+   * `pnl`. Measured on its own the child is always dust: it never enters the scored set, and its
+   * P/L sits outside it, which is exactly what `MAX_UNSCORED_PNL_FRACTION` withholds a score for.
+   * Folded into its root, the family carries the capital the root committed and the P/L of every
+   * market that capital was spent on — the two halves of one position, in one row.
+   *
+   * Only the totals are per market; nothing here changes them, and `pnl_market_leaderboard` still
+   * reports a child's P/L on the child.
+   */
+  const families = new Map<string, { capitalDeployed: number; pnl: number }>();
+
   for (const bucket of byMarketPeriod[period] ?? []) {
     if (scope.marketIds && !scope.marketIds.has(bucket.marketId.toLowerCase())) continue;
     totals.pnl += bucket.pnl;
@@ -188,16 +215,29 @@ export function aggregateBucketsForScope(args: {
     totals.capitalDeployed += bucket.capitalDeployed;
     if (bucket.traded) totals.marketCount += 1;
 
-    // Dust markets are excluded from the distribution so they cannot pad breadth or the hit rate.
-    if (bucket.capitalDeployed * collateralPriceUsd < TRADER_SCORE_CONFIG.MARKET_SCORE_DUST_USD) continue;
+    // Grouped after the scope filter, never before: an app allowlist that admits a child but not
+    // its root still gathers exactly the markets it admits, because this is only a grouping key.
+    const root = rootMarketId(familyRoots, bucket.marketId);
+    const family = families.get(root);
+    if (family) {
+      family.capitalDeployed += bucket.capitalDeployed;
+      family.pnl += bucket.pnl;
+    } else {
+      families.set(root, { capitalDeployed: bucket.capitalDeployed, pnl: bucket.pnl });
+    }
+  }
+
+  for (const family of families.values()) {
+    // Dust families are excluded from the distribution so they cannot pad breadth or the hit rate.
+    if (family.capitalDeployed * collateralPriceUsd < TRADER_SCORE_CONFIG.MARKET_SCORE_DUST_USD) continue;
     totals.scoredMarketCount += 1;
-    totals.scoredCapital += bucket.capitalDeployed;
-    if (bucket.pnl > 0) {
+    totals.scoredCapital += family.capitalDeployed;
+    if (family.pnl > 0) {
       totals.winningMarketCount += 1;
-      totals.grossProfit += bucket.pnl;
-      if (bucket.pnl > totals.bestMarketPnl) totals.bestMarketPnl = bucket.pnl;
-    } else if (bucket.pnl < 0) {
-      totals.grossLoss += -bucket.pnl;
+      totals.grossProfit += family.pnl;
+      if (family.pnl > totals.bestMarketPnl) totals.bestMarketPnl = family.pnl;
+    } else if (family.pnl < 0) {
+      totals.grossLoss += -family.pnl;
     }
   }
   return totals;
@@ -228,9 +268,11 @@ export function deriveLeaderboardRows(args: {
   statsByMarketPeriod?: Record<PortfolioPlPeriod, MarketPeriodBucket[]> | null;
   scopes: LeaderboardScope[];
   collateralPriceUsd: number;
+  familyRoots?: MarketFamilyRoots;
   writtenAt: string;
 }): PnlLeaderboardInsert[] {
-  const { address, chainId, byMarketPeriod, statsByMarketPeriod, scopes, collateralPriceUsd, writtenAt } = args;
+  const { address, chainId, byMarketPeriod, statsByMarketPeriod, scopes, collateralPriceUsd, familyRoots, writtenAt } =
+    args;
   const rows: PnlLeaderboardInsert[] = [];
 
   for (const scope of scopes) {
@@ -240,6 +282,7 @@ export function deriveLeaderboardRows(args: {
         period,
         scope,
         collateralPriceUsd,
+        familyRoots,
       });
       const stats =
         statsByMarketPeriod === undefined
@@ -251,6 +294,7 @@ export function deriveLeaderboardRows(args: {
                 period,
                 scope,
                 collateralPriceUsd,
+                familyRoots,
               });
       const pnlUsd = t.pnl * collateralPriceUsd;
       rows.push({
@@ -309,9 +353,10 @@ export function deriveOwnerGroupRows(args: {
   chainId: number;
   scopes: LeaderboardScope[];
   collateralPriceUsd: number;
+  familyRoots?: MarketFamilyRoots;
   writtenAt: string;
 }): PnlLeaderboardInsert[] {
-  const { canonical, members, chainId, scopes, collateralPriceUsd, writtenAt } = args;
+  const { canonical, members, chainId, scopes, collateralPriceUsd, familyRoots, writtenAt } = args;
   const canonicalAddress = canonical.toLowerCase();
   const merged = mergeMarketPeriodBuckets(members.map((member) => member.byMarketPeriod));
   const emptyBuckets = () => {
@@ -333,6 +378,7 @@ export function deriveOwnerGroupRows(args: {
         statsByMarketPeriod: isCanonical ? merged : null,
         scopes,
         collateralPriceUsd,
+        familyRoots,
         writtenAt,
       }),
     );
@@ -349,6 +395,7 @@ export function deriveOwnerGroupRows(args: {
         statsByMarketPeriod: merged,
         scopes,
         collateralPriceUsd,
+        familyRoots,
         writtenAt,
       }),
     );

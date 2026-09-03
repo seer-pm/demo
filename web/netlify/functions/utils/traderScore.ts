@@ -46,6 +46,24 @@
  * `null` with `reason: "coverage"`. A dash is the honest answer there — the alternative is a
  * confident number about markets we cannot see.
  *
+ * The omission itself is closed by gathering the statistics per conditional *family* rather than
+ * per market (`aggregateBucketsForScope`, `familyRoots`). A wallet that splits primary collateral
+ * in a parent and spends the outcome tokens across its children holds one position, funded once:
+ * the capital is measured on the root and the P/L lands on the children, so per market the two
+ * halves never meet. Folded, the root carries both. Nothing needs a price for the parent's outcome
+ * token — a child's value is already in primary terms, because `mapOutcomePrices` resolves a
+ * conditional as its relative price times the parent's own.
+ *
+ * It is a fold, not a transfer of capital from parent to child, because `capitalDeployed` is a
+ * *peak*: the parent's peak has already happened by the time the child is bought, so moving it
+ * would count the same money twice and halve the ROI of everyone who trades conditionals. Folding
+ * also keeps 65 markets conditioned on one event from reading as 65 independent bets in `breadth`
+ * and the hit rate.
+ *
+ * `MAX_UNSCORED_PNL_FRACTION` stays exactly as it is, now guarding what remains unseen rather than
+ * the conditional structure itself. `pnl_market_leaderboard` is untouched: a child's P/L is still
+ * reported on the child, and `get-market-pnl-leaderboard` still publishes P/L per market.
+ *
  * ## What this measures, and what it does not
  *
  * The reference these bands are calibrated against scores a *daily* series: R² of the equity curve,

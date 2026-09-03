@@ -132,6 +132,124 @@ describe("aggregateBucketsForScope", () => {
   });
 });
 
+describe("aggregateBucketsForScope over conditional families", () => {
+  // A is the root that holds the primary collateral; B and C are conditioned on it, so they carry
+  // P/L against zero capital of their own. This is the shape that produced `reason: "coverage"`.
+  const FAMILY = perPeriod([
+    bucket(A, { pnl: -1, capitalDeployed: 100, traded: true }),
+    bucket(B, { pnl: 30, capitalDeployed: 0, traded: true }),
+    bucket(C, { pnl: -5, capitalDeployed: 0, traded: true }),
+  ]);
+  const roots = new Map([
+    [B, A],
+    [C, A],
+  ]);
+  const scope = { appId: "all", marketIds: undefined };
+
+  it("leaves a conditional child's P/L unscored when the family is not folded", () => {
+    const t = aggregateBucketsForScope({ byMarketPeriod: FAMILY, period: "all", scope, collateralPriceUsd: 1 });
+    expect(t.scoredMarketCount).toBe(1);
+    expect(t.pnl).toBeCloseTo(24, 10);
+    // The whole +$30 sits outside the scored set, which is what the coverage gate withholds for.
+    expect(t.grossProfit).toBeCloseTo(0, 10);
+    expect(t.grossLoss).toBeCloseTo(1, 10);
+  });
+
+  it("scores the family as one position on the root that funded it", () => {
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    // One family, not three markets: breadth and the hit rate see one bet on one event.
+    expect(t.scoredMarketCount).toBe(1);
+    expect(t.winningMarketCount).toBe(1);
+    // -1 + 30 - 5, the family's own P/L, now inside the scored set.
+    expect(t.grossProfit).toBeCloseTo(24, 10);
+    expect(t.grossLoss).toBeCloseTo(0, 10);
+    expect(t.bestMarketPnl).toBeCloseTo(24, 10);
+  });
+
+  it("counts the family's capital once, from the root", () => {
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    // The children contribute nothing, so the peak is not double counted.
+    expect(t.scoredCapital).toBeCloseTo(100, 10);
+    expect(t.capitalDeployed).toBeCloseTo(100, 10);
+  });
+
+  it("leaves the totals and the traded market count per market", () => {
+    const folded = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    const perMarket = aggregateBucketsForScope({ byMarketPeriod: FAMILY, period: "all", scope, collateralPriceUsd: 1 });
+    expect(folded.pnl).toBeCloseTo(perMarket.pnl, 10);
+    expect(folded.capitalDeployed).toBeCloseTo(perMarket.capitalDeployed, 10);
+    expect(folded.volume).toBeCloseTo(perMarket.volume, 10);
+    expect(folded.marketCount).toBe(3);
+  });
+
+  it("folds a grandchild into the root, not into its immediate parent", () => {
+    const buckets = perPeriod([
+      bucket(A, { pnl: 0, capitalDeployed: 100, traded: true }),
+      bucket(B, { pnl: 0, capitalDeployed: 0, traded: true }),
+      bucket(C, { pnl: 7, capitalDeployed: 0, traded: true }),
+    ]);
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: buckets,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      // C is conditioned on B, which is conditioned on A; both resolve to A.
+      familyRoots: new Map([
+        [B, A],
+        [C, A],
+      ]),
+    });
+    expect(t.scoredMarketCount).toBe(1);
+    expect(t.grossProfit).toBeCloseTo(7, 10);
+  });
+
+  it("changes nothing for a book of root markets only", () => {
+    const withRoots = aggregateBucketsForScope({
+      byMarketPeriod: BUCKETS,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: new Map(),
+    });
+    expect(withRoots).toEqual(
+      aggregateBucketsForScope({ byMarketPeriod: BUCKETS, period: "all", scope, collateralPriceUsd: 1 }),
+    );
+  });
+
+  it("gathers only the markets an allowlist admits, even when the root is outside it", () => {
+    // The scope filter runs first, so the root's capital is genuinely absent rather than borrowed:
+    // the family is dust and stays out, which is the honest reading of a partial allowlist.
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope: { appId: "app", marketIds: new Set([B, C]) },
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    expect(t.pnl).toBeCloseTo(25, 10);
+    expect(t.scoredMarketCount).toBe(0);
+    expect(t.scoredCapital).toBeCloseTo(0, 10);
+  });
+});
+
 describe("deriveLeaderboardRows", () => {
   const rows = deriveLeaderboardRows({
     address: "0xABCDEF0000000000000000000000000000000001",
@@ -300,6 +418,28 @@ describe("deriveOwnerGroupRows", () => {
     expect(
       deriveOwnerGroupRows({ ...args, canonical: OWNER, members: [{ address: OWNER, byMarketPeriod: BUCKETS }] }),
     ).toEqual(deriveLeaderboardRows({ ...args, address: OWNER, byMarketPeriod: BUCKETS }));
+  });
+
+  it("folds conditional families across the whole group, not per member", () => {
+    // The executor split primary collateral in root A; the owner holds the child B it was spent on.
+    // Neither the owner merge nor the family fold recovers this alone.
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { capitalDeployed: 200, pnl: -2, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(B, { valueEndMtm: 90, pnl: 90, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes,
+      collateralPriceUsd: 1,
+      familyRoots: new Map([[B, A]]),
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    expect(owner.scored_market_count).toBe(1);
+    expect(owner.gross_profit_usd).toBeCloseTo(88, 10);
+    expect(owner.gross_loss_usd).toBeCloseTo(0, 10);
+    expect(owner.scored_capital_usd).toBeCloseTo(200, 10);
   });
 
   it("writes the owner row even when the owner itself was not computed", () => {
