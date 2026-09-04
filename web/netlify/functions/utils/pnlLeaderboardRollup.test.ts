@@ -5,8 +5,10 @@ import { parseOwnerMapRecord } from "./ownerMapRecord";
 import type { LeaderboardCandidate, MaterializedLeaderboardRow, RolledUpLeaderboardRow } from "./pnlLeaderboardRollup";
 import {
   aggregateRowsAcrossChains,
+  executorsByOwner,
   globalScoreWallets,
   matchesAddressSearch,
+  ownerGroupsForBatch,
   rankForAddress,
   rollUpRows,
   sortLeaderboardRows,
@@ -42,6 +44,7 @@ function row(overrides: Partial<MaterializedLeaderboardRow>): MaterializedLeader
     grossProfitUsd: 0,
     grossLossUsd: 0,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 0,
     updatedAt: null,
     ...overrides,
   };
@@ -71,6 +74,7 @@ function rolled(overrides: Partial<RolledUpLeaderboardRow>): RolledUpLeaderboard
     grossProfitUsd: 0,
     grossLossUsd: 0,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 100,
     score: null,
     scoreBreakdown: null,
     members: [address],
@@ -128,6 +132,71 @@ describe("withExecutors", () => {
   });
 });
 
+describe("ownerGroupsForBatch", () => {
+  const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+
+  it("returns the owner and its executors as one group, whichever member was claimed", () => {
+    for (const claimed of [OWNER.toLowerCase(), EXECUTOR]) {
+      const [group] = ownerGroupsForBatch([{ address: claimed }], owners);
+      expect(group.canonical).toBe(OWNER.toLowerCase());
+      expect(group.members.map((m) => m.address)).toEqual([OWNER.toLowerCase(), EXECUTOR]);
+    }
+  });
+
+  it("collapses an owner and its executor claimed in the same batch into one group", () => {
+    // Both are stale, so both are in the batch; computing the group twice would write it twice.
+    const groups = ownerGroupsForBatch([{ address: OWNER.toLowerCase() }, { address: EXECUTOR }], owners);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].members).toHaveLength(2);
+  });
+
+  it("leaves unmapped addresses as singletons, so a chain without executors is unaffected", () => {
+    const groups = ownerGroupsForBatch([{ address: OTHER }], {});
+    expect(groups).toEqual([{ canonical: OTHER, members: [{ address: OTHER, lastActivityDay: 0 }] }]);
+  });
+
+  it("keeps batch order by first appearance of the group", () => {
+    const groups = ownerGroupsForBatch([{ address: OTHER }, { address: EXECUTOR }], owners);
+    expect(groups.map((g) => g.canonical)).toEqual([OTHER, OWNER.toLowerCase()]);
+  });
+
+  it("lends the claimed member's activity day to the members it pulls in", () => {
+    // `rankRefreshCandidates` reads this back; a synthesized member has no analytics activity of
+    // its own and moves when its owner moves, exactly as in `withExecutors`.
+    const [group] = ownerGroupsForBatch([{ address: EXECUTOR, lastActivityDay: 20_300 }], owners);
+    expect(group.members).toEqual([
+      { address: OWNER.toLowerCase(), lastActivityDay: 20_300 },
+      { address: EXECUTOR, lastActivityDay: 20_300 },
+    ]);
+  });
+
+  it("keeps the highest activity day when the same address is claimed twice", () => {
+    const [group] = ownerGroupsForBatch(
+      [
+        { address: EXECUTOR, lastActivityDay: 20_100 },
+        { address: EXECUTOR, lastActivityDay: 20_400 },
+      ],
+      owners,
+    );
+    expect(group.members.find((m) => m.address === EXECUTOR)!.lastActivityDay).toBe(20_400);
+  });
+
+  it("groups every executor of one owner together", () => {
+    const second = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const [group] = ownerGroupsForBatch([{ address: OWNER.toLowerCase() }], {
+      [EXECUTOR]: OWNER.toLowerCase(),
+      [second]: OWNER.toLowerCase(),
+    });
+    expect(group.members.map((m) => m.address)).toEqual([OWNER.toLowerCase(), EXECUTOR, second]);
+  });
+});
+
+describe("executorsByOwner", () => {
+  it("inverts the map, lowercasing a checksummed owner", () => {
+    expect(executorsByOwner({ [EXECUTOR]: OWNER })).toEqual(new Map([[OWNER.toLowerCase(), [EXECUTOR]]]));
+  });
+});
+
 describe("rollUpRows", () => {
   it("merges executor and owner into one row with summed metrics", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
@@ -168,6 +237,48 @@ describe("rollUpRows", () => {
     expect(rolledRows[0].address).toBe(OWNER.toLowerCase());
     expect(rolledRows[0].pnlUsd).toBe(200);
     expect(rolledRows[0].members).toEqual([EXECUTOR]);
+  });
+
+  // The per-market board feeds one row per (wallet, market), because its query spans a parent
+  // market and its conditional children. Every case above has one row per wallet, which is exactly
+  // why the repeats these guard against went unnoticed.
+  it("lists a wallet once even when it traded several markets in the family", () => {
+    const rolledRows = rollUpRows(
+      [
+        row({ address: OWNER.toLowerCase(), pnlUsd: 10, volumeUsd: 5, capitalDeployed: 20, marketCount: 1 }),
+        row({ address: OWNER.toLowerCase(), pnlUsd: 4, volumeUsd: 2, capitalDeployed: 10, marketCount: 1 }),
+      ],
+      {},
+    );
+
+    expect(rolledRows).toHaveLength(1);
+    // `members.length > 1` is what makes the API emit `mergedWallets`, so a repeat here announced a
+    // merge that never happened — on a wallet with no executor at all.
+    expect(rolledRows[0].members).toEqual([OWNER.toLowerCase()]);
+    // The sums are over rows, so they must be untouched by the dedupe.
+    expect(rolledRows[0].pnlUsd).toBe(14);
+    expect(rolledRows[0].volumeUsd).toBe(7);
+    expect(rolledRows[0].capitalUsd).toBe(30);
+    expect(rolledRows[0].marketCount).toBe(2);
+  });
+
+  it("lists each merged wallet once when both traded several markets", () => {
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const rolledRows = rollUpRows(
+      [
+        row({ address: OWNER.toLowerCase(), pnlUsd: 10, marketCount: 1 }),
+        row({ address: OWNER.toLowerCase(), pnlUsd: 10, marketCount: 1 }),
+        row({ address: EXECUTOR, pnlUsd: 5, marketCount: 1 }),
+        row({ address: EXECUTOR, pnlUsd: 5, marketCount: 1 }),
+        row({ address: EXECUTOR, pnlUsd: 5, marketCount: 1 }),
+      ],
+      owners,
+    );
+
+    expect(rolledRows).toHaveLength(1);
+    expect(rolledRows[0].members).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
+    expect(rolledRows[0].pnlUsd).toBe(35);
+    expect(rolledRows[0].marketCount).toBe(5);
   });
 
   it("rolls up Gnosis foresight rows the same way as Optimism", () => {
@@ -335,6 +446,7 @@ describe("trader score across merges", () => {
     grossProfitUsd: 100,
     grossLossUsd: 0,
     bestMarketPnlUsd: 40,
+    scoredCapitalUsd: 100,
     pnlUsd: 100,
     capitalDeployed: 100,
     collateralPriceUsd: 1,
@@ -346,6 +458,7 @@ describe("trader score across merges", () => {
     grossProfitUsd: 0,
     grossLossUsd: 100,
     bestMarketPnlUsd: 0,
+    scoredCapitalUsd: 100,
     pnlUsd: -100,
     capitalDeployed: 100,
     collateralPriceUsd: 1,
@@ -357,6 +470,7 @@ describe("trader score across merges", () => {
     expect(merged.winningMarketCount).toBe(3);
     expect(merged.grossProfitUsd).toBeCloseTo(100, 10);
     expect(merged.grossLossUsd).toBeCloseTo(100, 10);
+    expect(merged.scoredCapitalUsd).toBeCloseTo(200, 10);
     // A max over the union, not a sum: the best single market is still $40.
     expect(merged.bestMarketPnlUsd).toBeCloseTo(40, 10);
   });
@@ -367,21 +481,55 @@ describe("trader score across merges", () => {
     const [onOptimism] = rollUpRows([row({ ...LOSER, address: OWNER, chainId: 10 })], {});
     const [allChains] = aggregateRowsAcrossChains([onGnosis, onOptimism]);
 
-    expect(onGnosis.score).toBeCloseTo(94.7, 1);
-    expect(onOptimism.score).toBeCloseTo(0, 1);
+    expect(onGnosis.score).toBeCloseTo(61, 1);
+    expect(onOptimism.score).toBeCloseTo(38.5, 1);
 
-    // The combined wallet is flat: ROI 0, profit factor 1. Around 32, not the ~47 either an
+    // The combined wallet is flat: ROI 0, profit factor 1. Around 43, not the ~50 either an
     // average or a capital-weighted average of the two stored scores would give.
-    expect(allChains.score).toBeCloseTo(31.6, 1);
+    expect(allChains.score).toBeCloseTo(42.9, 1);
     const averaged = (onGnosis.score! + onOptimism.score!) / 2;
-    expect(allChains.score!).toBeLessThan(averaged - 10);
+    expect(allChains.score!).toBeLessThan(averaged);
+
+    // The visible gap is narrowed by the confidence shrink, which is *weaker* on the merged book
+    // (6 markets, not 3) and so pulls it less toward neutral. The claim here is about the scoring,
+    // not the shrink, so it is cleanest on the pre-shrink means: 31 against the 49 an average of
+    // the two stored scores would report.
+    const rawOf = (r: RolledUpLeaderboardRow) => r.scoreBreakdown!.sampleShrink.rawScore;
+    expect(rawOf(allChains)).toBeLessThan((rawOf(onGnosis) + rawOf(onOptimism)) / 2 - 10);
   });
 
   it("scores the owner's whole book after executor rollup, not each contract separately", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
     const [merged] = rollUpRows([row({ ...WINNER, address: OWNER }), row({ ...LOSER, address: EXECUTOR })], owners);
     expect(merged.members).toHaveLength(2);
-    expect(merged.score).toBeCloseTo(31.6, 1);
+    expect(merged.score).toBeCloseTo(42.9, 1);
+  });
+
+  it("reads the same score whether the statistics are grouped at materialization or per wallet", () => {
+    // What `deriveOwnerGroupRows` writes: the whole group's statistics on the owner's row, zeros on
+    // the executor's. The read-side sum has to reproduce the per-wallet layout above exactly.
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const perWallet = rollUpRows([row({ ...WINNER, address: OWNER }), row({ ...LOSER, address: EXECUTOR })], owners);
+    const grouped = rollUpRows(
+      [
+        row({
+          ...WINNER,
+          address: OWNER,
+          scoredMarketCount: 6,
+          winningMarketCount: 3,
+          grossProfitUsd: 100,
+          grossLossUsd: 100,
+          bestMarketPnlUsd: 40,
+          scoredCapitalUsd: 200,
+        }),
+        // The executor keeps its own totals and writes no statistics.
+        row({ address: EXECUTOR, pnlUsd: -100, capitalDeployed: 100 }),
+      ],
+      owners,
+    );
+    expect(grouped[0].score).toBeCloseTo(perWallet[0].score!, 10);
+    expect(grouped[0].scoredMarketCount).toBe(perWallet[0].scoredMarketCount);
+    expect(grouped[0].members).toHaveLength(2);
   });
 
   it("leaves an ineligible wallet null rather than scoring it zero", () => {

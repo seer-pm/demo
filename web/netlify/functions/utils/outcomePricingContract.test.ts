@@ -142,6 +142,66 @@ describe("outcomePriceTokensForChain", () => {
   });
 });
 
+describe("settled payout ratios", () => {
+  // Same shape as the `outcomePriceTokensForChain` describe above: a root and one conditional on it.
+  const root = { id: "0xroot", collateralToken: COLLATERAL, wrappedTokens: [ROOT_YES, ROOT_NO] };
+  const child = {
+    id: "0xchild",
+    collateralToken: PARENT_OUTCOME,
+    wrappedTokens: [CHILD_YES],
+    parentMarketId: "0xroot",
+  };
+  const chain = outcomePriceTokensForChain([root, child]);
+  const livePool = mids([
+    [PARENT_OUTCOME, COLLATERAL, 0.5],
+    [CHILD_YES, PARENT_OUTCOME, 0.8],
+  ]);
+
+  it("values a resolved parent at its payout instead of its dead pool", () => {
+    // Without the seed the resolved parent reads 0 from a pool nobody trades any more, and every
+    // conditional under it — including the ones that are still live and worth something — is
+    // multiplied down to 0 with it.
+    const deadParentPool = mids([[CHILD_YES, PARENT_OUTCOME, 0.8]]);
+    expect(mapOutcomePrices(chain, deadParentPool)[CHILD_YES]).toBe(0);
+    expect(mapOutcomePrices(chain, deadParentPool, { [ROOT_YES]: 1 })[CHILD_YES]).toBeCloseTo(0.8, 10);
+  });
+
+  it("kills every descendant when the parent settled on another branch", () => {
+    // The reported bug: the parent resolved to ROOT_NO, so CHILD_YES can never pay out — but its
+    // own pool still quotes 0.8 against the parent outcome token, and that is the number that was
+    // reaching the portfolio as if it were dollars.
+    const prices = mapOutcomePrices(chain, livePool, { [ROOT_YES]: 0, [ROOT_NO]: 1 });
+    expect(prices[ROOT_YES]).toBe(0);
+    expect(prices[CHILD_YES]).toBe(0);
+  });
+
+  it("keeps a settled child's share of a parent that is still open", () => {
+    // The ratio is market-local on purpose. `getRedeemedPrice` would return 0 here (it requires the
+    // parent to have reported), which would wrongly zero a real position.
+    expect(mapOutcomePrices(chain, livePool, { [CHILD_YES]: 1 })[CHILD_YES]).toBeCloseTo(0.5, 10);
+  });
+
+  it("does not let the market-driven loop undo the seed", () => {
+    // Exactly what `refresh-pnl-market-mtm-background` composes: seeded chain prices, then
+    // `effectivePricesByToken` over this market's own tokens. `getRedeemedPrice` is 0 for a child
+    // whose parent has reported but which has not itself, so the `||` falls through to the seeded
+    // price rather than overriding it — that fall-through is the whole point.
+    const currentByToken = mapOutcomePrices(chain, mids([[CHILD_YES, PARENT_OUTCOME, 0.8]]), { [ROOT_YES]: 1 });
+    const prices = effectivePricesByToken({
+      tokens: [CHILD_YES],
+      redeemedByToken: { [CHILD_YES]: 0 },
+      currentByToken,
+    });
+    expect(prices[CHILD_YES]).toBeCloseTo(0.8, 10);
+  });
+
+  it("agrees with the redeemed price once the whole chain has settled", () => {
+    // Parent pays ROOT_YES in full, child pays CHILD_YES in full: 1 x 1, the same answer
+    // `getRedeemedPrice` composes for a fully settled chain.
+    expect(mapOutcomePrices(chain, mids([]), { [ROOT_YES]: 1, [ROOT_NO]: 0, [CHILD_YES]: 1 })[CHILD_YES]).toBe(1);
+  });
+});
+
 describe("resolved markets", () => {
   it("has no pool, so the pool price alone is zero", () => {
     const tokens: OutcomePriceToken[] = [{ tokenId: ROOT_YES, collateralToken: COLLATERAL }];

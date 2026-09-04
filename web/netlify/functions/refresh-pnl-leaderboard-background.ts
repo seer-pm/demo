@@ -9,6 +9,7 @@ import {
   savePnlLeaderboardRefreshCursor,
 } from "./utils/pnlLeaderboard";
 import type { Database } from "./utils/supabase";
+import { hasTradeExecutorConfig } from "./utils/tradeExecutorOwnersCore";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -23,6 +24,10 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * Each job refreshes a stale/missing batch among wallets with analytics activity;
  * a global time budget aborts cleanly before Netlify's ~15m background limit so the next
  * schedule can continue the (app, chain) ring from a persisted cursor.
+ *
+ * Overrides: `?appId`, `?chainId`, `?batchSize`, `?accounts=0x..,0x..` (recompute exactly these),
+ * and `?ownerGroups=1` (walk the TradeExecutor owner map instead of the analytics candidates — the
+ * backfill for owner-grouped score statistics). None of them move the shared ring cursor.
  */
 export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
@@ -57,17 +62,36 @@ export default async (req: Request) => {
     );
   }
 
+  // `?ownerGroups=1` recomputes the wallets in the chain's TradeExecutor owner map. Their stored
+  // score statistics are *wrong* rather than missing — they were gathered per wallet, before the
+  // owner merge — so unlike a new column they cannot heal by failing the eligibility gate.
+  const ownerGroups = url.searchParams.get("ownerGroups") === "1";
+  if (ownerGroups && explicitAccounts.length > 0) {
+    return new Response(JSON.stringify({ error: "ownerGroups and accounts are mutually exclusive" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const jobs = listPnlLeaderboardRefreshJobs().filter(
-    (job) => (onlyAppId ? job.appId === onlyAppId : true) && (onlyChainId ? job.chainId === Number(onlyChainId) : true),
+    (job) =>
+      (onlyAppId ? job.appId === onlyAppId : true) &&
+      (onlyChainId ? job.chainId === Number(onlyChainId) : true) &&
+      // Every other chain has an empty owner map, so the job would claim no candidates at all.
+      (ownerGroups ? hasTradeExecutorConfig(job.chainId) : true),
   );
   if (jobs.length === 0) {
-    console.log("refresh-pnl-leaderboard-background: no jobs (unexpected — all chains should always enqueue)");
+    console.log(
+      ownerGroups
+        ? "refresh-pnl-leaderboard-background: no jobs on a TradeExecutor chain for ownerGroups"
+        : "refresh-pnl-leaderboard-background: no jobs (unexpected — all chains should always enqueue)",
+    );
     return;
   }
 
   // A filtered run must not move the shared ring cursor, or it would skip whatever the scheduled
   // run was about to pick up next.
-  const filtered = onlyAppId != null || onlyChainId != null || explicitAccounts.length > 0;
+  const filtered = onlyAppId != null || onlyChainId != null || explicitAccounts.length > 0 || ownerGroups;
   const cursor = filtered ? null : await loadPnlLeaderboardRefreshCursor(supabase);
   const startIndex = nextJobIndexAfterCursor(jobs, cursor);
 
@@ -95,6 +119,7 @@ export default async (req: Request) => {
         deadlineMs,
         batchSize: batchSizeOverride,
         ...(explicitAccounts.length > 0 ? { candidates: explicitAccounts.map((address) => ({ address })) } : {}),
+        ...(ownerGroups ? { candidateSource: "ownerMap" as const } : {}),
       });
       results.push(result);
       console.log("refresh-pnl-leaderboard-background: done", result);

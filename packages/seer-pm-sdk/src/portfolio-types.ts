@@ -25,8 +25,23 @@ export interface PortfolioPosition {
   parentOutcome?: string;
   redeemedPrice: number;
   marketFinalizeTs: number;
+  /**
+   * Wallet actually holding these tokens. Absent means the requested account. Set when a
+   * TradeExecutor holds them on the owner's behalf — those tokens are not redeemable from the EOA.
+   */
+  sourceWallet?: Address;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
+  /**
+   * Settled such that these tokens can never pay out: either this market resolved to another
+   * outcome, or its parent resolved to another branch. Permanent, not "currently quoted near zero".
+   *
+   * The row is kept rather than dropped because P/L needs it: `computePositionsAtStartByPeriod`
+   * rebuilds the window's opening positions by rebalancing the current ones, so a row missing today
+   * is also missing at the window start — and the loss that made it worthless disappears from both
+   * ends instead of being booked. The positions UI hides these; valuation keeps them at 0.
+   */
+  isWorthless?: boolean;
 }
 
 export type PortfolioValueApiResponse = {
@@ -68,6 +83,13 @@ export interface TransactionData {
   transactionHash?: string;
   /** Wallet to attribute for SMR / DEX leg rows (activity feed). */
   trader?: Address;
+  /** Source row id (`Swap.id` / `ConditionalEvent.id`), for deduping a row two wallets both match. */
+  eventId?: string;
+  /**
+   * Wallet this row was fetched under. Absent means the requested account. Set when the trade went
+   * through a TradeExecutor the account owns.
+   */
+  sourceWallet?: Address;
   outcomeToken?: Address;
   transferId?: string;
   amount?: string;

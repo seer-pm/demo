@@ -4,7 +4,6 @@ import { isAddress } from "viem";
 import { CORS_HEADERS } from "./utils/common";
 import { type OwnerMap, hasTradeExecutorConfig, readOwnerMap } from "./utils/executorOwners";
 import { expandMarketIdsWithChildren } from "./utils/expandMarketsCache";
-import { capitalUsdFromRow } from "./utils/pnlLeaderboardMetrics";
 import {
   LEADERBOARD_SORT_DIRS,
   type LeaderboardSortDir,
@@ -58,7 +57,7 @@ async function loadGlobalScores(args: {
   const { data, error } = await supabase
     .from("pnl_leaderboard")
     .select(
-      "address, pnl_usd, capital_deployed, collateral_price_usd, scored_market_count, winning_market_count, gross_profit_usd, gross_loss_usd, best_market_pnl_usd",
+      "address, pnl_usd, scored_market_count, winning_market_count, gross_profit_usd, gross_loss_usd, best_market_pnl_usd, scored_capital_usd",
     )
     .eq("app_id", SEER_APP_ALL_ID)
     .eq("chain_id", args.chainId)
@@ -84,19 +83,11 @@ async function loadGlobalScores(args: {
         grossProfitUsd: Number(part.gross_profit_usd) || 0,
         grossLossUsd: Number(part.gross_loss_usd) || 0,
         bestMarketPnlUsd: Number(part.best_market_pnl_usd) || 0,
+        scoredCapitalUsd: Number(part.scored_capital_usd) || 0,
       })),
     );
     const pnlUsd = parts.reduce((total, part) => total + (Number(part.pnl_usd) || 0), 0);
-    const capitalUsd = parts.reduce(
-      (total, part) =>
-        total +
-        capitalUsdFromRow({
-          capitalDeployed: Number(part.capital_deployed) || 0,
-          collateralPriceUsd: Number(part.collateral_price_usd) || 0,
-        }),
-      0,
-    );
-    result.set(row.address, computeTraderScore({ ...stats, pnlUsd, capitalUsd }));
+    result.set(row.address, computeTraderScore({ ...stats, pnlUsd }));
   }
   return result;
 }
@@ -192,6 +183,7 @@ export default async (req: Request) => {
         grossProfitUsd: 0,
         grossLossUsd: 0,
         bestMarketPnlUsd: 0,
+        scoredCapitalUsd: 0,
         updatedAt: row.updated_at,
       });
     }

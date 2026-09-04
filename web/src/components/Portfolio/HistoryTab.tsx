@@ -107,6 +107,7 @@ function HistoryTab({ account, chainId }: { account: Address | undefined; chainI
       <HistoryTable
         key={`${typeFilter}-${filterMarketName}-${startDate?.toISOString() ?? ""}-${endDate?.toISOString() ?? ""}`}
         chainId={chainId}
+        account={account}
         data={filteredTransactions}
       />
     );

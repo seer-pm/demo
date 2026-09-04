@@ -1,5 +1,6 @@
 import type { Address } from "viem";
-import type { MarketPeriodBucket } from "./marketPeriodBuckets";
+import { type MarketFamilyRoots, rootMarketId } from "./marketFamilies";
+import { type MarketPeriodBucket, mergeMarketPeriodBuckets } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
 import { PORTFOLIO_PL_PERIODS, type PortfolioPlPeriod } from "./seerIndexerPortfolio";
 import type { TablesInsert } from "./supabase";
@@ -105,17 +106,26 @@ export type LeaderboardScope = {
  * `all` sums every bucket, an app sums the buckets inside its allowlist, and both come from the one
  * per-wallet compute. Adding an app stops costing a refresh job.
  *
- * `market_count` is `count(*) FILTER (WHERE traded)` — a count of distinct markets, not a sum. The
- * old per-job rows summed it across executors and chains at read time, which double-counted markets
- * two wallets shared.
+ * `market_count` is `count(*) FILTER (WHERE traded)` — a count of distinct markets, not a sum. That
+ * is why it is written from the owner group's merged buckets and not from each member's own: summing
+ * it across executors at read time double-counted every market two wallets shared.
  *
  * `roi` is deliberately left to `computeRoiUsd` on the caller: it is not additive, so it has to be
  * recomputed from the summed pnl and capital rather than aggregated from anywhere.
  *
- * The trailing five totals are the trader score's sufficient statistics. They are accumulated here
+ * The trailing six totals are the trader score's sufficient statistics. They are accumulated here
  * because this loop already visits every bucket, and because the per-market distribution they
  * summarise is gone by the time the read path sees a `pnl_leaderboard` row. Like `roi`, the score
  * itself is never stored — see `traderScore.ts` for why.
+ *
+ * They describe an *owner's* book, not an address's: `deriveOwnerGroupRows` runs this over the
+ * buckets of the owner and its TradeExecutors merged together, and writes the result on the owner's
+ * row alone. An executor's own row carries zeros, because the read path sums the statistics of every
+ * member and counting the same market twice is worse than counting it once.
+ *
+ * They are also per conditional *family*, not per market: `familyRoots` folds a market conditioned
+ * on another into the root that holds its capital, before the dust gate. Only the statistics move —
+ * the totals above, and every row of `pnl_market_leaderboard`, stay per market.
  */
 export function aggregateBucketsForScope(args: {
   byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
@@ -123,6 +133,11 @@ export function aggregateBucketsForScope(args: {
   scope: LeaderboardScope;
   /** Needed only for the score's dust gate, which is denominated in USD. */
   collateralPriceUsd: number;
+  /**
+   * Market id → family root, used only by the score's gate. Omitted, every market is its own
+   * family and the gate runs per market, exactly as it did before conditional families existed.
+   */
+  familyRoots?: MarketFamilyRoots;
 }): {
   pnl: number;
   valueStart: number;
@@ -135,15 +150,26 @@ export function aggregateBucketsForScope(args: {
   volume: number;
   capitalDeployed: number;
   marketCount: number;
-  /** Markets carrying more than dust capital. Not `marketCount`: an LP position never swaps. */
+  /**
+   * Conditional families carrying more than dust capital — a root market plus everything
+   * conditioned on it, which is one position and one capital commitment. Not `marketCount`: an LP
+   * position never swaps.
+   */
   scoredMarketCount: number;
   winningMarketCount: number;
   grossProfit: number;
   /** Positive. */
   grossLoss: number;
   bestMarketPnl: number;
+  /**
+   * `capitalDeployed` restricted to the scored markets — the score's own denominator.
+   *
+   * Not the same number as `capitalDeployed`, and deliberately so: that one spans every market,
+   * while this one spans the scored families. See `traderScore.ts`.
+   */
+  scoredCapital: number;
 } {
-  const { byMarketPeriod, period, scope, collateralPriceUsd } = args;
+  const { byMarketPeriod, period, scope, collateralPriceUsd, familyRoots } = args;
   const totals = {
     pnl: 0,
     valueStart: 0,
@@ -159,7 +185,23 @@ export function aggregateBucketsForScope(args: {
     grossProfit: 0,
     grossLoss: 0,
     bestMarketPnl: 0,
+    scoredCapital: 0,
   };
+
+  /**
+   * The score's distribution, gathered per conditional family rather than per market.
+   *
+   * A conditional market's pool is `childOutcome ↔ parentOutcome`, so `peakCapitalDeployedByMarket`
+   * — which only sees primary collateral — books it zero capital while its MTM P/L still lands in
+   * `pnl`. Measured on its own the child is always dust: it never enters the scored set, and its
+   * P/L sits outside it, which is exactly what `MAX_UNSCORED_PNL_FRACTION` withholds a score for.
+   * Folded into its root, the family carries the capital the root committed and the P/L of every
+   * market that capital was spent on — the two halves of one position, in one row.
+   *
+   * Only the totals are per market; nothing here changes them, and `pnl_market_leaderboard` still
+   * reports a child's P/L on the child.
+   */
+  const families = new Map<string, { capitalDeployed: number; pnl: number }>();
 
   for (const bucket of byMarketPeriod[period] ?? []) {
     if (scope.marketIds && !scope.marketIds.has(bucket.marketId.toLowerCase())) continue;
@@ -173,30 +215,73 @@ export function aggregateBucketsForScope(args: {
     totals.capitalDeployed += bucket.capitalDeployed;
     if (bucket.traded) totals.marketCount += 1;
 
-    // Dust markets are excluded from the distribution so they cannot pad breadth or the hit rate.
-    if (bucket.capitalDeployed * collateralPriceUsd < TRADER_SCORE_CONFIG.MARKET_SCORE_DUST_USD) continue;
+    // Grouped after the scope filter, never before: an app allowlist that admits a child but not
+    // its root still gathers exactly the markets it admits, because this is only a grouping key.
+    const root = rootMarketId(familyRoots, bucket.marketId);
+    const family = families.get(root);
+    if (family) {
+      family.capitalDeployed += bucket.capitalDeployed;
+      family.pnl += bucket.pnl;
+    } else {
+      families.set(root, { capitalDeployed: bucket.capitalDeployed, pnl: bucket.pnl });
+    }
+  }
+
+  for (const family of families.values()) {
+    // Dust families are excluded from the distribution so they cannot pad breadth or the hit rate.
+    if (family.capitalDeployed * collateralPriceUsd < TRADER_SCORE_CONFIG.MARKET_SCORE_DUST_USD) continue;
     totals.scoredMarketCount += 1;
-    if (bucket.pnl > 0) {
+    totals.scoredCapital += family.capitalDeployed;
+    if (family.pnl > 0) {
       totals.winningMarketCount += 1;
-      totals.grossProfit += bucket.pnl;
-      if (bucket.pnl > totals.bestMarketPnl) totals.bestMarketPnl = bucket.pnl;
-    } else if (bucket.pnl < 0) {
-      totals.grossLoss += -bucket.pnl;
+      totals.grossProfit += family.pnl;
+      if (family.pnl > totals.bestMarketPnl) totals.bestMarketPnl = family.pnl;
+    } else if (family.pnl < 0) {
+      totals.grossLoss += -family.pnl;
     }
   }
   return totals;
 }
 
-/** `pnl_leaderboard` rows for every scope, folded from one wallet's per-market buckets. */
+/**
+ * What a group member that is not the canonical owner contributes: no statistics, and no markets.
+ *
+ * `marketCount` belongs here with the score statistics rather than with the additive totals — see
+ * `deriveLeaderboardRows`.
+ */
+const ZERO_GROUP_STATS = {
+  scoredMarketCount: 0,
+  winningMarketCount: 0,
+  grossProfit: 0,
+  grossLoss: 0,
+  bestMarketPnl: 0,
+  scoredCapital: 0,
+  marketCount: 0,
+};
+
+/**
+ * `pnl_leaderboard` rows for every scope, folded from one wallet's per-market buckets.
+ *
+ * The additive totals always come from the wallet's own buckets, so the read path can sum an
+ * executor's row into its owner's. The score statistics are not additive — they are a statement about
+ * a per-market distribution *after* a dust gate — and neither is `market_count`, which counts distinct
+ * markets and would double-count any market an owner and its executor both traded. Both therefore
+ * follow `statsByMarketPeriod`: omitted, this wallet's own buckets (a wallet with no executors); a
+ * record, the owner group's merged buckets; `null`, nothing at all — zeros, and no markets. See
+ * `deriveOwnerGroupRows`.
+ */
 export function deriveLeaderboardRows(args: {
   address: string;
   chainId: number;
   byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
+  statsByMarketPeriod?: Record<PortfolioPlPeriod, MarketPeriodBucket[]> | null;
   scopes: LeaderboardScope[];
   collateralPriceUsd: number;
+  familyRoots?: MarketFamilyRoots;
   writtenAt: string;
 }): PnlLeaderboardInsert[] {
-  const { address, chainId, byMarketPeriod, scopes, collateralPriceUsd, writtenAt } = args;
+  const { address, chainId, byMarketPeriod, statsByMarketPeriod, scopes, collateralPriceUsd, familyRoots, writtenAt } =
+    args;
   const rows: PnlLeaderboardInsert[] = [];
 
   for (const scope of scopes) {
@@ -206,7 +291,20 @@ export function deriveLeaderboardRows(args: {
         period,
         scope,
         collateralPriceUsd,
+        familyRoots,
       });
+      const stats =
+        statsByMarketPeriod === undefined
+          ? t
+          : statsByMarketPeriod === null
+            ? ZERO_GROUP_STATS
+            : aggregateBucketsForScope({
+                byMarketPeriod: statsByMarketPeriod,
+                period,
+                scope,
+                collateralPriceUsd,
+                familyRoots,
+              });
       const pnlUsd = t.pnl * collateralPriceUsd;
       rows.push({
         app_id: scope.appId,
@@ -228,17 +326,91 @@ export function deriveLeaderboardRows(args: {
           capitalDeployed: t.capitalDeployed,
           collateralPriceUsd,
         }),
-        market_count: t.marketCount,
+        market_count: stats.marketCount,
         // Trader score statistics. Stored in USD, like pnl_usd / volume_usd, because they are only
-        // ever consumed together with capital_usd; the score itself is derived at read time.
-        scored_market_count: t.scoredMarketCount,
-        winning_market_count: t.winningMarketCount,
-        gross_profit_usd: t.grossProfit * collateralPriceUsd,
-        gross_loss_usd: t.grossLoss * collateralPriceUsd,
-        best_market_pnl_usd: t.bestMarketPnl * collateralPriceUsd,
+        // ever consumed together with each other; the score itself is derived at read time.
+        scored_market_count: stats.scoredMarketCount,
+        winning_market_count: stats.winningMarketCount,
+        gross_profit_usd: stats.grossProfit * collateralPriceUsd,
+        gross_loss_usd: stats.grossLoss * collateralPriceUsd,
+        best_market_pnl_usd: stats.bestMarketPnl * collateralPriceUsd,
+        scored_capital_usd: stats.scoredCapital * collateralPriceUsd,
         updated_at: writtenAt,
       });
     }
   }
+  return rows;
+}
+
+/**
+ * `pnl_leaderboard` rows for one owner and its TradeExecutor contracts, scored as a single book.
+ *
+ * The executor buys and sweeps the outcome tokens to the owner EOA, so per address one side holds
+ * the capital and the other the value. Gathering the statistics per `(wallet, market)` puts both
+ * sides under the dust gate and leaves the owner's P/L unaccounted for, which the score's coverage
+ * gate then reports as an unreadable book. `mergeMarketPeriodBuckets` combines the group's buckets
+ * before the gate; the statistics land on the canonical row and every other member writes zeros, so
+ * the read path's `mergeScoreStats` sum still yields exactly the group's statistics.
+ *
+ * The additive totals stay per member — the read path sums them, so moving them would double-count.
+ * `market_count` is the exception: it counts distinct markets, so it rides with the statistics onto
+ * the canonical row and the executors write zero. A single-member group is exactly
+ * `deriveLeaderboardRows`.
+ */
+export function deriveOwnerGroupRows(args: {
+  /** The owner EOA. Always written, even when it did not trade itself. */
+  canonical: string;
+  members: { address: string; byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]> }[];
+  chainId: number;
+  scopes: LeaderboardScope[];
+  collateralPriceUsd: number;
+  familyRoots?: MarketFamilyRoots;
+  writtenAt: string;
+}): PnlLeaderboardInsert[] {
+  const { canonical, members, chainId, scopes, collateralPriceUsd, familyRoots, writtenAt } = args;
+  const canonicalAddress = canonical.toLowerCase();
+  const merged = mergeMarketPeriodBuckets(members.map((member) => member.byMarketPeriod));
+  const emptyBuckets = () => {
+    const empty = {} as Record<PortfolioPlPeriod, MarketPeriodBucket[]>;
+    for (const period of PORTFOLIO_PL_PERIODS) empty[period] = [];
+    return empty;
+  };
+
+  const rows: PnlLeaderboardInsert[] = [];
+  let wroteCanonical = false;
+  for (const member of members) {
+    const isCanonical = member.address.toLowerCase() === canonicalAddress;
+    wroteCanonical ||= isCanonical;
+    rows.push(
+      ...deriveLeaderboardRows({
+        address: member.address,
+        chainId,
+        byMarketPeriod: member.byMarketPeriod,
+        statsByMarketPeriod: isCanonical ? merged : null,
+        scopes,
+        collateralPriceUsd,
+        familyRoots,
+        writtenAt,
+      }),
+    );
+  }
+
+  // The caller always computes the owner, but a group whose statistics landed nowhere would be a
+  // silent loss: no row carries them and the read path sums zeros.
+  if (!wroteCanonical) {
+    rows.push(
+      ...deriveLeaderboardRows({
+        address: canonicalAddress,
+        chainId,
+        byMarketPeriod: emptyBuckets(),
+        statsByMarketPeriod: merged,
+        scopes,
+        collateralPriceUsd,
+        familyRoots,
+        writtenAt,
+      }),
+    );
+  }
+
   return rows;
 }

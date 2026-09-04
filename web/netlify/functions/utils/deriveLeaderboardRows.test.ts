@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MarketPeriodBucket } from "./marketPeriodBuckets";
-import { aggregateBucketsForScope, deriveLeaderboardRows } from "./pnlMarketRows";
+import { aggregateBucketsForScope, deriveLeaderboardRows, deriveOwnerGroupRows } from "./pnlMarketRows";
 import { PORTFOLIO_PL_PERIODS, type PortfolioPlPeriod } from "./seerIndexerPortfolio";
 
 const A = "0xaaaa000000000000000000000000000000000001";
@@ -84,6 +84,27 @@ describe("aggregateBucketsForScope", () => {
     expect(t.grossProfit).toBeCloseTo(10, 10);
     expect(t.grossLoss).toBeCloseTo(4, 10);
     expect(t.bestMarketPnl).toBeCloseTo(10, 10);
+    expect(t.scoredCapital).toBeCloseTo(70, 10);
+  });
+
+  it("keeps scored capital narrower than capital deployed, so every ratio shares one market set", () => {
+    // B carries capital, but only $0.50 of it: it is dust, so its $4 of profit and its capital both
+    // stay out of the score while remaining in `pnl` and `capitalDeployed`. That gap is what the
+    // score's coverage gate measures — see `traderScore.ts`.
+    const buckets = perPeriod([
+      bucket(A, { pnl: 10, capitalDeployed: 50, traded: true }),
+      bucket(B, { pnl: 4, capitalDeployed: 0.5, traded: true }),
+    ]);
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: buckets,
+      period: "all",
+      scope: { appId: "all", marketIds: undefined },
+      collateralPriceUsd: 1,
+    });
+    expect(t.capitalDeployed).toBeCloseTo(50.5, 10);
+    expect(t.scoredCapital).toBeCloseTo(50, 10);
+    expect(t.pnl).toBeCloseTo(14, 10);
+    expect(t.grossProfit).toBeCloseTo(10, 10);
   });
 
   it("excludes a market whose capital is below the dust threshold in USD, not in native units", () => {
@@ -108,6 +129,124 @@ describe("aggregateBucketsForScope", () => {
       collateralPriceUsd: 1,
     });
     expect(t.pnl).toBeCloseTo(3, 10);
+  });
+});
+
+describe("aggregateBucketsForScope over conditional families", () => {
+  // A is the root that holds the primary collateral; B and C are conditioned on it, so they carry
+  // P/L against zero capital of their own. This is the shape that produced `reason: "coverage"`.
+  const FAMILY = perPeriod([
+    bucket(A, { pnl: -1, capitalDeployed: 100, traded: true }),
+    bucket(B, { pnl: 30, capitalDeployed: 0, traded: true }),
+    bucket(C, { pnl: -5, capitalDeployed: 0, traded: true }),
+  ]);
+  const roots = new Map([
+    [B, A],
+    [C, A],
+  ]);
+  const scope = { appId: "all", marketIds: undefined };
+
+  it("leaves a conditional child's P/L unscored when the family is not folded", () => {
+    const t = aggregateBucketsForScope({ byMarketPeriod: FAMILY, period: "all", scope, collateralPriceUsd: 1 });
+    expect(t.scoredMarketCount).toBe(1);
+    expect(t.pnl).toBeCloseTo(24, 10);
+    // The whole +$30 sits outside the scored set, which is what the coverage gate withholds for.
+    expect(t.grossProfit).toBeCloseTo(0, 10);
+    expect(t.grossLoss).toBeCloseTo(1, 10);
+  });
+
+  it("scores the family as one position on the root that funded it", () => {
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    // One family, not three markets: breadth and the hit rate see one bet on one event.
+    expect(t.scoredMarketCount).toBe(1);
+    expect(t.winningMarketCount).toBe(1);
+    // -1 + 30 - 5, the family's own P/L, now inside the scored set.
+    expect(t.grossProfit).toBeCloseTo(24, 10);
+    expect(t.grossLoss).toBeCloseTo(0, 10);
+    expect(t.bestMarketPnl).toBeCloseTo(24, 10);
+  });
+
+  it("counts the family's capital once, from the root", () => {
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    // The children contribute nothing, so the peak is not double counted.
+    expect(t.scoredCapital).toBeCloseTo(100, 10);
+    expect(t.capitalDeployed).toBeCloseTo(100, 10);
+  });
+
+  it("leaves the totals and the traded market count per market", () => {
+    const folded = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    const perMarket = aggregateBucketsForScope({ byMarketPeriod: FAMILY, period: "all", scope, collateralPriceUsd: 1 });
+    expect(folded.pnl).toBeCloseTo(perMarket.pnl, 10);
+    expect(folded.capitalDeployed).toBeCloseTo(perMarket.capitalDeployed, 10);
+    expect(folded.volume).toBeCloseTo(perMarket.volume, 10);
+    expect(folded.marketCount).toBe(3);
+  });
+
+  it("folds a grandchild into the root, not into its immediate parent", () => {
+    const buckets = perPeriod([
+      bucket(A, { pnl: 0, capitalDeployed: 100, traded: true }),
+      bucket(B, { pnl: 0, capitalDeployed: 0, traded: true }),
+      bucket(C, { pnl: 7, capitalDeployed: 0, traded: true }),
+    ]);
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: buckets,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      // C is conditioned on B, which is conditioned on A; both resolve to A.
+      familyRoots: new Map([
+        [B, A],
+        [C, A],
+      ]),
+    });
+    expect(t.scoredMarketCount).toBe(1);
+    expect(t.grossProfit).toBeCloseTo(7, 10);
+  });
+
+  it("changes nothing for a book of root markets only", () => {
+    const withRoots = aggregateBucketsForScope({
+      byMarketPeriod: BUCKETS,
+      period: "all",
+      scope,
+      collateralPriceUsd: 1,
+      familyRoots: new Map(),
+    });
+    expect(withRoots).toEqual(
+      aggregateBucketsForScope({ byMarketPeriod: BUCKETS, period: "all", scope, collateralPriceUsd: 1 }),
+    );
+  });
+
+  it("gathers only the markets an allowlist admits, even when the root is outside it", () => {
+    // The scope filter runs first, so the root's capital is genuinely absent rather than borrowed:
+    // the family is dust and stays out, which is the honest reading of a partial allowlist.
+    const t = aggregateBucketsForScope({
+      byMarketPeriod: FAMILY,
+      period: "all",
+      scope: { appId: "app", marketIds: new Set([B, C]) },
+      collateralPriceUsd: 1,
+      familyRoots: roots,
+    });
+    expect(t.pnl).toBeCloseTo(25, 10);
+    expect(t.scoredMarketCount).toBe(0);
+    expect(t.scoredCapital).toBeCloseTo(0, 10);
   });
 });
 
@@ -176,6 +315,8 @@ describe("deriveLeaderboardRows", () => {
     expect(all.gross_profit_usd).toBeCloseTo(20, 10);
     expect(all.gross_loss_usd).toBeCloseTo(8, 10);
     expect(all.best_market_pnl_usd).toBeCloseTo(20, 10);
+    // Native 70 at the same price.
+    expect(all.scored_capital_usd).toBeCloseTo(140, 10);
   });
 
   it("scopes the score statistics to the app allowlist, like every other total", () => {
@@ -183,9 +324,180 @@ describe("deriveLeaderboardRows", () => {
     expect(app.scored_market_count).toBe(1);
     expect(app.winning_market_count).toBe(1);
     expect(app.gross_loss_usd).toBeCloseTo(0, 10);
+    expect(app.scored_capital_usd).toBeCloseTo(100, 10);
   });
 
   it("lowercases the address so it joins with the per-market table", () => {
     expect(rows.every((r) => r.address === "0xabcdef0000000000000000000000000000000001")).toBe(true);
+  });
+});
+
+describe("deriveOwnerGroupRows", () => {
+  const OWNER = "0x1111111111111111111111111111111111111111";
+  const EXECUTOR = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const scopes = [{ appId: "all", marketIds: undefined }];
+
+  /** The sweep pattern: the executor bought market A, the owner ended up holding the tokens. */
+  const executorBuckets = perPeriod([
+    bucket(A, { capitalDeployed: 50, tradingCollateralNetOut: 50, valueEndMtm: 0.1, pnl: 0.1, traded: true }),
+  ]);
+  const ownerBuckets = perPeriod([bucket(A, { valueEndMtm: 40, pnl: 40 })]);
+
+  const groupRows = deriveOwnerGroupRows({
+    canonical: OWNER,
+    members: [
+      { address: EXECUTOR, byMarketPeriod: executorBuckets },
+      { address: OWNER, byMarketPeriod: ownerBuckets },
+    ],
+    chainId: 10,
+    scopes,
+    collateralPriceUsd: 1,
+    writtenAt: "2026-09-03T00:00:00.000Z",
+  });
+  const ownerRow = groupRows.find((r) => r.address === OWNER && r.period === "all")!;
+  const executorRow = groupRows.find((r) => r.address === EXECUTOR && r.period === "all")!;
+
+  it("scores the market neither member could score alone", () => {
+    // Apart: the owner's market carries $0 of capital (dust), the executor's carries $0.10 of P/L.
+    // Merged: one position, $50 of capital and +$40.10.
+    expect(ownerRow.scored_market_count).toBe(1);
+    expect(ownerRow.winning_market_count).toBe(1);
+    expect(ownerRow.gross_profit_usd).toBeCloseTo(40.1, 10);
+    expect(ownerRow.best_market_pnl_usd).toBeCloseTo(40.1, 10);
+    expect(ownerRow.scored_capital_usd).toBeCloseTo(50, 10);
+  });
+
+  it("leaves the executor's statistics at zero so the read-side sum is the group's", () => {
+    expect(executorRow.scored_market_count).toBe(0);
+    expect(executorRow.winning_market_count).toBe(0);
+    expect(executorRow.gross_profit_usd).toBeCloseTo(0, 10);
+    expect(executorRow.gross_loss_usd).toBeCloseTo(0, 10);
+    expect(executorRow.best_market_pnl_usd).toBeCloseTo(0, 10);
+    expect(executorRow.scored_capital_usd).toBeCloseTo(0, 10);
+  });
+
+  it("keeps the additive totals per member, because the read path sums them", () => {
+    expect(executorRow.pnl).toBeCloseTo(0.1, 10);
+    expect(executorRow.capital_deployed).toBeCloseTo(50, 10);
+    expect(ownerRow.pnl).toBeCloseTo(40, 10);
+    expect(ownerRow.capital_deployed).toBeCloseTo(0, 10);
+  });
+
+  it("counts the market once, on the owner row, because market_count is not additive", () => {
+    // Only the executor's bucket carries `traded`, but the count belongs to the merged group.
+    expect(ownerRow.market_count).toBe(1);
+    expect(executorRow.market_count).toBe(0);
+  });
+
+  it("counts a market both members traded exactly once after the read-side roll-up", () => {
+    // The bug this guards: summing each member's own market_count double-counted shared markets.
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { pnl: 1, capitalDeployed: 10, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(A, { pnl: 2, capitalDeployed: 20, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes,
+      collateralPriceUsd: 1,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    const executor = rows.find((r) => r.address === EXECUTOR && r.period === "all")!;
+    expect(owner.market_count).toBe(1);
+    expect(executor.market_count).toBe(0);
+    // What the leaderboard actually renders: the sum over the group.
+    expect((owner.market_count ?? 0) + (executor.market_count ?? 0)).toBe(1);
+  });
+
+  it("scopes the owner's market_count to the app allowlist", () => {
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { pnl: 1, capitalDeployed: 10, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(B, { pnl: 5, capitalDeployed: 20, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes: [{ appId: "app", marketIds: new Set([A]) }],
+      collateralPriceUsd: 1,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    // B is outside the allowlist, so the group's count is market A alone.
+    expect(owner.market_count).toBe(1);
+  });
+
+  it("emits one row per member, scope and period", () => {
+    expect(groupRows).toHaveLength(2 * PORTFOLIO_PL_PERIODS.length);
+  });
+
+  it("scopes the group statistics to an app allowlist, like every other total", () => {
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { pnl: 1, capitalDeployed: 10, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(B, { pnl: 5, capitalDeployed: 20, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes: [{ appId: "app", marketIds: new Set([A]) }],
+      collateralPriceUsd: 1,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    // Market B is outside the allowlist, so it counts for neither the totals nor the statistics.
+    expect(owner.scored_market_count).toBe(1);
+    expect(owner.gross_profit_usd).toBeCloseTo(1, 10);
+    expect(owner.pnl).toBeCloseTo(0, 10);
+  });
+
+  it("matches deriveLeaderboardRows for a wallet with no executors", () => {
+    const args = {
+      chainId: 10,
+      scopes,
+      collateralPriceUsd: 2,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    };
+    expect(
+      deriveOwnerGroupRows({ ...args, canonical: OWNER, members: [{ address: OWNER, byMarketPeriod: BUCKETS }] }),
+    ).toEqual(deriveLeaderboardRows({ ...args, address: OWNER, byMarketPeriod: BUCKETS }));
+  });
+
+  it("folds conditional families across the whole group, not per member", () => {
+    // The executor split primary collateral in root A; the owner holds the child B it was spent on.
+    // Neither the owner merge nor the family fold recovers this alone.
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { capitalDeployed: 200, pnl: -2, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(B, { valueEndMtm: 90, pnl: 90, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes,
+      collateralPriceUsd: 1,
+      familyRoots: new Map([[B, A]]),
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    expect(owner.scored_market_count).toBe(1);
+    expect(owner.gross_profit_usd).toBeCloseTo(88, 10);
+    expect(owner.gross_loss_usd).toBeCloseTo(0, 10);
+    expect(owner.scored_capital_usd).toBeCloseTo(200, 10);
+  });
+
+  it("writes the owner row even when the owner itself was not computed", () => {
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [{ address: EXECUTOR, byMarketPeriod: executorBuckets }],
+      chainId: 10,
+      scopes,
+      collateralPriceUsd: 1,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    expect(owner.scored_capital_usd).toBeCloseTo(50, 10);
+    // No buckets of its own: the statistics and the market count are the group's, the additive
+    // totals are empty.
+    expect(owner.pnl).toBeCloseTo(0, 10);
+    expect(owner.market_count).toBe(1);
   });
 });

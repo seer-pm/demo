@@ -101,4 +101,34 @@ describe("scoreUnavailableReason", () => {
     );
     expect(reason).toContain("1 traded market had");
   });
+
+  it("does not say '3 of 0' when a pure LP wallet has more scored markets than traded ones", () => {
+    // `marketCount` needs a swap leg; the score's gate needs capital. An LP position has the second
+    // without the first, so the two counts are not nested and the "X of Y" phrasing cannot be used.
+    const reason = scoreUnavailableReason(
+      { reason: "markets", scoredMarketCount: 3, minScoredMarkets: 5, minCapitalUsd: 100 },
+      0,
+    );
+    expect(reason).not.toContain("of 0");
+    expect(reason).toContain("3 markets had");
+  });
+
+  it("explains the coverage gate without blaming the wallet's history", () => {
+    // This wallet has plenty of history — the score simply cannot read most of its P/L.
+    const reason = scoreUnavailableReason(
+      {
+        reason: "coverage",
+        scoredMarketCount: 3,
+        minScoredMarkets: 3,
+        minCapitalUsd: 100,
+        unscoredPnlFraction: 0.97,
+        maxUnscoredPnlFraction: 0.25,
+      },
+      182,
+    );
+    expect(reason).toContain("97%");
+    expect(reason).toContain("conditional");
+    expect(reason).toContain("P/L and ROI are still shown");
+    expect(reason).not.toContain("scoring needs");
+  });
 });
