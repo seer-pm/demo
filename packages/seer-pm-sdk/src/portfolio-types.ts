@@ -13,6 +13,8 @@ export interface PortfolioPosition {
   marketStatus: string;
   tokenBalance: number;
   rawBalance: string;
+  lpTokenBalance?: number;
+  rawLpBalance?: string;
   tokenValue: number;
   tokenPrice: number;
   outcome: string;

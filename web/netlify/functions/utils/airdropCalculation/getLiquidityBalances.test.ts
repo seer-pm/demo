@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { describe, expect, it } from "vitest";
 import {
   type LiquidityEvent,
@@ -170,6 +171,12 @@ describe("fetchLiquidityEventsForBatch", () => {
     expect(queries[1]).toContain('id_gt: "0xtx999#0"');
     expect(queries[1]).not.toContain("timestamp_gt");
     expect(queries[1]).toContain("orderBy: id");
+  });
+
+  it("filters events by origin when provided", async () => {
+    const { request, queries } = fakeSubgraph([[]]);
+    await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request, A as Address);
+    expect(queries[0]).toContain(`origin: "${A}"`);
   });
 
   it("stops rather than looping when a page carries no ids", async () => {

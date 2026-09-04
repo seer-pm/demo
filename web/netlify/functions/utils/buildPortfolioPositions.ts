@@ -11,6 +11,7 @@ import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
+import { getLiquidityHolders } from "./marketLiquidityHolders";
 import { outcomePriceTokensForChain } from "./marketMtmRefresh";
 import { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFirst } from "./marketParentChain";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
@@ -26,7 +27,9 @@ import { getTokenDecimalsList } from "./tokenDecimals";
  * gives anything left out a price of 0, which for both cases is the answer.
  */
 function pricedPositions(positions: PortfolioPosition[]): PortfolioPosition[] {
-  return positions.filter((position) => position.tokenBalance > 0 && !position.isWorthless);
+  return positions.filter(
+    (position) => (position.tokenBalance > 0 || (position.lpTokenBalance ?? 0) > 0) && !position.isWorthless,
+  );
 }
 
 function enrichPositionsWithTokenValues(
@@ -38,7 +41,7 @@ function enrichPositionsWithTokenValues(
     // the `||` would read a settled 0 as "unknown" and resurrect a worthless position at its stale
     // pool mid. `redeemedPrice` stays on the row for the UI's "Redeem price" tooltip.
     const tokenPrice = tokenIdToCurrentPrice[position.tokenId.toLowerCase()] ?? 0;
-    const tokenValue = tokenPrice * position.tokenBalance;
+    const tokenValue = tokenPrice * (position.tokenBalance + (position.lpTokenBalance ?? 0));
     return {
       ...position,
       tokenPrice,
@@ -116,6 +119,7 @@ export async function buildPortfolioPositionsCore(
   markets: Market[],
   includeZeroBalances: boolean,
   pricingPool: Market[] = markets,
+  lpBalances: Map<string, bigint> = new Map(),
 ): Promise<PortfolioPosition[]> {
   if (allTokensIds.length === 0 || markets.length === 0) {
     return [];
@@ -151,7 +155,8 @@ export async function buildPortfolioPositionsCore(
   const { marketIdToMarket } = getMarketsMappings(chainMarkets);
 
   const positions = balances.reduce((acumm, balance, index) => {
-    if (!includeZeroBalances && balance <= 0n) {
+    const rawLpBalance = lpBalances.get(allTokensIds[index].toLowerCase()) ?? 0n;
+    if (!includeZeroBalances && balance <= 0n && rawLpBalance <= 0n) {
       return acumm;
     }
 
@@ -186,7 +191,8 @@ export async function buildPortfolioPositionsCore(
         ? `${parts?.questionStart} ${market.outcomes[outcomeIndex]} ${parts?.questionEnd}`.trim()
         : market.marketName;
     const tokenBalance = Number(formatUnits(balance, Number(tokenDecimals[index])));
-    if (balance > 0n && tokenBalance < 0.00001) {
+    const lpTokenBalance = Number(formatUnits(rawLpBalance, Number(tokenDecimals[index])));
+    if (balance > 0n && tokenBalance < 0.00001 && lpTokenBalance <= 0) {
       return acumm;
     }
     acumm.push({
@@ -195,6 +201,8 @@ export async function buildPortfolioPositionsCore(
       tokenId: allTokensIds[index],
       tokenBalance,
       rawBalance: balance.toString(),
+      lpTokenBalance,
+      rawLpBalance: rawLpBalance.toString(),
       marketName,
       marketStatus,
       marketFinalizeTs: market.finalizeTs,
@@ -296,7 +304,7 @@ export async function buildCurrentPortfolioPositionsForWallets(
   );
   const perWallet = holdingsPerWallet.map(({ wallet, holdings }) => ({
     wallet,
-    tokens: [...holdings.entries()].filter(([, balance]) => balance > 0n).map(([token]) => token as Address),
+    tokens: [...holdings.keys()].map((token) => token as Address),
     holdings,
   }));
 
@@ -314,26 +322,59 @@ export async function buildCurrentPortfolioPositionsForWallets(
     perWallet.map(async ({ wallet, tokens: walletTokens, holdings }) => {
       if (walletTokens.length === 0) return [];
       const balances = walletTokens.map((token) => holdings.get(token.toLowerCase()) ?? 0n);
-      const positions = await buildPortfolioPositionsCore(chainId, walletTokens, balances, markets, false, pricingPool);
+      let lpBalances = new Map<string, bigint>();
+      try {
+        const liquidity = await getLiquidityHolders(markets, wallet);
+        lpBalances = new Map(
+          Object.entries(liquidity.holders).map(([token, holders]) => [
+            token,
+            holders.reduce((total, holder) => total + BigInt(holder.balance), 0n),
+          ]),
+        );
+      } catch (e) {
+        console.warn("buildCurrentPortfolioPositionsForWallets: liquidity holders", e);
+      }
+      const positions = await buildPortfolioPositionsCore(
+        chainId,
+        walletTokens,
+        balances,
+        markets,
+        false,
+        pricingPool,
+        lpBalances,
+      );
       return positions.map((position) => ({ ...position, sourceWallet: wallet }));
     }),
   );
   return positionsPerWallet.flat();
 }
 
-/** Current portfolio UI: TokenBalance rows with balance > 0 from HyperIndex. */
+/** Current portfolio UI positions from direct holdings and supported LP positions. */
 export async function buildCurrentPortfolioPositions(
   address: Address,
   chainId: SupportedChain,
   collateralProfile: string,
 ): Promise<PortfolioPosition[]> {
   const holdings = await fetchTokenBalances(address, chainId);
-  const tokens = [...holdings.entries()].filter(([, bal]) => bal > 0n).map(([t]) => t as Address);
+  const tokens = [...holdings.keys()].map((token) => token as Address);
   if (tokens.length === 0) {
     return [];
   }
   const balances = tokens.map((t) => holdings.get(t.toLowerCase()) ?? 0n);
 
   const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens, collateralProfile });
-  return buildPortfolioPositionsCore(chainId, tokens, balances, markets, false);
+  const pricingPool = await loadMarketsWithAncestors(markets, chainId, collateralProfile);
+  let lpBalances = new Map<string, bigint>();
+  try {
+    const liquidity = await getLiquidityHolders(markets, address);
+    lpBalances = new Map(
+      Object.entries(liquidity.holders).map(([token, holders]) => [
+        token,
+        holders.reduce((total, holder) => total + BigInt(holder.balance), 0n),
+      ]),
+    );
+  } catch (e) {
+    console.warn("buildCurrentPortfolioPositions: liquidity holders", e);
+  }
+  return buildPortfolioPositionsCore(chainId, tokens, balances, markets, false, pricingPool, lpBalances);
 }

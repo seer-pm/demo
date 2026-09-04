@@ -113,7 +113,9 @@ function PositionsTableInner({
           return (
             <button
               type="button"
-              className="items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11"
+              className={`items-center justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11 ${position.tokenBalance > 0 ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
+              disabled={position.tokenBalance <= 0}
+              title={position.tokenBalance <= 0 ? "Withdraw liquidity before redeeming" : undefined}
               onClick={() => {
                 setSelectedMarketId(position.marketId);
                 setSelectedChainId(position.chainId);
@@ -186,7 +188,7 @@ function PositionsTableInner({
                   />
                   <p className="text-[14px] truncate min-w-0">
                     <span className="text-purple-primary dark:text-purple-secondary font-semibold">
-                      {formatSmallNumber(position.tokenBalance)}{" "}
+                      {formatSmallNumber(position.tokenBalance + (position.lpTokenBalance ?? 0))}{" "}
                     </span>
                     <span title={position.outcome}>{position.outcome}</span>
                   </p>
@@ -202,6 +204,11 @@ function PositionsTableInner({
                     <ExecutorBadge wallet={position.sourceWallet as Address} />
                   ) : null}
                 </div>
+                {(position.lpTokenBalance ?? 0) > 0 && (
+                  <p className="mt-1 text-[12px] text-black-secondary">
+                    {formatSmallNumber(position.tokenBalance)} held · {formatSmallNumber(position.lpTokenBalance)} in LP
+                  </p>
+                )}
                 <a
                   className="flex gap-2 items-start mt-1 text-[13px] text-base-content hover:underline cursor-pointer min-w-0"
                   href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
