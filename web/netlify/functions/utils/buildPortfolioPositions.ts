@@ -1,11 +1,21 @@
 import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
-import { MarketTypes, getMarketStatus, getMarketType, getQuestionParts, getRedeemedPrice } from "@seer-pm/sdk/market";
+import {
+  MarketTypes,
+  getMarketStatus,
+  getMarketType,
+  getQuestionParts,
+  getRedeemedPrice,
+  isParentBranchLost,
+} from "@seer-pm/sdk/market";
 import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
+import { outcomePriceTokensForChain } from "./marketMtmRefresh";
+import { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFirst } from "./marketParentChain";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
 import { getCurrentOutcomePrices } from "./onchainOutcomePrices";
+import { settledPayoutRatios } from "./outcomePrices";
 import { fetchTokenBalances } from "./seerIndexerPortfolio";
 import { getTokenDecimalsList } from "./tokenDecimals";
 
@@ -19,8 +29,10 @@ function enrichPositionsWithTokenValues(
   tokenIdToCurrentPrice: Record<string, number>,
 ): PortfolioPosition[] {
   return positions.map((position) => {
-    let tokenPrice = tokenIdToCurrentPrice[position.tokenId.toLowerCase()] ?? 0;
-    tokenPrice = position.redeemedPrice || tokenPrice;
+    // No `redeemedPrice ||` fallback: settled payouts are already folded into the price map, and
+    // the `||` would read a settled 0 as "unknown" and resurrect a worthless position at its stale
+    // pool mid. `redeemedPrice` stays on the row for the UI's "Redeem price" tooltip.
+    const tokenPrice = tokenIdToCurrentPrice[position.tokenId.toLowerCase()] ?? 0;
     const tokenValue = tokenPrice * position.tokenBalance;
     return {
       ...position,
@@ -28,6 +40,44 @@ function enrichPositionsWithTokenValues(
       tokenValue,
     };
   });
+}
+
+/**
+ * Current price per held token, chained through each market's parents.
+ *
+ * A conditional outcome only ever trades against its parent's outcome token, so the parent's tokens
+ * must be in the same batch and must come first — the contract `outcomePriceTokensForChain` and
+ * `mapOutcomePrices` document. Markets resolved from a wallet's holdings never satisfy it on their
+ * own: splitting consumed the wallet's parent tokens, so the parent market is not in the list, and
+ * `mapOutcomePrices` would then store the price *relative to the parent outcome* as if it were an
+ * absolute collateral price. That is how a dead conditional was worth $0.83.
+ *
+ * `pricingPool` is the set the parent chain is resolved from before falling back to a query, so a
+ * caller valuing several wallets against one market list pays for the expansion once.
+ */
+async function currentPricesForPositions(
+  positions: PortfolioPosition[],
+  chainId: SupportedChain,
+  pricingPool: Market[],
+): Promise<Record<string, number>> {
+  const priced = pricedPositions(positions);
+  if (priced.length === 0) {
+    return {};
+  }
+
+  const chain = await loadMarketsWithAncestors(
+    marketsWithLocalAncestors(
+      priced.map((position) => position.marketId),
+      pricingPool,
+    ),
+    chainId,
+  );
+
+  return getCurrentOutcomePrices(
+    outcomePriceTokensForChain(pricedMarketsRootFirst(chain)),
+    chainId,
+    settledPayoutRatios(chain),
+  );
 }
 
 /**
@@ -39,6 +89,7 @@ export async function buildPortfolioPositionsCore(
   balances: bigint[],
   markets: Market[],
   includeZeroBalances: boolean,
+  pricingPool: Market[] = markets,
 ): Promise<PortfolioPosition[]> {
   if (allTokensIds.length === 0 || markets.length === 0) {
     return [];
@@ -50,7 +101,29 @@ export async function buildPortfolioPositionsCore(
 
   const tokenDecimals = getTokenDecimalsList(chainId, allTokensIds);
 
-  const { marketIdToMarket, tokenToMarket } = getMarketsMappings(markets);
+  const { tokenToMarket } = getMarketsMappings(markets);
+
+  // The parent chain of every market these tokens belong to, resolved once. `markets` cannot supply
+  // it: that list comes from the wallet's own tokens, and splitting consumed the parent tokens it
+  // would have needed to include the parent. Both the prices below and the "conditional on X" label
+  // on each row depend on having it.
+  const heldMarkets = [
+    ...new Map(
+      allTokensIds
+        .map((token) => tokenToMarket[token]?.market)
+        .filter(Boolean)
+        .map((market) => [market.id, market]),
+    ).values(),
+  ];
+  const chainMarkets = await loadMarketsWithAncestors(
+    marketsWithLocalAncestors(
+      heldMarkets.map((market) => market.id),
+      [...heldMarkets, ...pricingPool],
+    ),
+    chainId,
+  );
+  const { marketIdToMarket } = getMarketsMappings(chainMarkets);
+
   const positions = balances.reduce((acumm, balance, index) => {
     if (!includeZeroBalances && balance <= 0n) {
       return acumm;
@@ -68,14 +141,16 @@ export async function buildPortfolioPositionsCore(
     const marketType = getMarketType(market);
     const marketStatus = getMarketStatus(market);
 
-    if (marketStatus === MarketStatus.CLOSED) {
-      const isWinningPayout = market.payoutReported && market.payoutNumerators[tokenIndex] > 0n;
-      const isParentPayoutPendingOrWinning =
-        !market.parentMarket.payoutReported ||
-        (market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n);
-      if (!isWinningPayout || !isParentPayoutPendingOrWinning) {
-        return acumm;
-      }
+    // Checked before the market's own status, because it does not depend on it: once the parent has
+    // settled on another branch these tokens can never pay out, whether this market is closed, open
+    // or still waiting for an answer. Gating it on CLOSED — as this used to — left a wallet holding
+    // an open conditional of a long-decided parent carrying its full pool value.
+    if (isParentBranchLost(market)) {
+      return acumm;
+    }
+
+    if (marketStatus === MarketStatus.CLOSED && !(market.payoutReported && market.payoutNumerators[tokenIndex] > 0n)) {
+      return acumm;
     }
 
     const parts = getQuestionParts(market.marketName, marketType);
@@ -111,11 +186,18 @@ export async function buildPortfolioPositionsCore(
     return acumm;
   }, [] as PortfolioPosition[]);
 
-  const currentPrices = await getCurrentOutcomePrices(pricedPositions(positions), chainId);
+  const currentPrices = await currentPricesForPositions(positions, chainId, chainMarkets);
   return enrichPositionsWithTokenValues(positions, currentPrices);
 }
 
-/** Re-price cached positions (DEX prices change even when balances do not). */
+/**
+ * Re-price cached positions (DEX prices change even when balances do not).
+ *
+ * Reloads the markets behind the cached rows rather than pricing the rows alone: a cached
+ * `PortfolioPosition` carries no payout data, so without them a conditional cannot be chained to
+ * its parent and a branch that died since the blob was written would keep being served at its old
+ * price for the rest of the TTL. One query per chain buys a cache hit that self-corrects.
+ */
 export async function repricePortfolioPositions(positions: PortfolioPosition[]): Promise<PortfolioPosition[]> {
   if (positions.length === 0) return positions;
 
@@ -128,8 +210,13 @@ export async function repricePortfolioPositions(positions: PortfolioPosition[]):
 
   const priced = await Promise.all(
     [...byChain.entries()].map(async ([chainId, subset]) => {
-      const prices = await getCurrentOutcomePrices(pricedPositions(subset), chainId);
-      return enrichPositionsWithTokenValues(subset, prices);
+      const marketIds = [...new Set(subset.map((position) => position.marketId.toLowerCase()))];
+      const { markets } = await searchAllMarkets({ chainIds: [chainId], marketIds });
+      const deadMarketIds = new Set(markets.filter(isParentBranchLost).map((market) => market.id.toLowerCase()));
+      const live = subset.filter((position) => !deadMarketIds.has(position.marketId.toLowerCase()));
+
+      const prices = await currentPricesForPositions(live, chainId, markets);
+      return enrichPositionsWithTokenValues(live, prices);
     }),
   );
   return priced.flat();
@@ -187,12 +274,15 @@ export async function buildCurrentPortfolioPositionsForWallets(
   }
 
   const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens, collateralProfile });
+  // Expanded once for the whole wallet set: the per-wallet calls below then resolve every parent
+  // chain locally instead of each issuing its own ancestor query.
+  const pricingPool = await loadMarketsWithAncestors(markets, chainId, collateralProfile);
 
   const positionsPerWallet = await Promise.all(
     perWallet.map(async ({ wallet, tokens: walletTokens, holdings }) => {
       if (walletTokens.length === 0) return [];
       const balances = walletTokens.map((token) => holdings.get(token.toLowerCase()) ?? 0n);
-      const positions = await buildPortfolioPositionsCore(chainId, walletTokens, balances, markets, false);
+      const positions = await buildPortfolioPositionsCore(chainId, walletTokens, balances, markets, false, pricingPool);
       return positions.map((position) => ({ ...position, sourceWallet: wallet }));
     }),
   );

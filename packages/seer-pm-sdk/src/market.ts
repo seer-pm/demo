@@ -232,6 +232,25 @@ export function getRedeemedPrice(market: Market, tokenIndex: number): number {
 }
 
 /**
+ * True when the parent market has settled and this market's branch got nothing: every outcome token
+ * here is worthless, whatever state the child market itself is in.
+ *
+ * `getRedeemedPrice` also returns 0 in this case, but it returns 0 for "not resolved yet" too, so a
+ * caller cannot tell a dead branch from a pending one by the price alone.
+ */
+export function isParentBranchLost(market: Market): boolean {
+  if (market.parentMarket.id.toLowerCase() === (zeroAddress as string)) {
+    return false;
+  }
+
+  if (!market.parentMarket.payoutReported) {
+    return false;
+  }
+
+  return (market.parentMarket.payoutNumerators[Number(market.parentOutcome)] ?? 0n) === 0n;
+}
+
+/**
  * Returns true if the market's first question is open.
  *
  * All market questions share the same opening timestamp, so checking the first one is enough.

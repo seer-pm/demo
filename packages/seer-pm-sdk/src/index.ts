@@ -53,6 +53,7 @@ export {
   isCompleteSetMarket,
   getMultiScalarEstimate,
   getRedeemedPrice,
+  isParentBranchLost,
 } from "./market";
 export {
   generateBasicPartition,
