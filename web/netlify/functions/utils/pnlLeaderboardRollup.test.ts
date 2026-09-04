@@ -239,6 +239,48 @@ describe("rollUpRows", () => {
     expect(rolledRows[0].members).toEqual([EXECUTOR]);
   });
 
+  // The per-market board feeds one row per (wallet, market), because its query spans a parent
+  // market and its conditional children. Every case above has one row per wallet, which is exactly
+  // why the repeats these guard against went unnoticed.
+  it("lists a wallet once even when it traded several markets in the family", () => {
+    const rolledRows = rollUpRows(
+      [
+        row({ address: OWNER.toLowerCase(), pnlUsd: 10, volumeUsd: 5, capitalDeployed: 20, marketCount: 1 }),
+        row({ address: OWNER.toLowerCase(), pnlUsd: 4, volumeUsd: 2, capitalDeployed: 10, marketCount: 1 }),
+      ],
+      {},
+    );
+
+    expect(rolledRows).toHaveLength(1);
+    // `members.length > 1` is what makes the API emit `mergedWallets`, so a repeat here announced a
+    // merge that never happened — on a wallet with no executor at all.
+    expect(rolledRows[0].members).toEqual([OWNER.toLowerCase()]);
+    // The sums are over rows, so they must be untouched by the dedupe.
+    expect(rolledRows[0].pnlUsd).toBe(14);
+    expect(rolledRows[0].volumeUsd).toBe(7);
+    expect(rolledRows[0].capitalUsd).toBe(30);
+    expect(rolledRows[0].marketCount).toBe(2);
+  });
+
+  it("lists each merged wallet once when both traded several markets", () => {
+    const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+    const rolledRows = rollUpRows(
+      [
+        row({ address: OWNER.toLowerCase(), pnlUsd: 10, marketCount: 1 }),
+        row({ address: OWNER.toLowerCase(), pnlUsd: 10, marketCount: 1 }),
+        row({ address: EXECUTOR, pnlUsd: 5, marketCount: 1 }),
+        row({ address: EXECUTOR, pnlUsd: 5, marketCount: 1 }),
+        row({ address: EXECUTOR, pnlUsd: 5, marketCount: 1 }),
+      ],
+      owners,
+    );
+
+    expect(rolledRows).toHaveLength(1);
+    expect(rolledRows[0].members).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
+    expect(rolledRows[0].pnlUsd).toBe(35);
+    expect(rolledRows[0].marketCount).toBe(5);
+  });
+
   it("rolls up Gnosis foresight rows the same way as Optimism", () => {
     const owners = { [EXECUTOR]: OWNER.toLowerCase() };
     const rolledRows = rollUpRows(

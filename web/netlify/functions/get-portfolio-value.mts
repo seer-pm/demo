@@ -2,10 +2,11 @@ import { SUPPORTED_CHAINS } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
-import { buildCurrentPortfolioPositions } from "./utils/buildPortfolioPositions";
+import { buildCurrentPortfolioPositionsForWallets } from "./utils/buildPortfolioPositions";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolHourPrices";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
+import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
@@ -49,19 +50,25 @@ type ValueUsd = {
 };
 
 async function portfolioValueUsdForChain(args: {
-  account: Address;
+  identity: PortfolioIdentity;
   chainId: SupportedChain;
   profileParam: string | null;
   historyTimestamp: number;
 }): Promise<ValueUsd | null> {
-  const { account, chainId, profileParam, historyTimestamp } = args;
+  const { identity, chainId, profileParam, historyTimestamp } = args;
   const collateralResolved = parseCollateralProfileQueryParam(chainId, profileParam);
   if ("error" in collateralResolved) {
     console.warn(`get-portfolio-value: skip chain ${chainId}: ${collateralResolved.error}`);
     return null;
   }
 
-  const positions = await buildCurrentPortfolioPositions(account, chainId, collateralResolved.profileName);
+  // One row per (token, wallet), so the sums below stay exact: each row is a distinct on-chain
+  // balance, and value is linear in balance.
+  const positions = await buildCurrentPortfolioPositionsForWallets(
+    identity.walletsForChain(chainId),
+    chainId,
+    collateralResolved.profileName,
+  );
 
   const historyPrices = await getHistoryTokensPricesForPortfolio(supabase, positions, chainId, historyTimestamp);
 
@@ -124,10 +131,12 @@ export default async (req: Request) => {
         ? (Object.values(SUPPORTED_CHAINS).map((c) => c.id) as SupportedChain[])
         : [chainParsed.chainId as SupportedChain];
 
+    // Resolved once for the whole fan-out rather than per chain.
+    const identity = await resolvePortfolioIdentity(account);
     const parts = await Promise.all(
       chainIds.map((id) =>
         portfolioValueUsdForChain({
-          account,
+          identity,
           chainId: id,
           profileParam,
           historyTimestamp,
@@ -160,7 +169,9 @@ export default async (req: Request) => {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=60",
+          // Same reasoning as the other portfolio endpoints: an incomplete identity is a value
+          // computed over the EOA alone, and publishing that for a minute is the pre-executor bug.
+          "Cache-Control": identity.complete ? "public, max-age=60" : "no-store",
         },
       },
     );

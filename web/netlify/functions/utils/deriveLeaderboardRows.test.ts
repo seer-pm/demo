@@ -376,13 +376,55 @@ describe("deriveOwnerGroupRows", () => {
     expect(executorRow.scored_capital_usd).toBeCloseTo(0, 10);
   });
 
-  it("keeps every total per member, because the read path sums them", () => {
+  it("keeps the additive totals per member, because the read path sums them", () => {
     expect(executorRow.pnl).toBeCloseTo(0.1, 10);
     expect(executorRow.capital_deployed).toBeCloseTo(50, 10);
-    expect(executorRow.market_count).toBe(1);
     expect(ownerRow.pnl).toBeCloseTo(40, 10);
     expect(ownerRow.capital_deployed).toBeCloseTo(0, 10);
-    expect(ownerRow.market_count).toBe(0);
+  });
+
+  it("counts the market once, on the owner row, because market_count is not additive", () => {
+    // Only the executor's bucket carries `traded`, but the count belongs to the merged group.
+    expect(ownerRow.market_count).toBe(1);
+    expect(executorRow.market_count).toBe(0);
+  });
+
+  it("counts a market both members traded exactly once after the read-side roll-up", () => {
+    // The bug this guards: summing each member's own market_count double-counted shared markets.
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { pnl: 1, capitalDeployed: 10, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(A, { pnl: 2, capitalDeployed: 20, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes,
+      collateralPriceUsd: 1,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    const executor = rows.find((r) => r.address === EXECUTOR && r.period === "all")!;
+    expect(owner.market_count).toBe(1);
+    expect(executor.market_count).toBe(0);
+    // What the leaderboard actually renders: the sum over the group.
+    expect((owner.market_count ?? 0) + (executor.market_count ?? 0)).toBe(1);
+  });
+
+  it("scopes the owner's market_count to the app allowlist", () => {
+    const rows = deriveOwnerGroupRows({
+      canonical: OWNER,
+      members: [
+        { address: EXECUTOR, byMarketPeriod: perPeriod([bucket(A, { pnl: 1, capitalDeployed: 10, traded: true })]) },
+        { address: OWNER, byMarketPeriod: perPeriod([bucket(B, { pnl: 5, capitalDeployed: 20, traded: true })]) },
+      ],
+      chainId: 10,
+      scopes: [{ appId: "app", marketIds: new Set([A]) }],
+      collateralPriceUsd: 1,
+      writtenAt: "2026-09-03T00:00:00.000Z",
+    });
+    const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
+    // B is outside the allowlist, so the group's count is market A alone.
+    expect(owner.market_count).toBe(1);
   });
 
   it("emits one row per member, scope and period", () => {
@@ -453,8 +495,9 @@ describe("deriveOwnerGroupRows", () => {
     });
     const owner = rows.find((r) => r.address === OWNER && r.period === "all")!;
     expect(owner.scored_capital_usd).toBeCloseTo(50, 10);
-    // No buckets of its own: the statistics are the group's, the totals are empty.
+    // No buckets of its own: the statistics and the market count are the group's, the additive
+    // totals are empty.
     expect(owner.pnl).toBeCloseTo(0, 10);
-    expect(owner.market_count).toBe(0);
+    expect(owner.market_count).toBe(1);
   });
 });

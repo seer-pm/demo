@@ -317,6 +317,11 @@ export function ownerGroupsForBatch(batch: LeaderboardCandidate[], owners: Owner
 
 /**
  * Collapse executor rows into the owner EOA, summing additive metrics and recomputing ROI.
+ *
+ * A group is not one row per wallet: `get-market-pnl-leaderboard` feeds this one row per
+ * (wallet, market), because its query spans a parent market and its conditional children. The sums
+ * are unaffected — they are over rows either way — but anything that describes the *wallets* in the
+ * group has to dedupe.
  */
 export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap): RolledUpLeaderboardRow[] {
   const groups = new Map<string, MaterializedLeaderboardRow[]>();
@@ -352,7 +357,11 @@ export function rollUpRows(rows: MaterializedLeaderboardRow[], owners: OwnerMap)
       ...stats,
       score: scoreBreakdown?.score ?? null,
       scoreBreakdown,
-      members: group.map((row) => row.address),
+      // Deduped: on the per-market board a group holds one row per (wallet, market), not per
+      // wallet, so the raw list repeats an address once per market it traded — which reaches the
+      // API as a `mergedWallets` listing the same executor N times, or as an empty one on a wallet
+      // that was never merged with anything. Sorted because it goes out over the wire.
+      members: [...new Set(group.map((row) => row.address))].sort(),
     };
   });
 }

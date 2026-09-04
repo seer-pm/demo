@@ -507,6 +507,7 @@ export async function fetchConditionalEventsByTransactions(
 export function conditionalEventsToTransactions(events: ConditionalEventRow[]): TransactionData[] {
   return events.map((ev) => {
     const base = {
+      eventId: ev.id,
       marketName: ev.marketName,
       marketId: ev.marketId,
       type: ev.eventType,

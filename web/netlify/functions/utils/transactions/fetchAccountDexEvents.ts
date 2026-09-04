@@ -67,6 +67,7 @@ function mapSwapToTransaction(
   if (!market) return null;
 
   return {
+    eventId: swap.id,
     tokenIn,
     tokenOut,
     amountIn: tokenIn.toLocaleLowerCase() > tokenOut.toLocaleLowerCase() ? amount1.toString() : amount0.toString(),
@@ -94,6 +95,7 @@ function mapMintToTransaction(
   if (!market) return null;
 
   return {
+    eventId: mint.id,
     token0: mint.token0.id,
     token1: mint.token1.id,
     amount0: amount0.toString(),
@@ -120,6 +122,7 @@ function mapBurnToTransaction(
   if (!market) return null;
 
   return {
+    eventId: burn.id,
     token0: burn.token0.id,
     token1: burn.token1.id,
     amount0: amount0.toString(),

@@ -106,9 +106,9 @@ export type LeaderboardScope = {
  * `all` sums every bucket, an app sums the buckets inside its allowlist, and both come from the one
  * per-wallet compute. Adding an app stops costing a refresh job.
  *
- * `market_count` is `count(*) FILTER (WHERE traded)` — a count of distinct markets, not a sum. The
- * old per-job rows summed it across executors and chains at read time, which double-counted markets
- * two wallets shared.
+ * `market_count` is `count(*) FILTER (WHERE traded)` — a count of distinct markets, not a sum. That
+ * is why it is written from the owner group's merged buckets and not from each member's own: summing
+ * it across executors at read time double-counted every market two wallets shared.
  *
  * `roi` is deliberately left to `computeRoiUsd` on the caller: it is not additive, so it has to be
  * recomputed from the summed pnl and capital rather than aggregated from anywhere.
@@ -243,23 +243,32 @@ export function aggregateBucketsForScope(args: {
   return totals;
 }
 
-const ZERO_SCORE_STATS = {
+/**
+ * What a group member that is not the canonical owner contributes: no statistics, and no markets.
+ *
+ * `marketCount` belongs here with the score statistics rather than with the additive totals — see
+ * `deriveLeaderboardRows`.
+ */
+const ZERO_GROUP_STATS = {
   scoredMarketCount: 0,
   winningMarketCount: 0,
   grossProfit: 0,
   grossLoss: 0,
   bestMarketPnl: 0,
   scoredCapital: 0,
+  marketCount: 0,
 };
 
 /**
  * `pnl_leaderboard` rows for every scope, folded from one wallet's per-market buckets.
  *
- * Totals always come from the wallet's own buckets: they are additive, so the read path can sum an
- * executor's row into its owner's. The score statistics are not — they are a statement about a
- * per-market distribution *after* a dust gate — so `statsByMarketPeriod` decides where they come
- * from: omitted, this wallet's own buckets (a wallet with no executors); a record, the owner group's
- * merged buckets; `null`, no statistics at all, six zeros. See `deriveOwnerGroupRows`.
+ * The additive totals always come from the wallet's own buckets, so the read path can sum an
+ * executor's row into its owner's. The score statistics are not additive — they are a statement about
+ * a per-market distribution *after* a dust gate — and neither is `market_count`, which counts distinct
+ * markets and would double-count any market an owner and its executor both traded. Both therefore
+ * follow `statsByMarketPeriod`: omitted, this wallet's own buckets (a wallet with no executors); a
+ * record, the owner group's merged buckets; `null`, nothing at all — zeros, and no markets. See
+ * `deriveOwnerGroupRows`.
  */
 export function deriveLeaderboardRows(args: {
   address: string;
@@ -288,7 +297,7 @@ export function deriveLeaderboardRows(args: {
         statsByMarketPeriod === undefined
           ? t
           : statsByMarketPeriod === null
-            ? ZERO_SCORE_STATS
+            ? ZERO_GROUP_STATS
             : aggregateBucketsForScope({
                 byMarketPeriod: statsByMarketPeriod,
                 period,
@@ -317,7 +326,7 @@ export function deriveLeaderboardRows(args: {
           capitalDeployed: t.capitalDeployed,
           collateralPriceUsd,
         }),
-        market_count: t.marketCount,
+        market_count: stats.marketCount,
         // Trader score statistics. Stored in USD, like pnl_usd / volume_usd, because they are only
         // ever consumed together with each other; the score itself is derived at read time.
         scored_market_count: stats.scoredMarketCount,
@@ -343,8 +352,10 @@ export function deriveLeaderboardRows(args: {
  * before the gate; the statistics land on the canonical row and every other member writes zeros, so
  * the read path's `mergeScoreStats` sum still yields exactly the group's statistics.
  *
- * Totals stay per member — they are additive and the read path sums them, so moving them would
- * double-count. A single-member group is exactly `deriveLeaderboardRows`.
+ * The additive totals stay per member — the read path sums them, so moving them would double-count.
+ * `market_count` is the exception: it counts distinct markets, so it rides with the statistics onto
+ * the canonical row and the executors write zero. A single-member group is exactly
+ * `deriveLeaderboardRows`.
  */
 export function deriveOwnerGroupRows(args: {
   /** The owner EOA. Always written, even when it did not trade itself. */

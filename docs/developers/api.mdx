@@ -213,6 +213,8 @@ Header: `Cache-Control: public, max-age=300` (5 minutes).
 
 Transaction history for an account: swaps, liquidity (LP add/remove), and CTF events (split/merge/redeem). Always computed across all production chains and cached; optional filters apply in memory on the cached payload.
 
+Covers the account **and the TradeExecutor contracts it owns**. Someone trading through an executor holds the outcome tokens inside that contract and the DEX indexes the swap with the executor as `recipient`, so querying the address alone returned only what the EOA did directly. Rows carry `sourceWallet`, which differs from the requested account when an executor produced them, and are deduped across the wallets by `eventId`. Executor discovery is best-effort: if it fails the response is the account's own rows, as before.
+
 | Field | Detail |
 |-------|--------|
 | **Method** | `GET` |
@@ -246,6 +248,10 @@ interface TransactionData {
   collateralSymbol?: string;
   timestamp?: number;
   transactionHash?: string;
+  /** Source row id, unique per event. */
+  eventId?: string;
+  /** Wallet the row was indexed under. Absent means the requested account. */
+  sourceWallet?: `0x${string}`;
 
   // split/mint/merge
   amount?: string;
@@ -434,7 +440,7 @@ Read `score` as a summary of the wallet's **cross-market** distribution. It is n
 
 The score is computed at read time from additive statistics stored on `pnl_leaderboard`, so it is correct after the executor→owner, app-scope and cross-chain merges. It is not stored per row, and it is not meaningful to average two scores.
 
-Those statistics describe an **owner's** book, not an address's. A wallet that trades through a TradeExecutor contract holds its capital on one address and, after the contract sweeps the outcome tokens out, its value on another; each market would fall below the $1 gate on both. So the per-market books of an owner and its executors are combined at materialization, before the gate, and the resulting statistics are stored on the owner's row while the executors' rows carry zeros. Their `pnl_usd`, `volume_usd`, `capital_deployed` and `market_count` stay per address and still sum across the merge, so a row read straight from the table is unchanged.
+Those statistics describe an **owner's** book, not an address's. A wallet that trades through a TradeExecutor contract holds its capital on one address and, after the contract sweeps the outcome tokens out, its value on another; each market would fall below the $1 gate on both. So the per-market books of an owner and its executors are combined at materialization, before the gate, and the resulting statistics are stored on the owner's row while the executors' rows carry zeros. `market_count` follows them: it counts *distinct* markets, so summing each member's own count double-counted every market an owner and its executor both traded. The additive totals — `pnl_usd`, `volume_usd`, `capital_deployed` — do stay per address and still sum across the merge.
 
 ---
 
@@ -515,8 +521,9 @@ type MarketsChartsResponse = Record<`0x${string}`, ChartDataSeries>;
 | markets-search | POST | Body with filters and `page`/`limit` | Listings, search, filters |
 | get-token-transactions | GET | `tokenIds`, `chainId` | Token holders and activity |
 | get-transactions | GET | `account`, opt. `chainId`/`all`, `eventType`, `startTime`, `endTime` | Wallet transaction history |
-| get-portfolio | GET | `account`, opt. `chainId`/`all`, `collateralProfile` | Wallet positions (filtered by profile); each row has `chainId` |
+| get-portfolio | GET | `account`, opt. `chainId`/`all`, `collateralProfile` | Wallet positions (filtered by profile); each row has `chainId` and `sourceWallet` |
 | get-portfolio-value | GET | `account`, `chainId` or `all`, opt. `collateralProfile` | Portfolio value + 24h delta (USD) |
+| get-portfolio-identity | GET | `account` | The account plus the TradeExecutor contracts it owns |
 | get-portfolio-pl | GET | `account`, `chainId` or `all`, opt. `collateralProfile`, `period`, `marketId` / `marketIds` | Period P/L (global path USD; market-scoped native) |
 | get-pnl-leaderboard | GET | `app`, `chainId` or `all`, `period`, `sort` | App-scoped P/L rankings and trader score |
 | get-market-pnl-leaderboard | GET | `marketId`, `chainId`, `period` | P/L rankings within one market |

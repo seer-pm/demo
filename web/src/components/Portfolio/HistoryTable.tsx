@@ -5,7 +5,7 @@ import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { formatRawTxAmount, tokenDecimals } from "@/lib/history-tx-amount";
 import { ExternalLinkIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { displayBalance } from "@/lib/utils";
+import { displayBalance, isExecutorRow } from "@/lib/utils";
 import type { PortfolioChainId, SupportedChain, TransactionData } from "@seer-pm/sdk";
 import {
   ColumnDef,
@@ -21,6 +21,7 @@ import { Address, parseUnits } from "viem";
 import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
+import { ExecutorBadge } from "./ExecutorBadge";
 import { SortableColumnHeader } from "./SortableColumnHeader";
 
 function txChainId(tx: TransactionData, filter: PortfolioChainId): SupportedChain {
@@ -168,7 +169,11 @@ function TxDescription({ tx, chainId }: { tx: TransactionData; chainId: Portfoli
   );
 }
 
-export default function HistoryTable({ data, chainId }: { data: TransactionData[]; chainId: PortfolioChainId }) {
+export default function HistoryTable({
+  data,
+  chainId,
+  account,
+}: { data: TransactionData[]; chainId: PortfolioChainId; account: Address | undefined }) {
   const showChain = chainId === "all";
   const columns = React.useMemo<ColumnDef<TransactionData>[]>(
     () => [
@@ -203,6 +208,16 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         header: "Market",
       },
       {
+        id: "source",
+        cell: (info) => {
+          const sourceWallet = info.row.original.sourceWallet;
+          // Outside the market link, so the popover does not fight the anchor.
+          return isExecutorRow(sourceWallet, account) ? <ExecutorBadge wallet={sourceWallet as Address} /> : null;
+        },
+        header: "",
+        enableSorting: false,
+      },
+      {
         id: "description",
         cell: (info) => <TxDescription tx={info.row.original} chainId={chainId} />,
         header: "Description",
@@ -224,7 +239,7 @@ export default function HistoryTable({ data, chainId }: { data: TransactionData[
         header: "Date",
       },
     ],
-    [chainId, showChain],
+    [chainId, showChain, account],
   );
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
