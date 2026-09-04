@@ -50,7 +50,7 @@ const { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFi
   "./marketParentChain"
 );
 const { settledPayoutRatios } = await import("./outcomePrices");
-const { outcomePriceInputsForPositions } = await import("./buildPortfolioPositions");
+const { outcomePriceInputsForPositions, repricePortfolioPositions } = await import("./buildPortfolioPositions");
 const { getHistoryTokensPricesForPortfolio } = await import("./dexPoolHourPrices");
 
 const HOUR = 3600;
@@ -267,14 +267,19 @@ describe("buildPortfolioPositionsCore", () => {
 
   const oneToken = 10n ** 18n;
 
-  it("drops a position whose parent branch lost, even with the child still open", async () => {
+  it("marks a position whose parent branch lost, even with the child still open", async () => {
     const positions = await buildPortfolioPositionsCore(GNOSIS, [CHILD_YES], [31662n * oneToken], [deadChild], false, [
       deadChild,
       resolvedParent,
     ]);
 
-    expect(positions).toEqual([]);
-    // Nothing worth pricing is left, so the pool read is skipped entirely.
+    // Kept, at zero. `get-portfolio` hides it; P/L needs it, or the loss vanishes from both ends of
+    // the window instead of being booked.
+    expect(positions).toHaveLength(1);
+    expect(positions[0].isWorthless).toBe(true);
+    expect(positions[0].tokenPrice).toBe(0);
+    expect(positions[0].tokenValue).toBe(0);
+    // Its price is known without asking a pool, so it never reaches the batch.
     expect(getCurrentOutcomePrices).not.toHaveBeenCalled();
   });
 
@@ -286,6 +291,7 @@ describe("buildPortfolioPositionsCore", () => {
 
     expect(positions).toHaveLength(1);
     expect(positions[0].tokenPrice).toBe(0.8);
+    expect(positions[0].isWorthless).toBe(false);
   });
 
   it("labels the row from the parent chain, not from the wallet's own markets", async () => {
@@ -319,9 +325,10 @@ describe("buildPortfolioPositionsCore", () => {
     expect(settled).toEqual({ [PARENT_WON]: 1, [PARENT_LOST]: 0 });
   });
 
-  it("no longer resurrects a losing settled position through the redeemed-price fallback", async () => {
-    // `redeemedPrice || tokenPrice` used to read a settled 0 as "unknown". The market here has
-    // closed on the other outcome, so the row is dropped before pricing ever happens.
+  it("marks a losing outcome of a market that has closed", async () => {
+    // Same treatment as a dead branch, and for the same reason: the market resolved against this
+    // outcome, so it is worth 0 for good — but the wallet did hold it, at a real price, before the
+    // resolution landed. `redeemedPrice || tokenPrice` used to read that settled 0 as "unknown".
     const closedLoser = market({
       id: CHILD_ID,
       wrappedTokens: [CHILD_YES, CHILD_NO],
@@ -330,8 +337,53 @@ describe("buildPortfolioPositionsCore", () => {
       payoutNumerators: [0n, 1n],
     });
 
-    const positions = await buildPortfolioPositionsCore(GNOSIS, [CHILD_YES], [oneToken], [closedLoser], false);
-    expect(positions).toEqual([]);
+    const [position] = await buildPortfolioPositionsCore(GNOSIS, [CHILD_YES], [oneToken], [closedLoser], false);
+    expect(position.isWorthless).toBe(true);
+    expect(position.tokenValue).toBe(0);
+  });
+
+  it("keeps a winning outcome of a market that has closed", async () => {
+    const closedWinner = market({
+      id: CHILD_ID,
+      wrappedTokens: [CHILD_YES, CHILD_NO],
+      questions: [settledQuestion],
+      payoutReported: true,
+      payoutNumerators: [1n, 0n],
+    });
+
+    const [position] = await buildPortfolioPositionsCore(GNOSIS, [CHILD_YES], [oneToken], [closedWinner], false);
+    expect(position.isWorthless).toBe(false);
+  });
+});
+
+describe("worthless rows downstream", () => {
+  beforeEach(() => {
+    searchAllMarkets.mockReset();
+    getCurrentOutcomePrices.mockReset();
+    getCurrentOutcomePrices.mockResolvedValue({});
+  });
+
+  const worthless = { marketId: CHILD_ID, tokenId: CHILD_YES, tokenBalance: 1, isWorthless: true } as never;
+
+  it("still prices them historically, which is the whole point of keeping them", async () => {
+    // The current price is 0 by construction, but the reference price is not: before the parent
+    // settled these tokens traded, and that value is what makes the loss show up in `valueStart`.
+    const { tokens } = await outcomePriceInputsForPositions([worthless], GNOSIS, [deadChild, resolvedParent]);
+
+    expect(searchAllMarkets).not.toHaveBeenCalled();
+    expect(tokens.map((t) => t.tokenId)).toContain(CHILD_YES);
+  });
+
+  it("re-marks a cached row whose parent settled after the blob was written", async () => {
+    // The cache hit is the only place that sees market data again, so the stale flag is re-derived
+    // there rather than trusted.
+    searchAllMarkets.mockResolvedValue({ markets: [deadChild] });
+    const cached = { ...(worthless as object), isWorthless: false, chainId: GNOSIS, tokenPrice: 0.8 } as never;
+
+    const [position] = await repricePortfolioPositions([cached]);
+
+    expect(position.isWorthless).toBe(true);
+    expect(position.tokenValue).toBe(0);
   });
 });
 

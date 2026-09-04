@@ -19,9 +19,14 @@ import { type OutcomePriceToken, settledPayoutRatios } from "./outcomePrices";
 import { fetchTokenBalances } from "./seerIndexerPortfolio";
 import { getTokenDecimalsList } from "./tokenDecimals";
 
-/** Zero-balance rows are worth nothing whatever the price, so they never need a pool read. */
+/**
+ * Rows worth pricing. A zero balance is worth nothing whatever the price, and a settled-worthless
+ * row is worth nothing whatever the pool says — neither needs a pool read, and skipping them keeps
+ * the batch proportional to what the wallet can still realise. `enrichPositionsWithTokenValues`
+ * gives anything left out a price of 0, which for both cases is the answer.
+ */
 function pricedPositions(positions: PortfolioPosition[]): PortfolioPosition[] {
-  return positions.filter((position) => position.tokenBalance > 0);
+  return positions.filter((position) => position.tokenBalance > 0 && !position.isWorthless);
 }
 
 function enrichPositionsWithTokenValues(
@@ -162,17 +167,18 @@ export async function buildPortfolioPositionsCore(
     const marketType = getMarketType(market);
     const marketStatus = getMarketStatus(market);
 
-    // Checked before the market's own status, because it does not depend on it: once the parent has
-    // settled on another branch these tokens can never pay out, whether this market is closed, open
-    // or still waiting for an answer. Gating it on CLOSED — as this used to — left a wallet holding
-    // an open conditional of a long-decided parent carrying its full pool value.
-    if (isParentBranchLost(market)) {
-      return acumm;
-    }
-
-    if (marketStatus === MarketStatus.CLOSED && !(market.payoutReported && market.payoutNumerators[tokenIndex] > 0n)) {
-      return acumm;
-    }
+    // Two ways for a position to be permanently dead, and neither depends on the other: the parent
+    // settled on a different branch (whatever state this market is in — gating that on CLOSED, as
+    // this once did, left an open conditional of a long-decided parent carrying its full pool
+    // value), or this market itself closed on a different outcome.
+    //
+    // Marked, not dropped. Dropping is what the positions endpoint wants, but it is wrong this
+    // early: `computePositionsAtStartByPeriod` rebuilds each window's opening positions from the
+    // current ones, so a row removed here is removed from `valueStart` as well as `valueEnd`, and
+    // the loss cancels itself out instead of being booked in the window where it happened.
+    const isWorthless =
+      isParentBranchLost(market) ||
+      (marketStatus === MarketStatus.CLOSED && !(market.payoutReported && market.payoutNumerators[tokenIndex] > 0n));
 
     const parts = getQuestionParts(market.marketName, marketType);
     const marketName =
@@ -203,6 +209,7 @@ export async function buildPortfolioPositionsCore(
       tokenValue: 0,
       outcomeImage: market.images?.outcomes?.[outcomeIndex],
       isInvalidOutcome,
+      isWorthless,
     });
     return acumm;
   }, [] as PortfolioPosition[]);
@@ -234,10 +241,14 @@ export async function repricePortfolioPositions(positions: PortfolioPosition[]):
       const marketIds = [...new Set(subset.map((position) => position.marketId.toLowerCase()))];
       const { markets } = await searchAllMarkets({ chainIds: [chainId], marketIds });
       const deadMarketIds = new Set(markets.filter(isParentBranchLost).map((market) => market.id.toLowerCase()));
-      const live = subset.filter((position) => !deadMarketIds.has(position.marketId.toLowerCase()));
+      // Re-derived rather than trusted: a parent that settled after the blob was written leaves the
+      // cached flag stale, and this is the only place the cache hit sees market data at all.
+      const refreshed = subset.map((position) =>
+        deadMarketIds.has(position.marketId.toLowerCase()) ? { ...position, isWorthless: true } : position,
+      );
 
-      const prices = await currentPricesForPositions(live, chainId, markets);
-      return enrichPositionsWithTokenValues(live, prices);
+      const prices = await currentPricesForPositions(refreshed, chainId, markets);
+      return enrichPositionsWithTokenValues(refreshed, prices);
     }),
   );
   return priced.flat();

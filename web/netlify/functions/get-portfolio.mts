@@ -143,7 +143,10 @@ export default async (req: Request) => {
       positions = filterPositionsByChain(computed.positions, chainParsed.chainId);
     }
 
-    return jsonOk(positions);
+    // Hidden here and not in the builder: the rows still have to exist for `get-portfolio-pl`,
+    // which reconstructs each window's opening positions from the current ones. The blob keeps them
+    // too, so a cache hit can re-derive the flag when a parent settles mid-TTL.
+    return jsonOk(positions.filter((position) => !position.isWorthless));
   } catch (e) {
     console.log(e);
     return jsonError((e as Error).message || "Internal server error", 500);
