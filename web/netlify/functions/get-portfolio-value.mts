@@ -2,9 +2,13 @@ import { SUPPORTED_CHAINS } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
-import { buildCurrentPortfolioPositionsForWallets } from "./utils/buildPortfolioPositions";
+import {
+  buildCurrentPortfolioPositionsForWallets,
+  outcomePriceInputsForPositions,
+} from "./utils/buildPortfolioPositions";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolHourPrices";
+import { settledPayoutRatios } from "./utils/outcomePrices";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
 import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
@@ -70,7 +74,17 @@ async function portfolioValueUsdForChain(args: {
     collateralResolved.profileName,
   );
 
-  const historyPrices = await getHistoryTokensPricesForPortfolio(supabase, positions, chainId, historyTimestamp);
+  // The same token batch prices both ends. Handing the historical side bare positions instead would
+  // price every conditional at 0 there while the current side chains it through its parent, and the
+  // delta would then be the difference between two incompatible answers rather than a price move.
+  const priceInputs = await outcomePriceInputsForPositions(positions, chainId);
+  const historyPrices = await getHistoryTokensPricesForPortfolio(
+    supabase,
+    priceInputs.tokens,
+    chainId,
+    historyTimestamp,
+    settledPayoutRatios(priceInputs.markets, historyTimestamp),
+  );
 
   const currentNative = sumPortfolioValueCurrent(positions);
   const historyNative = sumPortfolioValueAtReference(positions, historyPrices, historyTimestamp);

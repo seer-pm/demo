@@ -39,6 +39,11 @@ export function getMid(mids: PairMids, base: string, quote: string): number {
   return Number.isFinite(price) ? price : 0;
 }
 
+/** Whether a price is known for this pair at all — `getMid` cannot say, since it reports 0 for both. */
+export function hasPairMid(mids: PairMids, tokenA: string, tokenB: string): boolean {
+  return mids.has(getTokensPairKey(tokenA, tokenB));
+}
+
 /** Deduplicated outcome/counterparty pools to load prices for. */
 export function outcomePairs(tokens: OutcomePriceToken[]): Token0Token1[] {
   const byKey = new Map<string, Token0Token1>();
@@ -57,12 +62,17 @@ export function outcomePairs(tokens: OutcomePriceToken[]): Token0Token1[] {
  * and the child's outcome is not worthless, it is still worth its share of a live parent token.
  * Keeping the ratio market-local lets `mapOutcomePrices` multiply the chain back together, and the
  * two agree wherever both apply.
+ *
+ * `asOfSeconds` restricts the result to markets that had already finalized by then, for pricing a
+ * past moment: a payout reported last week says nothing about what an outcome was worth a month
+ * ago, when it still traded. Omit it to price now. Same rule as `positionPriceAtReference`.
  */
-export function settledPayoutRatios(markets: readonly Market[]): Record<string, number> {
+export function settledPayoutRatios(markets: readonly Market[], asOfSeconds?: number): Record<string, number> {
   const ratios: Record<string, number> = {};
 
   for (const market of markets) {
     if (!market.payoutReported) continue;
+    if (asOfSeconds !== undefined && !(market.finalizeTs > 0 && market.finalizeTs < asOfSeconds)) continue;
 
     const sumPayout = market.payoutNumerators.reduce((acc, payout) => acc + Number(payout), 0);
     if (sumPayout === 0) continue;

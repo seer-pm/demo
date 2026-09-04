@@ -16,6 +16,7 @@ import {
 import { loadMarketsWithAncestors, pricedMarketsRootFirst } from "./utils/marketParentChain";
 import { searchAllMarkets } from "./utils/markets";
 import { getCurrentOutcomePrices } from "./utils/onchainOutcomePrices";
+import { settledPayoutRatios } from "./utils/outcomePrices";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -116,12 +117,20 @@ export default async (req: Request) => {
       // Price the whole parent chain, not this market alone. A conditional outcome is quoted
       // against its parent's outcome token, so a batch holding only this market's tokens values
       // every conditional at 0 — see `outcomePricingContract.test.ts`.
-      const chain = pricedMarketsRootFirst(
-        await loadMarketsWithAncestors([market], supportedChain, DEFAULT_COLLATERAL_PROFILE),
+      //
+      // The settled ratios matter for the *ancestors*: a resolved parent has no live pool either,
+      // and without them it prices at 0 and drags every still-live conditional under it down with
+      // it. `redeemedByToken` below cannot cover that — it only speaks for this market's own
+      // tokens, and `getRedeemedPrice` returns 0 for a child whose parent has not reported.
+      const chainMarkets = await loadMarketsWithAncestors([market], supportedChain, DEFAULT_COLLATERAL_PROFILE);
+      const currentByToken = await getCurrentOutcomePrices(
+        outcomePriceTokensForChain(pricedMarketsRootFirst(chainMarkets)),
+        supportedChain,
+        settledPayoutRatios(chainMarkets),
       );
-      const currentByToken = await getCurrentOutcomePrices(outcomePriceTokensForChain(chain), supportedChain);
       // A resolved market has no live pool, so the settled payout has to take precedence — same
       // rule `buildPortfolioPositions` uses, and the reason an earlier version zeroed real positions.
+      // Redundant with the seeded ratios wherever both apply, and they agree there by construction.
       const redeemedByToken: Record<string, number> = {};
       tokens.forEach((tokenId, index) => {
         redeemedByToken[tokenId] = getRedeemedPrice(market, index);

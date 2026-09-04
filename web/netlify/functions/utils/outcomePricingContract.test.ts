@@ -181,6 +181,20 @@ describe("settled payout ratios", () => {
     expect(mapOutcomePrices(chain, livePool, { [CHILD_YES]: 1 })[CHILD_YES]).toBeCloseTo(0.5, 10);
   });
 
+  it("does not let the market-driven loop undo the seed", () => {
+    // Exactly what `refresh-pnl-market-mtm-background` composes: seeded chain prices, then
+    // `effectivePricesByToken` over this market's own tokens. `getRedeemedPrice` is 0 for a child
+    // whose parent has reported but which has not itself, so the `||` falls through to the seeded
+    // price rather than overriding it — that fall-through is the whole point.
+    const currentByToken = mapOutcomePrices(chain, mids([[CHILD_YES, PARENT_OUTCOME, 0.8]]), { [ROOT_YES]: 1 });
+    const prices = effectivePricesByToken({
+      tokens: [CHILD_YES],
+      redeemedByToken: { [CHILD_YES]: 0 },
+      currentByToken,
+    });
+    expect(prices[CHILD_YES]).toBeCloseTo(0.8, 10);
+  });
+
   it("agrees with the redeemed price once the whole chain has settled", () => {
     // Parent pays ROOT_YES in full, child pays CHILD_YES in full: 1 x 1, the same answer
     // `getRedeemedPrice` composes for a fully settled chain.

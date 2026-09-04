@@ -50,6 +50,8 @@ const { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFi
   "./marketParentChain"
 );
 const { settledPayoutRatios } = await import("./outcomePrices");
+const { outcomePriceInputsForPositions } = await import("./buildPortfolioPositions");
+const { getHistoryTokensPricesForPortfolio } = await import("./dexPoolHourPrices");
 
 const HOUR = 3600;
 const nowTs = () => Math.floor(Date.now() / 1000);
@@ -171,6 +173,48 @@ describe("settledPayoutRatios", () => {
   it("skips markets that have not reported, so the pool keeps pricing them", () => {
     expect(settledPayoutRatios([deadChild])).toEqual({});
   });
+
+  it("skips a market that had not settled yet at the reference time", () => {
+    // Pricing a past moment: last week's payout says nothing about what the outcome was worth a
+    // month ago, when it still traded. Without the cutoff the historical leg of a 24h delta gets
+    // today's answer and the delta becomes an artefact.
+    expect(settledPayoutRatios([resolvedParent], PARENT_FINALIZED_TS - HOUR)).toEqual({});
+    expect(settledPayoutRatios([resolvedParent], PARENT_FINALIZED_TS + HOUR)).toEqual({
+      [PARENT_WON]: 1,
+      [PARENT_LOST]: 0,
+    });
+  });
+});
+
+describe("outcomePriceInputsForPositions", () => {
+  beforeEach(() => {
+    searchAllMarkets.mockReset();
+  });
+
+  const position = { marketId: CHILD_ID, tokenId: CHILD_YES, tokenBalance: 1 } as never;
+
+  it("gives the historical leg the same root-first batch the current leg gets", async () => {
+    // The regression this guards: bare positions carry `parentMarketId` but not the parent's
+    // tokens, so `mapOutcomePrices` prices every conditional at 0 — and a history leg at 0 against
+    // a chained current leg reads as a 100% move that never happened.
+    searchAllMarkets.mockResolvedValueOnce({ markets: [liveChild] }).mockResolvedValueOnce({
+      markets: [resolvedParent],
+    });
+
+    const { tokens, markets } = await outcomePriceInputsForPositions([position], GNOSIS);
+
+    expect(tokens.map((t) => t.tokenId)).toEqual([PARENT_WON, PARENT_LOST, CHILD_YES, CHILD_NO]);
+    expect(tokens[0].parentMarketId).toBeUndefined();
+    expect(tokens[2].parentMarketId).toBe(PARENT_ID);
+    expect(markets.map((m) => m.id).sort()).toEqual([PARENT_ID, CHILD_ID].sort());
+  });
+
+  it("queries nothing when the caller already has the markets", async () => {
+    const { tokens } = await outcomePriceInputsForPositions([position], GNOSIS, [liveChild, resolvedParent]);
+
+    expect(searchAllMarkets).not.toHaveBeenCalled();
+    expect(tokens.map((t) => t.tokenId)).toEqual([PARENT_WON, PARENT_LOST, CHILD_YES, CHILD_NO]);
+  });
 });
 
 describe("parent chain assembly", () => {
@@ -288,5 +332,46 @@ describe("buildPortfolioPositionsCore", () => {
 
     const positions = await buildPortfolioPositionsCore(GNOSIS, [CHILD_YES], [oneToken], [closedLoser], false);
     expect(positions).toEqual([]);
+  });
+});
+
+describe("historical prices", () => {
+  // Root first, exactly what `outcomePriceInputsForPositions` hands over.
+  const tokens = [
+    { tokenId: PARENT_WON, collateralToken: COLLATERAL },
+    { tokenId: CHILD_YES, collateralToken: PARENT_WON, parentMarketId: PARENT_ID },
+  ];
+  // PARENT_WON sorts below CHILD_YES, so it is token0 and `token0_price` is parent-per-child.
+  const childCandle = {
+    token0_id: PARENT_WON,
+    token1_id: CHILD_YES,
+    token0_price: "0.8",
+    token1_price: "1.25",
+  };
+
+  const supabaseWith = (rows: unknown[]) => ({ rpc: async () => ({ data: rows, error: null }) }) as never;
+
+  it("carries a settled parent's payout down to the child's candle", async () => {
+    const prices = await getHistoryTokensPricesForPortfolio(supabaseWith([childCandle]), tokens, GNOSIS, nowTs(), {
+      [PARENT_WON]: 1,
+    });
+    expect(prices[CHILD_YES]).toBeCloseTo(0.8, 10);
+  });
+
+  it("reports a token with no candle as unknown rather than as zero", async () => {
+    // Candles exist only for hours a pool traded, so a quiet pool has none — and the callers'
+    // `?? position.tokenPrice` fallback is written for exactly that. A 0 defeats it and the
+    // position reads as worthless at the reference, throwing the whole move into the delta.
+    const prices = await getHistoryTokensPricesForPortfolio(supabaseWith([]), tokens, GNOSIS, nowTs(), {
+      [PARENT_WON]: 1,
+    });
+    expect(prices[CHILD_YES]).toBeUndefined();
+    expect(prices[PARENT_WON]).toBe(1);
+  });
+
+  it("propagates unknown down the chain when the parent leg is missing", async () => {
+    const prices = await getHistoryTokensPricesForPortfolio(supabaseWith([childCandle]), tokens, GNOSIS, nowTs());
+    expect(prices[PARENT_WON]).toBeUndefined();
+    expect(prices[CHILD_YES]).toBeUndefined();
   });
 });

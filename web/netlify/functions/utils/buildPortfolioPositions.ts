@@ -15,7 +15,7 @@ import { outcomePriceTokensForChain } from "./marketMtmRefresh";
 import { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFirst } from "./marketParentChain";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
 import { getCurrentOutcomePrices } from "./onchainOutcomePrices";
-import { settledPayoutRatios } from "./outcomePrices";
+import { type OutcomePriceToken, settledPayoutRatios } from "./outcomePrices";
 import { fetchTokenBalances } from "./seerIndexerPortfolio";
 import { getTokenDecimalsList } from "./tokenDecimals";
 
@@ -43,7 +43,7 @@ function enrichPositionsWithTokenValues(
 }
 
 /**
- * Current price per held token, chained through each market's parents.
+ * Pricing inputs for `positions`: their markets and every ancestor, as a root-first token list.
  *
  * A conditional outcome only ever trades against its parent's outcome token, so the parent's tokens
  * must be in the same batch and must come first — the contract `outcomePriceTokensForChain` and
@@ -52,9 +52,41 @@ function enrichPositionsWithTokenValues(
  * `mapOutcomePrices` would then store the price *relative to the parent outcome* as if it were an
  * absolute collateral price. That is how a dead conditional was worth $0.83.
  *
- * `pricingPool` is the set the parent chain is resolved from before falling back to a query, so a
- * caller valuing several wallets against one market list pays for the expansion once.
+ * Exported because the historical side has to be given the **same** batch: current and reference
+ * prices that disagree about what a conditional is quoted against do not cancel, they produce a
+ * delta out of nothing. `pool` is whatever markets the caller already holds; only the rest is
+ * queried, so a caller valuing several wallets against one market list pays for it once.
+ *
+ * Positions are taken as given — filter by balance first if that is what you want priced. The
+ * historical path deliberately does not: a token at zero today can have been held at the reference.
  */
+export async function outcomePriceInputsForPositions(
+  positions: PortfolioPosition[],
+  chainId: SupportedChain,
+  pool: Market[] = [],
+): Promise<{ tokens: OutcomePriceToken[]; markets: Market[] }> {
+  if (positions.length === 0) {
+    return { tokens: [], markets: [] };
+  }
+
+  const known = new Set(pool.map((market) => market.id.toLowerCase()));
+  const missing = [
+    ...new Set(positions.map((position) => position.marketId.toLowerCase()).filter((id) => !known.has(id))),
+  ];
+  const seed = marketsWithLocalAncestors(
+    positions.map((position) => position.marketId),
+    pool,
+  );
+  if (missing.length > 0) {
+    const { markets } = await searchAllMarkets({ chainIds: [chainId], marketIds: missing });
+    seed.push(...markets);
+  }
+
+  const markets = await loadMarketsWithAncestors(seed, chainId);
+  return { tokens: outcomePriceTokensForChain(pricedMarketsRootFirst(markets)), markets };
+}
+
+/** Current price per held token, chained through each market's parents. */
 async function currentPricesForPositions(
   positions: PortfolioPosition[],
   chainId: SupportedChain,
@@ -65,19 +97,8 @@ async function currentPricesForPositions(
     return {};
   }
 
-  const chain = await loadMarketsWithAncestors(
-    marketsWithLocalAncestors(
-      priced.map((position) => position.marketId),
-      pricingPool,
-    ),
-    chainId,
-  );
-
-  return getCurrentOutcomePrices(
-    outcomePriceTokensForChain(pricedMarketsRootFirst(chain)),
-    chainId,
-    settledPayoutRatios(chain),
-  );
+  const { tokens, markets } = await outcomePriceInputsForPositions(priced, chainId, pricingPool);
+  return getCurrentOutcomePrices(tokens, chainId, settledPayoutRatios(markets));
 }
 
 /**
