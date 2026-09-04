@@ -23,10 +23,8 @@ import {
   computeCollateralPortfolioValuesForPeriods,
   eodStartTimesForPeriods,
   fetchAccountActivity,
-  fetchConditionalEventsByTransactions,
-  fetchConditionalEventsForAccount,
+  fetchConditionalEventsForAccountWidened,
   fetchMarketIdsFromAccountTransfers,
-  fetchRouterCollateralTransactionHashes,
   fetchRouterPrimaryCollateralTransfers,
   fetchTokenBalances,
   fetchTokenBalancesAtEods,
@@ -236,30 +234,16 @@ async function fetchScopedConditionalEvents(
   const marketSet = new Set(markets.map((m) => m.id.toLowerCase()));
   const minStart = Math.min(...PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]));
 
-  const byAccount = await fetchConditionalEventsForAccount(account, chainId, {
+  const events = await fetchConditionalEventsForAccountWidened(account, chainId, primaryCollateral, {
     startTime: minStart,
     endTime,
     marketAddresses: [...marketSet] as Address[],
-  });
-
-  const routerTxHashes = await fetchRouterCollateralTransactionHashes(
-    account,
-    chainId,
-    primaryCollateral,
-    endTime,
     routerTransfers,
-  );
-  const byTransaction = await fetchConditionalEventsByTransactions(chainId, routerTxHashes, {
-    startTime: minStart,
-    endTime,
   });
 
-  const byId = new Map<string, ConditionalEventRow>();
-  for (const event of [...byAccount, ...byTransaction]) {
-    if (!marketSet.has(event.marketId.toLowerCase())) continue;
-    byId.set(event.id, event);
-  }
-  return [...byId.values()];
+  // The by-transaction half of the union is not market-filtered at the query — a router transaction
+  // can carry legs of markets outside this scope — so the scope is applied here.
+  return events.filter((event) => marketSet.has(event.marketId.toLowerCase()));
 }
 
 function reconstructRouterLegsByPeriod(

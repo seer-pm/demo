@@ -504,6 +504,55 @@ export async function fetchConditionalEventsByTransactions(
   return out;
 }
 
+/**
+ * Split/merge/redeem legs belonging to this account, under the union of both ownership signals.
+ *
+ * Neither signal alone is complete:
+ *
+ * - `accountId` — right when the user signed their own transaction.
+ * - the transactions where **primary collateral actually moved** between the account and a router —
+ *   the only signal that survives a TradeExecutor driven by a relayer, where `resolveAccountId`
+ *   books the event to the signing EOA instead of to the executor whose money moved.
+ *
+ * Deduped by event id, so a leg that both signals find is counted once. Amounts and markets always
+ * come from the event itself; only the ownership test is widened. Callers that need per-market sums
+ * must still collapse the indexer's market fan-out with `dedupeConditionalEventLegs`.
+ */
+export async function fetchConditionalEventsForAccountWidened(
+  account: Address,
+  chainId: SupportedChain,
+  primaryCollateral: Token,
+  opts?: {
+    startTime?: number;
+    endTime?: number;
+    marketAddresses?: Address[];
+    /** Pass an already-fetched router-collateral scan to skip re-paginating it. */
+    routerTransfers?: RouterCollateralTransfer[];
+  },
+): Promise<ConditionalEventRow[]> {
+  const endTime = opts?.endTime ?? Math.floor(Date.now() / 1000);
+  const window = { startTime: opts?.startTime, endTime };
+
+  // The two signals are independent, so they are asked for together — this runs per wallet per chain
+  // on a cache miss, inside a synchronous function.
+  const [byAccount, routerTxHashes] = await Promise.all([
+    fetchConditionalEventsForAccount(account, chainId, {
+      ...window,
+      marketAddresses: opts?.marketAddresses,
+    }),
+    // The transfer follows the money, so its transactions are the reliable ownership signal; the
+    // events in them are then read whole, since one router transaction is one user's operation.
+    fetchRouterCollateralTransactionHashes(account, chainId, primaryCollateral, endTime, opts?.routerTransfers),
+  ]);
+  const byTransaction = await fetchConditionalEventsByTransactions(chainId, routerTxHashes, window);
+
+  const byId = new Map<string, ConditionalEventRow>();
+  for (const event of [...byAccount, ...byTransaction]) {
+    byId.set(event.id, event);
+  }
+  return [...byId.values()];
+}
+
 export function conditionalEventsToTransactions(events: ConditionalEventRow[]): TransactionData[] {
   return events.map((ev) => {
     const base = {
