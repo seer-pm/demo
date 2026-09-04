@@ -157,6 +157,48 @@ export async function buildPortfolioPositionsFromBalances(
   return buildPortfolioPositionsCore(chainId, allTokenIds, balances, markets, true);
 }
 
+/**
+ * Current portfolio UI for a whole wallet set — the account and the TradeExecutors it owns.
+ *
+ * One row per `(token, wallet)`, never summed per token. The rows carry `sourceWallet` so the UI can
+ * say which holdings sit in an executor and are therefore not redeemable from the EOA, and value is
+ * linear in balance, so leaving them separate sums to exactly the same total.
+ *
+ * `searchAllMarkets` runs once over the union of the wallets' tokens rather than once per wallet: it
+ * is the expensive half of this function, and the wallets of one owner overlap heavily by nature.
+ */
+export async function buildCurrentPortfolioPositionsForWallets(
+  wallets: Address[],
+  chainId: SupportedChain,
+  collateralProfile: string,
+): Promise<PortfolioPosition[]> {
+  const holdingsPerWallet = await Promise.all(
+    wallets.map(async (wallet) => ({ wallet, holdings: await fetchTokenBalances(wallet, chainId) })),
+  );
+  const perWallet = holdingsPerWallet.map(({ wallet, holdings }) => ({
+    wallet,
+    tokens: [...holdings.entries()].filter(([, balance]) => balance > 0n).map(([token]) => token as Address),
+    holdings,
+  }));
+
+  const tokens = [...new Set(perWallet.flatMap((entry) => entry.tokens))];
+  if (tokens.length === 0) {
+    return [];
+  }
+
+  const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens, collateralProfile });
+
+  const positionsPerWallet = await Promise.all(
+    perWallet.map(async ({ wallet, tokens: walletTokens, holdings }) => {
+      if (walletTokens.length === 0) return [];
+      const balances = walletTokens.map((token) => holdings.get(token.toLowerCase()) ?? 0n);
+      const positions = await buildPortfolioPositionsCore(chainId, walletTokens, balances, markets, false);
+      return positions.map((position) => ({ ...position, sourceWallet: wallet }));
+    }),
+  );
+  return positionsPerWallet.flat();
+}
+
 /** Current portfolio UI: TokenBalance rows with balance > 0 from HyperIndex. */
 export async function buildCurrentPortfolioPositions(
   address: Address,

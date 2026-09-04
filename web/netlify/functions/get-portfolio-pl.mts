@@ -3,6 +3,7 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
+import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
 import {
   type PortfolioPlPeriod,
   type PortfolioPlPeriodSnapshot,
@@ -73,15 +74,23 @@ function usdFromLeaderboardRow(row: LeaderboardUsdRow) {
   };
 }
 
-/** Global P/L from `pnl_leaderboard` (`app_id = all`), in USD. Miss → zeros. */
+/**
+ * Global P/L from `pnl_leaderboard` (`app_id = all`), in USD. Miss → zeros.
+ *
+ * Read over the whole wallet set, not just the account. `pnl_leaderboard` is rolled up executor →
+ * owner only at *read* time (`rollUpRows`, which the leaderboard endpoints call and this one does
+ * not): the stored additive totals stay per address. Selecting the EOA alone therefore reported the
+ * P/L of what the owner did with its own hands, while the tables below it showed the merged book.
+ * The rows are summed already, so widening the filter is the whole change.
+ */
 async function portfolioPlFromLeaderboard(args: {
-  account: Address;
+  identity: PortfolioIdentity;
   chainId: number | "all";
   period: Period;
   endTime: number;
 }): Promise<PortfolioPlPeriodSnapshot> {
-  const { account, chainId, period, endTime } = args;
-  const accountLc = account.toLowerCase();
+  const { identity, chainId, period, endTime } = args;
+  const accountLc = identity.account;
 
   const zeros = (windowEnd: number, startTime: number | null, updatedAt: string | null): PortfolioPlPeriodSnapshot => ({
     account: accountLc,
@@ -107,7 +116,7 @@ async function portfolioPlFromLeaderboard(args: {
       "pnl_usd, value_start, value_end, trading_collateral_net_out, lp_collateral_net_out, volume_usd, capital_deployed, collateral_price_usd, market_count, updated_at",
     )
     .eq("app_id", SEER_APP_ALL_ID)
-    .eq("address", accountLc)
+    .in("address", identity.wallets)
     .eq("period", period);
 
   if (chainId !== "all") {
@@ -290,7 +299,7 @@ export default async (req: Request) => {
     if (!marketIds?.length) {
       return jsonOk(
         await portfolioPlFromLeaderboard({
-          account,
+          identity: await resolvePortfolioIdentity(account),
           chainId: chainParsed.chainId,
           period,
           endTime,

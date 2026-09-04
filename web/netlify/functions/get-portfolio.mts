@@ -1,8 +1,8 @@
 import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE } from "@seer-pm/sdk/collateral";
 import { type Address, isAddress } from "viem";
-import { fetchLastActivityTimestamp, supportedChainIds } from "./utils/accountLastActivity";
-import { buildCurrentPortfolioPositions, repricePortfolioPositions } from "./utils/buildPortfolioPositions";
+import { fetchLastActivityTimestampForWallets, supportedChainIds } from "./utils/accountLastActivity";
+import { buildCurrentPortfolioPositionsForWallets, repricePortfolioPositions } from "./utils/buildPortfolioPositions";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
 import {
   type ActivityCachedPayload,
@@ -10,6 +10,7 @@ import {
   readJsonBlob,
   writeJsonBlob,
 } from "./utils/portfolioBlobCache";
+import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 
 const PORTFOLIO_POSITIONS_STORE = "portfolio-positions";
@@ -38,11 +39,13 @@ function filterPositionsByChain(positions: PortfolioPosition[], chainId: number 
 }
 
 async function computeAllChainPositions(
-  account: Address,
+  identity: PortfolioIdentity,
   chains: ResolvedChain[],
 ): Promise<{ positions: PortfolioPosition[]; failures: number }> {
   const results = await Promise.allSettled(
-    chains.map(({ chainId, profileName }) => buildCurrentPortfolioPositions(account, chainId, profileName)),
+    chains.map(({ chainId, profileName }) =>
+      buildCurrentPortfolioPositionsForWallets(identity.walletsForChain(chainId), chainId, profileName),
+    ),
   );
 
   const positions: PortfolioPosition[] = [];
@@ -94,16 +97,19 @@ export default async (req: Request) => {
 
     const cacheKey = `${account.toLowerCase()}:${profileName}`;
 
+    // Resolved first: freshness has to cover the executors too, or a wallet that only trades through
+    // one never invalidates its own cache. The probe is memoized, so this is usually free.
+    const identity = await resolvePortfolioIdentity(account);
     const [cached, lastActivityTs] = await Promise.all([
       readJsonBlob<PositionsCachePayload>(PORTFOLIO_POSITIONS_STORE, cacheKey),
-      fetchLastActivityTimestamp(account),
+      fetchLastActivityTimestampForWallets(identity.wallets),
     ]);
 
     let positions: PortfolioPosition[];
     if (isActivityCacheFresh(cached, lastActivityTs) && Array.isArray(cached.positions)) {
       positions = await repricePortfolioPositions(filterPositionsByChain(cached.positions, chainParsed.chainId));
     } else {
-      const computed = await computeAllChainPositions(account, resolvedChains);
+      const computed = await computeAllChainPositions(identity, resolvedChains);
       if (computed.failures === 0) {
         await writeJsonBlob(PORTFOLIO_POSITIONS_STORE, cacheKey, {
           cachedAt: Date.now(),

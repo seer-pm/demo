@@ -6,12 +6,13 @@ import { CopyButton } from "@/components/CopyButton";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
+import { usePortfolioIdentity } from "@/hooks/portfolio/usePortfolioIdentity";
 import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolioTabs";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
-import { isTwoStringsEqual } from "@/lib/utils";
+import { isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { type KeyboardEvent, useRef } from "react";
@@ -163,6 +164,31 @@ function PortfolioPnLHistory({
   );
 }
 
+/**
+ * The TradeExecutor contracts this profile trades through.
+ *
+ * Rendered only when there are any — which is a handful of users — so the header keeps its current
+ * height for everyone else. Without it the merged Positions and History tables would show holdings
+ * under an address the page never names.
+ */
+function LinkedExecutors({ account }: { account: Address }) {
+  const { data } = usePortfolioIdentity(account);
+  const executors = data?.executors ?? [];
+  if (executors.length === 0) return null;
+
+  return (
+    <p className="text-sm text-black-primary mt-1">
+      Trading via {executors.length} Trade Executor{executors.length > 1 ? "s" : ""}:{" "}
+      {executors.map((executor, index) => (
+        <span key={executor}>
+          {index > 0 ? ", " : ""}
+          <span className="font-mono">{shortenAddress(executor)}</span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function PortfolioPage() {
   const { address: connectedAccount } = useAccount();
   const { routeParams } = usePageContext();
@@ -259,6 +285,7 @@ function PortfolioPage() {
                   <span className="text-xs text-purple-primary font-medium shrink-0">You</span>
                 ) : null}
               </div>
+              <LinkedExecutors account={account} />
               {activeTab !== "airdrop" ? <PortfolioValueVariation account={account} chainId={chainId} /> : null}
             </div>
           </div>

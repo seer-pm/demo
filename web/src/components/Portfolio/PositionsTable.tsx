@@ -5,6 +5,7 @@ import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
 import { CloseIcon, ConditionalMarketIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { isExecutorRow } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
@@ -26,6 +27,7 @@ import MarketsPagination from "../Market/MarketsPagination";
 import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
 import Popover from "../Popover";
+import { ExecutorBadge } from "./ExecutorBadge";
 import { SortableColumnHeader } from "./SortableColumnHeader";
 
 function RedeemModalContent({
@@ -84,6 +86,29 @@ function PositionsTableInner({
       accessorKey: "marketStatus",
       cell: (info) => {
         const position = info.row.original;
+        if (isExecutorRow(position.sourceWallet, account)) {
+          // The tokens sit inside the TradeExecutor contract; the redeem modal acts from the
+          // connected wallet, so it cannot reach them. Say so rather than offer a button that
+          // would redeem nothing.
+          return (
+            <Popover
+              label="Held by a Trade Executor"
+              width={260}
+              trigger={
+                <p className="text-[14px] text-black-secondary underline decoration-dotted">Held by Trade Executor</p>
+              }
+              content={
+                <div className="text-[14px] space-y-1">
+                  <p>
+                    These tokens are held by a Trade Executor contract, not by this wallet, so they cannot be redeemed
+                    here.
+                  </p>
+                  <p className="text-black-secondary break-all">{position.sourceWallet}</p>
+                </div>
+              }
+            />
+          );
+        }
         if (info.getValue<string>() === MarketStatus.CLOSED) {
           return (
             <button
@@ -173,6 +198,9 @@ function PositionsTableInner({
                       src={NETWORK_ICON_MAPPING[rowChainId]}
                     />
                   ) : null}
+                  {isExecutorRow(position.sourceWallet, account) ? (
+                    <ExecutorBadge wallet={position.sourceWallet as Address} />
+                  ) : null}
                 </div>
                 <a
                   className="flex gap-2 items-start mt-1 text-[13px] text-base-content hover:underline cursor-pointer min-w-0"
@@ -257,7 +285,7 @@ function PositionsTableInner({
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
     ];
-  }, [showChain, showRedeemColumn, singleChainSymbol]);
+  }, [showChain, showRedeemColumn, singleChainSymbol, account]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,

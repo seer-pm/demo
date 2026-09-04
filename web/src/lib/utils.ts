@@ -100,6 +100,14 @@ export function isTwoStringsEqual(str1: string | undefined | null, str2: string 
   return !!str1?.trim() && str2?.trim()?.toLocaleLowerCase() === str1?.trim()?.toLocaleLowerCase();
 }
 
+/**
+ * True when a portfolio row came from a wallet other than the profile being viewed — i.e. a
+ * TradeExecutor the account owns holds it, not the account itself.
+ */
+export function isExecutorRow(sourceWallet: string | undefined, account: string | undefined): boolean {
+  return !!sourceWallet && !!account && !isTwoStringsEqual(sourceWallet, account);
+}
+
 export function parseFraction(floatString: string) {
   // Convert the string to a number
   const num = Number(floatString);
