@@ -271,7 +271,15 @@ function MarketChart({
 
   return (
     <>
-      <div className={clsx("w-full bg-base-100 text-[12px]", !embedded && "p-5 drop-shadow")}>
+      <div
+        className={clsx(
+          "w-full bg-base-100 text-[12px] relative",
+          // the wrapper's drop-shadow filter creates a stacking context, so the date picker
+          // dropdown can't escape it; lift the whole card above the outcome cards while it's open
+          isShowDateRangePicker && "z-30",
+          !embedded && "p-5 drop-shadow",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {Object.keys(CHART_OPTION_PERIODS).map((option) => (
             <div
