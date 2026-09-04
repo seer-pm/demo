@@ -30,6 +30,16 @@ export interface PortfolioPosition {
   sourceWallet?: Address;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
+  /**
+   * Settled such that these tokens can never pay out: either this market resolved to another
+   * outcome, or its parent resolved to another branch. Permanent, not "currently quoted near zero".
+   *
+   * The row is kept rather than dropped because P/L needs it: `computePositionsAtStartByPeriod`
+   * rebuilds the window's opening positions by rebalancing the current ones, so a row missing today
+   * is also missing at the window start — and the loss that made it worthless disappears from both
+   * ends instead of being booked. The positions UI hides these; valuation keeps them at 0.
+   */
+  isWorthless?: boolean;
 }
 
 export type PortfolioValueApiResponse = {

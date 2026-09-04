@@ -3,19 +3,20 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm/sdk";
 import { getRedeemedPrice } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";
-import { type Address, zeroAddress } from "viem";
+import type { Address } from "viem";
 import { requireBackgroundSecret } from "./utils/backgroundAuth";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { fetchHoldersOfTokens } from "./utils/marketHoldings";
 import {
   type MtmRefreshRow,
-  type PricedMarket,
   effectivePricesByToken,
   outcomePriceTokensForChain,
   refreshMarketMtm,
 } from "./utils/marketMtmRefresh";
+import { loadMarketsWithAncestors, pricedMarketsRootFirst } from "./utils/marketParentChain";
 import { searchAllMarkets } from "./utils/markets";
 import { getCurrentOutcomePrices } from "./utils/onchainOutcomePrices";
+import { settledPayoutRatios } from "./utils/outcomePrices";
 import type { Database } from "./utils/supabase";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
@@ -49,54 +50,6 @@ const ROW_PAGE = 1000;
  * written for. It deliberately does not key off `pnl_market_leaderboard.updated_at`, which moves
  * only on a real MTM write and so would keep handing back the same head.
  */
-type MarketLike = Awaited<ReturnType<typeof searchAllMarkets>>["markets"][number];
-
-function isRoot(market: MarketLike): boolean {
-  const parent = market.parentMarket?.id;
-  return !parent || parent.toLowerCase() === (zeroAddress as string);
-}
-
-function toPricedMarket(market: MarketLike): PricedMarket {
-  return {
-    id: market.id.toLowerCase(),
-    collateralToken: market.collateralToken.toLowerCase(),
-    wrappedTokens: (market.wrappedTokens ?? []).map((t) => String(t).toLowerCase()),
-    parentMarketId: isRoot(market) ? undefined : market.parentMarket.id.toLowerCase(),
-  };
-}
-
-/**
- * The market plus every ancestor, ordered root first — the order `mapOutcomePrices` needs to resolve
- * a chain deeper than one level in its single pass.
- */
-async function loadParentChain(
-  market: MarketLike,
-  chainId: SupportedChain,
-  cache: Map<string, MarketLike>,
-): Promise<PricedMarket[]> {
-  const chain: MarketLike[] = [market];
-  let current = market;
-  // Depth is small (session market -> conditional), but bound it so a cyclic parent cannot hang.
-  for (let depth = 0; depth < 8 && !isRoot(current); depth++) {
-    const parentId = current.parentMarket.id.toLowerCase();
-    let parent = cache.get(parentId);
-    if (!parent) {
-      const { markets: found } = await searchAllMarkets({
-        chainIds: [chainId],
-        marketIds: [parentId],
-        collateralProfile: DEFAULT_COLLATERAL_PROFILE,
-        type: "Generic",
-      });
-      parent = found[0];
-      if (!parent) break;
-      cache.set(parentId, parent);
-    }
-    chain.push(parent);
-    current = parent;
-  }
-  return chain.reverse().map(toPricedMarket);
-}
-
 export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
     console.log("refresh-pnl-market-mtm: disabled");
@@ -146,7 +99,6 @@ export default async (req: Request) => {
     // of id order would let a deadline break strand the markets it skipped past.
     markets.sort((a, b) => a.id.toLowerCase().localeCompare(b.id.toLowerCase()));
 
-    const marketCache = new Map<string, MarketLike>();
     let lastScanned: string | null = null;
     let updated = 0;
     let scanned = 0;
@@ -165,10 +117,20 @@ export default async (req: Request) => {
       // Price the whole parent chain, not this market alone. A conditional outcome is quoted
       // against its parent's outcome token, so a batch holding only this market's tokens values
       // every conditional at 0 — see `outcomePricingContract.test.ts`.
-      const chain = await loadParentChain(market, supportedChain, marketCache);
-      const currentByToken = await getCurrentOutcomePrices(outcomePriceTokensForChain(chain), supportedChain);
+      //
+      // The settled ratios matter for the *ancestors*: a resolved parent has no live pool either,
+      // and without them it prices at 0 and drags every still-live conditional under it down with
+      // it. `redeemedByToken` below cannot cover that — it only speaks for this market's own
+      // tokens, and `getRedeemedPrice` returns 0 for a child whose parent has not reported.
+      const chainMarkets = await loadMarketsWithAncestors([market], supportedChain, DEFAULT_COLLATERAL_PROFILE);
+      const currentByToken = await getCurrentOutcomePrices(
+        outcomePriceTokensForChain(pricedMarketsRootFirst(chainMarkets)),
+        supportedChain,
+        settledPayoutRatios(chainMarkets),
+      );
       // A resolved market has no live pool, so the settled payout has to take precedence — same
       // rule `buildPortfolioPositions` uses, and the reason an earlier version zeroed real positions.
+      // Redundant with the seeded ratios wherever both apply, and they agree there by construction.
       const redeemedByToken: Record<string, number> = {};
       tokens.forEach((tokenId, index) => {
         redeemedByToken[tokenId] = getRedeemedPrice(market, index);

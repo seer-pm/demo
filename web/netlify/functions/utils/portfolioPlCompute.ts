@@ -2,7 +2,7 @@ import type { PortfolioPosition, SupportedChain, Token } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, zeroAddress } from "viem";
-import { buildPortfolioPositionsFromBalances } from "./buildPortfolioPositions";
+import { buildPortfolioPositionsFromBalances, outcomePriceInputsForPositions } from "./buildPortfolioPositions";
 import { getPublicClientByChainId } from "./config";
 import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
 import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
@@ -13,6 +13,7 @@ import {
   type CollateralPriceByMarketId,
   computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents,
 } from "./netPrimaryCollateralSwapFlow";
+import { settledPayoutRatios } from "./outcomePrices";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
 import {
   type ConditionalEventRow,
@@ -474,10 +475,21 @@ export async function computePortfolioPlAllPeriods(
     computePositionsAtStartByPeriod(positions, account, chainId, startTimeByPeriod),
   );
 
+  // Chained through the parents, exactly like the current prices in `buildPortfolioPositionsCore`:
+  // `valueStart` and `valueEnd` have to agree on what a conditional is quoted against, or the
+  // difference between them is an artefact. Every position is priced, zero-balance ones included —
+  // a token at zero today may have been held at the window start.
+  const priceInputs = await outcomePriceInputsForPositions(positions, chainId, markets);
   const historyPricesByPeriod = await timed(timings, "historyPrices", () =>
     Promise.all(
       PORTFOLIO_PL_PERIODS.map((p) =>
-        getHistoryTokensPricesForPortfolio(supabase, positions, chainId, startTimeByPeriod[p]),
+        getHistoryTokensPricesForPortfolio(
+          supabase,
+          priceInputs.tokens,
+          chainId,
+          startTimeByPeriod[p],
+          settledPayoutRatios(priceInputs.markets, startTimeByPeriod[p]),
+        ),
       ),
     ),
   );

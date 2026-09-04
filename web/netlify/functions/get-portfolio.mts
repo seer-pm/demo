@@ -95,10 +95,11 @@ export default async (req: Request) => {
       return jsonError(firstProfileError ?? "Invalid collateral profile", 400);
     }
 
-    // `:v2` marks the executor-merged payload format. Blobs written before executors were merged in
-    // hold account-only positions and carry no version of their own, and freshness is a timestamp
-    // comparison — so without this they read as fresh and serve the pre-fix view for a further TTL.
-    const cacheKey = `${account.toLowerCase()}:${profileName}:v2`;
+    // `:v3` marks the conditional-pricing fix. Older blobs hold positions of markets whose parent
+    // branch already lost, priced relative to the parent outcome as if that were collateral, and
+    // freshness is a timestamp comparison — so without this they read as fresh and serve the
+    // pre-fix view for a further TTL. `:v2` did the same for the executor-merged payload format.
+    const cacheKey = `${account.toLowerCase()}:${profileName}:v3`;
 
     // Resolved first: freshness has to cover the executors too, or a wallet that only trades through
     // one never invalidates its own cache. The probe is memoized, so this is usually free.
@@ -142,7 +143,10 @@ export default async (req: Request) => {
       positions = filterPositionsByChain(computed.positions, chainParsed.chainId);
     }
 
-    return jsonOk(positions);
+    // Hidden here and not in the builder: the rows still have to exist for `get-portfolio-pl`,
+    // which reconstructs each window's opening positions from the current ones. The blob keeps them
+    // too, so a cache hit can re-derive the flag when a parent settles mid-TTL.
+    return jsonOk(positions.filter((position) => !position.isWorthless));
   } catch (e) {
     console.log(e);
     return jsonError((e as Error).message || "Internal server error", 500);

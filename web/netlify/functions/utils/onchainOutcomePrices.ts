@@ -139,10 +139,14 @@ async function fetchPairMidsOnChain(chainId: SupportedChain, pairs: Token0Token1
  * the market — fine for history, wrong for "now". Pools that cannot be read (never deployed, revert)
  * leave that outcome at 0 rather than falling back to a stale candle. A dead RPC still throws
  * because `multicall` itself fails.
+ *
+ * `settledRatioByToken` (optional) supplies payout ratios for markets that have already resolved
+ * and takes precedence over the pool — see `mapOutcomePrices`.
  */
 export async function getCurrentOutcomePrices(
   tokens: OutcomePriceToken[],
   chainId: SupportedChain,
+  settledRatioByToken?: Record<string, number>,
 ): Promise<Record<string, number>> {
   const pairs = outcomePairs(tokens);
   if (pairs.length === 0) {
@@ -150,5 +154,5 @@ export async function getCurrentOutcomePrices(
   }
 
   const mids = await fetchPairMidsOnChain(chainId, pairs);
-  return mapOutcomePrices(tokens, mids);
+  return mapOutcomePrices(tokens, mids, settledRatioByToken);
 }
