@@ -12,7 +12,7 @@ import {
 } from "./utils/portfolioBlobCache";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 
-const PORTFOLIO_POSITIONS_STORE = "portfolio-positions";
+const PORTFOLIO_POSITIONS_STORE = "portfolio-positions-v2";
 
 type PositionsCachePayload = ActivityCachedPayload<{ positions: PortfolioPosition[] }>;
 

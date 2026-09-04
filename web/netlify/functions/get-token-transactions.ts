@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { tokensTransfersRowToTransfer } from "./utils/airdropCalculation/getAllTransfers";
+import { getLiquidityHolders, mergeTokenHolders } from "./utils/marketLiquidityHolders";
 import { getMarketByChainAndId } from "./utils/markets";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
@@ -178,7 +179,16 @@ export default async (req: Request) => {
       );
     }
 
-    const topHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds);
+    const directHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds);
+    let topHolders = directHolders;
+    if (market) {
+      try {
+        const liquidity = await getLiquidityHolders([market]);
+        topHolders = mergeTokenHolders(directHolders, liquidity.holders, liquidity.poolAddresses);
+      } catch (e) {
+        console.error("get-token-transactions: liquidity holders", e);
+      }
+    }
 
     const { outcomeBatch, mergedWithPrimary } = await getRecentTransactions(
       effectiveTokenIds,
