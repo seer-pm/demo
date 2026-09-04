@@ -297,13 +297,19 @@ export default async (req: Request) => {
   try {
     // Global: materialized leaderboard only (no live compute). USD.
     if (!marketIds?.length) {
+      const identity = await resolvePortfolioIdentity(account);
       return jsonOk(
         await portfolioPlFromLeaderboard({
-          identity: await resolvePortfolioIdentity(account),
+          identity,
           chainId: chainParsed.chainId,
           period,
           endTime,
         }),
+        // An incomplete identity narrows the `IN` list to the EOA and so reports the P/L of what the
+        // owner did with its own hands — the very bug the wallet-set read exists to fix. That does
+        // not throw, so it never reaches the `no-store` path below; caching it for a minute would
+        // publish the wrong number under the merged tables.
+        identity.complete ? undefined : "no-store",
       );
     }
 

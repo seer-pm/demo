@@ -45,6 +45,14 @@ export type PortfolioIdentity = {
   walletsForChain: (chainId: SupportedChain) => Address[];
   /** True for a wallet in the set that is not the requested account. */
   isExecutor: (address: string) => boolean;
+  /**
+   * False when a probe failed, i.e. the set may be missing an executor that does exist.
+   *
+   * Exposed because "this owner has no executors" and "we could not find out" have to be cached
+   * differently: the memo below already refuses to hold an incomplete answer for five minutes, and a
+   * caller that then writes it to a blob or hands it to the CDN reinstates that freeze one layer out.
+   */
+  complete: boolean;
 };
 
 const IDENTITY_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -97,7 +105,11 @@ async function deployedExecutors(
   };
 }
 
-function buildIdentity(account: Address, executorsByChain: Map<number, Address[]>): PortfolioIdentity {
+function buildIdentity(
+  account: Address,
+  executorsByChain: Map<number, Address[]>,
+  complete: boolean,
+): PortfolioIdentity {
   const executors = [...executorsByChain.values()].flat();
   const wallets = [...new Set([account, ...executors])];
   const executorSet = new Set(executors);
@@ -106,11 +118,12 @@ function buildIdentity(account: Address, executorsByChain: Map<number, Address[]
     wallets,
     walletsForChain: (chainId) => [account, ...(executorsByChain.get(chainId) ?? [])],
     isExecutor: (address) => executorSet.has(address.toLowerCase() as Address),
+    complete,
   };
 }
 
-/** `complete` is false when any probe failed, i.e. the set may be missing an executor. */
-async function probeIdentity(account: Address): Promise<{ identity: PortfolioIdentity; complete: boolean }> {
+/** `identity.complete` is false when any probe failed, i.e. the set may be missing an executor. */
+async function probeIdentity(account: Address): Promise<PortfolioIdentity> {
   const chains = TRADE_EXECUTOR_CHAIN_IDS.map((chainId) => ({
     chainId,
     config: getTradeExecutorConfig(chainId),
@@ -133,7 +146,7 @@ async function probeIdentity(account: Address): Promise<{ identity: PortfolioIde
     }
   });
 
-  return { identity: buildIdentity(account, executorsByChain), complete };
+  return buildIdentity(account, executorsByChain, complete);
 }
 
 /**
@@ -159,10 +172,10 @@ export function resolvePortfolioIdentity(account: Address): Promise<PortfolioIde
       // Never fail a portfolio request because executor discovery did: fall back to the account
       // alone, which is what the endpoints did before executors were merged in.
       console.warn("portfolioIdentity: falling back to the account alone", { account: accountLc, error });
-      return { identity: buildIdentity(accountLc, new Map()), complete: false };
+      return buildIdentity(accountLc, new Map(), false);
     })
-    .then(({ identity, complete }) => {
-      if (!complete) identityCache.delete(accountLc);
+    .then((identity) => {
+      if (!identity.complete) identityCache.delete(accountLc);
       return identity;
     });
 

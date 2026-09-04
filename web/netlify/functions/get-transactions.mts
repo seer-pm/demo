@@ -84,7 +84,7 @@ async function getEvents(mappings: MarketDataMapping | null, account: Address, c
 async function getTransactions(
   wallets: Address[],
   chainId: SupportedChain,
-): Promise<{ transactions: TransactionData[]; failedWallets: Address[] }> {
+): Promise<{ transactions: TransactionData[]; failedWallets: Address[]; okWallets: number }> {
   const started = Date.now();
   // Per wallet, so one executor's failed market load degrades the merged view instead of failing
   // the chain. A failed `getMappingsCached` below is chain-wide and does reject.
@@ -142,7 +142,7 @@ async function getTransactions(
       tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
     };
   });
-  return { transactions, failedWallets };
+  return { transactions, failedWallets, okWallets: ok.length };
 }
 
 /**
@@ -202,17 +202,25 @@ async function computeAllChainTransactions(
   const results = await Promise.allSettled(chainIds.map((id) => getTransactions(identity.walletsForChain(id), id)));
   const transactions: TransactionData[] = [];
   let failures = 0;
+  let okWallets = 0;
   for (const result of results) {
     if (result.status === "fulfilled") {
       transactions.push(...result.value.transactions);
       // A degraded wallet still counts as a failure so the partial result is never cached.
       failures += result.value.failedWallets.length;
+      okWallets += result.value.okWallets;
     } else {
       failures += 1;
       console.warn("get-transactions: chain compute failed", result.reason);
     }
   }
-  if (results.every((result) => result.status === "rejected")) {
+  // Chain-level rejection is no longer the only way to load nothing: `getTransactions` catches its
+  // market loads per wallet, so a total indexer outage *fulfills* every chain with an empty list and
+  // a full `failedWallets`. Counting the wallets that actually loaded is what separates "this
+  // account has no transactions" from "we could not read any of them"; without it the second one
+  // renders as an empty history rather than an error. An account with genuinely no rows still
+  // counts here — `loadAccountMarkets` resolves to `[]` and the wallet is one that loaded.
+  if (results.every((result) => result.status === "rejected") || okWallets === 0) {
     throw new Error("Failed to load transactions on all chains");
   }
   return { transactions: sortTransactions(dedupeTransactions(transactions)), failures };
@@ -276,7 +284,10 @@ export default async (req: Request) => {
     // — but freshness must be judged over the whole set, or a wallet that only trades through its
     // executor never invalidates its own cache.
     const identity = await resolvePortfolioIdentity(account);
-    const cacheKey = account.toLowerCase();
+    // `:v2` marks the executor-merged payload format. Blobs written before executors were merged in
+    // hold account-only rows and carry no version of their own, and freshness is a timestamp
+    // comparison — so without this they read as fresh and serve the pre-fix view for a further TTL.
+    const cacheKey = `${account.toLowerCase()}:v2`;
     const cached = await readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey);
     let lastActivityTs: number | undefined;
     try {
@@ -296,7 +307,10 @@ export default async (req: Request) => {
     } else {
       const computed = await computeAllChainTransactions(identity);
       transactions = computed.transactions;
-      if (computed.failures === 0 && lastActivityTs !== undefined) {
+      // `identity.complete` because a degraded identity has no executor wallets left to fail: every
+      // chain succeeds over the reduced set, `failures` is 0, and the executor-free payload would be
+      // frozen for the full TTL — the partial result the identity contract says not to freeze.
+      if (computed.failures === 0 && identity.complete && lastActivityTs !== undefined) {
         await writeJsonBlob(PORTFOLIO_TRANSACTIONS_STORE, cacheKey, {
           cachedAt: Date.now(),
           lastActivityTs,

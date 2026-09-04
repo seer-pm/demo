@@ -169,7 +169,9 @@ export default async (req: Request) => {
         status: 200,
         headers: {
           "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=60",
+          // Same reasoning as the other portfolio endpoints: an incomplete identity is a value
+          // computed over the EOA alone, and publishing that for a minute is the pre-executor bug.
+          "Cache-Control": identity.complete ? "public, max-age=60" : "no-store",
         },
       },
     );

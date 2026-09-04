@@ -95,22 +95,44 @@ export default async (req: Request) => {
       return jsonError(firstProfileError ?? "Invalid collateral profile", 400);
     }
 
-    const cacheKey = `${account.toLowerCase()}:${profileName}`;
+    // `:v2` marks the executor-merged payload format. Blobs written before executors were merged in
+    // hold account-only positions and carry no version of their own, and freshness is a timestamp
+    // comparison — so without this they read as fresh and serve the pre-fix view for a further TTL.
+    const cacheKey = `${account.toLowerCase()}:${profileName}:v2`;
 
     // Resolved first: freshness has to cover the executors too, or a wallet that only trades through
     // one never invalidates its own cache. The probe is memoized, so this is usually free.
     const identity = await resolvePortfolioIdentity(account);
     const [cached, lastActivityTs] = await Promise.all([
       readJsonBlob<PositionsCachePayload>(PORTFOLIO_POSITIONS_STORE, cacheKey),
-      fetchLastActivityTimestampForWallets(identity.wallets),
+      // Caught here rather than around the `Promise.all`: the probe now fans out over the wallet set
+      // and its own `Promise.all` rejects if any single wallet's indexer query does, and a rejection
+      // reaching the outer await would 500 the request while discarding the blob read beside it.
+      fetchLastActivityTimestampForWallets(identity.wallets).then(
+        (ts): number | undefined => ts,
+        (error): number | undefined => {
+          console.warn("get-portfolio: last activity lookup failed", error);
+          return undefined;
+        },
+      ),
     ]);
 
+    // With the probe down, judge the blob against its own stored timestamp: serving a slightly stale
+    // portfolio beats recomputing every wallet on every request for the length of an indexer outage.
+    const activityTsForFreshness = lastActivityTs ?? cached?.lastActivityTs;
     let positions: PortfolioPosition[];
-    if (isActivityCacheFresh(cached, lastActivityTs) && Array.isArray(cached.positions)) {
+    if (
+      activityTsForFreshness !== undefined &&
+      isActivityCacheFresh(cached, activityTsForFreshness) &&
+      Array.isArray(cached.positions)
+    ) {
       positions = await repricePortfolioPositions(filterPositionsByChain(cached.positions, chainParsed.chainId));
     } else {
       const computed = await computeAllChainPositions(identity, resolvedChains);
-      if (computed.failures === 0) {
+      // `identity.complete` because a degraded identity has no executor wallets left to fail: every
+      // chain succeeds over the reduced set, `failures` is 0, and the executor-free payload would be
+      // frozen for the full TTL — the partial result the identity contract says not to freeze.
+      if (computed.failures === 0 && identity.complete && lastActivityTs !== undefined) {
         await writeJsonBlob(PORTFOLIO_POSITIONS_STORE, cacheKey, {
           cachedAt: Date.now(),
           lastActivityTs,

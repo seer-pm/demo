@@ -46,6 +46,7 @@ describe("resolvePortfolioIdentity", () => {
     expect(identity.walletsForChain(optimism.id)).toEqual([OWNER, ...OP_EXECUTORS]);
     expect(OP_EXECUTORS.every((executor) => identity.isExecutor(executor))).toBe(true);
     expect(identity.isExecutor(OWNER)).toBe(false);
+    expect(identity.complete).toBe(true);
   });
 
   it("drops a predicted address that was never deployed", async () => {
@@ -59,6 +60,9 @@ describe("resolvePortfolioIdentity", () => {
     const identity = await resolvePortfolioIdentity(OWNER);
     expect(identity.wallets).toEqual([OWNER]);
     expect(identity.walletsForChain(optimism.id)).toEqual([OWNER]);
+    // Complete: an empty answer we actually established, which callers may cache. The contrast with
+    // the failing probes below is the whole point of the flag.
+    expect(identity.complete).toBe(true);
   });
 
   it("scopes executors to their own chain", async () => {
@@ -78,12 +82,15 @@ describe("resolvePortfolioIdentity", () => {
     });
     const identity = await resolvePortfolioIdentity(OWNER);
     expect(identity.wallets).toEqual([OWNER, ...OP_EXECUTORS]);
+    // Gnosis may well have executors we never saw, so this set is not cacheable.
+    expect(identity.complete).toBe(false);
   });
 
   it("degrades to the account alone when every probe throws", async () => {
     getCode.mockRejectedValue(new Error("rpc down"));
     const identity = await resolvePortfolioIdentity(OWNER);
     expect(identity.wallets).toEqual([OWNER]);
+    expect(identity.complete).toBe(false);
   });
 
   it("does not canonicalize an executor address to its owner", async () => {

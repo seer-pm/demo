@@ -26,8 +26,11 @@ export default async (req: Request) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        // Deployment is a one-way event and the probe is cheap; a short edge cache is plenty.
-        "Cache-Control": "public, max-age=300",
+        // Deployment is a one-way event and the probe is cheap; a short edge cache is plenty — but
+        // only for an answer we actually have. `resolvePortfolioIdentity` deliberately refuses to
+        // memoize a degraded probe, and handing that same `executors: []` to the CDN for five
+        // minutes would reinstate exactly the freeze it declined to hold.
+        "Cache-Control": identity.complete ? "public, max-age=300" : "no-store",
       },
     });
   } catch (e) {
