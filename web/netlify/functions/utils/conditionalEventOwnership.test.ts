@@ -9,7 +9,11 @@ vi.mock("./envioClient", () => ({
   seerEnvioSdk: () => ({ GetTransfers, GetConditionalEvents }),
 }));
 
-import { fetchConditionalEventsByTransactions, fetchRouterCollateralTransactionHashes } from "./seerIndexerPortfolio";
+import {
+  fetchConditionalEventsByTransactions,
+  fetchConditionalEventsForAccountWidened,
+  fetchRouterCollateralTransactionHashes,
+} from "./seerIndexerPortfolio";
 
 const EXECUTOR = "0x2771980e5252204e526745acf056d4a6e2299df0" as Address;
 const ROUTER = "0x179d8f8c811b8c759c33809dbc6c5cedc62d05dd";
@@ -102,5 +106,69 @@ describe("fetchConditionalEventsByTransactions", () => {
       ConditionalEvent: [{ ...conditionalEvent(TX_A, "0xa"), market: null }],
     });
     expect(await fetchConditionalEventsByTransactions(10 as never, [TX_A])).toEqual([]);
+  });
+});
+
+describe("fetchConditionalEventsForAccountWidened", () => {
+  it("keeps a leg booked to the relayer, which the accountId filter alone drops", async () => {
+    // What the executor's own `accountId` query returns: nothing. `resolveAccountId` booked the
+    // event to the EOA that signed for the relayer.
+    GetConditionalEvents.mockResolvedValueOnce({ ConditionalEvent: [] });
+    GetTransfers.mockResolvedValueOnce({ Transfer: [transfer(TX_A, EXECUTOR, ROUTER)] });
+    GetConditionalEvents.mockResolvedValueOnce({
+      ConditionalEvent: [
+        { ...conditionalEvent(TX_A, "0xaaaa000000000000000000000000000000000001"), accountId: RELAYER },
+      ],
+    });
+
+    const events = await fetchConditionalEventsForAccountWidened(EXECUTOR, 10 as never, PRIMARY);
+
+    expect(events).toHaveLength(1);
+    expect(events[0].transactionHash).toBe(TX_A);
+    expect(events[0].amount).toBe(750n * 10n ** 18n);
+  });
+
+  it("counts a leg both signals find exactly once", async () => {
+    const shared = conditionalEvent(TX_A, "0xaaaa000000000000000000000000000000000001");
+    GetConditionalEvents.mockResolvedValueOnce({ ConditionalEvent: [shared] });
+    GetTransfers.mockResolvedValueOnce({ Transfer: [transfer(TX_A, EXECUTOR, ROUTER)] });
+    GetConditionalEvents.mockResolvedValueOnce({ ConditionalEvent: [shared] });
+
+    const events = await fetchConditionalEventsForAccountWidened(EXECUTOR, 10 as never, PRIMARY);
+
+    expect(events).toHaveLength(1);
+    expect(events[0].id).toBe(shared.id);
+  });
+
+  it("still returns the accountId legs when no collateral ever moved through a router", async () => {
+    GetConditionalEvents.mockResolvedValueOnce({
+      ConditionalEvent: [conditionalEvent(TX_B, "0xaaaa000000000000000000000000000000000002")],
+    });
+    GetTransfers.mockResolvedValueOnce({ Transfer: [] });
+
+    const events = await fetchConditionalEventsForAccountWidened(EXECUTOR, 10 as never, PRIMARY);
+
+    expect(events).toHaveLength(1);
+    expect(events[0].transactionHash).toBe(TX_B);
+    // No transactions to ask about, so the second query is never issued.
+    expect(GetConditionalEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes the same window to both halves of the union", async () => {
+    GetConditionalEvents.mockResolvedValueOnce({ ConditionalEvent: [] });
+    GetTransfers.mockResolvedValueOnce({ Transfer: [transfer(TX_A, EXECUTOR, ROUTER)] });
+    GetConditionalEvents.mockResolvedValueOnce({ ConditionalEvent: [] });
+
+    await fetchConditionalEventsForAccountWidened(EXECUTOR, 10 as never, PRIMARY, {
+      startTime: 100,
+      endTime: 900,
+    });
+
+    const window = { _gt: "100", _lte: "900" };
+    expect(GetConditionalEvents.mock.calls[0][0].where.timestamp).toEqual(window);
+    expect(GetConditionalEvents.mock.calls[1][0].where.timestamp).toEqual(window);
+    // The router scan is cumulative to `endTime`: a split before the window can be what the redeem
+    // inside it settles, and the transaction list is only used to test ownership.
+    expect(GetTransfers.mock.calls[0][0].where.timestamp).toEqual({ _lte: "900" });
   });
 });
