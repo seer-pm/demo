@@ -23,7 +23,7 @@ const actionButtonActive = "text-sd-color-active";
 const UNDO_MS = 5000;
 
 export default function Post({ post, showPfp = true, showCta = true, characterLimit = null }: PostProps) {
-  const { user, client, onRequestConnect, components } = useDiscussions();
+  const { user, client, positionsByAddress, onRequestConnect, components } = useDiscussions();
   const Button = components.Button;
   const UserPositionBadge = components.UserPositionBadge;
   const [editPost, setEditPost] = useState(false);
@@ -152,7 +152,10 @@ export default function Post({ post, showPfp = true, showCta = true, characterLi
                 <span className="truncate text-[15px] font-medium text-sd-color-main">
                   <Username details={post.authorDetails} />
                 </span>
-                {UserPositionBadge && <UserPositionBadge user={post.authorDetails} />}
+                <UserPositionBadge
+                  user={post.authorDetails}
+                  positions={positionsByAddress.get(post.authorDetails.address.toLowerCase()) ?? []}
+                />
               </div>
               <div className="sd-timestamp-mobile mr-2 flex shrink-0 items-center justify-self-end text-[12px] font-normal text-sd-color-secondary">
                 <TimeAgo style={{ display: "flex", fontSize: 12 }} date={post.createdAt * 1000} locale="en-US" />
