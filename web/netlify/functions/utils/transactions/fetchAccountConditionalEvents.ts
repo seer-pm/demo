@@ -25,10 +25,14 @@ import {
  * market only a sibling executor touched, and the same redeem would then be shown under one market
  * and counted under another.
  *
- * Known limit, inherited from the P/L: reading a router transaction whole assumes it carries one
- * user's operation. It holds for the relayers seen so far — the deduped leg amounts reconcile
- * exactly against the account's own router transfers — but a relayer that ever batched two
- * executors into one transaction would show each the other's rows.
+ * Reading a router transaction whole is correct because one router transaction carries one wallet's
+ * operation: a TradeExecutor belongs to a single owner and is signed by that owner, so nothing
+ * batches two wallets into one transaction, and the deduped leg amounts reconcile exactly against
+ * the account's own router transfers. `conditionalEventStakeholderIsForeign` covers the case that
+ * invariant does not — a third party calling the CTF directly in the same transaction — but it
+ * cannot separate two wallets that both went through the router, since the CTF books the router as
+ * the stakeholder for both. A relayer that ever drove two wallets in one transaction would need
+ * ownership resolved per leg, against the parties of that transaction's collateral transfers.
  */
 export async function fetchAccountConditionalTransactions(
   account: Address,

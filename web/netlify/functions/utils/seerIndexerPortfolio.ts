@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import type { PortfolioPosition, SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
+import { getRouterAddresses } from "@seer-pm/sdk";
 import { unescapeJson } from "@seer-pm/sdk/market";
 import { Order_By } from "@seer-pm/sdk/subgraph/seer";
 import { type Address, formatUnits } from "viem";
@@ -360,6 +361,11 @@ export type ConditionalEventRow = {
   marketEntityId: string;
   marketName: string;
   eventType: "split" | "merge" | "redeem";
+  /**
+   * CTF-level party: a router when the leg went through one, the wallet itself for a direct call.
+   * Optional because only the ownership guard reads it, and that guard fails open without it.
+   */
+  stakeholder?: string;
   amount: bigint;
   collateral: Address;
   timestamp: number;
@@ -434,6 +440,7 @@ export async function fetchConditionalEventsForAccount(
           marketEntityId: row.market.id,
           marketName: unescapeJson(row.market.marketName),
           eventType: row.eventType as "split" | "merge" | "redeem",
+          stakeholder: row.stakeholder,
           amount: BigInt(row.amount),
           collateral: row.collateral as Address,
           timestamp: Number(row.timestamp),
@@ -490,6 +497,7 @@ export async function fetchConditionalEventsByTransactions(
           marketEntityId: row.market.id,
           marketName: unescapeJson(row.market.marketName),
           eventType: row.eventType as "split" | "merge" | "redeem",
+          stakeholder: row.stakeholder,
           amount: BigInt(row.amount),
           collateral: row.collateral as Address,
           timestamp: Number(row.timestamp),
@@ -504,6 +512,44 @@ export async function fetchConditionalEventsByTransactions(
   return out;
 }
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+const routerAddressSetByChain = new Map<number, Set<string>>();
+
+/** Lowercased Seer routers on `chainId`, built once — the guard runs per event. */
+function routerAddressSet(chainId: SupportedChain): Set<string> {
+  let set = routerAddressSetByChain.get(chainId);
+  if (!set) {
+    set = new Set(getRouterAddresses(chainId).map((router) => router.toLowerCase()));
+    routerAddressSetByChain.set(chainId, set);
+  }
+  return set;
+}
+
+/**
+ * Positive evidence that a leg found *by transaction* is someone else's.
+ *
+ * `stakeholder` is the CTF-level party, the raw event field `resolveAccountId` never rewrites: a
+ * router when the leg went through one — the case the transfer signal exists to resolve — and the
+ * wallet itself for a direct CTF call. Sampled against the indexer, every event whose stakeholder
+ * is not a router carries `accountId === stakeholder` (6k rows, two stakeholders, one `accountId`
+ * each), so a foreign non-router stakeholder names the real owner and this leg was only swept in by
+ * the transaction filter.
+ *
+ * Fails open: an empty or zero stakeholder keeps the leg and leaves ownership to the transfer
+ * signal, rather than dropping a leg on a guess.
+ */
+export function conditionalEventStakeholderIsForeign(
+  event: Pick<ConditionalEventRow, "stakeholder">,
+  account: Address,
+  chainId: SupportedChain,
+): boolean {
+  const stakeholder = event.stakeholder?.toLowerCase();
+  if (!stakeholder || stakeholder === ZERO_ADDRESS) return false;
+  if (stakeholder === account.toLowerCase()) return false;
+  return !routerAddressSet(chainId).has(stakeholder);
+}
+
 /**
  * Split/merge/redeem legs belonging to this account, under the union of both ownership signals.
  *
@@ -515,8 +561,10 @@ export async function fetchConditionalEventsByTransactions(
  *   books the event to the signing EOA instead of to the executor whose money moved.
  *
  * Deduped by event id, so a leg that both signals find is counted once. Amounts and markets always
- * come from the event itself; only the ownership test is widened. Callers that need per-market sums
- * must still collapse the indexer's market fan-out with `dedupeConditionalEventLegs`.
+ * come from the event itself; only the ownership test is widened. The transaction signal is narrowed
+ * back by `conditionalEventStakeholderIsForeign`, which drops a leg the CTF booked to a third party.
+ * Callers that need per-market sums must still collapse the indexer's market fan-out with
+ * `dedupeConditionalEventLegs`.
  */
 export async function fetchConditionalEventsForAccountWidened(
   account: Address,
@@ -540,11 +588,16 @@ export async function fetchConditionalEventsForAccountWidened(
       ...window,
       marketAddresses: opts?.marketAddresses,
     }),
-    // The transfer follows the money, so its transactions are the reliable ownership signal; the
-    // events in them are then read whole, since one router transaction is one user's operation.
+    // The transfer follows the money, so its transactions are the reliable ownership signal.
     fetchRouterCollateralTransactionHashes(account, chainId, primaryCollateral, endTime, opts?.routerTransfers),
   ]);
-  const byTransaction = await fetchConditionalEventsByTransactions(chainId, routerTxHashes, window);
+  // Those transactions are then read whole, because one router transaction carries one wallet's
+  // operation: a TradeExecutor belongs to a single owner and is signed by that owner, so no relayer
+  // ever batches two wallets into one transaction. `stakeholder` still rejects the one leg that
+  // assumption does not cover — a third party calling the CTF directly in the same transaction.
+  const byTransaction = (await fetchConditionalEventsByTransactions(chainId, routerTxHashes, window)).filter(
+    (event) => !conditionalEventStakeholderIsForeign(event, account, chainId),
+  );
 
   const byId = new Map<string, ConditionalEventRow>();
   for (const event of [...byAccount, ...byTransaction]) {
