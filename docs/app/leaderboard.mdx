@@ -4,6 +4,12 @@ title: "Leaderboard and Trader Score"
 
 The [leaderboard](https://app.seer.pm/leaderboard) ranks wallets by their trading profit and loss, in USD, across Seer markets. Alongside P/L, volume, ROI and traded markets, each wallet carries a **Trader Score**.
 
+Only wallets that did something are listed. A wallet with no P/L, no volume, no capital at risk and
+no traded markets in the selected period, app and chain is left off the board entirely rather than
+shown as a row of zeros — widening the period (24h → All time) brings its earlier activity back.
+That is a different thing from the **N/A** score explained below, which marks a wallet that *is* on
+the board but has too little history to be scored.
+
 ## What the Trader Score is
 
 A 0–100 rating of how a wallet traded the markets in a period, derived from its per-market profit and loss distribution.

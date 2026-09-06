@@ -268,6 +268,27 @@ describe("deriveLeaderboardRows", () => {
     expect(new Set(rows.map((r) => r.app_id))).toEqual(new Set(["all", "foresight:movies-1"]));
   });
 
+  it("still emits every row for a wallet that did nothing", () => {
+    // Deliberate, and not a candidate for an `isEmptyBucket` guard like `buildMarketRows` has: the
+    // all-zero row is the refresh watermark. `selectStaleLeaderboardBatch` reads its `updated_at`,
+    // and `refreshPriority` reads a missing row as "never materialized" — the front of the queue.
+    // Skipping the write would park every inactive wallet there permanently, ahead of the traders.
+    const idle = deriveLeaderboardRows({
+      address: "0xABCDEF0000000000000000000000000000000002",
+      chainId: 100,
+      byMarketPeriod: perPeriod([]),
+      scopes: [
+        { appId: "all", marketIds: undefined },
+        { appId: "foresight:movies-1", marketIds: new Set([A]) },
+      ],
+      collateralPriceUsd: 2,
+      writtenAt: "2026-08-28T00:00:00.000Z",
+    });
+
+    expect(idle).toHaveLength(2 * PORTFOLIO_PL_PERIODS.length);
+    expect(idle.every((r) => r.pnl_usd === 0 && r.volume_usd === 0 && r.market_count === 0)).toBe(true);
+  });
+
   it("gives the app board only its own markets, from the same buckets", () => {
     const app = rows.find((r) => r.app_id === "foresight:movies-1" && r.period === "all")!;
     const all = rows.find((r) => r.app_id === "all" && r.period === "all")!;

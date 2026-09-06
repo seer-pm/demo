@@ -432,9 +432,43 @@ export function aggregateRowsAcrossChains(rows: RolledUpLeaderboardRow[]): Rolle
   });
 }
 
-/** Match a hex fragment against any merged wallet, not only the canonical row address. */
+/**
+ * Does a rolled-up row say anything at all?
+ *
+ * `deriveLeaderboardRows` emits one row per (wallet, scope, period) unconditionally, over a
+ * candidate list that is every address with any indexed transaction on the chain — so most of
+ * `pnl_leaderboard` is zero in every column. Those rows rank last, but they still take up a page
+ * slot, a rank, and a place in `total`.
+ *
+ * Capital is in the test, not only pnl and marketCount as in `get-market-pnl-leaderboard`: a router
+ * split deploys collateral while `traded` stays false, and a wallet that closed the window exactly
+ * flat still has real volume and a real ROI denominator. Capital also subsumes the score —
+ * `scoredCapitalUsd` is `capitalUsd` restricted to the above-dust markets — so no scored wallet can
+ * be filtered out here.
+ *
+ * Runs on rolled-up rows only. A *materialized* row is asymmetric by design (an executor's row
+ * holds the totals, its owner's holds `marketCount` and the score statistics, `ZERO_GROUP_STATS`),
+ * so testing a raw DB row before `rollUpRows` would drop a contributing half.
+ */
+export function hasLeaderboardActivity(row: {
+  pnlUsd: number;
+  volumeUsd: number;
+  capitalUsd: number;
+  marketCount: number;
+}): boolean {
+  return row.pnlUsd !== 0 || row.volumeUsd !== 0 || row.capitalUsd !== 0 || row.marketCount > 0;
+}
+
+/**
+ * Match a hex fragment against the row address or any merged wallet.
+ *
+ * The row address is tested on its own because it need not be among the members: the reader drops
+ * rows that are zero in every column at load time, so a group whose owner never traded on its own
+ * address is keyed under that owner while `members` holds only the executors. `rankForAddress`
+ * carries the same guard.
+ */
 export function matchesAddressSearch(row: RolledUpLeaderboardRow, searchHex: string): boolean {
-  return row.members.some((member) => member.includes(searchHex));
+  return row.address.includes(searchHex) || row.members.some((member) => member.includes(searchHex));
 }
 
 export function rankForAddress(

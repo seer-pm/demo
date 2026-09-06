@@ -72,6 +72,22 @@ CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_pnl_usd_idx
 CREATE INDEX IF NOT EXISTS pnl_leaderboard_app_chain_period_updated_at_idx
   ON public.pnl_leaderboard (app_id, chain_id, period, updated_at);
 
+-- The public reader loads only rows that say something (get-pnl-leaderboard `loadMaterializedRows`
+-- / `hasLeaderboardActivity`). The table itself is mostly zeros: the refresh writes one row per
+-- (wallet, scope, period) for every address with any indexed transaction on the chain, and those
+-- rows are kept on purpose -- `selectStaleLeaderboardBatch` reads their updated_at as the refresh
+-- watermark, and a missing row means "never materialized", the front of the queue. Ordered by
+-- address so the reader's paging never visits the zero rows. Keep the WHERE clause identical to the
+-- endpoint's `.or(...)`, or the planner cannot prove implication and falls back to a seq scan.
+CREATE INDEX IF NOT EXISTS pnl_leaderboard_active_app_period_address_idx
+  ON public.pnl_leaderboard (app_id, period, address)
+  WHERE pnl_usd <> 0 OR volume_usd <> 0 OR capital_deployed <> 0 OR market_count > 0 OR scored_capital_usd <> 0;
+
+-- Same, for the single-chain view (the default: chainId falls back to DEFAULT_CHAIN).
+CREATE INDEX IF NOT EXISTS pnl_leaderboard_active_app_chain_period_address_idx
+  ON public.pnl_leaderboard (app_id, chain_id, period, address)
+  WHERE pnl_usd <> 0 OR volume_usd <> 0 OR capital_deployed <> 0 OR market_count > 0 OR scored_capital_usd <> 0;
+
 COMMENT ON TABLE public.pnl_leaderboard IS
   'Materialized wallet PnL for Seer app leaderboards. Native pnl/volume/capital_deployed stored for audit; public rankings use pnl_usd / volume_usd (spot collateral USD at refresh). roi = pnl_usd / capital_deployed_usd (peak capital at risk, including the position open at window start); NULL when capital < $0.01. market_count = distinct markets with a market-collateral swap leg in the row period; like the score inputs it is written on the owner row for a whole TradeExecutor group, with the executors'' rows at zero, because it is a count and not additive. scored_market_count / winning_market_count / gross_profit_usd / gross_loss_usd / best_market_pnl_usd / scored_capital_usd are the trader score inputs, all over the same set of markets above the USD dust threshold (scored_capital_usd is the score''s own capital denominator, narrower than capital_deployed); the score is derived at read time from the merged totals and, like roi, is never stored.';
 

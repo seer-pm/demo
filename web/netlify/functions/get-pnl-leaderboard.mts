@@ -18,6 +18,7 @@ import {
   type MaterializedLeaderboardRow,
   type RolledUpLeaderboardRow,
   aggregateRowsAcrossChains,
+  hasLeaderboardActivity,
   matchesAddressSearch,
   rankForAddress,
   rollUpRows,
@@ -167,6 +168,14 @@ async function loadMaterializedRows(args: {
       )
       .in("app_id", args.appIds)
       .eq("period", args.period)
+      // Rows zero in every column contribute nothing to any merge and are dropped after the rollup
+      // anyway (`hasLeaderboardActivity`); not loading them is most of this query, because the
+      // refresh writes one row per (wallet, scope, period) for every address with any indexed
+      // transaction on the chain. Wider than that filter on purpose: this runs on *materialized*
+      // rows, where a TradeExecutor group splits its numbers across members, so `scored_capital_usd`
+      // keeps the owner row of a group that traded only conditional markets — `market_count` and the
+      // additive totals are zero there while the score statistics are not.
+      .or("pnl_usd.neq.0,volume_usd.neq.0,capital_deployed.neq.0,market_count.gt.0,scored_capital_usd.neq.0")
       .order("address", { ascending: true })
       .range(offset, offset + LOAD_PAGE_SIZE - 1);
 
@@ -288,7 +297,13 @@ async function buildPublicLeaderboard(args: {
   const chainIds = args.chainId != null ? [args.chainId] : [...new Set(materialized.map((row) => row.chainId))];
   const ownerMaps = await loadOwnerMapsForChains(chainIds);
 
-  return sortLeaderboardRows(rollUpMaterializedRows(materialized, ownerMaps, appIds.length > 1), args.sort, args.dir);
+  // After the rollup, never before it: a TradeExecutor group is materialized asymmetrically (the
+  // executor's row carries the totals, the owner's the market count and the score statistics), so a
+  // per-row test would drop a contributing half. After the merge each row is one participant, and a
+  // row still zero in every column is a wallet that did nothing in this period, app and chain.
+  const rolled = rollUpMaterializedRows(materialized, ownerMaps, appIds.length > 1).filter(hasLeaderboardActivity);
+
+  return sortLeaderboardRows(rolled, args.sort, args.dir);
 }
 
 function isLeaderboardSortKey(value: string): value is LeaderboardSortKey {

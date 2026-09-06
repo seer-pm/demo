@@ -7,6 +7,7 @@ import {
   aggregateRowsAcrossChains,
   executorsByOwner,
   globalScoreWallets,
+  hasLeaderboardActivity,
   matchesAddressSearch,
   ownerGroupsForBatch,
   rankForAddress,
@@ -296,6 +297,81 @@ describe("rollUpRows", () => {
   });
 });
 
+describe("hasLeaderboardActivity", () => {
+  it("drops a row that is zero in every column", () => {
+    expect(hasLeaderboardActivity(rolled({ capitalUsd: 0, scoredCapitalUsd: 0 }))).toBe(false);
+  });
+
+  it("keeps a wallet that traded to exactly break-even", () => {
+    // The per-market board's narrower `pnlUsd !== 0 || marketCount > 0` would lose this one, and it
+    // has a volume and an ROI denominator to show.
+    expect(hasLeaderboardActivity(rolled({ capitalUsd: 0, volumeUsd: 1000, marketCount: 3 }))).toBe(true);
+  });
+
+  it("keeps a wallet holding capital it never swapped", () => {
+    // A router split deploys collateral with `traded` false, so `marketCount` stays 0.
+    expect(hasLeaderboardActivity(rolled({ capitalUsd: 250 }))).toBe(true);
+  });
+
+  it("keeps a losing wallet", () => {
+    // The gate is "said nothing", not "made money".
+    expect(hasLeaderboardActivity(rolled({ capitalUsd: 0, pnlUsd: -50 }))).toBe(true);
+  });
+});
+
+describe("hasLeaderboardActivity over TradeExecutor groups", () => {
+  const owners = { [EXECUTOR]: OWNER.toLowerCase() };
+
+  // The materialized halves are asymmetric by design: `deriveOwnerGroupRows` writes the additive
+  // totals on the wallet that moved the collateral and the market count plus the score statistics
+  // on the canonical owner (`ZERO_GROUP_STATS`). Testing a raw DB row would drop a contributing
+  // half, which is why the filter runs after the rollup.
+  it("keeps the group when the executor holds the P/L and the owner holds the statistics", () => {
+    const ownerRow = row({
+      address: OWNER.toLowerCase(),
+      marketCount: 3,
+      scoredMarketCount: 3,
+      scoredCapitalUsd: 500,
+      grossProfitUsd: 120,
+    });
+    const executorRow = row({ address: EXECUTOR, pnlUsd: 100, volumeUsd: 1000, capitalDeployed: 500 });
+
+    const kept = rollUpRows([ownerRow, executorRow], owners).filter(hasLeaderboardActivity);
+
+    expect(kept).toHaveLength(1);
+    expect(kept[0].address).toBe(OWNER.toLowerCase());
+    expect(kept[0].pnlUsd).toBe(100);
+    expect(kept[0].marketCount).toBe(3);
+    // Neither half is the participant: the owner row has no P/L to rank and the executor row has no
+    // market count or score statistics, so whichever one a per-row filter kept, the surviving row
+    // would be missing columns the other half holds.
+    expect([ownerRow.pnlUsd, ownerRow.volumeUsd, ownerRow.capitalDeployed]).toEqual([0, 0, 0]);
+    expect([executorRow.marketCount, executorRow.scoredMarketCount, executorRow.scoredCapitalUsd]).toEqual([0, 0, 0]);
+  });
+
+  it("keeps the group when the owner holds the P/L and the executor row is empty", () => {
+    const kept = rollUpRows(
+      [
+        row({ address: OWNER.toLowerCase(), pnlUsd: 100, volumeUsd: 1000, capitalDeployed: 500, marketCount: 3 }),
+        row({ address: EXECUTOR }),
+      ],
+      owners,
+    ).filter(hasLeaderboardActivity);
+
+    expect(kept).toHaveLength(1);
+    expect(kept[0].pnlUsd).toBe(100);
+    expect(kept[0].members.sort()).toEqual([EXECUTOR, OWNER.toLowerCase()].sort());
+  });
+
+  it("drops the group when neither wallet did anything", () => {
+    expect(
+      rollUpRows([row({ address: OWNER.toLowerCase() }), row({ address: EXECUTOR })], owners).filter(
+        hasLeaderboardActivity,
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("sortLeaderboardRows", () => {
   const rows = [
     rolled({ address: OWNER, pnlUsd: 100, volumeUsd: 10, roi: 0.5, marketCount: 2 }),
@@ -351,6 +427,13 @@ describe("matchesAddressSearch and rankForAddress", () => {
 
   it("finds owner row when searching executor fragment", () => {
     expect(matchesAddressSearch(rolledRows[0], EXECUTOR.slice(2, 10))).toBe(true);
+  });
+
+  it("finds the owner row by its own address when only executors were merged into it", () => {
+    // The reader does not load rows that are zero in every column, so an owner that never traded on
+    // its own address is absent from `members` while still keying the group. Searching the address
+    // shown on the row has to match it.
+    expect(matchesAddressSearch(rolled({ address: OWNER, members: [EXECUTOR] }), OWNER.slice(2, 10))).toBe(true);
   });
 
   it("ranks executor under the owner row", () => {
