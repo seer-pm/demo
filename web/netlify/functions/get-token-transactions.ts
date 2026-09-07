@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { tokensTransfersRowToTransfer } from "./utils/airdropCalculation/getAllTransfers";
-import { getLiquidityHolders, mergeTokenHolders } from "./utils/marketLiquidityHolders";
+import { getMarketLiquidityHoldersCached, mergeTokenHolders } from "./utils/marketLiquidityHolders";
 import { getMarketByChainAndId } from "./utils/markets";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
@@ -179,28 +179,31 @@ export default async (req: Request) => {
       );
     }
 
-    const directHolders = await getTokenHolders(supabase, chainIdNum, effectiveTokenIds);
-    let topHolders = directHolders;
-    if (market) {
-      try {
-        const liquidity = await getLiquidityHolders([market]);
-        topHolders = mergeTokenHolders(directHolders, liquidity.holders, liquidity.poolAddresses);
-      } catch (e) {
-        console.error("get-token-transactions: liquidity holders", e);
-      }
-    }
-
-    const { outcomeBatch, mergedWithPrimary } = await getRecentTransactions(
-      effectiveTokenIds,
-      chainIdNum,
-      account as Address | undefined,
-      {
-        fetchLimit: RECENT_TRANSFERS_FETCH_LIMIT,
-        withMainCollateral: Boolean(market),
-        distinctTxCap: 100,
-      },
-      collateralResolved.primaryCollateral.address,
-    );
+    // The three reads are independent, and the LP crawl is the slow one: awaiting it between the
+    // other two put its latency straight into the response instead of overlapping with them.
+    const [directHolders, liquidity, { outcomeBatch, mergedWithPrimary }] = await Promise.all([
+      getTokenHolders(supabase, chainIdNum, effectiveTokenIds),
+      market
+        ? getMarketLiquidityHoldersCached(market).catch((e) => {
+            console.error("get-token-transactions: liquidity holders", e);
+            return null;
+          })
+        : null,
+      getRecentTransactions(
+        effectiveTokenIds,
+        chainIdNum,
+        account as Address | undefined,
+        {
+          fetchLimit: RECENT_TRANSFERS_FETCH_LIMIT,
+          withMainCollateral: Boolean(market),
+          distinctTxCap: 100,
+        },
+        collateralResolved.primaryCollateral.address,
+      ),
+    ]);
+    const topHolders = liquidity
+      ? mergeTokenHolders(directHolders, liquidity.holders, liquidity.poolAddresses)
+      : directHolders;
     const recentTransactions = outcomeBatch.slice(0, RECENT_TRANSFERS_RESPONSE_LIMIT);
 
     let recentActivity: TransactionData[] = [];

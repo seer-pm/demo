@@ -135,6 +135,29 @@ export async function getWalletsLiquidityBalances(
   return liquidityBalancesFromLegs(legs, outcomeTokenSet(markets));
 }
 
+/** LP holder sets change far more slowly than the endpoint's own cache window. */
+const HOLDERS_TTL_MS = 5 * 60 * 1000;
+const holdersCache = new Map<string, { at: number; value: Promise<MarketLiquidityHolders> }>();
+
+/**
+ * `getLiquidityHolders` for one market, memoized per (chain, market) for `HOLDERS_TTL_MS`.
+ *
+ * The market page prefetches the holders endpoint on every load and issues another request per
+ * account filter in the Activity tab, and each CDN miss otherwise re-crawls the market's pools.
+ * The promise is cached, not just its result, so concurrent misses share one crawl; a rejection
+ * evicts itself so the next caller retries instead of being served the failure for five minutes.
+ */
+export function getMarketLiquidityHoldersCached(market: Market): Promise<MarketLiquidityHolders> {
+  const key = `${market.chainId}:${market.id.toLowerCase()}`;
+  const hit = holdersCache.get(key);
+  if (hit && Date.now() - hit.at < HOLDERS_TTL_MS) return hit.value;
+
+  const value = getLiquidityHolders([market]);
+  holdersCache.set(key, { at: Date.now(), value });
+  value.catch(() => holdersCache.delete(key));
+  return value;
+}
+
 /** Derives current outcome-token holdings represented by supported LP positions. */
 export async function getLiquidityHolders(markets: Market[]): Promise<MarketLiquidityHolders> {
   if (markets.length === 0) return { holders: {}, poolAddresses: [] };
