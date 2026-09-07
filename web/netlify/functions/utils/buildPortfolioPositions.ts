@@ -12,8 +12,11 @@ import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
 import {
+  type LiquidityBalancesByOwner,
+  type LpTokenHolding,
   getWalletsLiquidityBalances,
   preloadWalletLiquidityLegs,
+  repriceLiquidityLegs,
   tokensFromLiquidityLegs,
 } from "./marketLiquidityHolders";
 import { outcomePriceTokensForChain } from "./marketMtmRefresh";
@@ -122,7 +125,7 @@ export async function buildPortfolioPositionsCore(
   markets: Market[],
   includeZeroBalances: boolean,
   pricingPool: Market[] = markets,
-  lpBalances: Map<string, bigint> = new Map(),
+  lpBalances: Map<string, LpTokenHolding> = new Map(),
 ): Promise<PortfolioPosition[]> {
   if (allTokensIds.length === 0 || markets.length === 0) {
     return [];
@@ -158,8 +161,9 @@ export async function buildPortfolioPositionsCore(
   const { marketIdToMarket } = getMarketsMappings(chainMarkets);
 
   const positions = balances.reduce((acumm, balance, index) => {
-    const rawLpBalance = lpBalances.get(allTokensIds[index].toLowerCase()) ?? 0n;
-    if (!includeZeroBalances && balance <= 0n && rawLpBalance <= 0n) {
+    const lpHolding = lpBalances.get(allTokensIds[index].toLowerCase());
+    const rawLpBalance = lpHolding?.amount ?? 0n;
+    if (!includeZeroBalances && balance <= 0n && rawLpBalance <= 0n && !lpHolding?.legs.length) {
       return acumm;
     }
 
@@ -206,6 +210,7 @@ export async function buildPortfolioPositionsCore(
       rawBalance: balance.toString(),
       lpTokenBalance,
       rawLpBalance: rawLpBalance.toString(),
+      lpLegs: lpHolding?.legs,
       marketName,
       marketStatus,
       marketFinalizeTs: market.finalizeTs,
@@ -258,8 +263,15 @@ export async function repricePortfolioPositions(positions: PortfolioPosition[]):
         deadMarketIds.has(position.marketId.toLowerCase()) ? { ...position, isWorthless: true } : position,
       );
 
-      const prices = await currentPricesForPositions(refreshed, chainId, markets);
-      return enrichPositionsWithTokenValues(refreshed, prices);
+      // Re-derived before pricing: the stored LP amount is a function of the pool price, which moves
+      // without any transfer touching this wallet, so the freshness probe cannot invalidate it.
+      const withLiquidity = await repriceLiquidityLegs(chainId, refreshed).catch((e) => {
+        console.warn("repricePortfolioPositions: liquidity legs", e);
+        return refreshed;
+      });
+
+      const prices = await currentPricesForPositions(withLiquidity, chainId, markets);
+      return enrichPositionsWithTokenValues(withLiquidity, prices);
     }),
   );
   return priced.flat();
@@ -337,7 +349,7 @@ export async function buildCurrentPortfolioPositionsForWallets(
 
   // One fetch for the whole wallet set. Running it per wallet re-issued the same pool and event
   // queries with only the owner filter changed, and this is the metered half of the request.
-  let lpByWallet = new Map<string, Map<string, bigint>>();
+  let lpByWallet: LiquidityBalancesByOwner = new Map();
   try {
     lpByWallet = await getWalletsLiquidityBalances(chainId, wallets, markets, preloadedLegs);
   } catch (e) {
@@ -346,7 +358,7 @@ export async function buildCurrentPortfolioPositionsForWallets(
 
   const positionsPerWallet = await Promise.all(
     perWallet.map(async ({ wallet, tokens: walletTokens, holdings }) => {
-      const lpBalances = lpByWallet.get(wallet.toLowerCase()) ?? new Map<string, bigint>();
+      const lpBalances = lpByWallet.get(wallet.toLowerCase()) ?? new Map<string, LpTokenHolding>();
       // Union, not the held tokens alone: an outcome token the wallet only owns through a pool has
       // no balance row, and it is a real row worth real money.
       const rowTokens = [...new Set([...walletTokens, ...(lpBalances.keys() as Iterable<Address>)])];

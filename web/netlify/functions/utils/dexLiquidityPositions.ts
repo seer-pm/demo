@@ -213,3 +213,33 @@ export async function fetchPoolLiquidityLegs(chainId: SupportedChain, poolIds: s
   const stakedOwners = await fetchFarmingDepositOwners({ id_in: positions.map((position) => position.id) });
   return positions.map((position) => toLeg(position, stakedOwners.get(position.id) ?? position.owner));
 }
+
+/**
+ * Current `sqrtPrice` per pool, for re-deriving what a stored position holds today.
+ *
+ * Both subgraph flavours expose `sqrtPrice` on `Pool`, so this works wherever LP is attributed at
+ * all — unlike the `Position` entity, which only Gnosis has.
+ */
+export async function fetchPoolSqrtPrices(chainId: SupportedChain, poolIds: string[]): Promise<Map<string, bigint>> {
+  const prices = new Map<string, bigint>();
+  if (!supportsLiquidityAttribution(chainId) || poolIds.length === 0) return prices;
+  const client = getDexGraphQLClient(chainId);
+  const query = `
+    query SeerPoolSqrtPrices($ids: [ID!]) {
+      pools(first: ${PAGE_SIZE}, where: { id_in: $ids }) {
+        id
+        sqrtPrice
+      }
+    }`;
+
+  for (const batch of chunk([...new Set(poolIds.map((id) => id.toLowerCase()))], ID_BATCH_SIZE)) {
+    const data = await runGoldskyDexRequest(
+      () => client.request<{ pools: { id: string; sqrtPrice: string }[] }>(query, { ids: batch }),
+      "SeerPoolSqrtPrices",
+    );
+    for (const pool of data?.pools ?? []) {
+      prices.set(pool.id.toLowerCase(), BigInt(pool.sqrtPrice));
+    }
+  }
+  return prices;
+}

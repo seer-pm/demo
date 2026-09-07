@@ -204,9 +204,12 @@ function PositionsTableInner({
                     <ExecutorBadge wallet={position.sourceWallet as Address} />
                   ) : null}
                 </div>
-                {(position.lpTokenBalance ?? 0) > 0 && (
+                {/* Shown whenever the wallet has a pool position, including one the price has moved
+                    out of range: the row would otherwise read as a bare 0 with no explanation. */}
+                {((position.lpTokenBalance ?? 0) > 0 || (position.lpLegs?.length ?? 0) > 0) && (
                   <p className="mt-1 text-[12px] text-black-secondary">
-                    {formatSmallNumber(position.tokenBalance)} held · {formatSmallNumber(position.lpTokenBalance)} in LP
+                    {formatSmallNumber(position.tokenBalance)} held · {formatSmallNumber(position.lpTokenBalance ?? 0)}{" "}
+                    in LP
                   </p>
                 )}
                 <a

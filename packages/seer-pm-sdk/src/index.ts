@@ -331,6 +331,7 @@ export {
 } from "./portfolio-fetch";
 export type {
   PortfolioChainId,
+  PortfolioLpLeg,
   PortfolioPosition,
   PortfolioPnLPeriod,
   PortfolioPnLData,

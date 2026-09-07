@@ -1,26 +1,36 @@
+import type { PortfolioLpLeg, PortfolioPosition } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk/chains";
 import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
-import type { Address } from "viem";
+import { type Address, formatUnits } from "viem";
 import { getAllLiquidityEvents, getLiquidityPositionsAtTimestamp } from "./airdropCalculation/getLiquidityBalances";
 import { getAmountsForLiquidity, getSqrtRatioAtTickX96 } from "./airdropCalculation/utils";
 import {
   type LiquidityLeg,
   fetchPoolLiquidityLegs,
+  fetchPoolSqrtPrices,
   fetchWalletLiquidityLegs,
   supportsLiquidityAttribution,
   supportsPositionEntity,
 } from "./dexLiquidityPositions";
 import { fetchPools } from "./fetchPools";
 import type { TokenHolder } from "./token-transactions";
+import { getTokenDecimalsList } from "./tokenDecimals";
 
 export type MarketLiquidityHolders = {
   holders: Record<string, TokenHolder[]>;
   poolAddresses: string[];
 };
 
-/** Outcome-token amounts backed by LP positions, as `owner -> token -> amount`. */
-export type LiquidityBalancesByOwner = Map<string, Map<string, bigint>>;
+/** What one wallet holds of one outcome token through AMM positions, and the positions behind it. */
+export type LpTokenHolding = {
+  amount: bigint;
+  /** Kept so a cached row can be re-derived at a later pool price; see `PortfolioPosition.lpLegs`. */
+  legs: PortfolioLpLeg[];
+};
+
+/** LP-backed outcome-token holdings, as `owner -> token -> holding`. */
+export type LiquidityBalancesByOwner = Map<string, Map<string, LpTokenHolding>>;
 
 /**
  * The outcome tokens these positions touch, whether or not the wallet ever held them directly.
@@ -52,9 +62,15 @@ export async function preloadWalletLiquidityLegs(
  * Net LP positions of a market set, netted from mint/burn events and attributed to `tx.origin`.
  *
  * The fallback for chains whose DEX subgraph has no `Position` entity. It carries two known errors
- * the owner-keyed source does not: credit does not follow a transferred position NFT, and a position
- * opened by a contract is credited to the EOA that signed for it. Both are accepted here — the
- * alternative on those chains is no attribution at all — and neither applies on Gnosis.
+ * the owner-keyed source does not, both accepted because the alternative on those chains is no
+ * attribution at all, and neither reachable on Gnosis:
+ *
+ * - Credit does not follow a transferred position NFT: a position sold or moved stays on the
+ *   minter's portfolio, and on the market's holder list, until it is burned from the same EOA.
+ * - `tx.origin` is always an EOA, so a position opened by a contract is credited to whoever signed
+ *   for it. That would mean a Safe or a TradeExecutor showing no liquidity while its signer shows
+ *   liquidity it never owned. Deliberately not worked around: the TradeExecutor never adds
+ *   liquidity, and no Safe provides it today either.
  */
 async function legsFromLiquidityEvents(
   chainId: SupportedChain,
@@ -99,18 +115,40 @@ export function liquidityBalancesFromLegs(legs: LiquidityLeg[], outcomeTokens: S
       leg.liquidity,
     );
 
-    for (const [token, amount] of [
-      [leg.token0, amount0],
-      [leg.token1, amount1],
+    for (const [side, token, amount] of [
+      [0, leg.token0, amount0],
+      [1, leg.token1, amount1],
     ] as const) {
-      if (!outcomeTokens.has(token) || amount <= 0n) continue;
-      const tokens = byOwner.get(leg.owner) ?? new Map<string, bigint>();
-      tokens.set(token, (tokens.get(token) ?? 0n) + amount);
+      // A position whose range the price has left holds nothing of this side today, but it is still
+      // the wallet's position: keep the leg so a later re-derivation can find it back in range.
+      if (!outcomeTokens.has(token)) continue;
+      const tokens = byOwner.get(leg.owner) ?? new Map<string, LpTokenHolding>();
+      const holding = tokens.get(token) ?? { amount: 0n, legs: [] };
+      holding.amount += amount > 0n ? amount : 0n;
+      holding.legs.push({
+        poolId: leg.poolId,
+        tickLower: leg.tickLower,
+        tickUpper: leg.tickUpper,
+        liquidity: leg.liquidity.toString(),
+        side,
+      });
+      tokens.set(token, holding);
       byOwner.set(leg.owner, tokens);
     }
   }
 
   return byOwner;
+}
+
+/** Outcome-token amounts each leg represents right now, dropping the positions behind them. */
+export function liquidityAmountsFromLegs(legs: LiquidityLeg[], outcomeTokens: Set<string>): Map<string, bigint> {
+  const amounts = new Map<string, bigint>();
+  for (const tokens of liquidityBalancesFromLegs(legs, outcomeTokens).values()) {
+    for (const [token, holding] of tokens) {
+      if (holding.amount > 0n) amounts.set(token, (amounts.get(token) ?? 0n) + holding.amount);
+    }
+  }
+  return amounts;
 }
 
 function outcomeTokenSet(markets: Market[]): Set<string> {
@@ -181,9 +219,10 @@ export async function getLiquidityHolders(markets: Market[]): Promise<MarketLiqu
   const byOwner = liquidityBalancesFromLegs(legs, outcomeTokenSet(markets));
   const byToken = new Map<string, Map<string, bigint>>();
   for (const [owner, tokens] of byOwner) {
-    for (const [token, amount] of tokens) {
+    for (const [token, holding] of tokens) {
+      if (holding.amount <= 0n) continue;
       const holders = byToken.get(token) ?? new Map<string, bigint>();
-      holders.set(owner, (holders.get(owner) ?? 0n) + amount);
+      holders.set(owner, (holders.get(owner) ?? 0n) + holding.amount);
       byToken.set(token, holders);
     }
   }
@@ -236,4 +275,69 @@ export function mergeTokenHolders(
   }
 
   return merged;
+}
+
+/**
+ * Re-derives what each row's stored AMM positions hold at the pools' current prices.
+ *
+ * A cached row's `lpTokenBalance` is not a balance that stays put until the wallet moves: it is a
+ * function of the pool price, and any other trader moving that price changes it with no transfer to
+ * the wallet at all. The activity probe that decides a cached portfolio is still fresh cannot see
+ * that, so without this a concentrated position that went out of range keeps being reported at the
+ * composition it had when the blob was written, for the length of the TTL.
+ *
+ * Costs one pool query per chain, because the liquidity and tick range stored on the row are the
+ * invariants — only the price has to be fetched again.
+ */
+export async function repriceLiquidityLegs(
+  chainId: SupportedChain,
+  positions: PortfolioPosition[],
+): Promise<PortfolioPosition[]> {
+  const poolIds = [...new Set(positions.flatMap((position) => (position.lpLegs ?? []).map((leg) => leg.poolId)))];
+  if (poolIds.length === 0) return positions;
+
+  const sqrtPrices = await fetchPoolSqrtPrices(chainId, poolIds);
+  if (sqrtPrices.size === 0) return positions;
+
+  const decimals = getTokenDecimalsList(
+    chainId,
+    positions.map((position) => position.tokenId),
+  );
+
+  return positions.map((position, index) => {
+    const raw = lpAmountAtPrices(position.lpLegs, sqrtPrices);
+    if (raw === null) return position;
+    return {
+      ...position,
+      rawLpBalance: raw.toString(),
+      lpTokenBalance: Number(formatUnits(raw, decimals[index])),
+    };
+  });
+}
+
+/**
+ * What `legs` hold of their row's token at `sqrtPrices`, or `null` when they cannot be re-derived.
+ *
+ * `null` for a row with no stored positions, and for one whose pool the price lookup did not answer
+ * for: keeping the amount already on the row beats reporting zero for a position that plainly
+ * exists. Zero is a real answer — it means every position has moved out of range on this side.
+ */
+export function lpAmountAtPrices(legs: PortfolioLpLeg[] | undefined, sqrtPrices: Map<string, bigint>): bigint | null {
+  if (!legs?.length) return null;
+
+  let raw = 0n;
+  for (const leg of legs) {
+    const sqrtPrice = sqrtPrices.get(leg.poolId);
+    if (sqrtPrice === undefined) return null;
+    if (sqrtPrice <= 0n) continue;
+    const amounts = getAmountsForLiquidity(
+      sqrtPrice,
+      getSqrtRatioAtTickX96(leg.tickLower),
+      getSqrtRatioAtTickX96(leg.tickUpper),
+      BigInt(leg.liquidity),
+    );
+    const amount = leg.side === 0 ? amounts.amount0 : amounts.amount1;
+    if (amount > 0n) raw += amount;
+  }
+  return raw;
 }
