@@ -98,6 +98,17 @@ export function getDexSubgraphSdk(chainId: SupportedChain): DexSdk {
   return sdk;
 }
 
+/**
+ * Swapr Algebra SDK (Gnosis), typed rather than as the per-chain union.
+ *
+ * `getDexSubgraphSdk` returns whichever SDK the chain uses, so operations that exist only on the
+ * Algebra schema (the `Position` entity, for one) are not callable through it. Same instance, same
+ * cache entry; the cast is sound because the chain id decides the branch inside.
+ */
+export function getSwaprAlgebraSdk(): ReturnType<typeof getSwaprSdk> {
+  return getDexSubgraphSdk(gnosis.id) as ReturnType<typeof getSwaprSdk>;
+}
+
 /** Swapr algebra-farming SDK (Gnosis incentives) — same Goldsky pacing. */
 export function getSwaprAlgebraFarmingSdk(): ReturnType<typeof getSwaprSdk> {
   const key = -1;

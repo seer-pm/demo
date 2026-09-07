@@ -409,6 +409,66 @@ query GetTicks(
   }
 }
 
+# Owner-keyed LP positions for the portfolio and the market holder list.
+#
+# Separate from GetPositions, which the UI uses to look positions up by id: this one needs the
+# owner (the current NFT holder) and enough of the pool to convert liquidity into token amounts,
+# and GetPositions' consumers should not pay for those fields.
+query GetLiquidityPositions(
+  $skip: Int = 0
+  $first: Int
+  $where: Position_filter
+  $orderBy: Position_orderBy
+  $orderDirection: OrderDirection
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  positions(
+    skip: $skip
+    first: $first
+    orderBy: $orderBy
+    orderDirection: $orderDirection
+    where: $where
+    block: $block
+    subgraphError: $subgraphError
+  ) {
+    id
+    owner
+    liquidity
+    tickLower {
+      tickIdx
+    }
+    tickUpper {
+      tickIdx
+    }
+    token0 {
+      id
+    }
+    token1 {
+      id
+    }
+    pool {
+      id
+      sqrtPrice
+    }
+  }
+}
+
+# Just the current price of each pool, for re-deriving what a stored LP position holds today.
+# GetPools answers this too, but pulls twenty-odd fields per pool that this caller never reads.
+query GetPoolSqrtPrices(
+  $skip: Int = 0
+  $first: Int
+  $where: Pool_filter
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  pools(skip: $skip, first: $first, where: $where, block: $block, subgraphError: $subgraphError) {
+    id
+    sqrtPrice
+  }
+}
+
 query GetPositions(
   $skip: Int = 0
   $first: Int
