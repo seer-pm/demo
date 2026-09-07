@@ -2,6 +2,30 @@
 
 Living gotchas and invariants for working in this monorepo. Keep entries short and actionable. Add new lessons here as they come up.
 
+## GraphQL queries go through codegen
+
+Every subgraph query lives in `packages/seer-pm-sdk/queries/*.graphql` and is reached through the
+generated SDK. Do **not** send a query string inline from application code, even a one-off: an
+inline query is untyped, so a renamed field or a filter that does not exist on the schema fails at
+runtime against the gateway instead of at `tsc`.
+
+Rules:
+
+- Add the operation to the `.graphql` file for its schema, then run `yarn generate` (or
+  `yarn workspace @seer-pm/sdk generate:gql`) and call it as `sdk.<OperationName>(variables)`.
+- `queries/swapr.graphql` is generated against **both** the Algebra and the algebra-farming
+  schemas, so farming operations belong there too; `queries/uniswap.graphql` covers the other DEX
+  chains. See `packages/seer-pm-sdk/codegen.ts` for the schema-to-document mapping.
+- Use the generated filter types and enums (`Position_Filter`, `OrderDirection`, …) rather than
+  string literals, so a bad field is a compile error.
+- `generated/` is gitignored and built by `yarn generate`; commit the `.graphql` change only.
+- Codegen reads each schema from **one** endpoint (the Uniswap one from mainnet), so a generated
+  type is not proof the entity exists on every deployment. `positions` is the live example: it
+  exists on mainnet and Gnosis, and not on the Optimism or Base deployments. Availability per chain
+  stays a runtime check.
+- Give a new operation its own name rather than widening one the UI already uses; extra fields are
+  paid for on every existing call site.
+
 ## Netlify functions / SDK imports
 
 Netlify functions under `web/netlify/functions` import `@seer-pm/sdk`. Netlify bundles them with `esbuild` (`web/netlify.toml`). Pulling large ESM trees into that graph can fail at runtime with:
