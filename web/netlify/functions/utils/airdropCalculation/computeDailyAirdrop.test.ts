@@ -59,6 +59,7 @@ function scenario(over: Partial<Parameters<typeof buildChainUsers>[0]> = {}) {
 function position(over: Partial<LiquidityPosition> = {}): LiquidityPosition {
   return {
     origin: LP,
+    poolId: POOL,
     token0: OUTCOME,
     token1: COLLATERAL,
     tickLower: -20000,

@@ -116,10 +116,16 @@ export async function fetchLiquidityEventsForBatch(
   url: string,
   tokenPairs: Token0Token1[],
   request: SubgraphRequest = subgraphRequest,
+  origins?: Address[],
 ): Promise<LiquidityEvent[]> {
   const orFilter = tokenPairs
     .map((tokenPair) => `{token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}`)
     .join(",");
+  // `origin_in` rather than one crawl per address: a portfolio asks about an owner and every
+  // TradeExecutor it controls, and those wallets share a market set almost entirely.
+  const originFilter = origins?.length
+    ? `,{origin_in: [${origins.map((origin) => `"${origin.toLowerCase()}"`).join(",")}]}`
+    : "";
   const allEvents: LiquidityEvent[] = [];
   let lastId: string | undefined;
   while (true) {
@@ -127,7 +133,7 @@ export async function fetchLiquidityEventsForBatch(
           ${entity}(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where:
             {
               and: [
-                { or: [${orFilter}] }${lastId ? `,{id_gt: "${lastId}"}` : ""}
+                { or: [${orFilter}] }${originFilter}${lastId ? `,{id_gt: "${lastId}"}` : ""}
               ]
             }) {
             id
@@ -166,13 +172,14 @@ async function fetchLiquidityEvents(
   entity: "mints" | "burns",
   chainId: SupportedChain,
   tokenPairs: Token0Token1[],
+  origins?: Address[],
 ): Promise<LiquidityEvent[]> {
   const url = getLiquiditySubgraphUrl(chainId);
   const type = entity === "mints" ? "mint" : "burn";
   const limit = pLimit(SUBGRAPH_CONCURRENCY);
   const batches = chunkArray(tokenPairs, PAIR_BATCH_SIZE);
   const results = await Promise.all(
-    batches.map((batch) => limit(() => fetchLiquidityEventsForBatch(entity, url, batch))),
+    batches.map((batch) => limit(() => fetchLiquidityEventsForBatch(entity, url, batch, subgraphRequest, origins))),
   );
   return results.flat().map((event) => ({ ...event, type }));
 }
@@ -184,6 +191,7 @@ export async function getAllLiquidityEvents(
     parentTokenId?: Address;
     collateralToken: Address;
   }[],
+  origins?: Address[],
 ) {
   // Canonicalize (token0/token1) and dedupe: each outcome token has a single pool with its
   // collateral, but conditional markets can repeat collaterals, so drop duplicate pools.
@@ -198,8 +206,8 @@ export async function getAllLiquidityEvents(
     sortedTokenPairs.push(pair);
   }
   const [mints, burns] = await Promise.all([
-    fetchLiquidityEvents("mints", chainId, sortedTokenPairs),
-    fetchLiquidityEvents("burns", chainId, sortedTokenPairs),
+    fetchLiquidityEvents("mints", chainId, sortedTokenPairs, origins),
+    fetchLiquidityEvents("burns", chainId, sortedTokenPairs, origins),
   ]);
   return mints.concat(burns);
 }
@@ -230,6 +238,8 @@ export function getPoolAddresses(events: LiquidityEvent[]): Set<string> {
 /** A concentrated-liquidity position: one (owner, pool, tick range) with its net liquidity. */
 export interface LiquidityPosition {
   origin: string;
+  /** The pool the liquidity sits in. Callers that price per pool need it; the pair alone is ambiguous. */
+  poolId: string;
   token0: string;
   token1: string;
   tickLower: number;
@@ -252,21 +262,31 @@ export interface LiquidityPosition {
  * `owner` field is not a better choice — for NFT-managed positions it resolves to the position
  * manager contract, not a person. Following transfers would mean replaying the NFT's own Transfer
  * history, which is out of scope; the error is far smaller than the valuation one this fixes.
+ * (The `Position` entity's own `owner` field does follow transfers, and `marketLiquidityHolders`
+ * prefers it wherever the chain's subgraph exposes it. It does not here: this fold runs over every
+ * chain, and the Optimism and Base deployments expose mints and burns only.)
+ *
+ * The key includes the pool, not just the pair: a pair can have several fee tiers, each its own pool
+ * with its own price. Netting them together would let a burn in one pool cancel a mint in another,
+ * and would hand a caller that prices per pool a position that belongs to no single one.
  */
 export function getLiquidityPositionsAtTimestamp(events: LiquidityEvent[], timestamp: number): LiquidityPosition[] {
   const positions = new Map<string, LiquidityPosition>();
 
   for (const event of events) {
-    if (Number(event.timestamp) > timestamp || event.origin === zeroAddress) {
+    if (Number(event.timestamp) > timestamp || event.origin.toLowerCase() === zeroAddress) {
       continue;
     }
-    const key = `${event.token0.id}-${event.token1.id}-${event.tickLower}-${event.tickUpper}-${event.origin}`;
+    const poolId = event.pool.id.toLowerCase();
+    const origin = event.origin.toLowerCase();
+    const key = `${poolId}-${event.tickLower}-${event.tickUpper}-${origin}`;
     let position = positions.get(key);
     if (!position) {
       position = {
-        origin: event.origin,
-        token0: event.token0.id,
-        token1: event.token1.id,
+        origin,
+        poolId,
+        token0: event.token0.id.toLowerCase(),
+        token1: event.token1.id.toLowerCase(),
         tickLower: Number(event.tickLower),
         tickUpper: Number(event.tickUpper),
         liquidity: 0n,

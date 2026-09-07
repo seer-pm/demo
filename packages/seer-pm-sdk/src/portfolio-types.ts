@@ -4,6 +4,17 @@ import type { SupportedChain } from "./chains";
 /** Chain id or aggregated `all` (USD) for portfolio value / global P/L. */
 export type PortfolioChainId = SupportedChain | "all";
 
+/** One concentrated-liquidity position, from the side of the pool a portfolio row's token sits on. */
+export interface PortfolioLpLeg {
+  poolId: string;
+  tickLower: number;
+  tickUpper: number;
+  /** Raw liquidity `L`, as a string: this is what the position *is*, the token amount is derived. */
+  liquidity: string;
+  /** 0 when the row's token is the pool's token0, 1 when it is token1. */
+  side: 0 | 1;
+}
+
 /** A row in the portfolio positions table / get-portfolio API. */
 export interface PortfolioPosition {
   tokenId: Address;
@@ -13,6 +24,18 @@ export interface PortfolioPosition {
   marketStatus: string;
   tokenBalance: number;
   rawBalance: string;
+  /** Outcome tokens this row's wallet holds inside AMM positions, on top of `tokenBalance`. */
+  lpTokenBalance?: number;
+  rawLpBalance?: string;
+  /**
+   * The AMM positions `lpTokenBalance` was derived from.
+   *
+   * Kept because the derived amount is not a balance: a concentrated-liquidity position holds
+   * whatever the pool's current price says it holds, and that changes when anyone else trades. The
+   * liquidity and the tick range are the invariants, so a cached row can be re-derived at today's
+   * price from these instead of being served at the price of whenever it was written.
+   */
+  lpLegs?: PortfolioLpLeg[];
   tokenValue: number;
   tokenPrice: number;
   outcome: string;

@@ -50,6 +50,21 @@ query GetPools(
   }
 }
 
+# Just the current price of each pool, for re-deriving what a stored LP position holds today.
+# GetPools answers this too, but pulls twenty-odd fields per pool that this caller never reads.
+query GetPoolSqrtPrices(
+  $skip: Int = 0
+  $first: Int
+  $where: Pool_filter
+  $block: Block_height
+  $subgraphError: _SubgraphErrorPolicy_! = deny
+) {
+  pools(skip: $skip, first: $first, where: $where, block: $block, subgraphError: $subgraphError) {
+    id
+    sqrtPrice
+  }
+}
+
 query GetPoolHourDatas(
   $skip: Int = 0
   $first: Int

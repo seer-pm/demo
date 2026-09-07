@@ -126,6 +126,24 @@ describe("per-market valuation buckets", () => {
     const settled = [position({ tokenBalance: 3, tokenPrice: 0.5, redeemedPrice: 1, marketFinalizeTs: 10 })];
     expect(groupPortfolioValueAtReferenceByMarket(settled, {}, 100).get(MARKET_A)).toBe(3);
   });
+
+  it("values what a wallet holds inside a pool alongside what it holds directly", () => {
+    const positions = [position({ tokenBalance: 4, lpTokenBalance: 6, tokenPrice: 0.5 })];
+    expect(sumPortfolioValueCurrent(positions)).toBe(5);
+    expect(groupPortfolioValueCurrentByMarket(positions).get(MARKET_A)).toBe(5);
+  });
+
+  it("values an LP-only row rather than reading it as empty", () => {
+    // The row the positions tab shows as "0 held, 10 in LP": priced at 0 by the sums this replaces.
+    const positions = [position({ tokenBalance: 0, lpTokenBalance: 10, tokenPrice: 0.5 })];
+    expect(sumPortfolioValueCurrent(positions)).toBe(5);
+    expect(sumPortfolioValueAtReference(positions, { [TOKEN_A1]: 0.25 }, 100)).toBe(2.5);
+  });
+
+  it("leaves rows without an LP source alone", () => {
+    const positions = [position({ tokenBalance: 4, tokenPrice: 0.5 })];
+    expect(sumPortfolioValueCurrent(positions)).toBe(2);
+  });
 });
 
 describe("per-market swap buckets", () => {
