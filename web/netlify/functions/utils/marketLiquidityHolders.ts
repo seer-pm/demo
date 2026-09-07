@@ -24,12 +24,24 @@ export type MarketLiquidityHolders = {
   poolAddresses: string[];
 };
 
-/** Derives current outcome-token holdings represented by supported LP positions. */
-export async function getLiquidityHolders(markets: Market[], owner?: Address): Promise<MarketLiquidityHolders> {
-  if (markets.length === 0) return { holders: {}, poolAddresses: [] };
+/** Outcome-token amounts backed by LP positions, as `token -> owner -> amount`, plus the pools seen. */
+type LiquidityBalances = {
+  balances: Map<string, Map<string, bigint>>;
+  poolAddresses: string[];
+};
+
+/**
+ * Outcome-token amounts every LP position represents at the current pool price.
+ *
+ * Kept in bigint the whole way and shared by both callers: the market page formats it into sorted
+ * `TokenHolder[]`, the portfolio reads one owner's row straight out of it. Handing the portfolio the
+ * formatted shape instead would mean parsing back the strings this had as bigint one step earlier.
+ */
+async function collectLiquidityBalances(markets: Market[], owner?: Address): Promise<LiquidityBalances> {
+  if (markets.length === 0) return { balances: new Map(), poolAddresses: [] };
   const chainId = markets[0].chainId as SupportedChain;
   // Bunni and chains without a supported user-position source are intentionally not attributed.
-  if (chainId !== gnosis.id && !isOpStack(chainId)) return { holders: {}, poolAddresses: [] };
+  if (chainId !== gnosis.id && !isOpStack(chainId)) return { balances: new Map(), poolAddresses: [] };
 
   const pairs = markets.flatMap(getMarketPoolsPairs);
   const [events, pools] = await Promise.all([
@@ -88,6 +100,14 @@ export async function getLiquidityHolders(markets: Market[], owner?: Address): P
     }
   }
 
+  return { balances, poolAddresses: [...poolsById.keys()] };
+}
+
+/** Derives current outcome-token holdings represented by supported LP positions. */
+export async function getLiquidityHolders(markets: Market[], owner?: Address): Promise<MarketLiquidityHolders> {
+  const { balances, poolAddresses } = await collectLiquidityBalances(markets, owner);
+  const wrappedTokens = markets.flatMap((market) => market.wrappedTokens);
+
   const holders = Object.fromEntries(
     wrappedTokens.map((token) => {
       const tokenId = token.toLowerCase();
@@ -104,7 +124,25 @@ export async function getLiquidityHolders(markets: Market[], owner?: Address): P
     }),
   );
 
-  return { holders, poolAddresses: [...poolsById.keys()] };
+  return { holders, poolAddresses };
+}
+
+/**
+ * Outcome-token amounts `owner` holds through LP positions, keyed by lowercased token id.
+ *
+ * The portfolio's shape: one owner, one amount per token, already summed. `getLiquidityHolders`
+ * answers a different question (who holds this market's tokens) and the portfolio was reconstructing
+ * this from it by re-parsing the formatted balance strings.
+ */
+export async function getOwnerLiquidityBalances(markets: Market[], owner: Address): Promise<Map<string, bigint>> {
+  const { balances } = await collectLiquidityBalances(markets, owner);
+  const ownerId = owner.toLowerCase();
+  const result = new Map<string, bigint>();
+  for (const [token, byOwner] of balances) {
+    const amount = byOwner.get(ownerId) ?? 0n;
+    if (amount > 0n) result.set(token, amount);
+  }
+  return result;
 }
 
 /** Combines direct and LP-backed token balances while excluding pool contracts. */

@@ -11,7 +11,7 @@ import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
-import { getLiquidityHolders } from "./marketLiquidityHolders";
+import { getOwnerLiquidityBalances } from "./marketLiquidityHolders";
 import { outcomePriceTokensForChain } from "./marketMtmRefresh";
 import { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFirst } from "./marketParentChain";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
@@ -324,13 +324,7 @@ export async function buildCurrentPortfolioPositionsForWallets(
       const balances = walletTokens.map((token) => holdings.get(token.toLowerCase()) ?? 0n);
       let lpBalances = new Map<string, bigint>();
       try {
-        const liquidity = await getLiquidityHolders(markets, wallet);
-        lpBalances = new Map(
-          Object.entries(liquidity.holders).map(([token, holders]) => [
-            token,
-            holders.reduce((total, holder) => total + BigInt(holder.balance), 0n),
-          ]),
-        );
+        lpBalances = await getOwnerLiquidityBalances(markets, wallet);
       } catch (e) {
         console.warn("buildCurrentPortfolioPositionsForWallets: liquidity holders", e);
       }
@@ -347,34 +341,4 @@ export async function buildCurrentPortfolioPositionsForWallets(
     }),
   );
   return positionsPerWallet.flat();
-}
-
-/** Current portfolio UI positions from direct holdings and supported LP positions. */
-export async function buildCurrentPortfolioPositions(
-  address: Address,
-  chainId: SupportedChain,
-  collateralProfile: string,
-): Promise<PortfolioPosition[]> {
-  const holdings = await fetchTokenBalances(address, chainId);
-  const tokens = [...holdings.keys()].map((token) => token as Address);
-  if (tokens.length === 0) {
-    return [];
-  }
-  const balances = tokens.map((t) => holdings.get(t.toLowerCase()) ?? 0n);
-
-  const { markets } = await searchAllMarkets({ chainIds: [chainId], tokens, collateralProfile });
-  const pricingPool = await loadMarketsWithAncestors(markets, chainId, collateralProfile);
-  let lpBalances = new Map<string, bigint>();
-  try {
-    const liquidity = await getLiquidityHolders(markets, address);
-    lpBalances = new Map(
-      Object.entries(liquidity.holders).map(([token, holders]) => [
-        token,
-        holders.reduce((total, holder) => total + BigInt(holder.balance), 0n),
-      ]),
-    );
-  } catch (e) {
-    console.warn("buildCurrentPortfolioPositions: liquidity holders", e);
-  }
-  return buildPortfolioPositionsCore(chainId, tokens, balances, markets, false, pricingPool, lpBalances);
 }
