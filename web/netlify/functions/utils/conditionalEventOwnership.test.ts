@@ -184,10 +184,11 @@ describe("fetchConditionalEventsForAccountWidened", () => {
   });
 
   it("keeps both legs of a transaction when both went through the router", async () => {
-    // What makes reading the transaction whole correct: a TradeExecutor has one owner and is signed
-    // by that owner, so a router transaction carries one wallet's operation. The CTF books the
-    // router as the stakeholder for every router-mediated leg, so the guard cannot separate two
-    // wallets here — this test is where that would show if the invariant ever stopped holding.
+    // What makes reading the transaction whole correct: a TradeExecutor's owner is immutable and it
+    // acts only for that owner — whoever signs, owner or session key — and an EOA transaction targets
+    // one executor, so a router transaction carries one wallet's operation. The CTF books the router
+    // as the stakeholder for every router-mediated leg, so the guard cannot separate two wallets
+    // here — this test is where that would show if the invariant ever stopped holding.
     GetConditionalEvents.mockResolvedValueOnce({ ConditionalEvent: [] });
     GetTransfers.mockResolvedValueOnce({ Transfer: [transfer(TX_A, EXECUTOR, ROUTER)] });
     GetConditionalEvents.mockResolvedValueOnce({

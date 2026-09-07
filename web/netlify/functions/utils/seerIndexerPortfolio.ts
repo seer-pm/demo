@@ -642,9 +642,11 @@ export async function fetchConditionalEventsForAccountWidened(
     fetchRouterCollateralTransactionHashes(account, chainId, primaryCollateral, endTime, opts?.routerTransfers),
   ]);
   // Those transactions are then read whole, because one router transaction carries one wallet's
-  // operation: a TradeExecutor belongs to a single owner and is signed by that owner, so no relayer
-  // ever batches two wallets into one transaction. `stakeholder` still rejects the one leg that
-  // assumption does not cover — a third party calling the CTF directly in the same transaction.
+  // operation. Not because of who signs it: a DeepFunding TradeExecutor can be driven by a
+  // temporary session key (`setTemporaryPermission`), so the signer is often not the owner. It holds
+  // because the executor's `owner` is immutable and `batchExecute` acts only for it, whoever calls,
+  // and an EOA transaction targets one executor. `stakeholder` still rejects the one leg that does
+  // not cover — a third party calling the CTF directly in the same transaction.
   const byTransaction = (await fetchConditionalEventsByTransactions(chainId, routerTxHashes, window)).filter(
     (event) => !conditionalEventStakeholderIsForeign(event, account, chainId),
   );

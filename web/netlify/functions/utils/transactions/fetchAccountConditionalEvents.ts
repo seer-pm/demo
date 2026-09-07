@@ -26,13 +26,17 @@ import {
  * and counted under another.
  *
  * Reading a router transaction whole is correct because one router transaction carries one wallet's
- * operation: a TradeExecutor belongs to a single owner and is signed by that owner, so nothing
- * batches two wallets into one transaction, and the deduped leg amounts reconcile exactly against
- * the account's own router transfers. `conditionalEventStakeholderIsForeign` covers the case that
- * invariant does not — a third party calling the CTF directly in the same transaction — but it
- * cannot separate two wallets that both went through the router, since the CTF books the router as
- * the stakeholder for both. A relayer that ever drove two wallets in one transaction would need
- * ownership resolved per leg, against the parties of that transaction's collateral transfers.
+ * operation. That does not rest on who signs it — a DeepFunding TradeExecutor accepts calls from a
+ * temporary session key as well as its owner (`setTemporaryPermission`), and the key is what the
+ * indexer books as `accountId`. It rests on the executor's `owner` being immutable, `batchExecute`
+ * acting only for that owner whoever calls it, and an EOA transaction targeting one executor; the
+ * deduped leg amounts reconcile exactly against the account's own router transfers.
+ * `conditionalEventStakeholderIsForeign` covers the case that does not — a third party calling the
+ * CTF directly in the same transaction — but it cannot separate two wallets that both went through
+ * the router, since the CTF books the router as the stakeholder for both. The one way to get there
+ * is a *contract* permitted on several executors batching them in one transaction; the app only
+ * ever permits a fresh EOA, and none has been seen. It would need ownership resolved per leg,
+ * against the parties of that transaction's collateral transfers.
  */
 export async function fetchAccountConditionalTransactions(
   account: Address,
