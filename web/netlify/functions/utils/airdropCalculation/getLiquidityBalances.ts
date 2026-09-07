@@ -116,11 +116,16 @@ export async function fetchLiquidityEventsForBatch(
   url: string,
   tokenPairs: Token0Token1[],
   request: SubgraphRequest = subgraphRequest,
-  origin?: Address,
+  origins?: Address[],
 ): Promise<LiquidityEvent[]> {
   const orFilter = tokenPairs
     .map((tokenPair) => `{token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}`)
     .join(",");
+  // `origin_in` rather than one crawl per address: a portfolio asks about an owner and every
+  // TradeExecutor it controls, and those wallets share a market set almost entirely.
+  const originFilter = origins?.length
+    ? `,{origin_in: [${origins.map((origin) => `"${origin.toLowerCase()}"`).join(",")}]}`
+    : "";
   const allEvents: LiquidityEvent[] = [];
   let lastId: string | undefined;
   while (true) {
@@ -128,7 +133,7 @@ export async function fetchLiquidityEventsForBatch(
           ${entity}(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where:
             {
               and: [
-                { or: [${orFilter}] }${origin ? `,{origin: "${origin.toLowerCase()}"}` : ""}${lastId ? `,{id_gt: "${lastId}"}` : ""}
+                { or: [${orFilter}] }${originFilter}${lastId ? `,{id_gt: "${lastId}"}` : ""}
               ]
             }) {
             id
@@ -167,14 +172,14 @@ async function fetchLiquidityEvents(
   entity: "mints" | "burns",
   chainId: SupportedChain,
   tokenPairs: Token0Token1[],
-  origin?: Address,
+  origins?: Address[],
 ): Promise<LiquidityEvent[]> {
   const url = getLiquiditySubgraphUrl(chainId);
   const type = entity === "mints" ? "mint" : "burn";
   const limit = pLimit(SUBGRAPH_CONCURRENCY);
   const batches = chunkArray(tokenPairs, PAIR_BATCH_SIZE);
   const results = await Promise.all(
-    batches.map((batch) => limit(() => fetchLiquidityEventsForBatch(entity, url, batch, subgraphRequest, origin))),
+    batches.map((batch) => limit(() => fetchLiquidityEventsForBatch(entity, url, batch, subgraphRequest, origins))),
   );
   return results.flat().map((event) => ({ ...event, type }));
 }
@@ -186,7 +191,7 @@ export async function getAllLiquidityEvents(
     parentTokenId?: Address;
     collateralToken: Address;
   }[],
-  origin?: Address,
+  origins?: Address[],
 ) {
   // Canonicalize (token0/token1) and dedupe: each outcome token has a single pool with its
   // collateral, but conditional markets can repeat collaterals, so drop duplicate pools.
@@ -201,8 +206,8 @@ export async function getAllLiquidityEvents(
     sortedTokenPairs.push(pair);
   }
   const [mints, burns] = await Promise.all([
-    fetchLiquidityEvents("mints", chainId, sortedTokenPairs, origin),
-    fetchLiquidityEvents("burns", chainId, sortedTokenPairs, origin),
+    fetchLiquidityEvents("mints", chainId, sortedTokenPairs, origins),
+    fetchLiquidityEvents("burns", chainId, sortedTokenPairs, origins),
   ]);
   return mints.concat(burns);
 }

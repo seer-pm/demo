@@ -202,8 +202,14 @@ describe("fetchLiquidityEventsForBatch", () => {
 
   it("filters events by origin when provided", async () => {
     const { request, queries } = fakeSubgraph([[]]);
-    await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request, A as Address);
-    expect(queries[0]).toContain(`origin: "${A}"`);
+    await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request, [A as Address, B as Address]);
+    expect(queries[0]).toContain(`origin_in: ["${A}","${B}"]`);
+  });
+
+  it("omits the origin filter when no origins are given", async () => {
+    const { request, queries } = fakeSubgraph([[]]);
+    await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request, []);
+    expect(queries[0]).not.toContain("origin_in");
   });
 
   it("stops rather than looping when a page carries no ids", async () => {

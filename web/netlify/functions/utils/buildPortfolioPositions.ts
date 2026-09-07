@@ -11,7 +11,7 @@ import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
-import { getOwnerLiquidityBalances } from "./marketLiquidityHolders";
+import { getWalletsLiquidityBalances, preloadWalletLiquidityLegs, tokensFromLiquidityLegs } from "./marketLiquidityHolders";
 import { outcomePriceTokensForChain } from "./marketMtmRefresh";
 import { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFirst } from "./marketParentChain";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
@@ -299,16 +299,30 @@ export async function buildCurrentPortfolioPositionsForWallets(
   chainId: SupportedChain,
   collateralProfile: string,
 ): Promise<PortfolioPosition[]> {
-  const holdingsPerWallet = await Promise.all(
-    wallets.map(async (wallet) => ({ wallet, holdings: await fetchTokenBalances(wallet, chainId) })),
-  );
+  // Fetched together because neither depends on the other, and the LP source is owner-keyed: it
+  // needs no market list, so it no longer has to queue behind one.
+  const [holdingsPerWallet, preloadedLegs] = await Promise.all([
+    Promise.all(wallets.map(async (wallet) => ({ wallet, holdings: await fetchTokenBalances(wallet, chainId) }))),
+    preloadWalletLiquidityLegs(chainId, wallets).catch((e) => {
+      console.warn("buildCurrentPortfolioPositionsForWallets: liquidity legs", e);
+      return null;
+    }),
+  ]);
+
+  // Balance rows come back including zeros (`fetchTokenBalances` says so), and a zero row is worth
+  // nothing at any price. Filtering here keeps `searchAllMarkets` and every market expansion below
+  // proportional to what the wallets still hold rather than to everything they ever touched.
   const perWallet = holdingsPerWallet.map(({ wallet, holdings }) => ({
     wallet,
-    tokens: [...holdings.keys()].map((token) => token as Address),
+    tokens: [...holdings.entries()].filter(([, balance]) => balance > 0n).map(([token]) => token as Address),
     holdings,
   }));
 
-  const tokens = [...new Set(perWallet.flatMap((entry) => entry.tokens))];
+  // Liquidity-only outcome tokens join the lookup: a wallet whose whole position sits in a pool has
+  // no balance row for it, and resolving markets from balances alone would drop the row entirely.
+  const tokens = [
+    ...new Set([...perWallet.flatMap((entry) => entry.tokens), ...tokensFromLiquidityLegs(preloadedLegs ?? [])]),
+  ];
   if (tokens.length === 0) {
     return [];
   }
@@ -318,19 +332,26 @@ export async function buildCurrentPortfolioPositionsForWallets(
   // chain locally instead of each issuing its own ancestor query.
   const pricingPool = await loadMarketsWithAncestors(markets, chainId, collateralProfile);
 
+  // One fetch for the whole wallet set. Running it per wallet re-issued the same pool and event
+  // queries with only the owner filter changed, and this is the metered half of the request.
+  let lpByWallet = new Map<string, Map<string, bigint>>();
+  try {
+    lpByWallet = await getWalletsLiquidityBalances(chainId, wallets, markets, preloadedLegs);
+  } catch (e) {
+    console.warn("buildCurrentPortfolioPositionsForWallets: liquidity holders", e);
+  }
+
   const positionsPerWallet = await Promise.all(
     perWallet.map(async ({ wallet, tokens: walletTokens, holdings }) => {
-      if (walletTokens.length === 0) return [];
-      const balances = walletTokens.map((token) => holdings.get(token.toLowerCase()) ?? 0n);
-      let lpBalances = new Map<string, bigint>();
-      try {
-        lpBalances = await getOwnerLiquidityBalances(markets, wallet);
-      } catch (e) {
-        console.warn("buildCurrentPortfolioPositionsForWallets: liquidity holders", e);
-      }
+      const lpBalances = lpByWallet.get(wallet.toLowerCase()) ?? new Map<string, bigint>();
+      // Union, not the held tokens alone: an outcome token the wallet only owns through a pool has
+      // no balance row, and it is a real row worth real money.
+      const rowTokens = [...new Set([...walletTokens, ...(lpBalances.keys() as Iterable<Address>)])];
+      if (rowTokens.length === 0) return [];
+      const balances = rowTokens.map((token) => holdings.get(token.toLowerCase()) ?? 0n);
       const positions = await buildPortfolioPositionsCore(
         chainId,
-        walletTokens,
+        rowTokens,
         balances,
         markets,
         false,
