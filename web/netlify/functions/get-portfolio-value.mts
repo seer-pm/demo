@@ -1,16 +1,15 @@
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
+import { DEFAULT_COLLATERAL_PROFILE } from "@seer-pm/sdk/collateral";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
-import {
-  buildCurrentPortfolioPositionsForWallets,
-  outcomePriceInputsForPositions,
-} from "./utils/buildPortfolioPositions";
+import { outcomePriceInputsForPositions } from "./utils/buildPortfolioPositions";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolHourPrices";
 import { settledPayoutRatios } from "./utils/outcomePrices";
 import { parseChainIdQueryParam } from "./utils/parseChainIdParam";
-import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
+import { resolvePortfolioIdentity } from "./utils/portfolioIdentity";
+import { type ResolvedChain, filterPositionsByChain, loadPortfolioPositions } from "./utils/portfolioPositionsCache";
 import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./utils/portfolioValuation";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 import type { Database } from "./utils/supabase";
@@ -54,25 +53,12 @@ type ValueUsd = {
 };
 
 async function portfolioValueUsdForChain(args: {
-  identity: PortfolioIdentity;
+  positions: PortfolioPosition[];
   chainId: SupportedChain;
-  profileParam: string | null;
+  primaryCollateral: Address;
   historyTimestamp: number;
 }): Promise<ValueUsd | null> {
-  const { identity, chainId, profileParam, historyTimestamp } = args;
-  const collateralResolved = parseCollateralProfileQueryParam(chainId, profileParam);
-  if ("error" in collateralResolved) {
-    console.warn(`get-portfolio-value: skip chain ${chainId}: ${collateralResolved.error}`);
-    return null;
-  }
-
-  // One row per (token, wallet), so the sums below stay exact: each row is a distinct on-chain
-  // balance, and value is linear in balance.
-  const positions = await buildCurrentPortfolioPositionsForWallets(
-    identity.walletsForChain(chainId),
-    chainId,
-    collateralResolved.profileName,
-  );
+  const { positions, chainId, primaryCollateral, historyTimestamp } = args;
 
   // The same token batch prices both ends. Handing the historical side bare positions instead would
   // price every conditional at 0 there while the current side chains it through its parent, and the
@@ -88,11 +74,9 @@ async function portfolioValueUsdForChain(args: {
 
   const currentNative = sumPortfolioValueCurrent(positions);
   const historyNative = sumPortfolioValueAtReference(positions, historyPrices, historyTimestamp);
-  const priceUsd = await getDexScreenerPriceUSD(collateralResolved.primaryCollateral.address, chainId);
+  const priceUsd = await getDexScreenerPriceUSD(primaryCollateral, chainId);
   if (!(priceUsd > 0)) {
-    console.warn(
-      `get-portfolio-value: chain ${chainId} collateral USD price is ${priceUsd} (token ${collateralResolved.primaryCollateral.address})`,
-    );
+    console.warn(`get-portfolio-value: chain ${chainId} USD price is ${priceUsd} (token ${primaryCollateral})`);
     return null;
   }
 
@@ -145,14 +129,45 @@ export default async (req: Request) => {
         ? (Object.values(SUPPORTED_CHAINS).map((c) => c.id) as SupportedChain[])
         : [chainParsed.chainId as SupportedChain];
 
+    const resolvedChains: (ResolvedChain & { primaryCollateral: Address })[] = [];
+    for (const chainId of chainIds) {
+      const collateralResolved = parseCollateralProfileQueryParam(chainId, profileParam);
+      if ("error" in collateralResolved) {
+        console.warn(`get-portfolio-value: skip chain ${chainId}: ${collateralResolved.error}`);
+        continue;
+      }
+      resolvedChains.push({
+        chainId,
+        profileName: collateralResolved.profileName,
+        primaryCollateral: collateralResolved.primaryCollateral.address,
+      });
+    }
+    if (resolvedChains.length === 0) {
+      return new Response(JSON.stringify({ error: "Invalid collateral profile" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Resolved once for the whole fan-out rather than per chain.
     const identity = await resolvePortfolioIdentity(account);
+    // The same rows `get-portfolio` serves, read from the same blob. This endpoint used to rebuild
+    // them: the portfolio page calls both at once, so every balance, market and LP query was paid
+    // for twice, and the value card could disagree with the positions tab it sits above.
+    const positions = await loadPortfolioPositions({
+      account,
+      profileName: profileParam?.trim() || DEFAULT_COLLATERAL_PROFILE,
+      identity,
+      chains: resolvedChains,
+      chainScope: chainParsed.chainId,
+    });
+
     const parts = await Promise.all(
-      chainIds.map((id) =>
+      resolvedChains.map(({ chainId, primaryCollateral }) =>
         portfolioValueUsdForChain({
-          identity,
-          chainId: id,
-          profileParam,
+          positions: filterPositionsByChain(positions, chainId),
+          chainId,
+          primaryCollateral,
           historyTimestamp,
         }),
       ),
