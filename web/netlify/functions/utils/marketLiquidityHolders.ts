@@ -16,6 +16,7 @@ import {
 import { fetchPools } from "./fetchPools";
 import type { TokenHolder } from "./token-transactions";
 import { getTokenDecimalsList } from "./tokenDecimals";
+import { type TtlCacheEntry, evictExpiredAndOldest } from "./ttlCache";
 
 export type MarketLiquidityHolders = {
   holders: Record<string, TokenHolder[]>;
@@ -175,7 +176,12 @@ export async function getWalletsLiquidityBalances(
 
 /** LP holder sets change far more slowly than the endpoint's own cache window. */
 const HOLDERS_TTL_MS = 5 * 60 * 1000;
-const holdersCache = new Map<string, { at: number; value: Promise<MarketLiquidityHolders> }>();
+/**
+ * One entry per market, each holding a holder list per outcome token, over a key space as large as
+ * the market universe — so the memo is bounded by count as well as by age.
+ */
+const HOLDERS_CACHE_MAX_SIZE = 128;
+const holdersCache = new Map<string, TtlCacheEntry<MarketLiquidityHolders>>();
 
 /**
  * `getLiquidityHolders` for one market, memoized per (chain, market) for `HOLDERS_TTL_MS`.
@@ -184,16 +190,24 @@ const holdersCache = new Map<string, { at: number; value: Promise<MarketLiquidit
  * account filter in the Activity tab, and each CDN miss otherwise re-crawls the market's pools.
  * The promise is cached, not just its result, so concurrent misses share one crawl; a rejection
  * evicts itself so the next caller retries instead of being served the failure for five minutes.
+ *
+ * Bounded as well as expiring: a Netlify container outlives many markets, and an entry whose key is
+ * never asked for again would otherwise stay resident past its TTL for the life of the process.
  */
 export function getMarketLiquidityHoldersCached(market: Market): Promise<MarketLiquidityHolders> {
   const key = `${market.chainId}:${market.id.toLowerCase()}`;
-  const hit = holdersCache.get(key);
-  if (hit && Date.now() - hit.at < HOLDERS_TTL_MS) return hit.value;
+  const now = Date.now();
+  const existing = holdersCache.get(key);
+  if (existing && existing.expiresAt > now) return existing.promise;
+  holdersCache.delete(key);
+  evictExpiredAndOldest(holdersCache, now, HOLDERS_CACHE_MAX_SIZE);
 
-  const value = getLiquidityHolders([market]);
-  holdersCache.set(key, { at: Date.now(), value });
-  value.catch(() => holdersCache.delete(key));
-  return value;
+  const promise = getLiquidityHolders([market]).catch((error) => {
+    holdersCache.delete(key);
+    throw error;
+  });
+  holdersCache.set(key, { promise, expiresAt: now + HOLDERS_TTL_MS });
+  return promise;
 }
 
 /** Derives current outcome-token holdings represented by supported LP positions. */

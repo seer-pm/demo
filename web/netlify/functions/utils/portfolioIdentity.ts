@@ -7,6 +7,7 @@ import {
   getTradeExecutorConfig,
   predictedExecutorsForOwner,
 } from "./tradeExecutorOwnersCore";
+import { type TtlCacheEntry, evictExpiredAndOldest } from "./ttlCache";
 
 /**
  * The set of wallets a portfolio request is really about: the requested account plus the
@@ -58,20 +59,7 @@ export type PortfolioIdentity = {
 const IDENTITY_CACHE_TTL_MS = 5 * 60 * 1000;
 const IDENTITY_CACHE_MAX_SIZE = 256;
 
-type CacheEntry = { promise: Promise<PortfolioIdentity>; expiresAt: number };
-
-const identityCache = new Map<string, CacheEntry>();
-
-function evictExpiredAndOldest(now: number): void {
-  for (const [key, entry] of identityCache) {
-    if (entry.expiresAt <= now) identityCache.delete(key);
-  }
-  while (identityCache.size >= IDENTITY_CACHE_MAX_SIZE) {
-    const oldest = identityCache.keys().next().value;
-    if (oldest === undefined) break;
-    identityCache.delete(oldest);
-  }
-}
+const identityCache = new Map<string, TtlCacheEntry<PortfolioIdentity>>();
 
 /**
  * Predicted executors of `owner` on this chain that actually have bytecode.
@@ -165,7 +153,7 @@ export function resolvePortfolioIdentity(account: Address): Promise<PortfolioIde
     return existing.promise;
   }
   identityCache.delete(accountLc);
-  evictExpiredAndOldest(now);
+  evictExpiredAndOldest(identityCache, now, IDENTITY_CACHE_MAX_SIZE);
 
   const promise = probeIdentity(accountLc)
     .catch((error) => {

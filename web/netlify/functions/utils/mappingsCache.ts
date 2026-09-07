@@ -3,17 +3,13 @@ import type { MarketDataMapping, SupportedChain } from "@seer-pm/sdk";
 import { getMappings } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import type { PublicClient } from "viem";
+import { type TtlCacheEntry, evictExpiredAndOldest } from "./ttlCache";
 
 const MAPPINGS_CACHE_TTL_MS = 15 * 60 * 1000;
 const MAPPINGS_CACHE_MAX_SIZE = 64;
 
-type CacheEntry = {
-  promise: Promise<MarketDataMapping>;
-  expiresAt: number;
-};
-
 /** Per-invocation cache: chainId + hashed sorted market ids → mappings. */
-const mappingsCache = new Map<string, CacheEntry>();
+const mappingsCache = new Map<string, TtlCacheEntry<MarketDataMapping>>();
 
 function mappingsCacheKey(chainId: number, markets: Market[]): string {
   const ids = markets
@@ -22,17 +18,6 @@ function mappingsCacheKey(chainId: number, markets: Market[]): string {
     .join(",");
   const digest = createHash("sha1").update(ids).digest("hex");
   return `${chainId}:${digest}`;
-}
-
-function evictExpiredAndOldest(now: number): void {
-  for (const [key, entry] of mappingsCache) {
-    if (entry.expiresAt <= now) mappingsCache.delete(key);
-  }
-  while (mappingsCache.size >= MAPPINGS_CACHE_MAX_SIZE) {
-    const oldest = mappingsCache.keys().next().value;
-    if (oldest === undefined) break;
-    mappingsCache.delete(oldest);
-  }
 }
 
 /**
@@ -52,7 +37,7 @@ export function getMappingsCached(
     return existing.promise;
   }
   mappingsCache.delete(key);
-  evictExpiredAndOldest(now);
+  evictExpiredAndOldest(mappingsCache, now, MAPPINGS_CACHE_MAX_SIZE);
 
   const promise = getMappings(publicClient, markets, chainId).catch((error) => {
     mappingsCache.delete(key);

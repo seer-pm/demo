@@ -217,6 +217,9 @@ export async function fetchPoolSqrtPrices(chainId: SupportedChain, poolIds: stri
   const sdk = getDexSubgraphSdk(chainId);
 
   for (const batch of chunk([...new Set(poolIds.map((id) => id.toLowerCase()))], ID_BATCH_SIZE)) {
+    // Uncursored, unlike the crawls above, and safely so: `id` is unique, so an `id_in` of
+    // ID_BATCH_SIZE ids matches at most that many rows — half a PAGE_SIZE page. Raising
+    // ID_BATCH_SIZE to or past PAGE_SIZE would make a batch fillable, and would need `paginateById`.
     const { pools } = await sdk.GetPoolSqrtPrices({ first: PAGE_SIZE, where: { id_in: batch } });
     for (const pool of pools) {
       prices.set(pool.id.toLowerCase(), BigInt(pool.sqrtPrice));
