@@ -222,10 +222,11 @@ type RouterLegs = {
  *
  * Ownership is the union of two signals, because neither alone is complete:
  *
- * - `accountId` — right when the user signed their own transaction.
+ * - `accountId` — the indexer's attribution: `transaction.to` since `seer-indexer` `0261506`, the
+ *   signer before it. Right for a direct call either way; wrong for a TradeExecutor driven by a
+ *   session key on rows indexed before that change, and for any intermediary contract still.
  * - the transactions where **primary collateral actually moved** between the account and a router —
- *   the only signal that survives a TradeExecutor driven by a relayer, where `resolveAccountId`
- *   books the event to the signing EOA instead of to the executor whose money moved.
+ *   the signal that follows the money whatever the indexer booked.
  *
  * Deduped by event id, so a leg that both signals find is counted once. Amounts and markets always
  * come from the event itself; only the ownership test is widened.

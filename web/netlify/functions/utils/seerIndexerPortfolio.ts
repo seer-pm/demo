@@ -379,12 +379,14 @@ export async function computeCollateralPortfolioValuesForPeriods(
  * Transactions where primary collateral moved between this account and a Seer router.
  *
  * Needed because `ConditionalEvent.accountId` does **not** always identify the economic owner. When
- * the CTF stakeholder is the router, the indexer rewrites `accountId` to `transaction.from`
- * (`resolveAccountId`). That is right when the user signs their own transaction, but a DeepFunding
- * TradeExecutor is driven by a relayer: the collateral leaves the executor while the event is booked
- * to whichever EOA happened to sign. Measured on optimism, 127 of 366 router transfers with an
- * associated event (35%, across 74 addresses) are attributed to an address other than the one whose
- * collateral moved.
+ * the CTF stakeholder is the router, the event does not carry the router's caller and the indexer
+ * has to pick one (`resolveAccountId`). Rows indexed before `seer-indexer` `0261506` carry
+ * `transaction.from`: right when the user signed their own transaction, wrong for a DeepFunding
+ * TradeExecutor driven by a session key, where the collateral leaves the executor while the event is
+ * booked to a throwaway EOA. Measured on optimism, 127 of 366 router transfers with an associated
+ * event (35%, across 74 addresses) were attributed to an address other than the one whose collateral
+ * moved. Rows indexed after it carry `transaction.to` — the executor or contract wallet itself — but
+ * a forwarder or module between that recipient and the router is still booked to the intermediary.
  *
  * The `Transfer` follows the money, so its transactions are the reliable ownership signal. The event
  * is still the source of the amount and the market — only the ownership test changes.
@@ -605,10 +607,11 @@ export function conditionalEventStakeholderIsForeign(
  *
  * Neither signal alone is complete:
  *
- * - `accountId` — right when the user signed their own transaction.
+ * - `accountId` — the indexer's attribution: `transaction.to` since `seer-indexer` `0261506`, the
+ *   signer before it. Right for a direct call either way; wrong for a TradeExecutor driven by a
+ *   session key on rows indexed before that change, and for any intermediary contract still.
  * - the transactions where **primary collateral actually moved** between the account and a router —
- *   the only signal that survives a TradeExecutor driven by a relayer, where `resolveAccountId`
- *   books the event to the signing EOA instead of to the executor whose money moved.
+ *   the signal that follows the money whatever the indexer booked.
  *
  * Deduped by event id, so a leg that both signals find is counted once. Amounts and markets always
  * come from the event itself; only the ownership test is widened. The transaction signal is narrowed
