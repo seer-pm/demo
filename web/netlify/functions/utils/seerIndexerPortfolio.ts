@@ -65,54 +65,71 @@ export async function fetchAccountActivities(account: Address): Promise<AccountA
   return rows.map(mapAccountActivityRow);
 }
 
-/** One indexed address on a chain, with the day of its last token movement. */
-export type ChainAccountActivity = {
+/** One wallet whose primary collateral moved with a Seer router, and when it last did. */
+export type RouterCollateralCounterparty = {
   account: string;
   lastTransferTimestamp: number;
 };
 
 /** Bound the scan so a runaway page loop cannot eat a background function's whole budget. */
-const MAX_ACCOUNT_ACTIVITY_PAGES = 100;
+const MAX_ROUTER_COUNTERPARTY_PAGES = 100;
 
 /**
- * Every address the indexer has seen move an indexed token on `chainId`, paged.
+ * Every wallet whose primary collateral moved with a Seer router on `chainId` at or after
+ * `minTimestamp` — the holder side of `Transfer kind=router_collateral`, routers and the zero
+ * address left out.
  *
- * This is the *holder* view — `AccountActivity` is written from `Transfer.from` / `Transfer.to` —
- * which is what makes it complementary to the Supabase analytics rollups the P/L job otherwise
- * uses. Those are keyed by `tokens_transfers.tx_from`, i.e. msg.sender, so a TradeExecutor driven
- * by a relayer books the *relayer* and neither the executor nor its owner ever appears. The
- * executor does appear here, because the tokens really move to it.
+ * This is the leaderboard's second candidate source, and the choice of signal is the point. The
+ * Supabase analytics rollups are keyed by `tokens_transfers.tx_from` (msg.sender), so a
+ * TradeExecutor driven by a session key books the key and never names the executor holding the
+ * tokens. Following the collateral names the executor, because its money really moved. It is the
+ * same ownership signal the P/L compute follows.
  *
- * Ordered by `id` (`chainId:account`, unique) so offset paging is stable.
+ * It is deliberately *not* "every address the indexer has seen hold a token" (`AccountActivity`).
+ * That view is holder-keyed too, but it includes every Uniswap pool: a pool holds outcome tokens,
+ * so it has activity, and a P/L computed for it is the value of its inventory — 200 pools ranked
+ * from 15th place down at ~$87 each was the result on Optimism. A pool never moves collateral with
+ * the router, so this scan excludes it structurally rather than by probing bytecode.
+ *
+ * Not covered: an executor that only ever bought outcome tokens on the DEX and never split, merged
+ * or redeemed. Its swaps are in the DEX subgraph, not here.
  */
-export async function fetchChainAccountActivities(
+export async function fetchRouterCollateralCounterparties(
   chainId: SupportedChain,
-  minLastTransferTimestamp = 0,
-): Promise<ChainAccountActivity[]> {
+  minTimestamp = 0,
+): Promise<RouterCollateralCounterparty[]> {
   const sdk = seerEnvioSdk(chainId);
-  const out: ChainAccountActivity[] = [];
+  const routers = routerAddressSet(chainId);
+  const lastByAccount = new Map<string, number>();
   let offset = 0;
-  for (let page = 0; page < MAX_ACCOUNT_ACTIVITY_PAGES; page++) {
-    const { AccountActivity: rows } = await sdk.GetAccountActivitiesByChain({
+  for (let page = 0; page < MAX_ROUTER_COUNTERPARTY_PAGES; page++) {
+    const { Transfer: rows } = await sdk.GetTransfers({
       limit: PAGE,
       offset,
-      orderBy: [{ id: Order_By.Asc }],
+      orderBy: [{ timestamp: Order_By.Asc }, { logIndex: Order_By.Asc }],
       where: {
         chainId: { _eq: String(chainId) },
-        ...(minLastTransferTimestamp > 0 ? { lastTransferTimestamp: { _gte: String(minLastTransferTimestamp) } } : {}),
+        kind: { _eq: "router_collateral" },
+        ...(minTimestamp > 0 ? { timestamp: { _gte: String(minTimestamp) } } : {}),
       },
     });
     for (const row of rows) {
-      out.push({
-        account: row.account.toLowerCase(),
-        lastTransferTimestamp: Number(row.lastTransferTimestamp),
-      });
+      for (const party of [row.from, row.to]) {
+        const account = party.toLowerCase();
+        if (routers.has(account) || account === ZERO_ADDRESS) continue;
+        lastByAccount.set(account, Math.max(lastByAccount.get(account) ?? 0, Number(row.timestamp)));
+      }
     }
-    if (rows.length < PAGE) return out;
+    if (rows.length < PAGE) {
+      return [...lastByAccount].map(([account, lastTransferTimestamp]) => ({ account, lastTransferTimestamp }));
+    }
     offset += PAGE;
   }
-  console.warn("seerIndexerPortfolio: account activity scan hit the page cap", { chainId, scanned: out.length });
-  return out;
+  console.warn("seerIndexerPortfolio: router collateral scan hit the page cap", {
+    chainId,
+    scanned: lastByAccount.size,
+  });
+  return [...lastByAccount].map(([account, lastTransferTimestamp]) => ({ account, lastTransferTimestamp }));
 }
 
 /**

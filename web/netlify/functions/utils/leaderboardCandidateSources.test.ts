@@ -8,15 +8,15 @@ vi.hoisted(() => {
   process.env.SUPABASE_API_KEY ||= "test-key";
 });
 
-const GetAccountActivitiesByChain = vi.fn();
+const GetTransfers = vi.fn();
 
 vi.mock("./envioClient", () => ({
-  seerEnvioSdk: () => ({ GetAccountActivitiesByChain }),
+  seerEnvioSdk: () => ({ GetTransfers }),
 }));
 
 import { listLeaderboardCandidates } from "./pnlLeaderboard";
 
-const CHAIN = 10;
+const CHAIN = 10 as const;
 const DAY = 86_400;
 
 /** The owner EOA never signs its own trades, so the analytics rollups never name it. */
@@ -25,6 +25,9 @@ const OWNER = "0x02dadbe42f385fa68f96c753df7f24c863701481";
 const EXECUTOR = "0x7f93d9e40f0b393d2d5506d618aa0526496f374f";
 /** What `tokens_transfers.tx_from` actually records for those trades. */
 const RELAYER = "0x4d684bbc7296a913f95257b7d5659047031f65e6";
+/** The deployed optimism router — the scan drops it through `getRouterAddresses(10)`. */
+const ROUTER = "0x179d8f8c811b8c759c33809dbc6c5cedc62d05dd";
+const PRIMARY = "0xb5b2dc7fd34c249f4be7fb1fcea07950784229e0";
 
 /** Minimal `supabase.from(...).select(...)…range()` chain: analytics returns `rows` once. */
 function supabaseReturning(rows: { address: string; day: number }[]) {
@@ -37,26 +40,32 @@ function supabaseReturning(rows: { address: string; day: number }[]) {
   return { from: () => builder } as any;
 }
 
-function activityRow(account: string, lastTransferTimestamp: number) {
+/** A primary-collateral leg between `wallet` and the router, as the indexer books it. */
+function routerCollateralRow(wallet: string, timestamp: number, toRouter = true) {
   return {
-    id: `${CHAIN}:${account}`,
     chainId: String(CHAIN),
-    account,
-    earliestTransferTimestamp: "0",
-    lastTransferTimestamp: String(lastTransferTimestamp),
-    transferCount: "1",
+    from: toRouter ? wallet : ROUTER,
+    to: toRouter ? ROUTER : wallet,
+    timestamp: String(timestamp),
+    blockNumber: "1",
+    transactionHash: "0xabc",
+    transactionFrom: RELAYER,
+    logIndex: "1",
+    value: "1000",
+    kind: "router_collateral",
+    involvesRouter: true,
+    market: null,
+    token: { id: PRIMARY },
   };
 }
 
 beforeEach(() => {
-  GetAccountActivitiesByChain.mockReset();
+  GetTransfers.mockReset();
 });
 
 describe("listLeaderboardCandidates", () => {
   it("reaches a wallet that only ever traded through a relayer-driven executor", async () => {
-    GetAccountActivitiesByChain.mockResolvedValueOnce({
-      AccountActivity: [activityRow(EXECUTOR, 10 * DAY + 500)],
-    });
+    GetTransfers.mockResolvedValueOnce({ Transfer: [routerCollateralRow(EXECUTOR, 10 * DAY + 500)] });
 
     const candidates = await listLeaderboardCandidates(
       supabaseReturning([{ address: RELAYER, day: 9 * DAY }]),
@@ -77,9 +86,7 @@ describe("listLeaderboardCandidates", () => {
   });
 
   it("keeps the latest activity day when both sources name the same wallet", async () => {
-    GetAccountActivitiesByChain.mockResolvedValueOnce({
-      AccountActivity: [activityRow(RELAYER, 12 * DAY)],
-    });
+    GetTransfers.mockResolvedValueOnce({ Transfer: [routerCollateralRow(RELAYER, 12 * DAY, false)] });
 
     const candidates = await listLeaderboardCandidates(
       supabaseReturning([{ address: RELAYER, day: 9 * DAY }]),
@@ -95,7 +102,7 @@ describe("listLeaderboardCandidates", () => {
   });
 
   it("still returns the analytics half when the indexer scan fails", async () => {
-    GetAccountActivitiesByChain.mockRejectedValueOnce(new Error("indexer down"));
+    GetTransfers.mockRejectedValueOnce(new Error("indexer down"));
 
     const candidates = await listLeaderboardCandidates(
       supabaseReturning([{ address: RELAYER, day: 9 * DAY }]),
@@ -110,6 +117,33 @@ describe("listLeaderboardCandidates", () => {
     expect(candidates.map((c) => c.address)).toEqual([RELAYER]);
   });
 
+  it("asks the indexer for router collateral only, never for every token holder", async () => {
+    // The holder view (`AccountActivity`) would hand back every Uniswap pool on the chain, and a
+    // pool's P/L is its inventory. Collateral moving with the router is what a pool never does.
+    GetTransfers.mockResolvedValueOnce({ Transfer: [] });
+
+    await listLeaderboardCandidates(supabaseReturning([]), CHAIN, undefined, { cutoffDay: 3 * DAY });
+
+    expect(GetTransfers).toHaveBeenCalledTimes(1);
+    expect(GetTransfers.mock.calls[0][0].where).toMatchObject({
+      kind: { _eq: "router_collateral" },
+      timestamp: { _gte: String(3 * DAY) },
+    });
+  });
+
+  it("never lists the router itself or the zero address as a candidate", async () => {
+    GetTransfers.mockResolvedValueOnce({
+      Transfer: [
+        routerCollateralRow(EXECUTOR, 10 * DAY),
+        { ...routerCollateralRow(EXECUTOR, 10 * DAY), from: "0x0000000000000000000000000000000000000000", to: ROUTER },
+      ],
+    });
+
+    const candidates = await listLeaderboardCandidates(supabaseReturning([]), CHAIN, undefined, { cutoffDay: 0 });
+
+    expect(candidates.map((c) => c.address)).toEqual([EXECUTOR]);
+  });
+
   it("leaves market-scoped jobs on the analytics source alone", async () => {
     const candidates = await listLeaderboardCandidates(
       supabaseReturning([{ address: RELAYER, day: 9 * DAY }]),
@@ -119,6 +153,6 @@ describe("listLeaderboardCandidates", () => {
     );
 
     expect(candidates.map((c) => c.address)).toEqual([RELAYER]);
-    expect(GetAccountActivitiesByChain).not.toHaveBeenCalled();
+    expect(GetTransfers).not.toHaveBeenCalled();
   });
 });
