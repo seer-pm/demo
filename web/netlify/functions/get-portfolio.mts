@@ -13,7 +13,7 @@ import {
 import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
 
-const PORTFOLIO_POSITIONS_STORE = "portfolio-positions-v2";
+const PORTFOLIO_POSITIONS_STORE = "portfolio-positions";
 
 type PositionsCachePayload = ActivityCachedPayload<{ positions: PortfolioPosition[] }>;
 
@@ -95,11 +95,16 @@ export default async (req: Request) => {
       return jsonError(firstProfileError ?? "Invalid collateral profile", 400);
     }
 
-    // `:v3` marks the conditional-pricing fix. Older blobs hold positions of markets whose parent
-    // branch already lost, priced relative to the parent outcome as if that were collateral, and
-    // freshness is a timestamp comparison — so without this they read as fresh and serve the
-    // pre-fix view for a further TTL. `:v2` did the same for the executor-merged payload format.
-    const cacheKey = `${account.toLowerCase()}:${profileName}:v3`;
+    // `:v4` marks the LP-aware payload: older blobs carry no `lpTokenBalance`, and freshness is a
+    // timestamp comparison, so without the bump they read as fresh and serve LP-free rows for a
+    // further TTL. `:v3` did the same for the conditional-pricing fix — older blobs held positions
+    // of markets whose parent branch already lost, priced relative to the parent outcome as if that
+    // were collateral — and `:v2` for the executor-merged payload format.
+    //
+    // The key suffix is the only version knob. Renaming the store instead would work once and then
+    // orphan every blob in the old one: `portfolioBlobCache` exposes no list or delete and Netlify
+    // Blobs have no retention policy, so the abandoned store counts against site storage forever.
+    const cacheKey = `${account.toLowerCase()}:${profileName}:v4`;
 
     // Resolved first: freshness has to cover the executors too, or a wallet that only trades through
     // one never invalidates its own cache. The probe is memoized, so this is usually free.
