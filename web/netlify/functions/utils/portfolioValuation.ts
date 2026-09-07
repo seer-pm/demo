@@ -1,5 +1,21 @@
 import type { PortfolioPosition } from "@seer-pm/sdk";
 
+/**
+ * Outcome tokens the row represents: held in the wallet plus held inside an AMM position.
+ *
+ * `tokenBalance` is the wallet's ERC20 balance and stays that — the redeem and merge flows, and the
+ * P/L path's balance rollback through `tokens_transfers`, all mean exactly that. Tokens sitting in a
+ * concentrated-liquidity position are just as much the wallet's, and `enrichPositionsWithTokenValues`
+ * already prices the row on the total, so every aggregate over the same rows has to agree with it or
+ * the value card contradicts the positions tab it sits above.
+ *
+ * `lpTokenBalance` is absent on rows built without an LP source (the whole P/L path, and blobs
+ * written before it existed), where it reads as zero and this is the balance it always was.
+ */
+export function positionTotalBalance(position: PortfolioPosition): number {
+  return position.tokenBalance + (position.lpTokenBalance ?? 0);
+}
+
 /** Price of one position at `referenceTime`: history price, else current, else redeemed if settled. */
 function positionPriceAtReference(
   position: PortfolioPosition,
@@ -29,7 +45,7 @@ function groupByMarket(positions: PortfolioPosition[], value: (p: PortfolioPosit
  * valuation needs no extra data source to be bucketed.
  */
 export function groupPortfolioValueCurrentByMarket(positions: PortfolioPosition[]): Map<string, number> {
-  return groupByMarket(positions, (p) => p.tokenPrice * p.tokenBalance);
+  return groupByMarket(positions, (p) => p.tokenPrice * positionTotalBalance(p));
 }
 
 /** Mark-to-market per market id at `referenceTimeSeconds`, using the same rules as the scalar sum. */
@@ -40,12 +56,12 @@ export function groupPortfolioValueAtReferenceByMarket(
 ): Map<string, number> {
   return groupByMarket(
     positions,
-    (p) => positionPriceAtReference(p, tokenIdToReferencePrice, referenceTimeSeconds) * p.tokenBalance,
+    (p) => positionPriceAtReference(p, tokenIdToReferencePrice, referenceTimeSeconds) * positionTotalBalance(p),
   );
 }
 
 export function sumPortfolioValueCurrent(positions: PortfolioPosition[]): number {
-  return positions.reduce((acc, curr) => acc + curr.tokenPrice * curr.tokenBalance, 0);
+  return positions.reduce((acc, curr) => acc + curr.tokenPrice * positionTotalBalance(curr), 0);
 }
 
 /**
@@ -59,7 +75,7 @@ export function sumPortfolioValueAtReference(
 ): number {
   return positions.reduce(
     (acc, curr) =>
-      acc + positionPriceAtReference(curr, tokenIdToReferencePrice, referenceTimeSeconds) * curr.tokenBalance,
+      acc + positionPriceAtReference(curr, tokenIdToReferencePrice, referenceTimeSeconds) * positionTotalBalance(curr),
     0,
   );
 }

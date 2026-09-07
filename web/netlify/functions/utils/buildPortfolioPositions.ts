@@ -11,12 +11,17 @@ import { getCollateralByIndex } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { MarketStatus } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
-import { getWalletsLiquidityBalances, preloadWalletLiquidityLegs, tokensFromLiquidityLegs } from "./marketLiquidityHolders";
+import {
+  getWalletsLiquidityBalances,
+  preloadWalletLiquidityLegs,
+  tokensFromLiquidityLegs,
+} from "./marketLiquidityHolders";
 import { outcomePriceTokensForChain } from "./marketMtmRefresh";
 import { loadMarketsWithAncestors, marketsWithLocalAncestors, pricedMarketsRootFirst } from "./marketParentChain";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
 import { getCurrentOutcomePrices } from "./onchainOutcomePrices";
 import { type OutcomePriceToken, settledPayoutRatios } from "./outcomePrices";
+import { positionTotalBalance } from "./portfolioValuation";
 import { fetchTokenBalances } from "./seerIndexerPortfolio";
 import { getTokenDecimalsList } from "./tokenDecimals";
 
@@ -27,9 +32,7 @@ import { getTokenDecimalsList } from "./tokenDecimals";
  * gives anything left out a price of 0, which for both cases is the answer.
  */
 function pricedPositions(positions: PortfolioPosition[]): PortfolioPosition[] {
-  return positions.filter(
-    (position) => (position.tokenBalance > 0 || (position.lpTokenBalance ?? 0) > 0) && !position.isWorthless,
-  );
+  return positions.filter((position) => positionTotalBalance(position) > 0 && !position.isWorthless);
 }
 
 function enrichPositionsWithTokenValues(
@@ -41,7 +44,7 @@ function enrichPositionsWithTokenValues(
     // the `||` would read a settled 0 as "unknown" and resurrect a worthless position at its stale
     // pool mid. `redeemedPrice` stays on the row for the UI's "Redeem price" tooltip.
     const tokenPrice = tokenIdToCurrentPrice[position.tokenId.toLowerCase()] ?? 0;
-    const tokenValue = tokenPrice * (position.tokenBalance + (position.lpTokenBalance ?? 0));
+    const tokenValue = tokenPrice * positionTotalBalance(position);
     return {
       ...position,
       tokenPrice,
