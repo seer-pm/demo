@@ -2,22 +2,11 @@ import { type SupportedChain, isOpStack } from "@seer-pm/sdk/chains";
 import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import type { Address } from "viem";
-import { zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
-import { getAllLiquidityEvents } from "./airdropCalculation/getLiquidityBalances";
+import { getAllLiquidityEvents, getLiquidityPositionsAtTimestamp } from "./airdropCalculation/getLiquidityBalances";
 import { getAmountsForLiquidity, getSqrtRatioAtTickX96 } from "./airdropCalculation/utils";
 import { fetchPools } from "./fetchPools";
 import type { TokenHolder } from "./token-transactions";
-
-type LiquidityPosition = {
-  owner: Address;
-  poolId: string;
-  token0: string;
-  token1: string;
-  tickLower: number;
-  tickUpper: number;
-  liquidity: bigint;
-};
 
 export type MarketLiquidityHolders = {
   holders: Record<string, TokenHolder[]>;
@@ -53,31 +42,16 @@ async function collectLiquidityBalances(markets: Market[], owner?: Address): Pro
     fetchPools(chainId, pairs),
   ]);
   const poolsById = new Map(pools.map((pool) => [pool.id.toLowerCase(), pool]));
-  const positions = new Map<string, LiquidityPosition>();
-
-  for (const event of events) {
-    if (event.origin.toLowerCase() === zeroAddress) continue;
-    const poolId = event.pool.id.toLowerCase();
-    const key = `${poolId}-${event.tickLower}-${event.tickUpper}-${event.origin.toLowerCase()}`;
-    const position = positions.get(key) ?? {
-      owner: event.origin.toLowerCase() as Address,
-      poolId,
-      token0: event.token0.id.toLowerCase(),
-      token1: event.token1.id.toLowerCase(),
-      tickLower: Number(event.tickLower),
-      tickUpper: Number(event.tickUpper),
-      liquidity: 0n,
-    };
-    position.liquidity += event.type === "mint" ? BigInt(event.amount) : -BigInt(event.amount);
-    positions.set(key, position);
-  }
+  // The same mint/burn -> net-liquidity fold the airdrop runs, not a second copy of it: one
+  // definition of what an LP position is, so the two cannot disagree about which events net
+  // together. `Infinity` because this side wants the position as it stands now.
+  const positions = getLiquidityPositionsAtTimestamp(events, Number.POSITIVE_INFINITY);
 
   const wrappedTokens = markets.flatMap((market) => market.wrappedTokens);
   const outcomeTokens = new Set(wrappedTokens.map((token) => token.toLowerCase()));
   const balances = new Map<string, Map<string, bigint>>();
 
-  for (const position of positions.values()) {
-    if (position.liquidity <= 0n) continue;
+  for (const position of positions) {
     const pool = poolsById.get(position.poolId);
     if (!pool || BigInt(pool.sqrtPrice) <= 0n) continue;
     // Source: Uniswap v3-periphery LiquidityAmounts.getAmountsForLiquidity; Algebra uses the same geometry.
@@ -95,7 +69,7 @@ async function collectLiquidityBalances(markets: Market[], owner?: Address): Pro
     ] as const) {
       if (!outcomeTokens.has(token) || amount <= 0n) continue;
       const tokenBalances = balances.get(token) ?? new Map<string, bigint>();
-      tokenBalances.set(position.owner, (tokenBalances.get(position.owner) ?? 0n) + amount);
+      tokenBalances.set(position.origin, (tokenBalances.get(position.origin) ?? 0n) + amount);
       balances.set(token, tokenBalances);
     }
   }

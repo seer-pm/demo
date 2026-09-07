@@ -233,6 +233,8 @@ export function getPoolAddresses(events: LiquidityEvent[]): Set<string> {
 /** A concentrated-liquidity position: one (owner, pool, tick range) with its net liquidity. */
 export interface LiquidityPosition {
   origin: string;
+  /** The pool the liquidity sits in. Callers that price per pool need it; the pair alone is ambiguous. */
+  poolId: string;
   token0: string;
   token1: string;
   tickLower: number;
@@ -255,21 +257,31 @@ export interface LiquidityPosition {
  * `owner` field is not a better choice — for NFT-managed positions it resolves to the position
  * manager contract, not a person. Following transfers would mean replaying the NFT's own Transfer
  * history, which is out of scope; the error is far smaller than the valuation one this fixes.
+ * (The `Position` entity's own `owner` field does follow transfers, and `marketLiquidityHolders`
+ * prefers it wherever the chain's subgraph exposes it. It does not here: this fold runs over every
+ * chain, and the Optimism and Base deployments expose mints and burns only.)
+ *
+ * The key includes the pool, not just the pair: a pair can have several fee tiers, each its own pool
+ * with its own price. Netting them together would let a burn in one pool cancel a mint in another,
+ * and would hand a caller that prices per pool a position that belongs to no single one.
  */
 export function getLiquidityPositionsAtTimestamp(events: LiquidityEvent[], timestamp: number): LiquidityPosition[] {
   const positions = new Map<string, LiquidityPosition>();
 
   for (const event of events) {
-    if (Number(event.timestamp) > timestamp || event.origin === zeroAddress) {
+    if (Number(event.timestamp) > timestamp || event.origin.toLowerCase() === zeroAddress) {
       continue;
     }
-    const key = `${event.token0.id}-${event.token1.id}-${event.tickLower}-${event.tickUpper}-${event.origin}`;
+    const poolId = event.pool.id.toLowerCase();
+    const origin = event.origin.toLowerCase();
+    const key = `${poolId}-${event.tickLower}-${event.tickUpper}-${origin}`;
     let position = positions.get(key);
     if (!position) {
       position = {
-        origin: event.origin,
-        token0: event.token0.id,
-        token1: event.token1.id,
+        origin,
+        poolId,
+        token0: event.token0.id.toLowerCase(),
+        token1: event.token1.id.toLowerCase(),
         tickLower: Number(event.tickLower),
         tickUpper: Number(event.tickUpper),
         liquidity: 0n,

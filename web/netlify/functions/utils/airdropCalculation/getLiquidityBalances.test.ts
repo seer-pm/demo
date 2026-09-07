@@ -52,6 +52,33 @@ describe("getLiquidityPositionsAtTimestamp", () => {
     expect(positions[0].liquidity).toBe(1000n);
   });
 
+  it("keeps fee tiers of one pair apart", () => {
+    const other = "0x00000000000000000000000000000000000000p1";
+    const positions = getLiquidityPositionsAtTimestamp(
+      [
+        event({ type: "mint", amount: "1000" }),
+        event({ type: "mint", amount: "700", pool: { id: other } }),
+        // Same pair and tick range, different pool: this burn belongs to `other` alone and must not
+        // eat into the position held in POOL.
+        event({ type: "burn", amount: "700", pool: { id: other } }),
+      ],
+      1_000,
+    );
+    expect(positions).toHaveLength(1);
+    expect(positions[0].poolId).toBe(POOL);
+    expect(positions[0].liquidity).toBe(1000n);
+  });
+
+  it("nets a position whatever the case of its origin", () => {
+    const positions = getLiquidityPositionsAtTimestamp(
+      [event({ type: "mint", amount: "1000", origin: "0xAAAA" }), event({ type: "burn", amount: "400", origin: A })],
+      1_000,
+    );
+    expect(positions).toHaveLength(1);
+    expect(positions[0].liquidity).toBe(600n);
+    expect(positions[0].origin).toBe(A);
+  });
+
   it("drops fully closed positions", () => {
     const positions = getLiquidityPositionsAtTimestamp(
       [event({ type: "mint", amount: "1000" }), event({ type: "burn", amount: "1000" })],
