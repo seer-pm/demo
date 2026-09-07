@@ -67,6 +67,15 @@ export type PortfolioPlPeriodSnapshot = {
   /** Snapshot write time from `pnl_leaderboard.updated_at` (global path). */
   updatedAt?: string | null;
   /**
+   * Global path only: false when no `pnl_leaderboard` row exists for any wallet in the set.
+   *
+   * The zeros returned on that miss are not a measurement — the refresh job has simply never
+   * reached this wallet — and a consumer that renders them as `$0` states a P/L the system never
+   * computed. `updatedAt: null` already carried the distinction; this names it so callers do not
+   * have to infer it from a timestamp.
+   */
+  computed?: boolean;
+  /**
    * The cumulative router-collateral half of `value*` on the global path, broken out.
    *
    * Reported separately so `value* − collateral*` gives the outcome-MTM half **independently**,

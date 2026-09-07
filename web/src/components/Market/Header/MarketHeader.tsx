@@ -67,11 +67,15 @@ function MarketPnL({
   const { data: marketPnL, isLoading } = usePortfolioPnL(account, chainId, "all", marketId);
   if (!account) return null;
 
+  // A failed compute still answers 200 with zeros, so `marketPnL` alone does not mean there is a
+  // number to show. `computed` is what separates a real 0 from one that stands in for nothing.
+  const measured = marketPnL && marketPnL.computed !== false ? marketPnL : undefined;
+
   return (
     <span className="ml-3 flex items-center gap-1">
       <span className="text-base-content/70 @[510px]:inline-block hidden">{"P&L:"}</span>
-      <span className="ml-1">{isLoading ? <Spinner /> : marketPnL ? formatBigNumbers(marketPnL.pnl) : "N/A"}</span>
-      {!isLoading && marketPnL && <USDIcon />}
+      <span className="ml-1">{isLoading ? <Spinner /> : measured ? formatBigNumbers(measured.pnl) : "N/A"}</span>
+      {!isLoading && measured && <USDIcon />}
     </span>
   );
 }

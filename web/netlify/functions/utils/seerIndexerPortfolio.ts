@@ -65,6 +65,56 @@ export async function fetchAccountActivities(account: Address): Promise<AccountA
   return rows.map(mapAccountActivityRow);
 }
 
+/** One indexed address on a chain, with the day of its last token movement. */
+export type ChainAccountActivity = {
+  account: string;
+  lastTransferTimestamp: number;
+};
+
+/** Bound the scan so a runaway page loop cannot eat a background function's whole budget. */
+const MAX_ACCOUNT_ACTIVITY_PAGES = 100;
+
+/**
+ * Every address the indexer has seen move an indexed token on `chainId`, paged.
+ *
+ * This is the *holder* view — `AccountActivity` is written from `Transfer.from` / `Transfer.to` —
+ * which is what makes it complementary to the Supabase analytics rollups the P/L job otherwise
+ * uses. Those are keyed by `tokens_transfers.tx_from`, i.e. msg.sender, so a TradeExecutor driven
+ * by a relayer books the *relayer* and neither the executor nor its owner ever appears. The
+ * executor does appear here, because the tokens really move to it.
+ *
+ * Ordered by `id` (`chainId:account`, unique) so offset paging is stable.
+ */
+export async function fetchChainAccountActivities(
+  chainId: SupportedChain,
+  minLastTransferTimestamp = 0,
+): Promise<ChainAccountActivity[]> {
+  const sdk = seerEnvioSdk(chainId);
+  const out: ChainAccountActivity[] = [];
+  let offset = 0;
+  for (let page = 0; page < MAX_ACCOUNT_ACTIVITY_PAGES; page++) {
+    const { AccountActivity: rows } = await sdk.GetAccountActivitiesByChain({
+      limit: PAGE,
+      offset,
+      orderBy: [{ id: Order_By.Asc }],
+      where: {
+        chainId: { _eq: String(chainId) },
+        ...(minLastTransferTimestamp > 0 ? { lastTransferTimestamp: { _gte: String(minLastTransferTimestamp) } } : {}),
+      },
+    });
+    for (const row of rows) {
+      out.push({
+        account: row.account.toLowerCase(),
+        lastTransferTimestamp: Number(row.lastTransferTimestamp),
+      });
+    }
+    if (rows.length < PAGE) return out;
+    offset += PAGE;
+  }
+  console.warn("seerIndexerPortfolio: account activity scan hit the page cap", { chainId, scanned: out.length });
+  return out;
+}
+
 /**
  * Distinct market addresses from this account's indexed transfers (outcome / router legs).
  * Used when head holdings are empty so swap/LP cashflow can still load historical markets.

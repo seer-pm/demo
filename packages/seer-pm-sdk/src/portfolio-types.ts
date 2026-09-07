@@ -63,6 +63,12 @@ export type PortfolioPnLData = {
   endTime: number;
   /** Snapshot write time when the value came from `pnl_leaderboard`. */
   updatedAt?: string | null;
+  /**
+   * False when these numbers are a placeholder rather than a measurement — no materialized
+   * `pnl_leaderboard` row for the wallet set, or a compute that failed. Render "not computed",
+   * never `$0`: the two differ, and only one of them is a claim about the account.
+   */
+  computed?: boolean;
   /** Present on the global (leaderboard) path; values are USD. Market-scoped live compute omits this (native collateral). */
   unit?: "USD";
 };
