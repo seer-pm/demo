@@ -39,7 +39,8 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * - `updatedAt` is that snapshot timestamp. `period=all` keeps `startTime` null.
  * - May be stale until the next successful refresh; wallets never selected as candidates
  *   (no analytics activity in the window, or still waiting on the stale/missing rotation)
- *   stay at zeros.
+ *   stay at zeros. Those zeros carry `computed: false` — they are the absence of a measurement,
+ *   not a P/L of zero, and a consumer must not render them as `$0`.
  *
  * `debug=1` (market-scoped only): attaches a `debug` object for the requested `period`
  * (formula breakdown + swap sample rows). Ignored on the global path.
@@ -92,7 +93,12 @@ async function portfolioPlFromLeaderboard(args: {
   const { identity, chainId, period, endTime } = args;
   const accountLc = identity.account;
 
-  const zeros = (windowEnd: number, startTime: number | null, updatedAt: string | null): PortfolioPlPeriodSnapshot => ({
+  const zeros = (
+    windowEnd: number,
+    startTime: number | null,
+    updatedAt: string | null,
+    computed: boolean,
+  ): PortfolioPlPeriodSnapshot => ({
     account: accountLc,
     chainId,
     period,
@@ -107,6 +113,7 @@ async function portfolioPlFromLeaderboard(args: {
     capitalDeployed: 0,
     pnl: 0,
     updatedAt,
+    computed,
     unit: "USD",
   });
 
@@ -131,8 +138,12 @@ async function portfolioPlFromLeaderboard(args: {
 
   const rows = (data ?? []) as LeaderboardUsdRow[];
   if (rows.length === 0) {
+    // No row for any wallet in the set: the refresh job has never reached this account, which is
+    // not the same statement as "this account made no money". Reported as such — a wallet that only
+    // ever traded through an executor never lands in `analytics_daily_wallet`, so the miss is a
+    // coverage gap, not an answer.
     const startTime = period === "all" ? null : eodStartTimesForPeriods(endTime, null)[period];
-    return zeros(endTime, startTime, null);
+    return zeros(endTime, startTime, null, false);
   }
 
   let latestUpdatedAt: string | null = null;
@@ -177,6 +188,7 @@ async function portfolioPlFromLeaderboard(args: {
     endTime: snapshotEnd,
     ...summed,
     updatedAt: latestUpdatedAt,
+    computed: true,
     unit: "USD",
   };
 }
@@ -232,6 +244,9 @@ function emptyPortfolioPlSnapshot(args: {
     marketCount: 0,
     capitalDeployed: 0,
     pnl: 0,
+    // Every caller of this is a stand-in for a P/L that was never produced — a compute failure, or
+    // a period the compute did not return. None of them is a measured zero.
+    computed: false,
     ...(marketScoped ? {} : { updatedAt: null, unit: "USD" as const }),
   };
 }
@@ -354,7 +369,8 @@ export default async (req: Request) => {
       });
     }
 
-    const snapshot = computed.byPeriod[period] ?? zeros();
+    const periodSnapshot = computed.byPeriod[period];
+    const snapshot = periodSnapshot ? { ...periodSnapshot, computed: true } : zeros();
     const body: Record<string, unknown> = { ...snapshot };
     if (debug && computed.debugPayload) {
       body.debug = computed.debugPayload;

@@ -265,3 +265,22 @@ query GetAccountActivities($account: String!) {
     transferCount
   }
 }
+
+# Every address that has touched an indexed token on one chain, paged. Unlike the per-account
+# lookup above this is a scan, so callers must page it and keep the ordering stable on `id`
+# (`chainId:account`, unique).
+query GetAccountActivitiesByChain(
+  $where: AccountActivity_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+  $orderBy: [AccountActivity_order_by!]
+) {
+  AccountActivity(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
+    chainId
+    account
+    earliestTransferTimestamp
+    lastTransferTimestamp
+    transferCount
+  }
+}

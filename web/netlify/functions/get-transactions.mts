@@ -1,4 +1,4 @@
-import type { MarketDataMapping, SupportedChain, TransactionData } from "@seer-pm/sdk";
+import type { MarketDataMapping, SupportedChain, Token, TransactionData } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, isAddress } from "viem";
 import { fetchLastActivityTimestampForWallets, supportedChainIds } from "./utils/accountLastActivity";
@@ -13,7 +13,8 @@ import {
   writeJsonBlob,
 } from "./utils/portfolioBlobCache";
 import { type PortfolioIdentity, resolvePortfolioIdentity } from "./utils/portfolioIdentity";
-import { conditionalEventsToTransactions, fetchConditionalEventsForAccount } from "./utils/seerIndexerPortfolio";
+import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
+import { fetchAccountConditionalTransactions } from "./utils/transactions/fetchAccountConditionalEvents";
 import { fetchAccountDexTransactions } from "./utils/transactions/fetchAccountDexEvents";
 
 const PORTFOLIO_TRANSACTIONS_STORE = "portfolio-transactions";
@@ -46,7 +47,21 @@ function jsonOk(body: unknown) {
   });
 }
 
-async function getEvents(mappings: MarketDataMapping | null, account: Address, chainId: SupportedChain) {
+/**
+ * One wallet's rows on one chain, plus whether any source was lost.
+ *
+ * `failed` matters as much as the rows: a source that rejects leaves a partial view, and the caller
+ * counts the wallet as degraded so it is never frozen into the blob. Without that, an indexer blip
+ * on the conditional source caches a swaps-only history for the full TTL — exactly the pre-fix view
+ * the widened ownership exists to eliminate.
+ */
+async function getEvents(
+  mappings: MarketDataMapping | null,
+  account: Address,
+  chainId: SupportedChain,
+  primaryCollateral: Token | undefined,
+  preferMarketIds: string[],
+): Promise<{ events: TransactionData[]; failed: boolean }> {
   const sources: { name: string; promise: Promise<TransactionData[]> }[] = [
     {
       name: "dex",
@@ -54,16 +69,18 @@ async function getEvents(mappings: MarketDataMapping | null, account: Address, c
     },
     {
       name: "conditional",
-      promise: fetchConditionalEventsForAccount(account, chainId).then(conditionalEventsToTransactions),
+      promise: fetchAccountConditionalTransactions(account, chainId, primaryCollateral, preferMarketIds),
     },
   ];
   const results = await Promise.allSettled(sources.map((s) => s.promise));
   const events: TransactionData[] = [];
+  let failed = false;
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result.status === "fulfilled") {
       events.push(...result.value);
     } else {
+      failed = true;
       console.warn("get-transactions: event source failed", {
         source: sources[i].name,
         chainId,
@@ -71,7 +88,7 @@ async function getEvents(mappings: MarketDataMapping | null, account: Address, c
       });
     }
   }
-  return events;
+  return { events, failed };
 }
 
 /**
@@ -90,6 +107,9 @@ async function getTransactions(
   // the chain. A failed `getMappingsCached` below is chain-wide and does reject.
   const marketResults = await Promise.allSettled(wallets.map((wallet) => loadAccountMarkets(wallet, chainId)));
   const failedWallets: Address[] = [];
+  // Wallets whose markets loaded but whose event sources did not fully answer. Merged into
+  // `failedWallets` below so both kinds of degradation block the cache write.
+  const degradedWallets: Address[] = [];
   const ok: { wallet: Address; markets: Market[] }[] = [];
   marketResults.forEach((result, index) => {
     if (result.status === "fulfilled") {
@@ -110,8 +130,28 @@ async function getTransactions(
   const mappings =
     markets.length === 0 ? null : await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
 
+  const collateralResolved = parseCollateralProfileQueryParam(chainId, null);
+  if ("error" in collateralResolved) {
+    console.warn("get-transactions: no primary collateral, CTF ownership stays narrow", {
+      chainId,
+      error: collateralResolved.error,
+    });
+  }
+  const primaryCollateral = "error" in collateralResolved ? undefined : collateralResolved.primaryCollateral;
+
   const perWallet = await Promise.all(
-    ok.map(async ({ wallet }) => (await getEvents(mappings, wallet, chainId)).map((row) => ({ row, wallet }))),
+    ok.map(async ({ wallet, markets: walletMarkets }) => {
+      // The wallet's own market universe, not the merged one: `dedupeConditionalEventLegs` picks a
+      // fanned-out leg's market from this set, and `marketPeriodBuckets` passes the per-wallet set
+      // too. Handing it the union would let a leg land on a market only a sibling executor touched,
+      // and the same redeem would then show under one market here and count under another there.
+      const preferMarketIds = walletMarkets.map((market) => market.id.toLowerCase());
+      const { events, failed } = await getEvents(mappings, wallet, chainId, primaryCollateral, preferMarketIds);
+      if (failed) {
+        degradedWallets.push(wallet);
+      }
+      return events.map((row) => ({ row, wallet }));
+    }),
   );
   const data = perWallet.flat();
 
@@ -142,7 +182,7 @@ async function getTransactions(
       tokenOutSymbol: x.tokenOutSymbol ?? parseSymbol(x.tokenOut),
     };
   });
-  return { transactions, failedWallets, okWallets: ok.length };
+  return { transactions, failedWallets: [...failedWallets, ...degradedWallets], okWallets: ok.length };
 }
 
 /**
@@ -284,10 +324,11 @@ export default async (req: Request) => {
     // — but freshness must be judged over the whole set, or a wallet that only trades through its
     // executor never invalidates its own cache.
     const identity = await resolvePortfolioIdentity(account);
-    // `:v2` marks the executor-merged payload format. Blobs written before executors were merged in
-    // hold account-only rows and carry no version of their own, and freshness is a timestamp
-    // comparison — so without this they read as fresh and serve the pre-fix view for a further TTL.
-    const cacheKey = `${account.toLowerCase()}:v2`;
+    // `:v3` marks the widened CTF ownership. Blobs written before it hold `accountId`-only rows, so
+    // a wallet whose splits and redeems were booked to a relayer has none of them, and freshness is
+    // a timestamp comparison — without this they read as fresh and serve the pre-fix view for a
+    // further TTL. `:v2` did the same for the executor-merged payload format.
+    const cacheKey = `${account.toLowerCase()}:v3`;
     const cached = await readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey);
     let lastActivityTs: number | undefined;
     try {

@@ -25,7 +25,7 @@ import {
   deriveOwnerGroupRows,
 } from "./pnlMarketRows";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
-import type { PortfolioPlPeriod } from "./seerIndexerPortfolio";
+import { type PortfolioPlPeriod, fetchChainAccountActivities, floorUtcDay } from "./seerIndexerPortfolio";
 import type { Database, TablesInsert } from "./supabase";
 import type { OwnerMap } from "./tradeExecutorOwnersCore";
 
@@ -72,6 +72,20 @@ export function recentActivityCutoffDay(
 /**
  * Every wallet with analytics activity in the last `PNL_LEADERBOARD_RECENT_DAYS` UTC days.
  * When `marketIds` is omitted, uses the whole chain (All / protocol-wide).
+ *
+ * The protocol-wide list is the union of two sources that see different things, and the P/L job
+ * needs both:
+ *
+ * - **Supabase analytics** (`analytics_daily_wallet`) is keyed by `tokens_transfers.tx_from`,
+ *   i.e. msg.sender. That is the right grain for the dashboard's "unique wallets", and the wrong
+ *   one here: a TradeExecutor called by a relayer books the *relayer*, so neither the executor
+ *   holding the tokens nor the owner it belongs to is ever named. `withExecutors` cannot rescue
+ *   them either — it only synthesizes an executor for an owner already in the list.
+ * - **Indexer `AccountActivity`** is keyed by transfer counterparty, so the executor appears
+ *   under its own address and `canonicalAddress` rolls it onto its owner at read time.
+ *
+ * Market-scoped jobs keep the analytics-only path: the indexer view has no market dimension to
+ * filter on, and widening those boards is not what this fixes.
  */
 export async function listLeaderboardCandidates(
   supabase: SupabaseClient<Database>,
@@ -90,11 +104,47 @@ export async function listLeaderboardCandidates(
   const cutoffDay = opts?.cutoffDay ?? recentActivityCutoffDay();
 
   if (marketIds === undefined) {
-    return listCandidatesFromWalletAnalytics(supabase, chainId, cutoffDay);
+    const [fromAnalytics, fromIndexer] = await Promise.all([
+      listCandidatesFromWalletAnalytics(supabase, chainId, cutoffDay),
+      // Additive and best-effort: the indexer being down must not shrink the candidate list to
+      // nothing and blank out a board that the analytics half could still have refreshed.
+      listCandidatesFromIndexerActivity(chainId, cutoffDay).catch((error) => {
+        console.warn("pnl-leaderboard: indexer candidate scan failed", { chainId, error });
+        return [] as LeaderboardCandidate[];
+      }),
+    ]);
+    return mergeCandidates(fromAnalytics, fromIndexer);
   }
   if (marketIds.length === 0) return [];
 
   return listCandidatesFromAnalytics(supabase, chainId, marketIds, cutoffDay);
+}
+
+/** Union two candidate lists, keeping the most recent activity day seen for each address. */
+function mergeCandidates(...lists: LeaderboardCandidate[][]): LeaderboardCandidate[] {
+  const lastDayByAddress = new Map<string, number>();
+  for (const list of lists) {
+    for (const candidate of list) {
+      const address = candidate.address.toLowerCase();
+      if (!address || address === ZERO_ADDRESS) continue;
+      lastDayByAddress.set(address, Math.max(lastDayByAddress.get(address) ?? 0, candidate.lastActivityDay ?? 0));
+    }
+  }
+  return [...lastDayByAddress].map(([address, lastActivityDay]) => ({ address, lastActivityDay }));
+}
+
+/**
+ * Candidates from the indexer's holder-side activity.
+ *
+ * `lastTransferTimestamp` is floored to its UTC day so `lastActivityDay` stays the same unit the
+ * analytics half produces — `rankRefreshCandidates` compares the two against each other.
+ */
+async function listCandidatesFromIndexerActivity(chainId: number, cutoffDay: number): Promise<LeaderboardCandidate[]> {
+  const rows = await fetchChainAccountActivities(chainId as SupportedChain, cutoffDay);
+  return rows.map((row) => ({
+    address: row.account,
+    lastActivityDay: floorUtcDay(row.lastTransferTimestamp),
+  }));
 }
 
 const CANDIDATE_PAGE_SIZE = 1000;

@@ -115,6 +115,10 @@ function PortfolioPnLHistory({
 }) {
   const { data: plData, isLoading, error, refetch, isFetching } = usePortfolioPnL(account, chainId, period);
   const pnl = plData?.pnl ?? 0;
+  // The global P/L is a table read, and a miss returns zeros. Showing those as "$0.00" states a
+  // result the refresh job never produced — indistinguishable, to the reader, from a wallet that
+  // genuinely broke even after hundreds of trades.
+  const notComputed = plData?.computed === false;
   const tone = signedTone(pnl);
   const periodMeta = PNL_PERIODS.find((p) => p.id === period) ?? PNL_PERIODS.find((p) => p.id === "all")!;
 
@@ -155,11 +159,20 @@ function PortfolioPnLHistory({
               {isFetching ? "Retrying…" : "Try again"}
             </button>
           </div>
+        ) : notComputed ? (
+          <p
+            className="text-2xl font-semibold text-black-secondary"
+            title="This wallet has not been included in a P&L refresh yet."
+          >
+            &mdash;
+          </p>
         ) : (
           <p className={`text-2xl font-semibold ${SIGNED_TONE_CLASS[tone]}`}>{formatUsd(pnl, { signed: true })}</p>
         )}
       </div>
-      <p className="text-sm text-black-primary">{periodMeta.hint}</p>
+      <p className="text-sm text-black-primary">
+        {notComputed ? "Not computed for this wallet yet." : periodMeta.hint}
+      </p>
     </div>
   );
 }

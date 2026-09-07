@@ -23,10 +23,8 @@ import {
   computeCollateralPortfolioValuesForPeriods,
   eodStartTimesForPeriods,
   fetchAccountActivity,
-  fetchConditionalEventsByTransactions,
-  fetchConditionalEventsForAccount,
+  fetchConditionalEventsForAccountWidened,
   fetchMarketIdsFromAccountTransfers,
-  fetchRouterCollateralTransactionHashes,
   fetchRouterPrimaryCollateralTransfers,
   fetchTokenBalances,
   fetchTokenBalancesAtEods,
@@ -68,6 +66,15 @@ export type PortfolioPlPeriodSnapshot = {
   capitalDeployed: number;
   /** Snapshot write time from `pnl_leaderboard.updated_at` (global path). */
   updatedAt?: string | null;
+  /**
+   * Global path only: false when no `pnl_leaderboard` row exists for any wallet in the set.
+   *
+   * The zeros returned on that miss are not a measurement — the refresh job has simply never
+   * reached this wallet — and a consumer that renders them as `$0` states a P/L the system never
+   * computed. `updatedAt: null` already carried the distinction; this names it so callers do not
+   * have to infer it from a timestamp.
+   */
+  computed?: boolean;
   /**
    * The cumulative router-collateral half of `value*` on the global path, broken out.
    *
@@ -215,10 +222,11 @@ type RouterLegs = {
  *
  * Ownership is the union of two signals, because neither alone is complete:
  *
- * - `accountId` — right when the user signed their own transaction.
+ * - `accountId` — the indexer's attribution: `transaction.to` since `seer-indexer` `0261506`, the
+ *   signer before it. Right for a direct call either way; wrong for a TradeExecutor driven by a
+ *   session key on rows indexed before that change, and for any intermediary contract still.
  * - the transactions where **primary collateral actually moved** between the account and a router —
- *   the only signal that survives a TradeExecutor driven by a relayer, where `resolveAccountId`
- *   books the event to the signing EOA instead of to the executor whose money moved.
+ *   the signal that follows the money whatever the indexer booked.
  *
  * Deduped by event id, so a leg that both signals find is counted once. Amounts and markets always
  * come from the event itself; only the ownership test is widened.
@@ -236,30 +244,16 @@ async function fetchScopedConditionalEvents(
   const marketSet = new Set(markets.map((m) => m.id.toLowerCase()));
   const minStart = Math.min(...PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]));
 
-  const byAccount = await fetchConditionalEventsForAccount(account, chainId, {
+  const events = await fetchConditionalEventsForAccountWidened(account, chainId, primaryCollateral, {
     startTime: minStart,
     endTime,
     marketAddresses: [...marketSet] as Address[],
-  });
-
-  const routerTxHashes = await fetchRouterCollateralTransactionHashes(
-    account,
-    chainId,
-    primaryCollateral,
-    endTime,
     routerTransfers,
-  );
-  const byTransaction = await fetchConditionalEventsByTransactions(chainId, routerTxHashes, {
-    startTime: minStart,
-    endTime,
   });
 
-  const byId = new Map<string, ConditionalEventRow>();
-  for (const event of [...byAccount, ...byTransaction]) {
-    if (!marketSet.has(event.marketId.toLowerCase())) continue;
-    byId.set(event.id, event);
-  }
-  return [...byId.values()];
+  // The by-transaction half of the union is not market-filtered at the query — a router transaction
+  // can carry legs of markets outside this scope — so the scope is applied here.
+  return events.filter((event) => marketSet.has(event.marketId.toLowerCase()));
 }
 
 function reconstructRouterLegsByPeriod(
