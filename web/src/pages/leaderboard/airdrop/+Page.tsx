@@ -10,7 +10,7 @@ import {
   useAirdropLeaderboard,
 } from "@/hooks/airdrop/useAirdropLeaderboard";
 import { formatPct, formatSeerWhole } from "@/lib/airdropFormat";
-import { ExportIcon } from "@/lib/icons";
+import { ExportIcon, QuestionIcon } from "@/lib/icons";
 import { type LeaderboardPeriod, PERIOD_LABELS } from "@/lib/leaderboardPeriods";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -146,19 +146,35 @@ function AirdropLeaderboardPage() {
 
       <LeaderboardTabs active="airdrop" />
 
-      <div className="space-y-2">
+      <div className="flex items-center gap-2">
         <h1 className="text-[28px] lg:text-[36px] font-semibold text-base-content">Airdrop Leaderboard</h1>
-        <p className="text-black-secondary max-w-2xl">
-          Rankings of wallets by SEER earned from the airdrop, across all chains. <strong>Holdings</strong> comes from
-          outcome tokens held at each daily snapshot, and <strong>Proof of Humanity</strong> from being a verified
-          unique person; together they make up the total. Under each of those two figures is its share of everything
-          emitted in the period, the separate SER LPP liquidity programme included, so the two percentages add up to the
-          wallet's share of the whole. Each of these two pools is a quarter of that whole, so a wallet holding a tenth
-          of the PoH pool reads as 2.5%. <strong>SER-LPP</strong> is the reward for providing liquidity on incentivized
-          markets, in the same SEER unit — a running balance rather than a daily emission, so it is counted in{" "}
-          <strong>Total</strong> on ALL only and left out of the two percentages. These are estimates and are not
-          claimable.
-        </p>
+        {/*
+         * The column glossary lives behind the icon rather than as a paragraph under the heading:
+         * it is reference material you read once, and it was pushing the board itself below the
+         * fold. The overrides are what it takes to hang a multi-paragraph body off the shared
+         * `.tooltiptext`, which is built for one centred nowrap line above its trigger. This one
+         * opens downward, since the heading sits near the top of the page and the stylesheet has no
+         * flip, and left-aligned to the icon — centred, a 420px box would run off the left of the
+         * container. `after:!hidden` drops the arrow, which the stylesheet only points downward.
+         */}
+        <span className="tooltip">
+          <div
+            className="tooltiptext !bottom-auto !top-[150%] !left-0 !translate-x-0 !whitespace-normal !text-left
+              after:!hidden w-[280px] md:w-[420px] space-y-2 font-normal leading-relaxed"
+          >
+            <p>Wallets ranked by SEER earned from the airdrop, across all chains.</p>
+            <p>
+              <strong>Holdings</strong> comes from outcome tokens held at each daily snapshot,{" "}
+              <strong>Proof of Humanity</strong> from being a verified unique person. Below each is that amount as a
+              percentage of the whole airdrop emitted in the period. The two together make up the total.
+            </p>
+            <p>
+              <strong>SER-LPP</strong> is the reward for providing liquidity on incentivized markets.
+            </p>
+            <p>These are estimates and are not claimable.</p>
+          </div>
+          <QuestionIcon fill="#9747FF" />
+        </span>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
