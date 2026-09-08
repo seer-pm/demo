@@ -9,7 +9,7 @@ import {
   fetchAirdropRank,
   useAirdropLeaderboard,
 } from "@/hooks/airdrop/useAirdropLeaderboard";
-import { formatPct, formatSeer } from "@/lib/airdropFormat";
+import { formatPct, formatSeerWhole } from "@/lib/airdropFormat";
 import { ExportIcon } from "@/lib/icons";
 import { type LeaderboardPeriod, PERIOD_LABELS } from "@/lib/leaderboardPeriods";
 import clsx from "clsx";
@@ -18,32 +18,17 @@ import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
 /**
- * The column the user clicked, which is not quite the key the API ranks by.
- *
- * Each percentage divides its SEER column by the same snapshot-day count for every row in the
- * period, so ranking by `% of airdrop (holdings)` IS ranking by Holdings — same order, same ties.
- * The two get their own column keys purely so the arrow lands on the header that was clicked and
- * exactly one header reads as active; `COLUMN_SORT_KEY` folds them back onto the real sort keys,
- * which is why they need no `p_sort` branch in the SQL and no re-apply.
+ * One header per sort key now that each percentage shares a cell with the SEER figure it is
+ * derived from. There is nothing left to fold: a percentage divides its column by the same
+ * snapshot-day count for every row in the period, so it was never a distinct ranking, and the pair
+ * of headers that used to say so is gone with the pair of columns.
  */
-type ColumnKey = AirdropSortKey | "pctHoldings" | "pctPoh";
-
-const COLUMN_SORT_KEY: Record<ColumnKey, AirdropSortKey> = {
-  seer: "seer",
-  holdings: "holdings",
-  pctHoldings: "holdings",
-  poh: "poh",
-  pctPoh: "poh",
-  lpp: "lpp",
-  days: "days",
-};
+type ColumnKey = AirdropSortKey;
 
 const SORT_LABELS: Record<ColumnKey, string> = {
   seer: "Total",
   holdings: "Holdings",
-  pctHoldings: "% of airdrop (holdings)",
   poh: "Proof of Humanity",
-  pctPoh: "% of airdrop (PoH)",
   lpp: "SER-LPP",
   days: "Days",
 };
@@ -66,11 +51,6 @@ function sortStatusText(column: ColumnKey, period: LeaderboardPeriod) {
   if (column === "lpp") {
     return `${ranking}. ${SER_LPP_HINT}`;
   }
-  if (column === "pctHoldings" || column === "pctPoh") {
-    // Worth saying out loud: the board did not change when they clicked, and that is not a bug.
-    const twin = column === "pctHoldings" ? SORT_LABELS.holdings : SORT_LABELS.poh;
-    return `${ranking}. Every wallet divides by the same number of days here, so this is the same ranking as ${twin}.`;
-  }
   if (column === "seer") {
     return period === "all"
       ? `${ranking}. Total is Holdings + Proof of Humanity + SER-LPP.`
@@ -83,9 +63,8 @@ function AirdropLeaderboardPage() {
   const { address: connectedAddress } = useAccount();
   const [period, setPeriod] = useState<LeaderboardPeriod>("all");
   const [column, setColumn] = useState<ColumnKey>("seer");
-  // What the endpoint and the CSV export actually rank by. The two percentage columns collapse
-  // onto their SEER twin here.
-  const sort = COLUMN_SORT_KEY[column];
+  // What the endpoint and the CSV export rank by. Every visible column maps to one sort key.
+  const sort = column;
   // Direction is fixed. A header click picks WHAT the board ranks by; a leaderboard is read
   // top-down and ascending only ever surfaced the smallest holders, so there is no second
   // direction to toggle into. The API and the CSV export still take one, so it stays a value.
@@ -110,7 +89,8 @@ function AirdropLeaderboardPage() {
   // for it at all — every row would read the same "not applicable" dash. The note above the table
   // says where it went, so switching to 1D does not look like data quietly disappearing.
   const showSerLpp = period === "all";
-  const columnCount = showSerLpp ? 9 : 8;
+  // #, Account, Total, Holdings, Proof of Humanity, Days — plus SER-LPP on ALL.
+  const columnCount = showSerLpp ? 7 : 6;
 
   const rows = query.data?.rows ?? [];
   const isInitialLoad = query.isPending && !query.data;
@@ -171,12 +151,12 @@ function AirdropLeaderboardPage() {
         <p className="text-black-secondary max-w-2xl">
           Rankings of wallets by SEER earned from the airdrop, across all chains. <strong>Holdings</strong> comes from
           outcome tokens held at each daily snapshot, and <strong>Proof of Humanity</strong> from being a verified
-          unique person; together they make up the total. The two <strong>% of airdrop</strong> columns measure each of
-          those against everything emitted in the period, the separate SER LPP liquidity programme included, so they add
-          up to the wallet's share of the whole. Each of these two pools is a quarter of that whole, so a wallet holding
-          a tenth of the PoH pool reads as 2.5%. <strong>SER-LPP</strong> is the reward for providing liquidity on
-          incentivized markets, in the same SEER unit — a running balance rather than a daily emission, so it is counted
-          in <strong>Total</strong> on ALL only and left out of the two percentages. These are estimates and are not
+          unique person; together they make up the total. Under each of those two figures is its share of everything
+          emitted in the period, the separate SER LPP liquidity programme included, so the two percentages add up to the
+          wallet's share of the whole. Each of these two pools is a quarter of that whole, so a wallet holding a tenth
+          of the PoH pool reads as 2.5%. <strong>SER-LPP</strong> is the reward for providing liquidity on incentivized
+          markets, in the same SEER unit — a running balance rather than a daily emission, so it is counted in{" "}
+          <strong>Total</strong> on ALL only and left out of the two percentages. These are estimates and are not
           claimable.
         </p>
       </div>
@@ -300,29 +280,9 @@ function AirdropLeaderboardPage() {
                 onSort={toggleSort}
                 lockDescending
               />
-              {/*
-               * Clickable, though it produces the same board as Holdings beside it — see
-               * ColumnKey. Left as a plain header it read as broken to anyone who tried it.
-               */}
-              <SortableHeader
-                label={SORT_LABELS.pctHoldings}
-                sortKey="pctHoldings"
-                activeSort={column}
-                activeDir={dir}
-                onSort={toggleSort}
-                lockDescending
-              />
               <SortableHeader
                 label={SORT_LABELS.poh}
                 sortKey="poh"
-                activeSort={column}
-                activeDir={dir}
-                onSort={toggleSort}
-                lockDescending
-              />
-              <SortableHeader
-                label={SORT_LABELS.pctPoh}
-                sortKey="pctPoh"
                 activeSort={column}
                 activeDir={dir}
                 onSort={toggleSort}
@@ -400,24 +360,35 @@ function AirdropLeaderboardPage() {
                         ) : null}
                       </a>
                     </td>
-                    <td className="text-right font-semibold tabular-nums">{formatSeer(row.total)}</td>
-                    <td className="text-right tabular-nums">{formatSeer(row.holdings)}</td>
-                    <td className="text-right tabular-nums">{formatPct(row.pctOfHoldings)}</td>
+                    <td className="text-right font-semibold tabular-nums">{formatSeerWhole(row.total)}</td>
+                    {/*
+                     * The share of the airdrop sits under its own SEER figure rather than in a
+                     * column of its own: it is that number expressed a second way, and the two
+                     * always sort together. Muted and smaller so the amount still leads the cell.
+                     */}
                     <td className="text-right tabular-nums">
-                      <span className={clsx(row.isPoh && "text-purple-primary dark:text-purple-secondary font-medium")}>
-                        {formatSeer(row.poh)}
-                      </span>
-                      {row.isPoh ? (
-                        <span
-                          className="ml-2 text-xs text-purple-primary dark:text-purple-secondary"
-                          title="Proof of Humanity verified"
-                        >
-                          ✓
-                        </span>
-                      ) : null}
+                      <div>{formatSeerWhole(row.holdings)}</div>
+                      <div className="text-xs text-black-secondary">{formatPct(row.pctOfHoldings)}</div>
                     </td>
-                    <td className="text-right tabular-nums">{formatPct(row.pctOfPoh)}</td>
-                    {showSerLpp ? <td className="text-right tabular-nums">{formatSeer(row.serLpp)}</td> : null}
+                    <td className="text-right tabular-nums">
+                      <div>
+                        <span
+                          className={clsx(row.isPoh && "text-purple-primary dark:text-purple-secondary font-medium")}
+                        >
+                          {formatSeerWhole(row.poh)}
+                        </span>
+                        {row.isPoh ? (
+                          <span
+                            className="ml-2 text-xs text-purple-primary dark:text-purple-secondary"
+                            title="Proof of Humanity verified"
+                          >
+                            ✓
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-black-secondary">{formatPct(row.pctOfPoh)}</div>
+                    </td>
+                    {showSerLpp ? <td className="text-right tabular-nums">{formatSeerWhole(row.serLpp)}</td> : null}
                     <td className="text-right tabular-nums">{row.days}</td>
                   </tr>
                 );

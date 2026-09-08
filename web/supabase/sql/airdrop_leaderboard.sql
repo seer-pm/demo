@@ -22,8 +22,8 @@
 -- Airdrop tab already shows, so a user can cross-check the board against their own page. It is
 -- redundant with the two share sums — computeDailyAirdrop.ts:221 defines
 --     seerTokens = SEER_PER_DAY * (shareOfHolding * 0.25 + shareOfHoldingPoh * 0.25)
--- so total == holdings + PoH up to float addition ordering (~1e-15 relative), invisible at
--- formatSeer's 3 decimal places.
+-- so total == holdings + PoH up to float addition ordering (~1e-15 relative), invisible at any
+-- precision either the board or the portfolio tab renders.
 --
 -- Sorting on the raw sums is equivalent to sorting on the SEER amounts: the conversion is
 -- multiplication by SEER_PER_DAY * 0.25, a strictly positive constant, so it preserves order
@@ -67,8 +67,10 @@
 -- The 'all' refresh FULL JOINs the two sources, so a wallet that only ever provided liquidity —
 -- no outcome-token holdings, no PoH, no `airdrops` rows at all — now appears on the board with
 -- day_count 0. That is intended: it has an allocation. Note `ser_lpp_balances` holds whatever
--- addresses hold the LP token, contracts included, and nothing prunes a wallet that has since
--- exited (getTokenHolders filters balance > 0, but the writer only upserts, never deletes).
+-- addresses hold the LP token, and nothing prunes a wallet that has since exited (getTokenHolders
+-- filters balance > 0, but the writer only upserts, never deletes). The treasury and the two
+-- custody contracts hold the LP token without providing liquidity, and the `lpp` CTE below drops
+-- them by address — the board's view only, the table itself keeps every holder.
 
 CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
   address                   text             NOT NULL,
@@ -222,6 +224,22 @@ BEGIN
       SELECT lower(s.address) AS address,
              coalesce(sum(s.balance::numeric), 0) AS ser_lpp
       FROM public.ser_lpp_balances s
+      -- The treasury and two custody contracts hold the LP token without providing liquidity, so
+      -- their balances are not an allocation and would otherwise take the top of the board.
+      --
+      -- Excluded HERE and nowhere else, on purpose. `ser_lpp_balances` is a faithful record of who
+      -- holds the token on-chain and stays that way — ser-lpp-calculation-background writes every
+      -- holder it finds, and the per-wallet portfolio path reads it unfiltered. This is the board's
+      -- own view of that data, so this is where "not a participant" belongs.
+      --
+      -- It also cannot move any further out. The RPC below assigns rank with row_number() over the
+      -- whole period partition and pages on it, so an endpoint- or React-side filter would punch
+      -- holes in the ranks, short the page and leave total_count counting rows nobody can see.
+      WHERE lower(s.address) NOT IN (
+        '0xcad3f887275c3b8409140ea61ebb0b9751eda287',  -- seer.eth
+        '0x88ad09518695c6c3712ac10a214be5109a655671',
+        '0x607bbfd4cebd869aad04331f8a2ad0c3c396674b'
+      )
       GROUP BY lower(s.address)
       HAVING coalesce(sum(s.balance::numeric), 0) > 0
     )
