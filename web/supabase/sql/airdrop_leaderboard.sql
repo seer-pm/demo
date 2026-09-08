@@ -64,6 +64,13 @@
 -- daily-emission pools against the whole programme, and the LP half was always in their
 -- denominator.
 --
+-- Its OWN percentage is built the other way round. There is no emission to measure a balance
+-- against, so the read RPC returns board_ser_lpp -- sum(ser_lpp) over the whole period partition --
+-- and the endpoint reports balance / board_ser_lpp of the LP programme's 50% (computePctOfLpp in
+-- airdropCalculation/constants.ts). That makes the exclusion below load-bearing twice over: an
+-- excluded contract dropped from the numerators but left in the denominator would deflate every
+-- real LP's percentage, and the column would no longer add to 50% across the board.
+--
 -- The 'all' refresh FULL JOINs the two sources, so a wallet that only ever provided liquidity —
 -- no outcome-token holdings, no PoH, no `airdrops` rows at all — now appears on the board with
 -- day_count 0. That is intended: it has an allocation. Note `ser_lpp_balances` holds whatever
@@ -318,7 +325,7 @@ GRANT EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text) TO service_ro
 -- every wallet happens to tie.
 --
 -- DROP first: CREATE OR REPLACE cannot change an existing function's return type, and this
--- signature gained two output columns.
+-- signature gained output columns.
 DROP FUNCTION IF EXISTS public.get_airdrop_leaderboard_page(text, text, text, text, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.get_airdrop_leaderboard_page(
@@ -343,7 +350,12 @@ RETURNS TABLE (
   -- Rows matching p_search (equals board_count when p_search is empty). Drives pagination.
   total_count              bigint,
   -- Rows in the period, ignoring p_search. Used as the denominator for "rank X of Y".
-  board_count              bigint
+  board_count              bigint,
+  -- sum(ser_lpp) over the period, ignoring p_search: the denominator for the SER-LPP percentage.
+  -- Computed here rather than in the endpoint because this is where the period partition already
+  -- is, and because a separate SELECT sum(ser_lpp) would read the table on a different snapshot
+  -- than the page did. 0 on every period but 'all', which is the only one that stores a balance.
+  board_ser_lpp            numeric
 )
 LANGUAGE plpgsql
 STABLE
@@ -398,7 +410,10 @@ BEGIN
            f.is_poh, f.day_count, f.updated_at,
            -- Window functions run before LIMIT, so this is the full filtered count.
            count(*) OVER () AS total_count,
-           (SELECT count(*) FROM ranked) AS board_count
+           (SELECT count(*) FROM ranked) AS board_count,
+           -- coalesce: sum() over an empty period is NULL, and the endpoint would have to guard
+           -- what is simply "no liquidity on the board".
+           (SELECT coalesce(sum(r2.ser_lpp), 0) FROM ranked r2) AS board_ser_lpp
     FROM filtered f
     ORDER BY f.rank
     LIMIT $3 OFFSET $4

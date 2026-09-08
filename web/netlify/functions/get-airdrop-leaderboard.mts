@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { holdingsSeerFromShare, pohSeerFromShare } from "./utils/airdropAllocation";
-import { computePctOfAirdrop, countSnapshotDays } from "./utils/airdropCalculation/constants";
+import { computePctOfAirdrop, computePctOfLpp, countSnapshotDays } from "./utils/airdropCalculation/constants";
 import { CORS_HEADERS } from "./utils/common";
 import { pagedCsvChunks } from "./utils/csv";
 import type { Database } from "./utils/supabase";
@@ -63,6 +63,7 @@ const CSV_COLUMNS = [
   "total",
   "seer",
   "ser_lpp",
+  "pct_of_airdrop_ser_lpp",
   "holdings",
   "pct_of_airdrop_holdings",
   "poh",
@@ -104,11 +105,19 @@ export type AirdropLeaderboardRow = {
    * SER LPP liquidity programme included — the same denominator for both, so the pair adds up to
    * the wallet's share of everything emitted. The holdings and PoH pools take a quarter each, so a
    * wallet holding a tenth of the PoH pool reads as 2.5%, not 10%, and neither column can exceed
-   * 25%. LP itself is a separate calculation that this endpoint never sees — it only ever appears
-   * in the denominator.
+   * 25%.
    */
   pctOfHoldings: number;
   pctOfPoh: number;
+  /**
+   * `serLpp` on that same scale: the wallet's share of the LP token, scaled by the programme's
+   * half of the airdrop, so it caps at 50% and the three percentages add to the wallet's share of
+   * everything. Not derived from an emission the way the other two are — there is none for a
+   * running balance — so it divides by the board's own SER-LPP total instead. See computePctOfLpp.
+   *
+   * `null` exactly where `serLpp` is: the windowed periods, which carry no balance to score.
+   */
+  pctOfLpp: number | null;
   updatedAt: string | null;
 };
 
@@ -128,6 +137,8 @@ type PageRow = {
   updated_at: string | null;
   total_count: number | string;
   board_count: number | string;
+  /** sum(ser_lpp) over the whole period — the denominator behind `pctOfLpp`. */
+  board_ser_lpp: number | string | null;
 };
 
 function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>) {
@@ -151,7 +162,7 @@ function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invali
   return { kind: "fragment", hex };
 }
 
-function toApiRow(row: PageRow, period: Period, snapshotDays: number): AirdropLeaderboardRow {
+function toApiRow(row: PageRow, period: Period, snapshotDays: number, boardSerLpp: number): AirdropLeaderboardRow {
   // seer_tokens_count is already a SEER amount in the source table; the share sums are not.
   const seer = Number(row.seer_tokens) || 0;
   const holdings = holdingsSeerFromShare(Number(row.sum_share_of_holding) || 0);
@@ -178,6 +189,9 @@ function toApiRow(row: PageRow, period: Period, snapshotDays: number): AirdropLe
     days: row.day_count ?? 0,
     pctOfHoldings: computePctOfAirdrop(holdings, snapshotDays),
     pctOfPoh: computePctOfAirdrop(poh, snapshotDays),
+    // Tied to `serLpp` rather than to the period: null wherever there is no balance to score, so
+    // the UI has one condition for the column and its percentage.
+    pctOfLpp: serLpp === null ? null : computePctOfLpp(serLpp, boardSerLpp),
     updatedAt: row.updated_at,
   };
 }
@@ -235,7 +249,7 @@ async function loadPage(args: {
   search: string;
   limit: number;
   offset: number;
-}): Promise<{ rows: PageRow[]; total: number; boardTotal: number }> {
+}): Promise<{ rows: PageRow[]; total: number; boardTotal: number; boardSerLpp: number }> {
   return withRetry(async () => {
     const { data, error } = await supabase.rpc("get_airdrop_leaderboard_page", {
       p_period: args.period,
@@ -248,11 +262,14 @@ async function loadPage(args: {
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as unknown as PageRow[];
-    // total_count / board_count repeat on every row; an empty page carries neither.
+    // The three board-wide figures repeat on every row; an empty page carries none of them. 0 is
+    // the right fallback for all three: no rows means nothing to rank against and nothing to
+    // divide by, and computePctOfLpp guards the division either way.
     return {
       rows,
       total: rows.length > 0 ? Number(rows[0].total_count) || 0 : 0,
       boardTotal: rows.length > 0 ? Number(rows[0].board_count) || 0 : 0,
+      boardSerLpp: rows.length > 0 ? Number(rows[0].board_ser_lpp) || 0 : 0,
     };
   }, "airdropLeaderboard.page");
 }
@@ -279,6 +296,12 @@ function csvResponse(args: {
   dir: SortDir;
   search: string;
   snapshotDays: number;
+  /**
+   * Fixed for the whole export rather than read off each row: it is board-wide and identical on
+   * every row of every page, and pinning it means a nightly refresh landing mid-download cannot
+   * leave the file with two different denominators in one column.
+   */
+  boardSerLpp: number;
   firstPage: { rows: PageRow[]; total: number };
 }): Response {
   const chunks = pagedCsvChunks<PageRow>({
@@ -286,13 +309,14 @@ function csvResponse(args: {
     firstPage: args.firstPage,
     maxRows: CSV_MAX_ROWS,
     toRow: (raw) => {
-      const row = toApiRow(raw, args.period, args.snapshotDays);
+      const row = toApiRow(raw, args.period, args.snapshotDays, args.boardSerLpp);
       return [
         row.rank,
         row.address,
         row.total,
         row.seer,
         row.serLpp,
+        row.pctOfLpp,
         row.holdings,
         row.pctOfHoldings,
         row.poh,
@@ -425,6 +449,7 @@ export default async (req: Request) => {
         dir,
         search,
         snapshotDays: periodSnapshotDays(period, programmeDays),
+        boardSerLpp: firstPage.boardSerLpp,
         firstPage,
       });
     }
@@ -437,7 +462,7 @@ export default async (req: Request) => {
       getProgrammeDays(),
     ]);
     const snapshotDays = periodSnapshotDays(period, programmeDays);
-    const rows = page.rows.map((row) => toApiRow(row, period, snapshotDays));
+    const rows = page.rows.map((row) => toApiRow(row, period, snapshotDays, page.boardSerLpp));
 
     return jsonResponse(
       {
@@ -447,6 +472,8 @@ export default async (req: Request) => {
         unit: "SEER",
         /** Denominator behind every row's percentages, so the UI can explain the figures. */
         snapshotDays,
+        /** The other denominator: total SER-LPP on the board, behind every row's `pctOfLpp`. */
+        serLppTotal: page.boardSerLpp,
         updatedAt: latestUpdatedAt(rows),
         total: page.total,
         boardTotal: page.boardTotal,

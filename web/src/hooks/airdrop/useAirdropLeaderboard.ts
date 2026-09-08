@@ -34,6 +34,12 @@ export interface AirdropLeaderboardRow {
    */
   pctOfHoldings: number;
   pctOfPoh: number;
+  /**
+   * `serLpp` as a percentage of that same whole: the wallet's share of the LP token times the
+   * programme's half of the airdrop, so it caps at 50% and the three percentages add up to the
+   * wallet's share of everything. `null` wherever `serLpp` is.
+   */
+  pctOfLpp: number | null;
   updatedAt: string | null;
 }
 
@@ -44,6 +50,8 @@ export interface AirdropLeaderboardResponse {
   unit: "SEER";
   /** Snapshot days the percentages are measured over — the period's window, not the wallet's. */
   snapshotDays: number;
+  /** Total SER-LPP on the board, the denominator behind every row's `pctOfLpp`. */
+  serLppTotal: number;
   updatedAt: string | null;
   /** Rows matching the current search; drives pagination. */
   total: number;

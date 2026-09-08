@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   GENESIS_TIMESTAMP,
+  LP_POOL_SHARE_FACTOR,
   POOL_SHARE_FACTOR,
   SEER_PER_DAY,
   computePctOfAirdrop,
+  computePctOfLpp,
   countSnapshotDays,
 } from "./constants";
 
@@ -73,5 +75,51 @@ describe("computePctOfAirdrop", () => {
   it("returns 0 before any snapshot exists instead of dividing by zero", () => {
     expect(computePctOfAirdrop(1234, 0)).toBe(0);
     expect(Number.isFinite(computePctOfAirdrop(1234, 0))).toBe(true);
+  });
+});
+
+describe("computePctOfLpp", () => {
+  it("splits the airdrop into three shares that add up to the whole", () => {
+    expect(2 * POOL_SHARE_FACTOR + LP_POOL_SHARE_FACTOR).toBe(1);
+  });
+
+  it("reports the whole LP supply as the programme's 50%", () => {
+    expect(computePctOfLpp(1_000, 1_000)).toBeCloseTo(50, 10);
+  });
+
+  it("reports a tenth of the LP supply as 5% of the whole airdrop", () => {
+    // Half the programme, a tenth of it held: on the same scale as computePctOfAirdrop, so the
+    // board's three percentage columns can be read side by side.
+    expect(computePctOfLpp(100, 1_000)).toBeCloseTo(5, 10);
+  });
+
+  it("depends only on the ratio, not the size of the pool", () => {
+    for (const total of [1, 1_000, 4.2e21]) {
+      expect(computePctOfLpp(total / 4, total)).toBeCloseTo(12.5, 10);
+    }
+  });
+
+  it("sums to the programme's whole share across the board", () => {
+    // Which is what the excluded-contract filter protects: a numerator dropped from the board
+    // while its balance stayed in the denominator would leave this short of 50%.
+    const balances = [500, 300, 150, 50];
+    const total = balances.reduce((a, b) => a + b, 0);
+    const summed = balances.reduce((acc, b) => acc + computePctOfLpp(b, total), 0);
+    expect(summed).toBeCloseTo(50, 10);
+  });
+
+  it("adds to computePctOfAirdrop on the same scale, capping a wallet at 100%", () => {
+    const days = 690;
+    const wholePool = days * SEER_PER_DAY * POOL_SHARE_FACTOR;
+    const everything = computePctOfAirdrop(wholePool * 2, days) + computePctOfLpp(1, 1);
+    expect(everything).toBeCloseTo(100, 10);
+  });
+
+  it("returns 0 rather than dividing by zero when the board holds no LP", () => {
+    expect(computePctOfLpp(0, 0)).toBe(0);
+    expect(computePctOfLpp(1234, 0)).toBe(0);
+    // A malformed total falls into the same guard: `> 0` is false for NaN.
+    expect(computePctOfLpp(1234, Number.NaN)).toBe(0);
+    expect(computePctOfLpp(1234, -5)).toBe(0);
   });
 });

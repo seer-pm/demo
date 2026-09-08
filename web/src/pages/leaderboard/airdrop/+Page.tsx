@@ -169,7 +169,9 @@ function AirdropLeaderboardPage() {
               percentage of the whole airdrop emitted in the period. The two together make up the total.
             </p>
             <p>
-              <strong>SER-LPP</strong> is the reward for providing liquidity on incentivized markets.
+              <strong>SER-LPP</strong> is the reward for providing liquidity on incentivized markets, and takes the
+              other half of the airdrop. Its percentage is the wallet's share of that half, so the three percentages
+              together are the wallet's share of the whole.
             </p>
             <p>These are estimates and are not claimable.</p>
           </div>
@@ -404,7 +406,12 @@ function AirdropLeaderboardPage() {
                       </div>
                       <div className="text-xs text-black-secondary">{formatPct(row.pctOfPoh)}</div>
                     </td>
-                    {showSerLpp ? <td className="text-right tabular-nums">{formatSeerWhole(row.serLpp)}</td> : null}
+                    {showSerLpp ? (
+                      <td className="text-right tabular-nums">
+                        <div>{formatSeerWhole(row.serLpp)}</div>
+                        <div className="text-xs text-black-secondary">{formatPct(row.pctOfLpp)}</div>
+                      </td>
+                    ) : null}
                     <td className="text-right tabular-nums">{row.days}</td>
                   </tr>
                 );

@@ -962,6 +962,7 @@ export type Database = {
           updated_at: string;
           total_count: number;
           board_count: number;
+          board_ser_lpp: number;
         }[];
       };
       get_airdrop_summary_by_user: {
