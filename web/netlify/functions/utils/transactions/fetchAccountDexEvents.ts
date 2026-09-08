@@ -14,8 +14,12 @@ import {
 
 const DEFAULT_PAGE_SIZE = 1000;
 const DEFAULT_MAX_PAGES = 20;
-/** Chunk token `in` filters — large market sets exceed practical GraphQL variable size. */
-const TOKEN_IN_CHUNK = 100;
+/**
+ * Chunk token `in` filters — large market sets exceed practical GraphQL variable size.
+ * Each chunk costs at least one subgraph page per wallet per chain, so keep it wide: 500 addresses
+ * is a ~21 KB POST body.
+ */
+const TOKEN_IN_CHUNK = 500;
 /** Filter that matches no rows — used when a paginated stream is exhausted. */
 const EXHAUSTED_STREAM_WHERE = { id: "" };
 
@@ -363,7 +367,8 @@ export async function fetchAccountDexTransactions(
   chainId: SupportedChain,
   startTime?: number,
   endTime?: number,
+  opts?: { walletTokenIds?: Iterable<string> },
 ): Promise<TransactionData[]> {
-  const { swaps, mints, burns } = await fetchAccountDexEvents(mappings, account, chainId, startTime, endTime);
+  const { swaps, mints, burns } = await fetchAccountDexEvents(mappings, account, chainId, startTime, endTime, opts);
   return swaps.concat(mints, burns);
 }

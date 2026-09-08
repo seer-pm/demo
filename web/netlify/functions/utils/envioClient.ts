@@ -9,23 +9,42 @@ const ENVIO_MAX_ATTEMPTS = 6;
 const ENVIO_RETRY_BASE_MS = 1_000;
 const ENVIO_RETRY_MAX_MS = 30_000;
 
+/** Cap on requests in flight at once, so pacing never turns into a burst against the indexer. */
+const ENVIO_MAX_IN_FLIGHT = 8;
+
 let nextSlotMs = 0;
-let chain: Promise<unknown> = Promise.resolve();
+let inFlight = 0;
+const waiters: (() => void)[] = [];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Serialize Envio HTTP calls and pace them under the per-minute budget. */
+function releaseEnvioSlot(): void {
+  // Hand the slot straight to the next waiter instead of decrementing, so the count can never
+  // dip and let an extra caller in between the release and the waiter resuming.
+  const next = waiters.shift();
+  if (next) next();
+  else inFlight--;
+}
+
+/**
+ * Pace Envio HTTP calls under the per-minute budget without serializing them.
+ *
+ * Reserving the slot is a read-modify-write on `nextSlotMs`, which is atomic on a single-threaded
+ * runtime — no promise chain needed. Chaining used to add each request's full latency on top of the
+ * interval, so the caller's `Promise.all` fan-out ran strictly one at a time.
+ */
 async function acquireEnvioSlot(): Promise<void> {
-  const run = chain.then(async () => {
-    const now = Date.now();
-    const waitMs = Math.max(0, nextSlotMs - now);
-    nextSlotMs = Math.max(now, nextSlotMs) + ENVIO_MIN_INTERVAL_MS;
-    if (waitMs > 0) await sleep(waitMs);
-  });
-  chain = run.catch(() => {});
-  await run;
+  if (inFlight >= ENVIO_MAX_IN_FLIGHT) {
+    await new Promise<void>((resolve) => waiters.push(resolve));
+  } else {
+    inFlight++;
+  }
+  const now = Date.now();
+  const slot = Math.max(now, nextSlotMs);
+  nextSlotMs = slot + ENVIO_MIN_INTERVAL_MS;
+  if (slot > now) await sleep(slot - now);
 }
 
 function isEnvioRateLimitError(error: unknown): boolean {
@@ -58,6 +77,8 @@ const envioSdkWrapper: SdkFunctionWrapper = async (action, operationName) => {
       const delay = retryDelayMs(attempt);
       console.warn("envio: rate limited", { operationName, attempt, delayMs: delay });
       await sleep(delay);
+    } finally {
+      releaseEnvioSlot();
     }
   }
   throw lastError;

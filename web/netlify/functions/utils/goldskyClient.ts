@@ -13,23 +13,42 @@ const GOLDSKY_MAX_ATTEMPTS = 5;
 const GOLDSKY_RETRY_BASE_MS = 1_000;
 const GOLDSKY_RETRY_MAX_MS = 15_000;
 
+/** Cap on requests in flight at once, so pacing never turns into a burst against the subgraph. */
+const GOLDSKY_MAX_IN_FLIGHT = 6;
+
 let nextSlotMs = 0;
-let chain: Promise<unknown> = Promise.resolve();
+let inFlight = 0;
+const waiters: (() => void)[] = [];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Serialize DEX subgraph HTTP calls and pace them under Goldsky's 50/10s budget. */
+function releaseGoldskySlot(): void {
+  // Hand the slot straight to the next waiter instead of decrementing, so the count can never
+  // dip and let an extra caller in between the release and the waiter resuming.
+  const next = waiters.shift();
+  if (next) next();
+  else inFlight--;
+}
+
+/**
+ * Pace DEX subgraph HTTP calls under Goldsky's 50/10s budget without serializing them.
+ *
+ * Reserving the slot is a read-modify-write on `nextSlotMs`, which is atomic on a single-threaded
+ * runtime — no promise chain needed. Chaining used to add each request's full latency on top of the
+ * interval, so the caller's `Promise.all` fan-out ran strictly one at a time.
+ */
 async function acquireGoldskySlot(): Promise<void> {
-  const run = chain.then(async () => {
-    const now = Date.now();
-    const waitMs = Math.max(0, nextSlotMs - now);
-    nextSlotMs = Math.max(now, nextSlotMs) + GOLDSKY_MIN_INTERVAL_MS;
-    if (waitMs > 0) await sleep(waitMs);
-  });
-  chain = run.catch(() => {});
-  await run;
+  if (inFlight >= GOLDSKY_MAX_IN_FLIGHT) {
+    await new Promise<void>((resolve) => waiters.push(resolve));
+  } else {
+    inFlight++;
+  }
+  const now = Date.now();
+  const slot = Math.max(now, nextSlotMs);
+  nextSlotMs = slot + GOLDSKY_MIN_INTERVAL_MS;
+  if (slot > now) await sleep(slot - now);
 }
 
 function isGoldskyRetriableError(error: unknown): boolean {
@@ -65,6 +84,8 @@ const goldskySdkWrapper: SdkFunctionWrapper = async (action, operationName) => {
       const delay = retryDelayMs(attempt);
       console.warn("goldsky: retriable DEX subgraph error", { operationName, attempt, delayMs: delay });
       await sleep(delay);
+    } finally {
+      releaseGoldskySlot();
     }
   }
   throw lastError;

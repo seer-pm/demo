@@ -19,7 +19,20 @@ import { fetchAccountDexTransactions } from "./utils/transactions/fetchAccountDe
 
 const PORTFOLIO_TRANSACTIONS_STORE = "portfolio-transactions";
 
-type TransactionsCachePayload = ActivityCachedPayload<{ transactions: TransactionData[] }>;
+type TransactionsCachePayload = ActivityCachedPayload<{
+  transactions: TransactionData[];
+  /** Some wallet, chain or source did not fully answer: serve briefly, keep refreshing behind it. */
+  partial?: boolean;
+}>;
+
+/**
+ * Transaction history is append-only and `lastActivityTs` invalidates it exactly, so the shared
+ * 10-minute portfolio TTL only exists here to cover indexer lag. Positions keep the short default:
+ * they are repriced, this is not.
+ */
+const TRANSACTIONS_TTL_MS = 24 * 60 * 60 * 1000;
+/** A payload written from a degraded pass is served for this long only, never for the full TTL. */
+const PARTIAL_TTL_MS = 5 * 60 * 1000;
 
 const EVENT_TYPE_GROUPS = {
   swap: new Set<TransactionData["type"]>(["swap", "bought", "sold"]),
@@ -61,11 +74,14 @@ async function getEvents(
   chainId: SupportedChain,
   primaryCollateral: Token | undefined,
   preferMarketIds: string[],
+  walletTokenIds: string[],
 ): Promise<{ events: TransactionData[]; failed: boolean }> {
   const sources: { name: string; promise: Promise<TransactionData[]> }[] = [
     {
       name: "dex",
-      promise: mappings ? fetchAccountDexTransactions(mappings, account, chainId) : Promise.resolve([]),
+      promise: mappings
+        ? fetchAccountDexTransactions(mappings, account, chainId, undefined, undefined, { walletTokenIds })
+        : Promise.resolve([]),
     },
     {
       name: "conditional",
@@ -106,6 +122,7 @@ async function getTransactions(
   // Per wallet, so one executor's failed market load degrades the merged view instead of failing
   // the chain. A failed `getMappingsCached` below is chain-wide and does reject.
   const marketResults = await Promise.allSettled(wallets.map((wallet) => loadAccountMarkets(wallet, chainId)));
+  const marketLoadMs = Date.now() - started;
   const failedWallets: Address[] = [];
   // Wallets whose markets loaded but whose event sources did not fully answer. Merged into
   // `failedWallets` below so both kinds of degradation block the cache write.
@@ -113,7 +130,7 @@ async function getTransactions(
   const ok: { wallet: Address; markets: Market[] }[] = [];
   marketResults.forEach((result, index) => {
     if (result.status === "fulfilled") {
-      ok.push({ wallet: wallets[index], markets: result.value });
+      ok.push({ wallet: wallets[index], markets: result.value.markets });
     } else {
       failedWallets.push(wallets[index]);
       console.warn("get-transactions: wallet market load failed", {
@@ -127,8 +144,10 @@ async function getTransactions(
   const markets = [
     ...new Map(ok.flatMap((entry) => entry.markets).map((market) => [market.id.toLowerCase(), market])).values(),
   ];
+  const mappingsStarted = Date.now();
   const mappings =
     markets.length === 0 ? null : await getMappingsCached(getPublicClientByChainId(chainId), markets, chainId);
+  const mappingsMs = Date.now() - mappingsStarted;
 
   const collateralResolved = parseCollateralProfileQueryParam(chainId, null);
   if ("error" in collateralResolved) {
@@ -139,6 +158,7 @@ async function getTransactions(
   }
   const primaryCollateral = "error" in collateralResolved ? undefined : collateralResolved.primaryCollateral;
 
+  const eventsStarted = Date.now();
   const perWallet = await Promise.all(
     ok.map(async ({ wallet, markets: walletMarkets }) => {
       // The wallet's own market universe, not the merged one: `dedupeConditionalEventLegs` picks a
@@ -146,18 +166,36 @@ async function getTransactions(
       // too. Handing it the union would let a leg land on a market only a sibling executor touched,
       // and the same redeem would then show under one market here and count under another there.
       const preferMarketIds = walletMarkets.map((market) => market.id.toLowerCase());
-      const { events, failed } = await getEvents(mappings, wallet, chainId, primaryCollateral, preferMarketIds);
+      // Same reason, applied to the DEX filter: querying the union means one wallet pays for every
+      // sibling's markets, and `dexTokenIdsForWallet` intersects, so this can only narrow.
+      const walletTokenIds = walletMarkets.flatMap((market) =>
+        market.wrappedTokens.map((token) => String(token).toLowerCase()),
+      );
+      const { events, failed } = await getEvents(
+        mappings,
+        wallet,
+        chainId,
+        primaryCollateral,
+        preferMarketIds,
+        walletTokenIds,
+      );
       if (failed) {
         degradedWallets.push(wallet);
       }
       return events.map((row) => ({ row, wallet }));
     }),
   );
+  const eventsMs = Date.now() - eventsStarted;
   const data = perWallet.flat();
 
+  // Per-phase, because a regression here is invisible in a single total: the market scan, the
+  // symbol multicall and the event sources fail slow in very different ways.
   console.log("get-transactions: chain", {
     chainId,
     ms: Date.now() - started,
+    marketLoadMs,
+    mappingsMs,
+    eventsMs,
     wallets: ok.length,
     failedWallets: failedWallets.length,
     markets: markets.length,
@@ -324,11 +362,12 @@ export default async (req: Request) => {
     // — but freshness must be judged over the whole set, or a wallet that only trades through its
     // executor never invalidates its own cache.
     const identity = await resolvePortfolioIdentity(account);
-    // `:v3` marks the widened CTF ownership. Blobs written before it hold `accountId`-only rows, so
-    // a wallet whose splits and redeems were booked to a relayer has none of them, and freshness is
-    // a timestamp comparison — without this they read as fresh and serve the pre-fix view for a
-    // further TTL. `:v2` did the same for the executor-merged payload format.
-    const cacheKey = `${account.toLowerCase()}:v3`;
+    // `:v4` marks the untruncated market scan. Blobs written before it were built from a market set
+    // capped at 50 transfer pages, so a busy wallet may be missing its most recent markets and every
+    // swap in them, and freshness is a timestamp comparison: without this they read as fresh and
+    // serve the truncated view for a further TTL. `:v3` did the same for the widened CTF ownership,
+    // `:v2` for the executor-merged payload format.
+    const cacheKey = `${account.toLowerCase()}:v4`;
     const cached = await readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey);
     let lastActivityTs: number | undefined;
     try {
@@ -338,10 +377,14 @@ export default async (req: Request) => {
     }
 
     const activityTsForFreshness = lastActivityTs ?? cached?.lastActivityTs;
+    // A payload written from a degraded pass still gets served — the alternative was the failure
+    // mode this replaces, where one degraded wallet meant nothing was ever cached and every request
+    // recomputed the whole history from scratch — but only for minutes, never for the full TTL.
+    const ttlMs = cached?.partial ? PARTIAL_TTL_MS : TRANSACTIONS_TTL_MS;
     let transactions: TransactionData[];
     if (
       activityTsForFreshness !== undefined &&
-      isActivityCacheFresh(cached, activityTsForFreshness) &&
+      isActivityCacheFresh(cached, activityTsForFreshness, ttlMs) &&
       Array.isArray(cached.transactions)
     ) {
       transactions = cached.transactions;
@@ -349,13 +392,15 @@ export default async (req: Request) => {
       const computed = await computeAllChainTransactions(identity);
       transactions = computed.transactions;
       // `identity.complete` because a degraded identity has no executor wallets left to fail: every
-      // chain succeeds over the reduced set, `failures` is 0, and the executor-free payload would be
-      // frozen for the full TTL — the partial result the identity contract says not to freeze.
-      if (computed.failures === 0 && identity.complete && lastActivityTs !== undefined) {
+      // chain succeeds over the reduced set, `failures` is 0, and the executor-free payload would
+      // otherwise be indistinguishable from a complete one.
+      const partial = computed.failures > 0 || !identity.complete;
+      if (lastActivityTs !== undefined) {
         await writeJsonBlob(PORTFOLIO_TRANSACTIONS_STORE, cacheKey, {
           cachedAt: Date.now(),
           lastActivityTs,
           transactions,
+          ...(partial ? { partial: true } : {}),
         } satisfies TransactionsCachePayload);
       }
     }

@@ -154,6 +154,30 @@ query GetTransfers(
   }
 }
 
+# Distinct markets an account's transfers touched, resolved server-side.
+# `distinct_on: [market_id]` with `market_id` leading `order_by` collapses the whole transfer
+# history to one row per market. The offset scan this replaces paginated the transfer rows
+# themselves at 1000/page and gave up at 50 pages, so a wallet with 60k transfers was both slow
+# and silently truncated to the markets it touched first.
+query GetTransferDistinctMarkets(
+  $where: Transfer_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+) {
+  Transfer(
+    distinct_on: [market_id]
+    order_by: [{ market_id: asc }]
+    where: $where
+    offset: $offset
+    limit: $limit
+  ) {
+    market_id
+    market {
+      address
+    }
+  }
+}
+
 query GetTokenBalances(
   $where: TokenBalance_bool_exp
   $offset: Int = 0

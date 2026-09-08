@@ -8,7 +8,8 @@ import { seerEnvioSdk } from "./envioClient";
 import { getTokenDecimals } from "./tokenDecimals";
 
 const PAGE = 1000;
-const MAX_TRANSFER_MARKET_PAGES = 50;
+/** Pages of `distinct_on: [market_id]` rows — one row per market, so this is ~20k markets. */
+const MAX_DISTINCT_MARKET_PAGES = 20;
 const SECONDS_PER_DAY = 86_400;
 const FALLBACK_EARLIEST = Math.floor(new Date("2024-01-01").getTime() / 1000);
 
@@ -135,6 +136,11 @@ export async function fetchRouterCollateralCounterparties(
 /**
  * Distinct market addresses from this account's indexed transfers (outcome / router legs).
  * Used when head holdings are empty so swap/LP cashflow can still load historical markets.
+ *
+ * `distinct_on: [market_id]` makes the indexer collapse the history: a page is one row per market,
+ * never per transfer. The offset scan this replaced paged the transfer rows at 1000/page and gave
+ * up at 50 pages, so a wallet with 60k transfers cost ~50 serialized round trips AND came back
+ * truncated to the markets it touched first — the recent ones were the ones dropped.
  */
 export async function fetchMarketIdsFromAccountTransfers(
   account: Address,
@@ -147,10 +153,9 @@ export async function fetchMarketIdsFromAccountTransfers(
   let offset = 0;
   let pages = 0;
   for (;;) {
-    const { Transfer: rows } = await sdk.GetTransfers({
+    const { Transfer: rows } = await sdk.GetTransferDistinctMarkets({
       limit: PAGE,
       offset,
-      orderBy: [{ timestamp: Order_By.Asc }, { id: Order_By.Asc }],
       where: {
         chainId: { _eq: String(chainId) },
         timestamp: { _lte: String(endTime) },
@@ -159,13 +164,16 @@ export async function fetchMarketIdsFromAccountTransfers(
       },
     });
     for (const row of rows) {
+      // Transfers with no market (plain collateral legs) collapse into a single null row.
       const addr = row.market?.address?.toLowerCase();
       if (addr) markets.add(addr);
     }
     pages += 1;
     if (rows.length < PAGE) break;
-    if (pages >= MAX_TRANSFER_MARKET_PAGES) {
-      console.warn("seerIndexerPortfolio: transfer market scan hit page cap", {
+    if (pages >= MAX_DISTINCT_MARKET_PAGES) {
+      // A page is one market now, so this cap is ~20k distinct markets for one wallet: unreachable
+      // in practice. If it ever fires the result is truncated and the cap needs revisiting.
+      console.warn("seerIndexerPortfolio: distinct market scan hit page cap", {
         account: accountLc,
         chainId,
         pages,
