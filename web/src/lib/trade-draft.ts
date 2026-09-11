@@ -73,19 +73,6 @@ export function applyTradeDraft(
   return pruned;
 }
 
-export function removeTradeDraft(drafts: TradeDrafts, key: string): TradeDrafts {
-  if (!(key in drafts)) {
-    return drafts;
-  }
-  const next: TradeDrafts = {};
-  for (const [draftKey, draft] of Object.entries(drafts)) {
-    if (draftKey !== key) {
-      next[draftKey] = draft;
-    }
-  }
-  return next;
-}
-
 /** A draft only applies to the outcome it was typed against. */
 export function isDraftForOutcome(draft: { outcomeToken: string } | undefined, outcomeTokenAddress: string): boolean {
   return draft?.outcomeToken.toLowerCase() === outcomeTokenAddress.toLowerCase();

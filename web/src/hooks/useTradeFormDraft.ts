@@ -5,7 +5,6 @@ import {
   applyTradeDraft,
   getTradeDraftKey,
   readOrderType,
-  removeTradeDraft,
 } from "@/lib/trade-draft";
 import { type Market, isFillToEstimateEnabled } from "@seer-pm/sdk";
 import { useCallback } from "react";
@@ -18,7 +17,6 @@ type State = {
 
 type Action = {
   setTradeDraft: (key: string, patch: TradeDraft) => void;
-  clearTradeDraft: (key: string) => void;
 };
 
 /**
@@ -38,10 +36,6 @@ const useTradeFormDraft = create<State & Action>()(
         set((state) => ({
           drafts: applyTradeDraft(state.drafts, key, patch),
         })),
-      clearTradeDraft: (key: string) =>
-        set((state) => ({
-          drafts: removeTradeDraft(state.drafts, key),
-        })),
     }),
     {
       name: "seer-trade-draft",
@@ -57,13 +51,11 @@ const useTradeFormDraft = create<State & Action>()(
 export function useMarketTradeDraft(market: Market) {
   const key = getTradeDraftKey(market.chainId, market.id);
   const setTradeDraft = useTradeFormDraft((state) => state.setTradeDraft);
-  const clearTradeDraft = useTradeFormDraft((state) => state.clearTradeDraft);
 
   const getDraft = useCallback(() => useTradeFormDraft.getState().drafts[key], [key]);
   const setDraft = useCallback((patch: TradeDraft) => setTradeDraft(key, patch), [key, setTradeDraft]);
-  const clearDraft = useCallback(() => clearTradeDraft(key), [key, clearTradeDraft]);
 
-  return { getDraft, setDraft, clearDraft };
+  return { getDraft, setDraft };
 }
 
 /** The stored order type for this market, sanitized against what the market offers. */

@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type TradeDrafts,
-  applyTradeDraft,
-  getTradeDraftKey,
-  isDraftForOutcome,
-  readOrderType,
-  removeTradeDraft,
-} from "./trade-draft";
+import { type TradeDrafts, applyTradeDraft, getTradeDraftKey, isDraftForOutcome, readOrderType } from "./trade-draft";
 
 const KEY = getTradeDraftKey(100, "0xABC");
 const OUTCOME = "0x1111111111111111111111111111111111111111";
@@ -62,21 +55,6 @@ describe("applyTradeDraft", () => {
     drafts = applyTradeDraft(drafts, getTradeDraftKey(100, "0x3"), { orderType: "market" }, 2);
 
     expect(Object.keys(drafts)).toEqual([getTradeDraftKey(100, "0x1"), getTradeDraftKey(100, "0x3")]);
-  });
-});
-
-describe("removeTradeDraft", () => {
-  it("removes only the given market", () => {
-    const other = getTradeDraftKey(100, "0xdef");
-    const drafts: TradeDrafts = { [KEY]: { orderType: "limit" }, [other]: { orderType: "market" } };
-
-    expect(removeTradeDraft(drafts, KEY)).toEqual({ [other]: { orderType: "market" } });
-  });
-
-  it("returns the same object when there is nothing to remove", () => {
-    const drafts: TradeDrafts = { [KEY]: { orderType: "limit" } };
-
-    expect(removeTradeDraft(drafts, "missing")).toBe(drafts);
   });
 });
 
