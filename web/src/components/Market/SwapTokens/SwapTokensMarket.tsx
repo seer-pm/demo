@@ -5,7 +5,7 @@ import { useModal } from "@/hooks/useModal";
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { useMarketTradeDraft } from "@/hooks/useTradeFormDraft";
+import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
@@ -151,11 +151,9 @@ export function SwapTokensMarket({
 
   const [amount, amountOut] = watch(["amount", "amountOut"]);
 
-  const resetForm = () => {
-    // Explicit values: the defaults were seeded from the draft, so a bare reset()
-    // would put the traded amount back instead of clearing the form.
-    reset({ type: swapType, amount: "", amountOut: "" });
-  };
+  // Explicit values: the defaults were seeded from the draft, so a bare reset()
+  // would put the traded amount back instead of clearing the form.
+  useOnTradeDraftCleared(market, "market", () => reset({ type: swapType, amount: "", amountOut: "" }));
 
   const {
     Modal: ConfirmSwapModal,
@@ -218,7 +216,6 @@ export function SwapTokensMarket({
     quoteData?.trade,
     isTradingCreditsCollateral,
     async () => {
-      resetForm();
       clearDraft("market");
       closeConfirmSwapModal();
     },

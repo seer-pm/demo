@@ -6,7 +6,7 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
-import { useMarketTradeDraft } from "@/hooks/useTradeFormDraft";
+import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isDraftForOutcome } from "@/lib/trade-draft";
@@ -169,6 +169,10 @@ export function SwapTokensLimitUpto({
     tradeType,
     maxSlippage,
   );
+  // Explicit values: the defaults were seeded from the draft, so a bare reset()
+  // would put the traded target price back instead of clearing the form.
+  useOnTradeDraftCleared(market, "limit", () => reset({ type: "buy", amount: "", amountOut: "", limitPrice: "" }));
+
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
@@ -177,9 +181,6 @@ export function SwapTokensLimitUpto({
     quoteData?.trade,
     isTradingCreditsCollateral,
     async () => {
-      // Explicit values: the defaults were seeded from the draft, so a bare reset()
-      // would put the traded target price back instead of clearing the form.
-      reset({ type: "buy", amount: "", amountOut: "", limitPrice: "" });
       clearDraft("limit");
       closeConfirmSwapModal();
     },

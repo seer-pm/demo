@@ -3,7 +3,7 @@ import { getOutcomeTokenForIndex, useFillToEstimatePlan } from "@/hooks/fill-to-
 import { useFillToEstimateTrade } from "@/hooks/fill-to-estimate/useFillToEstimateTrade";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
-import { useMarketTradeDraft } from "@/hooks/useTradeFormDraft";
+import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { formatCurrentEstimate, formatFillToEstimateLegPreview } from "@/lib/fill-to-estimate-display";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber } from "@/lib/utils";
@@ -177,11 +177,12 @@ export function SwapTokensFillToEstimate({
 
   const [isQuoting, setIsQuoting] = useState(false);
 
+  // Explicit values: the defaults were seeded from the draft, so a bare reset()
+  // would put the traded values back instead of clearing the form.
+  useOnTradeDraftCleared(market, "fillToEstimate", () => reset({ targetEstimate: "", maxCollateralToUse: "" }));
+
   const fillToEstimateTrade = useFillToEstimateTrade(() => {
     closeConfirmModal();
-    // Explicit values: the defaults were seeded from the draft, so a bare reset()
-    // would put the traded values back instead of clearing the form.
-    reset({ targetEstimate: "", maxCollateralToUse: "" });
     clearDraft("fillToEstimate");
   });
   const { legExecutionStatuses } = fillToEstimateTrade;
