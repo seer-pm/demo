@@ -116,7 +116,7 @@ export function SwapTokensMarket({
 }: SwapTokensMarketProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const amountOutRef = useRef<HTMLInputElement | null>(null);
-  const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
+  const { getDraft, setDraft } = useMarketTradeDraft(market);
   // Read once: from here on this panel owns the values and writes them back to the draft.
   // A draft typed against another outcome is ignored: the amounts would not mean the same thing.
   const [draft] = useState(() => {
@@ -153,7 +153,8 @@ export function SwapTokensMarket({
 
   const resetForm = () => {
     // Explicit values: the defaults were seeded from the draft, so a bare reset()
-    // would put the traded amount back instead of clearing the form.
+    // would put the traded amount back instead of clearing the form. The persistence
+    // effect then writes the cleared amounts to the draft; the order type is left alone.
     reset({ type: swapType, amount: "", amountOut: "" });
   };
 
@@ -219,7 +220,6 @@ export function SwapTokensMarket({
     isTradingCreditsCollateral,
     async () => {
       resetForm();
-      clearDraft();
       closeConfirmSwapModal();
     },
     market,
