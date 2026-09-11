@@ -3,8 +3,15 @@
  *
  * Selling N of an outcome while holding B < N is impossible directly. Splitting S = N - B of the
  * market collateral mints S of *every* outcome, which covers the shortfall; the user then sells N
- * and keeps S of each remaining outcome. Economically that is the same as buying S of the opposite
- * outcome, which is why the UI has to disclose the leftovers rather than present a plain sell.
+ * and keeps S of each remaining outcome. The net position is short the sold outcome and long S of
+ * everything else, which is why the UI has to disclose the leftovers rather than present a plain
+ * sell.
+ *
+ * None of that is binary. `Router.splitPosition` always mints the condition's full partition, and a
+ * complete set redeems for exactly 1 collateral on every Generic market type, so the route works for
+ * any outcome count. The leftovers are never swapped — they just stay in the wallet — so the only
+ * pool it needs is the target outcome's, and the direct sell quote it is built on already proves
+ * that one exists.
  *
  * The sell leg is the direct AMM quote for the full N: the Lens quoter is a view and does not care
  * about the caller's balance, so no extra round trip is needed and this stays a pure transform.
@@ -12,8 +19,9 @@
 
 import type { Address } from "viem";
 import type { CompleteSetLeftover, CompleteSetQuoteResult } from "./complete-set-quote";
-import { getInvalidOutcomeIndex, getOppositeOutcomeIndex, isCompleteSetRoutingEnabled } from "./complete-set-quote";
+import { getOutcomeToken, isMintToCoverRoutingEnabled } from "./complete-set-quote";
 import type { Market } from "./market-types";
+import { isTwoStringsEqual } from "./quote-utils";
 import type { MarketLike } from "./router-addresses";
 import type { Token } from "./tokens";
 import { TradeType } from "./trade-type";
@@ -42,18 +50,9 @@ export interface MintToCoverParams {
   directQuote: CompleteSetQuoteResult | undefined;
 }
 
-function getOutcomeToken(market: Market, outcomeIndex: number): Token {
-  return {
-    address: market.wrappedTokens[outcomeIndex],
-    chainId: market.chainId,
-    decimals: COMPLETE_SET_DECIMALS,
-    symbol: market.outcomes[outcomeIndex] ?? `OUTCOME_${outcomeIndex}`,
-  };
-}
-
 /**
  * Whether the market/collateral/direction combination can use mint-to-cover at all.
- * Deliberately narrower than `isCompleteSetRoutingEnabled`, see the two extra gates below.
+ * Deliberately narrower than `isMintToCoverRoutingEnabled`, see the two extra gates below.
  */
 export function isMintToCoverEligible(params: {
   market: Market;
@@ -75,7 +74,7 @@ export function isMintToCoverEligible(params: {
   }
   // Also excludes conditional markets, whose split takes the base collateral rather than
   // `market.collateralToken`.
-  if (!isCompleteSetRoutingEnabled(market, outcomeIndex, selectedCollateral.address)) {
+  if (!isMintToCoverRoutingEnabled(market, outcomeIndex, selectedCollateral.address)) {
     return false;
   }
   // Split amounts are compared against 18-decimal outcome tokens without conversion.
@@ -97,6 +96,12 @@ export function buildMintToCoverQuote(params: MintToCoverParams): MintToCoverSta
   if (!directQuote || directQuote.route !== "direct" || !directQuote.trade) {
     return { kind: "off" };
   }
+  // `outcomeIndex` and `directQuote` arrive as independent inputs, so a quote left over from
+  // another outcome would have us split, then approve and sell a token the trade does not move.
+  // Harmless to check, and the more outcomes a market has the more likely the mismatch.
+  if (!isTwoStringsEqual(directQuote.trade.tokenIn.address, market.wrappedTokens[outcomeIndex])) {
+    return { kind: "off" };
+  }
 
   const sellAmount = getMaximumAmountIn(directQuote.trade);
   const splitAmount = sellAmount - outcomeBalance;
@@ -108,15 +113,12 @@ export function buildMintToCoverQuote(params: MintToCoverParams): MintToCoverSta
     return { kind: "insufficientCollateral", splitAmount, collateralBalance };
   }
 
-  const targetOutcomeIndex = outcomeIndex as 0 | 1;
-  const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
-  const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
-  const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
-  const invalidOutcomeToken = getOutcomeToken(market, getInvalidOutcomeIndex(market));
+  const targetOutcomeToken = getOutcomeToken(market, outcomeIndex);
 
+  // The rest of the complete set, Invalid included: minted by the same split, never swapped.
   const leftoverTokens: CompleteSetLeftover[] = market.wrappedTokens
     .map((_, index) => index)
-    .filter((index) => index !== targetOutcomeIndex)
+    .filter((index) => index !== outcomeIndex)
     .map((index) => ({ token: getOutcomeToken(market, index), amount: splitAmount }));
 
   const marketLike: MarketLike = { id: market.id, type: market.type, chainId: market.chainId };
@@ -139,11 +141,8 @@ export function buildMintToCoverQuote(params: MintToCoverParams): MintToCoverSta
         secondaryTrade: directQuote.trade,
         market: marketLike,
         collateralToken: market.collateralToken as Address,
-        targetOutcomeIndex,
-        oppositeOutcomeIndex,
+        targetOutcomeIndex: outcomeIndex,
         targetOutcomeToken,
-        oppositeOutcomeToken,
-        invalidOutcomeToken,
       },
     },
   };

@@ -206,7 +206,12 @@ export {
   getOppositeOutcomeIndex,
   getInvalidOutcomeIndex,
   getCompleteSetRoutingDisabledReasons,
+  getMintToCoverDisabledReasons,
+  getOutcomeToken,
+  getSplitCollateralDisabledReasons,
   isCompleteSetRoutingEnabled,
+  isMintToCoverRoutingEnabled,
+  isSplitCollateralEnabled,
   searchMinimalAmountForTargetNetOut,
 } from "./complete-set-quote";
 export type {

@@ -32,7 +32,13 @@ type ValidatedCompleteSetTrade = {
       /** Sell size: equal to splitAmount for mintSell, minted + already held for mintToCover. */
       swapInputAmount: bigint;
     }
-  | { route: "buyMerge"; mergeAmount: bigint; maxBuyIn: bigint }
+  | {
+      route: "buyMerge";
+      mergeAmount: bigint;
+      maxBuyIn: bigint;
+      /** Every wrapped outcome the merge burns, Invalid included. */
+      mergeOutcomeTokens: Address[];
+    }
 );
 
 function getValidatedMaximumAmountIn(trade: AmmTrade): bigint {
@@ -69,13 +75,19 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
     if (swapInputAmount <= 0n) {
       throw new Error(`${route} route requires a positive swapInputAmount`);
     }
+    // mint+sell sells the outcome opposite the target; mint-to-cover sells the target itself and
+    // says so explicitly through swapInputToken. Exactly one of the two is always present.
+    const swapInputToken = completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken;
+    if (!swapInputToken) {
+      throw new Error(`${route} route requires swapInputToken or oppositeOutcomeToken`);
+    }
     return {
       completeSetLeg,
       trade,
       swapSpender,
       route,
       splitAmount,
-      swapInputToken: (completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken).address,
+      swapInputToken: swapInputToken.address,
       swapInputAmount,
     };
   }
@@ -85,6 +97,11 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
     if (!mergeAmount) {
       throw new Error("buyMerge route requires mergeAmount");
     }
+    // buy+merge is binary by construction: it buys the one outcome opposite the target and burns the
+    // whole set. Without the opposite token the merge would be under-approved and revert.
+    if (!completeSetLeg.oppositeOutcomeToken) {
+      throw new Error("buyMerge route requires oppositeOutcomeToken");
+    }
     return {
       completeSetLeg,
       trade,
@@ -92,6 +109,11 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
       route: "buyMerge",
       mergeAmount,
       maxBuyIn: getValidatedMaximumAmountIn(trade),
+      mergeOutcomeTokens: [
+        completeSetLeg.targetOutcomeToken.address,
+        completeSetLeg.oppositeOutcomeToken.address,
+        ...(completeSetLeg.invalidOutcomeToken ? [completeSetLeg.invalidOutcomeToken.address] : []),
+      ],
     };
   }
 
@@ -148,7 +170,7 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
     return calls;
   }
 
-  const { mergeAmount, maxBuyIn } = validated;
+  const { mergeAmount, maxBuyIn, mergeOutcomeTokens } = validated;
 
   calls.push(
     ...getTradeApprovals7702({
@@ -160,11 +182,6 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
     }),
   );
   calls.push(await getSecondarySwapExecution(trade, account, isTradingCredits));
-  const mergeOutcomeTokens = [
-    completeSetLeg.targetOutcomeToken.address,
-    completeSetLeg.oppositeOutcomeToken.address,
-    ...(completeSetLeg.invalidOutcomeToken ? [completeSetLeg.invalidOutcomeToken.address] : []),
-  ];
   calls.push(
     ...getTradeApprovals7702({
       tokensAddresses: mergeOutcomeTokens,
@@ -252,7 +269,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
     });
   }
 
-  const { mergeAmount, maxBuyIn } = validated;
+  const { mergeAmount, maxBuyIn, mergeOutcomeTokens } = validated;
   const neededBuy = await fetchNeededApprovals(client, [completeSetLeg.collateralToken], account, swapSpender, [
     maxBuyIn,
   ]);
@@ -276,11 +293,6 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
     chain: client.chain,
   });
 
-  const mergeOutcomeTokens = [
-    completeSetLeg.targetOutcomeToken.address,
-    completeSetLeg.oppositeOutcomeToken.address,
-    ...(completeSetLeg.invalidOutcomeToken ? [completeSetLeg.invalidOutcomeToken.address] : []),
-  ];
   const neededMerge = await fetchNeededApprovals(
     client,
     mergeOutcomeTokens,
@@ -334,7 +346,11 @@ export function getCompleteSetApprovalTokens(props: TradeTokensProps): {
     spenders.push(router);
     amounts.push(completeSetLeg.splitAmount);
 
-    tokensAddresses.push((completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken).address);
+    const swapInputToken = completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken;
+    if (!swapInputToken) {
+      return { tokensAddresses: [], spenders: [], amounts: [] };
+    }
+    tokensAddresses.push(swapInputToken.address);
     spenders.push(trade.approveAddress as Address);
     amounts.push(completeSetLeg.swapInputAmount ?? completeSetLeg.splitAmount);
     return { tokensAddresses, spenders, amounts };

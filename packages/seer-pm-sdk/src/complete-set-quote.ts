@@ -54,10 +54,12 @@ export interface CompleteSetLeg {
   secondaryTrade: AmmTrade;
   market: MarketLike;
   collateralToken: Address;
-  targetOutcomeIndex: 0 | 1;
-  oppositeOutcomeIndex: 0 | 1;
+  targetOutcomeIndex: number;
+  /** Binary routes only: mint+sell and buy+merge swap the one outcome opposite the target. */
+  oppositeOutcomeIndex?: number;
   targetOutcomeToken: Token;
-  oppositeOutcomeToken: Token;
+  /** Binary routes only, for the same reason as `oppositeOutcomeIndex`. */
+  oppositeOutcomeToken?: Token;
   /** Present on buy+merge: merge burns every wrapped outcome, including Invalid. */
   invalidOutcomeToken?: Token;
 }
@@ -165,48 +167,31 @@ function logBuyMergeBalanceChecks(checks: BuyMergeBalanceCheck[]): boolean {
   return false;
 }
 
-export function isCompleteSetRoutingEnabled(market: Market, outcomeIndex: number, collateralToken: Address): boolean {
-  if (!isCompleteSetMarket(market)) {
-    return false;
+/**
+ * Whether the selected collateral can be split into (and merged back from) this market's full
+ * outcome set. Shared by every route that mints a complete set, whatever the outcome count.
+ */
+export function isSplitCollateralEnabled(market: Market, collateralToken: Address): boolean {
+  return getSplitCollateralDisabledReasons(market, collateralToken).length === 0;
+}
+
+/** Debug helper: why this market's collateral cannot be split into a full outcome set. */
+export function getSplitCollateralDisabledReasons(market: Market, collateralToken: Address): string[] {
+  const reasons: string[] = [];
+
+  if (market.type !== "Generic") {
+    reasons.push("not a Generic market: only the Generic router splits collateral into a full outcome set");
+  }
+  // 2 tradeable outcomes + Invalid is the smallest set worth splitting.
+  if (market.wrappedTokens.length < 3) {
+    reasons.push(`market has ${market.wrappedTokens.length} wrapped tokens, need at least 3`);
   }
   // Child markets: the router takes the *base* collateral as the split/merge argument (it derives
   // the position ids from it) while the user spends the parent outcome token. `market.collateralToken`
   // is the parent outcome token, so building a split or merge from it produces a wrong position id
   // and the transaction reverts. Routing them needs the two tokens threaded separately.
   if (market.parentMarket.id !== zeroAddress) {
-    return false;
-  }
-  if (outcomeIndex !== 0 && outcomeIndex !== 1) {
-    return false;
-  }
-  if (isTradingCredits(market.chainId, collateralToken)) {
-    return false;
-  }
-  if (isPsm3SwapToken(market.chainId, collateralToken)) {
-    return false;
-  }
-  if (isTwoStringsEqual(collateralToken, NATIVE_TOKEN)) {
-    return false;
-  }
-  return isTwoStringsEqual(collateralToken, market.collateralToken as Address);
-}
-
-/** Debug helper: why complete-set routing is off for this market/outcome/collateral. */
-export function getCompleteSetRoutingDisabledReasons(
-  market: Market,
-  outcomeIndex: number,
-  collateralToken: Address,
-): string[] {
-  const reasons: string[] = [];
-
-  if (!isCompleteSetMarket(market)) {
-    reasons.push("not a binary Generic market (need exactly 3 wrapped tokens: 2 tradeable + Invalid)");
-  }
-  if (market.parentMarket.id !== zeroAddress) {
     reasons.push("conditional market: split/merge needs the base collateral, not the parent outcome token");
-  }
-  if (outcomeIndex !== 0 && outcomeIndex !== 1) {
-    reasons.push(`outcome index ${outcomeIndex} is not tradeable (only 0 or 1)`);
   }
   if (isTradingCredits(market.chainId, collateralToken)) {
     reasons.push("Seer Credits collateral is excluded in v1");
@@ -219,6 +204,61 @@ export function getCompleteSetRoutingDisabledReasons(
   }
   if (!isTwoStringsEqual(collateralToken, market.collateralToken as Address)) {
     reasons.push(`selected collateral ${collateralToken} != market collateral ${market.collateralToken as Address}`);
+  }
+
+  return reasons;
+}
+
+/**
+ * mint+sell and buy+merge swap a single *opposite* outcome, which only exists on a binary market.
+ * mint-to-cover carries no such constraint — see `isMintToCoverRoutingEnabled`.
+ */
+export function isCompleteSetRoutingEnabled(market: Market, outcomeIndex: number, collateralToken: Address): boolean {
+  return getCompleteSetRoutingDisabledReasons(market, outcomeIndex, collateralToken).length === 0;
+}
+
+/** Debug helper: why complete-set routing is off for this market/outcome/collateral. */
+export function getCompleteSetRoutingDisabledReasons(
+  market: Market,
+  outcomeIndex: number,
+  collateralToken: Address,
+): string[] {
+  const reasons = getSplitCollateralDisabledReasons(market, collateralToken);
+
+  if (!isCompleteSetMarket(market)) {
+    reasons.push("not a binary Generic market (need exactly 3 wrapped tokens: 2 tradeable + Invalid)");
+  }
+  if (outcomeIndex !== 0 && outcomeIndex !== 1) {
+    reasons.push(`outcome index ${outcomeIndex} is not tradeable (only 0 or 1)`);
+  }
+
+  return reasons;
+}
+
+/**
+ * Whether mint-to-cover can run for this market/outcome/collateral.
+ *
+ * Any outcome count works: the split mints the whole set and every token other than the one being
+ * sold simply stays in the wallet, so there is no second AMM leg to constrain the shape. Invalid is
+ * just another outcome here, and liquidity needs no check — the route is only built on top of a live
+ * direct sell quote for the target outcome, which is proof enough that its pool exists.
+ */
+export function isMintToCoverRoutingEnabled(market: Market, outcomeIndex: number, collateralToken: Address): boolean {
+  return getMintToCoverDisabledReasons(market, outcomeIndex, collateralToken).length === 0;
+}
+
+/** Debug helper: why mint-to-cover is off for this market/outcome/collateral. */
+export function getMintToCoverDisabledReasons(
+  market: Market,
+  outcomeIndex: number,
+  collateralToken: Address,
+): string[] {
+  const reasons = getSplitCollateralDisabledReasons(market, collateralToken);
+
+  if (!Number.isInteger(outcomeIndex) || outcomeIndex < 0 || outcomeIndex >= market.wrappedTokens.length) {
+    reasons.push(
+      `outcome index ${outcomeIndex} is out of range (market has ${market.wrappedTokens.length} wrapped tokens)`,
+    );
   }
 
   return reasons;
@@ -295,7 +335,8 @@ function logCompleteSetRouteComparison(params: {
   });
 }
 
-function getOutcomeToken(market: Market, outcomeIndex: number): Token {
+/** Every outcome token is 18 decimals; the symbol is the outcome text the subgraph returned. */
+export function getOutcomeToken(market: Market, outcomeIndex: number): Token {
   return {
     address: market.wrappedTokens[outcomeIndex],
     chainId: market.chainId,

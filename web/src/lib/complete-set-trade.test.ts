@@ -157,6 +157,32 @@ describe("mintToCover route", () => {
     expect(amounts).toEqual([splitAmount, sellAmount]);
   });
 
+  it("costs the same two approvals however many outcomes the split mints", async () => {
+    // A nine-outcome market: the leftovers are minted but never moved, so they are never approved.
+    const leftoverTokens = Array.from({ length: 9 }, (_, index) => ({
+      token: {
+        address: `0x${(0x30 + index).toString(16).padStart(40, "0")}` as Address,
+        symbol: `OUTCOME_${index}`,
+        decimals: 18,
+        chainId: 100,
+      },
+      amount: splitAmount,
+    }));
+    const leg = createMintToCoverLeg({ leftoverTokens });
+    const leftoverAddresses = leftoverTokens.map((leftover) => leftover.token.address);
+
+    const calls = await buildCompleteSetTradeCalls7702(createProps(leg));
+    expect(calls).toHaveLength(4);
+    expect(calls.map((call) => call.to)).not.toContain(leftoverAddresses[0]);
+
+    const { tokensAddresses, amounts } = getCompleteSetApprovalTokens(createProps(leg));
+    expect(tokensAddresses).toEqual([collateralToken, outcomeToken]);
+    expect(amounts).toEqual([splitAmount, sellAmount]);
+    for (const address of leftoverAddresses) {
+      expect(tokensAddresses).not.toContain(address);
+    }
+  });
+
   it("leaves mintSell defaults untouched", async () => {
     const calls = await buildCompleteSetTradeCalls7702(
       createProps(createBaseCompleteSetLeg("mintSell", { splitAmount })),

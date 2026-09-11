@@ -5,8 +5,11 @@ import {
   compareCompleteSetRoutes,
   getCompleteSetRoutingDisabledReasons,
   getOppositeOutcomeIndex,
+  getSplitCollateralDisabledReasons,
   isCompleteSetMarket,
   isCompleteSetRoutingEnabled,
+  isMintToCoverRoutingEnabled,
+  isSplitCollateralEnabled,
 } from "@seer-pm/sdk";
 import { REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk";
@@ -132,6 +135,83 @@ describe("isCompleteSetRoutingEnabled", () => {
     const market = createMinimalMarket({ chainId: 100 });
     const credits = getActiveCreditsTokenAddress(100)!;
     expect(isCompleteSetRoutingEnabled(market, 0, credits)).toBe(false);
+  });
+});
+
+const COLLATERAL = "0x0000000000000000000000000000000000000001" as const;
+
+/** `outcomeCount` tradeable outcomes plus Invalid. */
+const createCategoricalMarket = (outcomeCount: number, overrides: Partial<Market> = {}) =>
+  createMinimalMarket({
+    templateId: BigInt(REALITY_TEMPLATE_SINGLE_SELECT),
+    outcomes: [...Array.from({ length: outcomeCount }, (_, index) => `OUTCOME_${index}`), "Invalid"],
+    wrappedTokens: [
+      ...Array.from(
+        { length: outcomeCount },
+        (_, index) => `0x${(0x20 + index).toString(16).padStart(40, "0")}` as `0x${string}`,
+      ),
+      "0x00000000000000000000000000000000000000ff",
+    ],
+    ...overrides,
+  });
+
+describe("isSplitCollateralEnabled", () => {
+  it("accepts the binary market the complete-set routes use", () => {
+    expect(isSplitCollateralEnabled(createMinimalMarket({}), COLLATERAL)).toBe(true);
+  });
+
+  it("accepts markets with more outcomes than the binary routes can handle", () => {
+    expect(isSplitCollateralEnabled(createCategoricalMarket(4), COLLATERAL)).toBe(true);
+    expect(isSplitCollateralEnabled(createCategoricalMarket(9), COLLATERAL)).toBe(true);
+  });
+
+  it("rejects futarchy markets and sets too small to split", () => {
+    expect(isSplitCollateralEnabled(createMinimalMarket({ type: "Futarchy" }), COLLATERAL)).toBe(false);
+    expect(isSplitCollateralEnabled(createMinimalMarket({ wrappedTokens: [zeroAddress] }), COLLATERAL)).toBe(false);
+  });
+
+  it("rejects conditional markets, whose split takes the base collateral", () => {
+    const market = createMinimalMarket({
+      parentMarket: {
+        id: "0x0000000000000000000000000000000000000005",
+        conditionId: "0x0",
+        payoutReported: false,
+        payoutNumerators: [],
+      },
+    });
+
+    expect(isSplitCollateralEnabled(market, COLLATERAL)).toBe(false);
+    expect(getSplitCollateralDisabledReasons(market, COLLATERAL)).toContain(
+      "conditional market: split/merge needs the base collateral, not the parent outcome token",
+    );
+  });
+
+  it("rejects trading credits collateral", () => {
+    expect(isSplitCollateralEnabled(createMinimalMarket({ chainId: 100 }), getActiveCreditsTokenAddress(100)!)).toBe(
+      false,
+    );
+  });
+});
+
+describe("isMintToCoverRoutingEnabled", () => {
+  it("accepts any index that names a wrapped token, Invalid included", () => {
+    const market = createCategoricalMarket(4);
+    for (const index of [0, 1, 2, 3, 4]) {
+      expect(isMintToCoverRoutingEnabled(market, index, COLLATERAL)).toBe(true);
+    }
+  });
+
+  it("rejects indexes outside the set", () => {
+    const market = createCategoricalMarket(4);
+    expect(isMintToCoverRoutingEnabled(market, 5, COLLATERAL)).toBe(false);
+    expect(isMintToCoverRoutingEnabled(market, -1, COLLATERAL)).toBe(false);
+    expect(isMintToCoverRoutingEnabled(market, 1.5, COLLATERAL)).toBe(false);
+  });
+
+  it("does not widen the binary routes on the same market", () => {
+    const market = createCategoricalMarket(4);
+    expect(isCompleteSetRoutingEnabled(market, 0, COLLATERAL)).toBe(false);
+    expect(isCompleteSetRoutingEnabled(market, 2, COLLATERAL)).toBe(false);
   });
 });
 

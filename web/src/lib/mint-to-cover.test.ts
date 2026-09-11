@@ -2,6 +2,7 @@ import {
   AmmTrade,
   type CompleteSetQuoteResult,
   type Market,
+  REALITY_TEMPLATE_MULTIPLE_SELECT,
   REALITY_TEMPLATE_SINGLE_SELECT,
   REALITY_TEMPLATE_UINT,
   type Token,
@@ -59,14 +60,26 @@ const createMinimalMarket = (overrides: Partial<Market> = {}): Market =>
     ...overrides,
   }) as Market;
 
+const outcomeAddress = (index: number) => `0x${(0x20 + index).toString(16).padStart(40, "0")}` as Address;
+
+/** `outcomeCount` tradeable outcomes plus Invalid, so `outcomeCount + 1` wrapped tokens. */
+const createCategoricalMarket = (outcomeCount: number, overrides: Partial<Market> = {}) =>
+  createMinimalMarket({
+    templateId: BigInt(REALITY_TEMPLATE_SINGLE_SELECT),
+    outcomes: [...Array.from({ length: outcomeCount }, (_, index) => `OUTCOME_${index}`), "Invalid"],
+    wrappedTokens: [...Array.from({ length: outcomeCount }, (_, index) => outcomeAddress(index)), INVALID],
+    odds: [...Array.from({ length: outcomeCount }, () => 100 / outcomeCount), 0],
+    ...overrides,
+  });
+
 const collateral: Token = { address: COLLATERAL, symbol: "sDAI", decimals: 18, chainId: 100 };
 
-function createSellTrade(amountIn: bigint) {
+function createSellTrade(amountIn: bigint, tokenIn: Address = UP) {
   const trade = Object.create(AmmTrade.prototype) as AmmTrade;
   Object.assign(trade, {
     approveAddress: "0x00000000000000000000000000000000000000ab",
     chainId: 100,
-    tokenIn: { address: UP, symbol: "UP", decimals: 18, chainId: 100 },
+    tokenIn: { address: tokenIn, symbol: "UP", decimals: 18, chainId: 100 },
     tokenOut: { address: COLLATERAL, symbol: "sDAI", decimals: 18, chainId: 100 },
     amountIn,
     amountOut: amountIn / 2n,
@@ -75,7 +88,11 @@ function createSellTrade(amountIn: bigint) {
   return trade;
 }
 
-function createDirectQuote(amountIn: bigint, overrides: Partial<CompleteSetQuoteResult> = {}): CompleteSetQuoteResult {
+function createDirectQuote(
+  amountIn: bigint,
+  overrides: Partial<CompleteSetQuoteResult> = {},
+  tokenIn: Address = UP,
+): CompleteSetQuoteResult {
   return {
     value: amountIn / 2n,
     decimals: 18,
@@ -83,7 +100,7 @@ function createDirectQuote(amountIn: bigint, overrides: Partial<CompleteSetQuote
     sellToken: UP,
     sellAmount: "10",
     swapType: "sell",
-    trade: createSellTrade(amountIn),
+    trade: createSellTrade(amountIn, tokenIn),
     route: "direct",
     netCollateral: amountIn / 2n,
     ...overrides,
@@ -120,8 +137,18 @@ describe("isMintToCoverEligible", () => {
     expect(isMintToCoverEligible({ ...baseParams, market: createMinimalMarket({ type: "Futarchy" }) })).toBe(false);
   });
 
-  it("rejects the invalid outcome", () => {
-    expect(isMintToCoverEligible({ ...baseParams, outcomeIndex: 2 })).toBe(false);
+  it("accepts the invalid outcome, which the split mints like any other", () => {
+    expect(isMintToCoverEligible({ ...baseParams, outcomeIndex: 2 })).toBe(true);
+  });
+
+  it("rejects an outcome index past the end of the set", () => {
+    expect(isMintToCoverEligible({ ...baseParams, outcomeIndex: 3 })).toBe(false);
+    expect(isMintToCoverEligible({ ...baseParams, outcomeIndex: -1 })).toBe(false);
+  });
+
+  it("rejects a market too small to hold a full set", () => {
+    const market = createMinimalMarket({ outcomes: ["DOWN", "UP"], wrappedTokens: [DOWN, UP] });
+    expect(isMintToCoverEligible({ ...baseParams, market, outcomeIndex: 0 })).toBe(false);
   });
 
   it("rejects trading credits collateral", () => {
@@ -149,6 +176,26 @@ describe("isMintToCoverEligible", () => {
   it("accepts categorical markets with three wrapped tokens", () => {
     const market = createMinimalMarket({ templateId: BigInt(REALITY_TEMPLATE_SINGLE_SELECT) });
     expect(isMintToCoverEligible({ ...baseParams, market })).toBe(true);
+  });
+
+  it("accepts an outcome the binary complete-set routes cannot reach", () => {
+    const market = createCategoricalMarket(4);
+    expect(isMintToCoverEligible({ ...baseParams, market, outcomeIndex: 2 })).toBe(true);
+    expect(isMintToCoverEligible({ ...baseParams, market, outcomeIndex: 3 })).toBe(true);
+    // Invalid, index 4, is still a real wrapped token; index 5 is not.
+    expect(isMintToCoverEligible({ ...baseParams, market, outcomeIndex: 4 })).toBe(true);
+    expect(isMintToCoverEligible({ ...baseParams, market, outcomeIndex: 5 })).toBe(false);
+  });
+
+  it("accepts multi-categorical and multi-scalar markets, whose complete set is also worth 1", () => {
+    const multiCategorical = createCategoricalMarket(4, { templateId: BigInt(REALITY_TEMPLATE_MULTIPLE_SELECT) });
+    expect(isMintToCoverEligible({ ...baseParams, market: multiCategorical, outcomeIndex: 2 })).toBe(true);
+
+    const multiScalar = createCategoricalMarket(3, {
+      templateId: BigInt(REALITY_TEMPLATE_UINT),
+      questions: [{}, {}, {}] as unknown as Market["questions"],
+    });
+    expect(isMintToCoverEligible({ ...baseParams, market: multiScalar, outcomeIndex: 1 })).toBe(true);
   });
 });
 
@@ -223,6 +270,48 @@ describe("buildMintToCoverQuote", () => {
         directQuote: undefined,
       }).kind,
     ).toBe("off");
+  });
+
+  it("keeps every other outcome of a six-outcome market, Invalid included", () => {
+    const market = createCategoricalMarket(6);
+    const outcomeIndex = 3;
+    const status = buildMintToCoverQuote({
+      ...baseParams,
+      market,
+      outcomeIndex,
+      outcomeBalance: 0n,
+      collateralBalance: sellAmount,
+      directQuote: createDirectQuote(sellAmount, {}, market.wrappedTokens[outcomeIndex]),
+    });
+
+    expect(status.kind).toBe("ready");
+    if (status.kind !== "ready") return;
+    const leg = status.quote.completeSetLeg;
+    expect(leg?.targetOutcomeIndex).toBe(outcomeIndex);
+    expect(leg?.swapInputToken?.address).toBe(market.wrappedTokens[outcomeIndex]);
+    // Six tradeable outcomes plus Invalid, minus the one being sold.
+    expect(leg?.leftoverTokens?.map((leftover) => leftover.token.address)).toEqual(
+      market.wrappedTokens.filter((_, index) => index !== outcomeIndex),
+    );
+    expect(leg?.leftoverTokens?.every((leftover) => leftover.amount === sellAmount)).toBe(true);
+    // The binary routes' fields have no meaning here and must not be invented.
+    expect(leg?.oppositeOutcomeToken).toBeUndefined();
+    expect(leg?.oppositeOutcomeIndex).toBeUndefined();
+  });
+
+  it("stays off when the direct quote sells a different outcome", () => {
+    const market = createCategoricalMarket(4);
+    const status = buildMintToCoverQuote({
+      ...baseParams,
+      market,
+      outcomeIndex: 2,
+      outcomeBalance: 0n,
+      collateralBalance: sellAmount,
+      // A quote left over from outcome 1: splitting on it would approve and sell the wrong token.
+      directQuote: createDirectQuote(sellAmount, {}, market.wrappedTokens[1]),
+    });
+
+    expect(status.kind).toBe("off");
   });
 
   it("stays off when the winning route is not a plain swap", () => {

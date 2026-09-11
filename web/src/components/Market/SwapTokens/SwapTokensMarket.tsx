@@ -9,6 +9,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
+import { formatLeftoverList, summarizeLeftovers } from "@/lib/leftovers";
 import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
@@ -226,6 +227,8 @@ export function SwapTokensMarket({
     quoteData,
   });
   const isMintToCover = mintToCover.kind === "ready";
+  const mintToCoverLeftovers =
+    mintToCover.kind === "ready" ? (mintToCover.quote.completeSetLeg?.leftoverTokens ?? []) : [];
   // Everything downstream of the quote (trade, approvals, confirmation) must see the composite
   // route, not the plain sell it was derived from.
   const effectiveQuote = mintToCover.kind === "ready" ? mintToCover.quote : quoteData;
@@ -594,15 +597,11 @@ export function SwapTokensMarket({
                 }}
               />
             </div>
-            {isMintToCover && (mintToCover.quote.completeSetLeg?.leftoverTokens?.length ?? 0) > 0 && (
-              <p className="text-[12px] text-black-secondary">
-                +{" "}
-                {mintToCover.quote.completeSetLeg?.leftoverTokens
-                  ?.map(
-                    (leftover) =>
-                      `${displayBalance(leftover.amount, leftover.token.decimals, false)} ${leftover.token.symbol}`,
-                  )
-                  .join(" + ")}
+            {isMintToCover && mintToCoverLeftovers.length > 0 && (
+              // The card is a fixed height, so this one stays a single summary line; the full
+              // breakdown is in the notice below and in the confirmation.
+              <p className="text-[12px] text-black-secondary truncate" title={formatLeftoverList(mintToCoverLeftovers)}>
+                + {summarizeLeftovers(mintToCoverLeftovers)}
               </p>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { Alert } from "@/components/Alert";
 import { displayBalance } from "@/lib/utils";
 import type { MintToCoverStatus, Token } from "@seer-pm/sdk";
+import { LeftoverTokens } from "./LeftoverTokens";
 
 /**
  * Discloses what a mint-to-cover sell actually does. The "You pay / You will get" panels only
@@ -33,7 +34,7 @@ export function MintToCoverNotice({
   }
 
   const leg = status.quote.completeSetLeg;
-  if (!leg?.splitAmount || !leg.swapInputAmount) {
+  if (leg?.route !== "mintToCover" || !leg.splitAmount || !leg.swapInputAmount) {
     return null;
   }
 
@@ -64,18 +65,9 @@ export function MintToCoverNotice({
           .
         </p>
         {leftovers.length > 0 && (
-          <p>
-            You'll also keep{" "}
-            <span className="font-bold">
-              {leftovers
-                .map(
-                  (leftover) =>
-                    `${displayBalance(leftover.amount, leftover.token.decimals, false)} ${leftover.token.symbol}`,
-                )
-                .join(" + ")}
-            </span>
-            .
-          </p>
+          <div>
+            You'll also keep <LeftoverTokens leftovers={leftovers} className="inline-block align-top" />
+          </div>
         )}
       </div>
     </Alert>

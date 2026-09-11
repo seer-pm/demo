@@ -2,6 +2,7 @@ import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
+import { summarizeLeftovers } from "@/lib/leftovers";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
 import { getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
@@ -11,6 +12,7 @@ import { formatUnits } from "viem";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import { Spinner } from "../../Spinner";
+import { LeftoverTokens } from "./components/LeftoverTokens";
 
 interface SwapTokensConfirmationProps {
   closeModal: () => void;
@@ -80,7 +82,7 @@ function CompleteSetBreakdown({
     return null;
   }
 
-  if (leg.route === "mintSell" && leg.splitAmount) {
+  if (leg.route === "mintSell" && leg.splitAmount && leg.oppositeOutcomeToken) {
     const splitAmount = formatCompositeAmount(formatUnits(leg.splitAmount, collateral.decimals));
     const sellAmount = formatCompositeAmount(formatUnits(leg.splitAmount, leg.oppositeOutcomeToken.decimals));
     const netCost = formatCompositeAmount(quoteData.sellAmount);
@@ -138,10 +140,7 @@ function CompleteSetBreakdown({
           <span>2. Receive</span>
           <span className="text-right">
             {splitAmount} {leg.targetOutcomeToken.symbol}
-            {leftovers.map(
-              (leftover) =>
-                ` + ${formatCompositeAmount(formatUnits(leftover.amount, leftover.token.decimals))} ${leftover.token.symbol}`,
-            )}
+            {leftovers.length > 0 ? ` + ${summarizeLeftovers(leftovers)}` : ""}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -154,16 +153,9 @@ function CompleteSetBreakdown({
           </span>
         </div>
         {leftovers.length > 0 && (
-          <div className="flex items-center justify-between gap-2 font-semibold">
+          <div className="flex items-start justify-between gap-2 font-semibold">
             <span>You keep</span>
-            <span className="text-right">
-              {leftovers
-                .map(
-                  (leftover) =>
-                    `${formatCompositeAmount(formatUnits(leftover.amount, leftover.token.decimals))} ${leftover.token.symbol}`,
-                )
-                .join(" + ")}
-            </span>
+            <LeftoverTokens leftovers={leftovers} className="text-right" />
           </div>
         )}
         <div className="flex items-center justify-between gap-2 font-semibold">
@@ -176,15 +168,14 @@ function CompleteSetBreakdown({
           </span>
         </div>
         <p className="text-[13px] text-black-secondary">
-          Economically this is the same as buying {splitAmount} {leg.oppositeOutcomeToken.symbol}
-          {leg.invalidOutcomeToken ? ` (+ ${splitAmount} ${leg.invalidOutcomeToken.symbol})` : ""}
-          {held > 0n ? ` and selling the ${leg.targetOutcomeToken.symbol} you already hold` : ""}.
+          You end up short {sellAmount} {leg.targetOutcomeToken.symbol} and long {splitAmount} of every other outcome
+          {held > 0n ? `, having sold the ${leg.targetOutcomeToken.symbol} you already held` : ""}.
         </p>
       </div>
     );
   }
 
-  if (leg.route === "buyMerge" && leg.mergeAmount) {
+  if (leg.route === "buyMerge" && leg.mergeAmount && leg.oppositeOutcomeToken) {
     const mergeAmount = formatCompositeAmount(formatUnits(leg.mergeAmount, leg.targetOutcomeToken.decimals));
     const buyAmount = formatCompositeAmount(formatUnits(leg.mergeAmount, leg.oppositeOutcomeToken.decimals));
     const buyCost = formatCompositeAmount(formatUnits(quoteData.netCollateral, collateral.decimals));
