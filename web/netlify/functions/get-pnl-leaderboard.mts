@@ -170,8 +170,8 @@ async function loadMaterializedRows(args: {
       .eq("period", args.period)
       // Rows zero in every column contribute nothing to any merge and are dropped after the rollup
       // anyway (`hasLeaderboardActivity`); not loading them is most of this query, because the
-      // refresh writes one row per (wallet, scope, period) for every address with any indexed
-      // transaction on the chain. Wider than that filter on purpose: this runs on *materialized*
+      // refresh writes one row per (wallet, scope, period) for every candidate it computes, whether
+      // or not that wallet turned out to have traded. Wider than that filter on purpose: this runs on *materialized*
       // rows, where a TradeExecutor group splits its numbers across members, so `scored_capital_usd`
       // keeps the owner row of a group that traded only conditional markets — `market_count` and the
       // additive totals are zero there while the score statistics are not.

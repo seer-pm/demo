@@ -77,6 +77,9 @@ export default async (req: Request) => {
       : (
           await listLeaderboardCandidates(supabase, chainId, undefined, {
             cutoffDay: recentOnly ? undefined : 0,
+            // A coverage comparison wants the whole population, not the slice discovered since the
+            // last refresh, so it pays for the full indexer scans instead of resuming a watermark.
+            incremental: false,
           })
         )
           .map((c) => c.address)

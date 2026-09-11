@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { requireBackgroundSecret } from "./utils/backgroundAuth";
+import { resetCandidateScanWatermark } from "./utils/leaderboardCandidateWatermark";
 import {
   PNL_LEADERBOARD_REFRESH_BUDGET_MS,
   listPnlLeaderboardRefreshJobs,
@@ -26,8 +27,9 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  * schedule can continue the (app, chain) ring from a persisted cursor.
  *
  * Overrides: `?appId`, `?chainId`, `?batchSize`, `?accounts=0x..,0x..` (recompute exactly these),
- * and `?ownerGroups=1` (walk the TradeExecutor owner map instead of the analytics candidates — the
- * backfill for owner-grouped score statistics). None of them move the shared ring cursor.
+ * `?ownerGroups=1` (walk the TradeExecutor owner map instead of the analytics candidates — the
+ * backfill for owner-grouped score statistics), and `?rescanCandidates=1` (rewind the indexer
+ * candidate scans to the start of history). None of them move the shared ring cursor.
  */
 export default async (req: Request) => {
   if (process.env.DISABLE_SCHEDULED_FUNCTIONS === "true") {
@@ -73,6 +75,12 @@ export default async (req: Request) => {
     });
   }
 
+  // `?rescanCandidates=1` rewinds the per-chain watermark the indexer candidate scans resume from,
+  // so the next runs walk the whole history again. Needed after a reindex, or after widening what
+  // counts as a candidate — the scans are incremental, so a new rule would otherwise only ever be
+  // applied to transfers that had not happened yet.
+  const rescanCandidates = url.searchParams.get("rescanCandidates") === "1";
+
   const jobs = listPnlLeaderboardRefreshJobs().filter(
     (job) =>
       (onlyAppId ? job.appId === onlyAppId : true) &&
@@ -91,9 +99,16 @@ export default async (req: Request) => {
 
   // A filtered run must not move the shared ring cursor, or it would skip whatever the scheduled
   // run was about to pick up next.
-  const filtered = onlyAppId != null || onlyChainId != null || explicitAccounts.length > 0 || ownerGroups;
+  const filtered =
+    onlyAppId != null || onlyChainId != null || explicitAccounts.length > 0 || ownerGroups || rescanCandidates;
   const cursor = filtered ? null : await loadPnlLeaderboardRefreshCursor(supabase);
   const startIndex = nextJobIndexAfterCursor(jobs, cursor);
+
+  if (rescanCandidates) {
+    const chainIds = [...new Set(jobs.map((job) => job.chainId))];
+    await Promise.all(chainIds.map((id) => resetCandidateScanWatermark(supabase, id)));
+    console.log(`refresh-pnl-leaderboard-background: candidate scan watermark reset for chains ${chainIds.join(",")}`);
+  }
 
   const startedAt = Date.now();
   const deadlineMs = startedAt + PNL_LEADERBOARD_REFRESH_BUDGET_MS;
