@@ -110,7 +110,10 @@ export function recentActivityCutoffDay(
  * run. `kind=outcome` is a far larger stream than `router_collateral`, and both scans stop at a page
  * cap; persisting how far they got turns that cap from a silent truncation into a walk that reaches
  * the head over successive runs. Pass `incremental: false` to scan from `cutoffDay` regardless —
- * what a coverage comparison wants, and what it pays for.
+ * what a coverage comparison wants, and what it pays for. The page cap still applies, and without a
+ * watermark there is no next run to carry the rest: a chain whose history is longer than one scan
+ * hands back only its oldest slice, every time. `onScanTruncated` reports exactly that, so a caller
+ * measuring coverage can say its population was partial instead of quietly treating it as whole.
  *
  * Market-scoped jobs keep the analytics-only path: the indexer view has no market dimension to
  * filter on, and widening those boards is not what this fixes.
@@ -129,6 +132,14 @@ export async function listLeaderboardCandidates(
     cutoffDay?: number;
     /** Resume the indexer scans from the persisted watermark, and advance it. Defaults to `true`. */
     incremental?: boolean;
+    /**
+     * Called once per indexer scan that stopped at the page cap, with its source name.
+     *
+     * An incremental scan treats the cap as a pause — it persists how far it got and the next run
+     * continues there — so it is the `incremental: false` callers that need this: they have no
+     * watermark to resume from, so whatever the cap cut off is simply never read.
+     */
+    onScanTruncated?: (source: string) => void;
   },
 ): Promise<LeaderboardCandidate[]> {
   const cutoffDay = opts?.cutoffDay ?? recentActivityCutoffDay();
@@ -156,6 +167,7 @@ export async function listLeaderboardCandidates(
           scanned.routerCollateralTs = ts;
         },
         { chainId, source: "router_collateral" },
+        opts?.onScanTruncated,
       ),
       listCandidatesFromScan(
         async () =>
@@ -168,6 +180,7 @@ export async function listLeaderboardCandidates(
           scanned.outcomeTradeTs = ts;
         },
         { chainId, source: "outcome_pool" },
+        opts?.onScanTruncated,
       ),
     ]);
 
@@ -206,11 +219,15 @@ function mergeCandidates(...lists: LeaderboardCandidate[][]): LeaderboardCandida
  *
  * `onScanned` is only called on success: a scan that threw must not advance a watermark, or the
  * slice it failed on is skipped forever.
+ *
+ * `onTruncated` fires when the scan stopped at its page cap rather than at the end of the stream,
+ * so a caller that is measuring coverage can tell a partial population from a whole one.
  */
 async function listCandidatesFromScan(
   scan: () => Promise<CandidateScanResult>,
   onScanned: (maxTimestamp: number) => void,
   context: { chainId: number; source: string },
+  onTruncated?: (source: string) => void,
 ): Promise<LeaderboardCandidate[]> {
   let result: CandidateScanResult;
   try {
@@ -220,6 +237,7 @@ async function listCandidatesFromScan(
     return [];
   }
   if (result.maxTimestamp > 0) onScanned(result.maxTimestamp);
+  if (result.reachedPageCap) onTruncated?.(context.source);
   return result.counterparties.map((row) => ({
     address: row.account,
     lastActivityDay: floorUtcDay(row.lastTransferTimestamp),

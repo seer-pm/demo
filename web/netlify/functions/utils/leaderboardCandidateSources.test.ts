@@ -24,6 +24,8 @@ import { listLeaderboardCandidates } from "./pnlLeaderboard";
 
 const CHAIN = 10 as const;
 const DAY = 86_400;
+/** Mirrors `PAGE` in `seerIndexerPortfolio`: a short page is what tells a scan the stream ended. */
+const PAGE = 1000;
 
 /** The owner EOA never signs its own trades, so the analytics rollups never name it. */
 const OWNER = "0x02dadbe42f385fa68f96c753df7f24c863701481";
@@ -304,6 +306,39 @@ describe("listLeaderboardCandidates", () => {
       expect(call[0].where.timestamp).toBeUndefined();
     }
     expect(stub.written()).toBeUndefined();
+  });
+
+  it("reports a scan that stopped at the page cap, so a coverage run knows its slice is partial", async () => {
+    // The stub ignores `offset`, so handing back a full page every time is a stream that never
+    // ends: the scan pages until the cap and stops. With `incremental: false` there is no watermark
+    // to carry the remainder, so this is the truncation the callback exists to surface.
+    const fullPage = Array.from({ length: PAGE }, (_, i) => routerCollateralRow(EXECUTOR, 10 * DAY + i));
+    transfersByKind({ router_collateral: fullPage });
+
+    const truncated: string[] = [];
+    await listLeaderboardCandidates(supabaseStub().client, CHAIN, undefined, {
+      cutoffDay: 0,
+      incremental: false,
+      onScanTruncated: (source) => truncated.push(source),
+    });
+
+    expect(truncated).toEqual(["router_collateral"]);
+  });
+
+  it("stays quiet when a scan reaches the end of the stream", async () => {
+    transfersByKind({
+      router_collateral: [routerCollateralRow(EXECUTOR, 10 * DAY)],
+      outcome: [outcomeRow(POOL, EXECUTOR, 11 * DAY)],
+    });
+
+    const truncated: string[] = [];
+    await listLeaderboardCandidates(supabaseStub().client, CHAIN, undefined, {
+      cutoffDay: 0,
+      incremental: false,
+      onScanTruncated: (source) => truncated.push(source),
+    });
+
+    expect(truncated).toEqual([]);
   });
 
   it("leaves market-scoped jobs on the analytics source alone", async () => {

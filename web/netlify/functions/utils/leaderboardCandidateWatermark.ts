@@ -64,8 +64,16 @@ export async function readCandidateScanWatermark(
 }
 
 /**
- * Only ever moves forward. A scan that failed reports the watermark it started from, so a transient
- * indexer error re-reads that slice on the next run instead of skipping it.
+ * A scan that failed reports the watermark it started from, so a transient indexer error re-reads
+ * that slice on the next run instead of skipping it.
+ *
+ * Last writer wins, and the caller's forward-only check is against the value *it* read, so this is
+ * only monotonic while one run is in flight per chain. Two overlapping invocations (a manual
+ * trigger crossing the schedule) can land the slower one's lower watermark last, and a
+ * `?rescanCandidates=1` reset can be overwritten by a run that started before it. Both cost a
+ * re-scan of a slice, not correctness — candidates are a set and the scans are additive — so this
+ * stays an unsynchronized upsert rather than carrying a lock or a version column on `key_value`. If
+ * a rescan ever looks like it did not take, re-run it with no scheduled run in flight.
  */
 export async function writeCandidateScanWatermark(
   supabase: SupabaseClient<Database>,
