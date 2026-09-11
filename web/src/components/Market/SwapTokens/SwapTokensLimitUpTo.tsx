@@ -21,7 +21,7 @@ import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { type AmmTrade, TradeType } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
@@ -214,13 +214,25 @@ export function SwapTokensLimitUpto({
     collateralPerShare * (isSecondaryCollateral ? assetsToShares : 1) > 1 &&
     swapType === "buy";
 
+  // The amount is derived from the pool, not typed: it is empty while the quote is in flight
+  // and a small one can come back in exponential notation, neither of which parseUnits accepts.
+  const parsedAmount = useMemo(() => {
+    try {
+      return parseUnits(amount || "0", sellToken.decimals);
+    } catch {
+      return 0n;
+    }
+  }, [amount, sellToken.decimals]);
+  // Reaching the target price costs more than the user holds: the swap can only be done up to
+  // the balance. With an empty balance there is nothing to sell, so there is no partial swap either.
+  const usePartialSwap = parsedAmount > balance;
+  const hasNothingToSell = usePartialSwap && !isFetchingBalance && balance === 0n;
+
   const renderButtons = () => {
     if (limitErrorMessage && limitErrorMessage !== "This field is required." && !isUseMax) {
       return <Button variant="primary" className="w-full" type="button" disabled={true} text={limitErrorMessage} />;
     }
     if (quoteData?.trade) {
-      const parsedAmount = parseUnits(amount, sellToken.decimals);
-      const usePartialSwap = parsedAmount > balance;
       return (
         <SwapButtons
           account={account}
@@ -230,7 +242,8 @@ export function SwapTokensLimitUpto({
             quoteData?.value === 0n ||
             !account ||
             tradeTokens.isPending ||
-            isPriceTooHigh
+            isPriceTooHigh ||
+            hasNothingToSell
           }
           missingApprovals={missingApprovals}
           isLoading={
@@ -239,7 +252,7 @@ export function SwapTokensLimitUpto({
             isFetching ||
             isLoadingApprovals
           }
-          text={usePartialSwap ? "Partial Swap" : "Swap"}
+          text={hasNothingToSell ? NOT_ENOUGH_BALANCE_ERROR : usePartialSwap ? "Partial Swap" : "Swap"}
         />
       );
     }
@@ -271,8 +284,10 @@ export function SwapTokensLimitUpto({
   };
 
   const handleOpenConfirmPartialSwap = () => {
-    const parsedAmount = parseUnits(amount, sellToken.decimals);
-    const usePartialSwap = parsedAmount > balance;
+    // Submitting with Enter bypasses the disabled button, so re-check it here.
+    if (hasNothingToSell) {
+      return;
+    }
     if (usePartialSwap) {
       swapMax();
     }
