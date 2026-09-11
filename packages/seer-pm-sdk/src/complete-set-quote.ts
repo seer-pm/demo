@@ -3,7 +3,7 @@
  */
 
 import type { Address, Client, PublicClient } from "viem";
-import { erc20Abi, formatUnits, parseUnits } from "viem";
+import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
 import { multicall } from "viem/actions";
 import type { AmmTrade } from "./amm-trade";
 import { isCompleteSetMarket } from "./market";
@@ -169,6 +169,13 @@ export function isCompleteSetRoutingEnabled(market: Market, outcomeIndex: number
   if (!isCompleteSetMarket(market)) {
     return false;
   }
+  // Child markets: the router takes the *base* collateral as the split/merge argument (it derives
+  // the position ids from it) while the user spends the parent outcome token. `market.collateralToken`
+  // is the parent outcome token, so building a split or merge from it produces a wrong position id
+  // and the transaction reverts. Routing them needs the two tokens threaded separately.
+  if (market.parentMarket.id !== zeroAddress) {
+    return false;
+  }
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
     return false;
   }
@@ -194,6 +201,9 @@ export function getCompleteSetRoutingDisabledReasons(
 
   if (!isCompleteSetMarket(market)) {
     reasons.push("not a binary Generic market (need exactly 3 wrapped tokens: 2 tradeable + Invalid)");
+  }
+  if (market.parentMarket.id !== zeroAddress) {
+    reasons.push("conditional market: split/merge needs the base collateral, not the parent outcome token");
   }
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
     reasons.push(`outcome index ${outcomeIndex} is not tradeable (only 0 or 1)`);

@@ -11,7 +11,6 @@
  */
 
 import type { Address } from "viem";
-import { zeroAddress } from "viem";
 import type { CompleteSetLeftover, CompleteSetQuoteResult } from "./complete-set-quote";
 import { getInvalidOutcomeIndex, getOppositeOutcomeIndex, isCompleteSetRoutingEnabled } from "./complete-set-quote";
 import type { Market } from "./market-types";
@@ -74,13 +73,9 @@ export function isMintToCoverEligible(params: {
   if (tradeType !== TradeType.EXACT_INPUT) {
     return false;
   }
+  // Also excludes conditional markets, whose split takes the base collateral rather than
+  // `market.collateralToken`.
   if (!isCompleteSetRoutingEnabled(market, outcomeIndex, selectedCollateral.address)) {
-    return false;
-  }
-  // Child markets: the router takes the *primary* collateral as the split argument while the user
-  // actually spends the parent outcome token, so `market.collateralToken` is the wrong value to
-  // build a split with. Excluded until that is fixed for the existing mint+sell route too.
-  if (market.parentMarket.id !== zeroAddress) {
     return false;
   }
   // Split amounts are compared against 18-decimal outcome tokens without conversion.

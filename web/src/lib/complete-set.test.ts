@@ -3,6 +3,7 @@ import {
   MIN_COMPLETE_SET_SAVINGS_PERCENT,
   type QuoteTradeResult,
   compareCompleteSetRoutes,
+  getCompleteSetRoutingDisabledReasons,
   getOppositeOutcomeIndex,
   isCompleteSetMarket,
   isCompleteSetRoutingEnabled,
@@ -109,6 +110,22 @@ describe("isCompleteSetRoutingEnabled", () => {
   it("returns false for invalid outcome index", () => {
     const market = createMinimalMarket({});
     expect(isCompleteSetRoutingEnabled(market, 2, market.collateralToken as `0x${string}`)).toBe(false);
+  });
+
+  it("returns false for conditional markets, whose split takes the base collateral", () => {
+    const market = createMinimalMarket({
+      parentMarket: {
+        id: "0x0000000000000000000000000000000000000005",
+        conditionId: "0x0",
+        payoutReported: false,
+        payoutNumerators: [],
+      },
+    });
+
+    expect(isCompleteSetRoutingEnabled(market, 0, market.collateralToken as `0x${string}`)).toBe(false);
+    expect(getCompleteSetRoutingDisabledReasons(market, 0, market.collateralToken as `0x${string}`)).toContain(
+      "conditional market: split/merge needs the base collateral, not the parent outcome token",
+    );
   });
 
   it("returns false for trading credits collateral", () => {
