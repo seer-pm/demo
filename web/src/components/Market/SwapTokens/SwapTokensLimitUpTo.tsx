@@ -6,8 +6,10 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
+import { useMarketTradeDraft } from "@/hooks/useTradeFormDraft";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
 import { isTradingCredits } from "@seer-pm/sdk";
@@ -59,6 +61,13 @@ export function SwapTokensLimitUpto({
   onOutcomeChange,
 }: SwapTokensLimitUptoProps) {
   const limitPriceRef = useRef<HTMLInputElement | null>(null);
+  const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
+  // Read once: only the target price is kept, the amounts below are derived from it.
+  // A draft typed against another outcome is ignored: the price would not mean the same thing.
+  const [draft] = useState(() => {
+    const limitDraft = getDraft()?.limit;
+    return isDraftForOutcome(limitDraft, outcomeToken.address) ? limitDraft : undefined;
+  });
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
   const [isUseMax, setUseMax] = useState(false);
@@ -77,7 +86,7 @@ export function SwapTokensLimitUpto({
       type: "buy",
       amount: "",
       amountOut: "",
-      limitPrice: "",
+      limitPrice: draft?.limitPrice ?? "",
     },
   });
 
@@ -168,7 +177,10 @@ export function SwapTokensLimitUpto({
     quoteData?.trade,
     isTradingCreditsCollateral,
     async () => {
-      reset();
+      // Explicit values: the defaults were seeded from the draft, so a bare reset()
+      // would put the traded target price back instead of clearing the form.
+      reset({ type: "buy", amount: "", amountOut: "", limitPrice: "" });
+      clearDraft();
       closeConfirmSwapModal();
     },
     market,
@@ -272,10 +284,23 @@ export function SwapTokensLimitUpto({
   }, [balance]);
 
   useEffect(() => {
-    resetField("limitPrice");
+    setDraft({ limit: { outcomeToken: outcomeToken.address, limitPrice } });
+  }, [outcomeToken.address, limitPrice, setDraft]);
+
+  // Clear the inputs when the traded pair changes, but never on the first render:
+  // that would throw away the draft we just restored. defaultValue "" because the
+  // form defaults were seeded from that same draft.
+  const pairKey = `${selectedCollateral.address}-${outcomeToken.address}`;
+  const pairKeyRef = useRef(pairKey);
+  useEffect(() => {
+    if (pairKeyRef.current === pairKey) {
+      return;
+    }
+    pairKeyRef.current = pairKey;
+    resetField("limitPrice", { defaultValue: "" });
     resetField("amount");
     resetField("amountOut");
-  }, [selectedCollateral.address, outcomeToken.address]);
+  }, [pairKey]);
 
   useEffect(() => {
     if (tradeType === TradeType.EXACT_INPUT) {

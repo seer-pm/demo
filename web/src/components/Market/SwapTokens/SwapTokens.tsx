@@ -1,4 +1,5 @@
 import { Dropdown } from "@/components/Dropdown";
+import { useMarketTradeDraft, useTradeOrderType } from "@/hooks/useTradeFormDraft";
 import { getLiquidityUrlByMarket, isFillToEstimateEnabled } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
@@ -9,8 +10,6 @@ import { SwapTokensFillToEstimate } from "./SwapTokensFillToEstimate";
 import { SwapTokensLimitUpto } from "./SwapTokensLimitUpTo";
 import { SwapTokensMarket } from "./SwapTokensMarket";
 import SwapTokensMaxSlippage from "./SwapTokensMaxSlippage";
-
-type SwapOrderType = "market" | "limit" | "fill-to-estimate";
 
 interface SwapTokensProps {
   market: Market;
@@ -31,7 +30,9 @@ export function SwapTokens({
   fixedCollateral,
   onOutcomeChange,
 }: SwapTokensProps) {
-  const [orderType, setOrderType] = useState<SwapOrderType>("market");
+  // The order type lives in the draft store so it survives the widget unmounting.
+  const orderType = useTradeOrderType(market);
+  const { setDraft } = useMarketTradeDraft(market);
   const [isShowMaxSlippage, setShowMaxSlippage] = useState(false);
 
   const outcomeText = market.outcomes[outcomeIndex];
@@ -73,7 +74,7 @@ export function SwapTokens({
               <Dropdown
                 options={orderTypeOptions}
                 value={orderType}
-                onClick={(type) => setOrderType(type)}
+                onClick={(value) => setDraft({ orderType: value })}
                 defaultLabel="Order Type"
               />
             </div>
