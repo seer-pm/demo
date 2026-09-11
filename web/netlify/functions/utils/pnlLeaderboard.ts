@@ -7,6 +7,12 @@ import type { Address } from "viem";
 import { getDexScreenerPriceUSD } from "./common";
 import { jobUsesTradeExecutors, readOwnerMap, resolveOwnerMap } from "./executorOwners";
 import { expandMarketIdsWithChildren } from "./expandMarketsCache";
+import {
+  type CandidateScanWatermark,
+  readCandidateScanWatermark,
+  writeCandidateScanWatermark,
+} from "./leaderboardCandidateWatermark";
+import { chainPoolAddressSet } from "./leaderboardPools";
 import { fetchMarketFamilyRoots } from "./marketFamilies";
 import type { MarketPeriodBucket } from "./marketPeriodBuckets";
 import { computeRoiUsd } from "./pnlLeaderboardMetrics";
@@ -25,7 +31,13 @@ import {
   deriveOwnerGroupRows,
 } from "./pnlMarketRows";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
-import { type PortfolioPlPeriod, fetchRouterCollateralCounterparties, floorUtcDay } from "./seerIndexerPortfolio";
+import {
+  type CandidateScanResult,
+  type PortfolioPlPeriod,
+  fetchOutcomeTokenPoolCounterparties,
+  fetchRouterCollateralCounterparties,
+  floorUtcDay,
+} from "./seerIndexerPortfolio";
 import type { Database, TablesInsert } from "./supabase";
 import type { OwnerMap } from "./tradeExecutorOwnersCore";
 
@@ -73,8 +85,8 @@ export function recentActivityCutoffDay(
  * Every wallet with analytics activity in the last `PNL_LEADERBOARD_RECENT_DAYS` UTC days.
  * When `marketIds` is omitted, uses the whole chain (All / protocol-wide).
  *
- * The protocol-wide list is the union of two sources that see different things, and the P/L job
- * needs both:
+ * The protocol-wide list is the union of four sources that see different things, and the P/L job
+ * needs all of them:
  *
  * - **Supabase analytics** (`analytics_daily_wallet`) is keyed by `tokens_transfers.tx_from`,
  *   i.e. msg.sender. That is the right grain for the dashboard's "unique wallets", and the wrong
@@ -85,6 +97,23 @@ export function recentActivityCutoffDay(
  *   the executor appears under its own address and `canonicalAddress` rolls it onto its owner at
  *   read time. Not `AccountActivity`: that is every token holder, Uniswap pools included, and a
  *   pool's P/L is its inventory — see `fetchRouterCollateralCounterparties`.
+ * - **Indexer `outcome` transfers against a pool** cover what is left: a wallet whose trades are
+ *   signed by someone else *and* that never split, merged or redeemed, so neither of the two
+ *   sources above can name it. Requiring a pool on the other side keeps this keyed on a trade
+ *   rather than on holding — see `fetchOutcomeTokenPoolCounterparties`.
+ * - **Wallets already materialized** in `pnl_leaderboard`. The two indexer scans are incremental
+ *   (see the watermark below), so without this a wallet they discovered once would never be offered
+ *   for refresh again and its row would freeze at the price of the day it was found. The analytics
+ *   half re-lists its own wallets on every run and does not need it.
+ *
+ * The indexer halves resume from a per-chain watermark instead of re-reading the whole history every
+ * run. `kind=outcome` is a far larger stream than `router_collateral`, and both scans stop at a page
+ * cap; persisting how far they got turns that cap from a silent truncation into a walk that reaches
+ * the head over successive runs. Pass `incremental: false` to scan from `cutoffDay` regardless —
+ * what a coverage comparison wants, and what it pays for. The page cap still applies, and without a
+ * watermark there is no next run to carry the rest: a chain whose history is longer than one scan
+ * hands back only its oldest slice, every time. `onScanTruncated` reports exactly that, so a caller
+ * measuring coverage can say its population was partial instead of quietly treating it as whole.
  *
  * Market-scoped jobs keep the analytics-only path: the indexer view has no market dimension to
  * filter on, and widening those boards is not what this fixes.
@@ -101,21 +130,68 @@ export async function listLeaderboardCandidates(
      * candidates at all under the default.
      */
     cutoffDay?: number;
+    /** Resume the indexer scans from the persisted watermark, and advance it. Defaults to `true`. */
+    incremental?: boolean;
+    /**
+     * Called once per indexer scan that stopped at the page cap, with its source name.
+     *
+     * An incremental scan treats the cap as a pause — it persists how far it got and the next run
+     * continues there — so it is the `incremental: false` callers that need this: they have no
+     * watermark to resume from, so whatever the cap cut off is simply never read.
+     */
+    onScanTruncated?: (source: string) => void;
   },
 ): Promise<LeaderboardCandidate[]> {
   const cutoffDay = opts?.cutoffDay ?? recentActivityCutoffDay();
 
   if (marketIds === undefined) {
-    const [fromAnalytics, fromIndexer] = await Promise.all([
+    const incremental = opts?.incremental ?? true;
+    const watermark = incremental
+      ? await readCandidateScanWatermark(supabase, chainId)
+      : { routerCollateralTs: 0, outcomeTradeTs: 0 };
+    const scanned: CandidateScanWatermark = { ...watermark };
+
+    const [fromAnalytics, fromMaterialized, fromRouterCollateral, fromOutcomeTrades] = await Promise.all([
       listCandidatesFromWalletAnalytics(supabase, chainId, cutoffDay),
+      listCandidatesFromMaterialized(supabase, chainId),
       // Additive and best-effort: the indexer being down must not shrink the candidate list to
-      // nothing and blank out a board that the analytics half could still have refreshed.
-      listCandidatesFromRouterCollateral(chainId, cutoffDay).catch((error) => {
-        console.warn("pnl-leaderboard: indexer candidate scan failed", { chainId, error });
-        return [] as LeaderboardCandidate[];
-      }),
+      // nothing and blank out a board that the analytics half could still have refreshed. A failed
+      // scan leaves its watermark where it was, so the slice it missed is re-read next run.
+      listCandidatesFromScan(
+        () =>
+          fetchRouterCollateralCounterparties(
+            chainId as SupportedChain,
+            Math.max(cutoffDay, watermark.routerCollateralTs),
+          ),
+        (ts) => {
+          scanned.routerCollateralTs = ts;
+        },
+        { chainId, source: "router_collateral" },
+        opts?.onScanTruncated,
+      ),
+      listCandidatesFromScan(
+        async () =>
+          fetchOutcomeTokenPoolCounterparties(
+            chainId as SupportedChain,
+            Math.max(cutoffDay, watermark.outcomeTradeTs),
+            await chainPoolAddressSet(supabase, chainId as SupportedChain),
+          ),
+        (ts) => {
+          scanned.outcomeTradeTs = ts;
+        },
+        { chainId, source: "outcome_pool" },
+        opts?.onScanTruncated,
+      ),
     ]);
-    return mergeCandidates(fromAnalytics, fromIndexer);
+
+    if (
+      incremental &&
+      (scanned.routerCollateralTs > watermark.routerCollateralTs || scanned.outcomeTradeTs > watermark.outcomeTradeTs)
+    ) {
+      await writeCandidateScanWatermark(supabase, chainId, scanned);
+    }
+
+    return mergeCandidates(fromAnalytics, fromMaterialized, fromRouterCollateral, fromOutcomeTrades);
   }
   if (marketIds.length === 0) return [];
 
@@ -136,14 +212,33 @@ function mergeCandidates(...lists: LeaderboardCandidate[][]): LeaderboardCandida
 }
 
 /**
- * Candidates from the indexer: wallets whose primary collateral moved with a router.
+ * Adapt one indexer scan to the candidate shape, reporting how far it got.
  *
  * `lastTransferTimestamp` is floored to its UTC day so `lastActivityDay` stays the same unit the
  * analytics half produces — `rankRefreshCandidates` compares the two against each other.
+ *
+ * `onScanned` is only called on success: a scan that threw must not advance a watermark, or the
+ * slice it failed on is skipped forever.
+ *
+ * `onTruncated` fires when the scan stopped at its page cap rather than at the end of the stream,
+ * so a caller that is measuring coverage can tell a partial population from a whole one.
  */
-async function listCandidatesFromRouterCollateral(chainId: number, cutoffDay: number): Promise<LeaderboardCandidate[]> {
-  const rows = await fetchRouterCollateralCounterparties(chainId as SupportedChain, cutoffDay);
-  return rows.map((row) => ({
+async function listCandidatesFromScan(
+  scan: () => Promise<CandidateScanResult>,
+  onScanned: (maxTimestamp: number) => void,
+  context: { chainId: number; source: string },
+  onTruncated?: (source: string) => void,
+): Promise<LeaderboardCandidate[]> {
+  let result: CandidateScanResult;
+  try {
+    result = await scan();
+  } catch (error) {
+    console.warn("pnl-leaderboard: indexer candidate scan failed", { ...context, error });
+    return [];
+  }
+  if (result.maxTimestamp > 0) onScanned(result.maxTimestamp);
+  if (result.reachedPageCap) onTruncated?.(context.source);
+  return result.counterparties.map((row) => ({
     address: row.account,
     lastActivityDay: floorUtcDay(row.lastTransferTimestamp),
   }));
@@ -199,6 +294,31 @@ async function listCandidatesFromWalletAnalytics(
         .order("day", { ascending: true })
         .range(from, to),
     "analytics_daily_wallet unavailable",
+  );
+}
+
+/**
+ * Wallets that already have a row on this chain's protocol-wide board.
+ *
+ * Keeps everything the job has ever materialized eligible for refresh now that the indexer scans
+ * only hand back what is new. `lastActivityDay: 0` is deliberate: with no fresh activity to compare
+ * against, `refreshPriority` files these as merely old, behind anything that actually traded.
+ */
+async function listCandidatesFromMaterialized(
+  supabase: SupabaseClient<Database>,
+  chainId: number,
+): Promise<LeaderboardCandidate[]> {
+  return loadCandidateAddresses(
+    (from, to) =>
+      supabase
+        .from("pnl_leaderboard")
+        .select("address")
+        .eq("chain_id", chainId)
+        .eq("app_id", SEER_APP_ALL_ID)
+        .eq("period", "all")
+        .order("address", { ascending: true })
+        .range(from, to),
+    "pnl_leaderboard unavailable",
   );
 }
 

@@ -72,8 +72,78 @@ export type RouterCollateralCounterparty = {
   lastTransferTimestamp: number;
 };
 
-/** Bound the scan so a runaway page loop cannot eat a background function's whole budget. */
-const MAX_ROUTER_COUNTERPARTY_PAGES = 100;
+/**
+ * One pass of an indexer candidate scan.
+ *
+ * `maxTimestamp` is the highest transfer timestamp the pass actually read, whether or not it ran out
+ * of pages, so the caller can persist it as a watermark and have the next pass resume there. `0`
+ * means the pass matched nothing, and the watermark must not move.
+ */
+export type CandidateScanResult = {
+  counterparties: RouterCollateralCounterparty[];
+  maxTimestamp: number;
+  reachedPageCap: boolean;
+};
+
+/** Bound a scan so a runaway page loop cannot eat a background function's whole budget. */
+const MAX_CANDIDATE_SCAN_PAGES = 100;
+
+const EMPTY_CANDIDATE_SCAN: CandidateScanResult = { counterparties: [], maxTimestamp: 0, reachedPageCap: false };
+
+/**
+ * Page `Transfer` rows of one `kind` in timestamp order, keeping the wallets `accountsOf` names.
+ *
+ * The page cap is not a truncation: the caller persists `maxTimestamp` either way, so hitting it
+ * defers the rest of the history to the next run instead of dropping it. Ordering ascending is what
+ * makes that safe — a descending scan would resume from a moving head and never reach the tail.
+ */
+async function scanTransferCandidates(args: {
+  chainId: SupportedChain;
+  kind: string;
+  minTimestamp: number;
+  accountsOf: (row: { from: string; to: string }) => string[];
+}): Promise<CandidateScanResult> {
+  const sdk = seerEnvioSdk(args.chainId);
+  const lastByAccount = new Map<string, number>();
+  let maxTimestamp = 0;
+  let offset = 0;
+
+  for (let page = 0; page < MAX_CANDIDATE_SCAN_PAGES; page++) {
+    const { Transfer: rows } = await sdk.GetTransfers({
+      limit: PAGE,
+      offset,
+      orderBy: [{ timestamp: Order_By.Asc }, { logIndex: Order_By.Asc }],
+      where: {
+        chainId: { _eq: String(args.chainId) },
+        kind: { _eq: args.kind },
+        ...(args.minTimestamp > 0 ? { timestamp: { _gte: String(args.minTimestamp) } } : {}),
+      },
+    });
+    for (const row of rows) {
+      const timestamp = Number(row.timestamp);
+      if (timestamp > maxTimestamp) maxTimestamp = timestamp;
+      for (const account of args.accountsOf(row)) {
+        lastByAccount.set(account, Math.max(lastByAccount.get(account) ?? 0, timestamp));
+      }
+    }
+    if (rows.length < PAGE) {
+      return { counterparties: toCounterparties(lastByAccount), maxTimestamp, reachedPageCap: false };
+    }
+    offset += PAGE;
+  }
+
+  console.warn("seerIndexerPortfolio: candidate scan hit the page cap", {
+    chainId: args.chainId,
+    kind: args.kind,
+    scanned: lastByAccount.size,
+    resumeFrom: maxTimestamp,
+  });
+  return { counterparties: toCounterparties(lastByAccount), maxTimestamp, reachedPageCap: true };
+}
+
+function toCounterparties(lastByAccount: Map<string, number>): RouterCollateralCounterparty[] {
+  return [...lastByAccount].map(([account, lastTransferTimestamp]) => ({ account, lastTransferTimestamp }));
+}
 
 /**
  * Every wallet whose primary collateral moved with a Seer router on `chainId` at or after
@@ -92,45 +162,77 @@ const MAX_ROUTER_COUNTERPARTY_PAGES = 100;
  * from 15th place down at ~$87 each was the result on Optimism. A pool never moves collateral with
  * the router, so this scan excludes it structurally rather than by probing bytecode.
  *
- * Not covered: an executor that only ever bought outcome tokens on the DEX and never split, merged
- * or redeemed. Its swaps are in the DEX subgraph, not here.
+ * Not covered here: a wallet that only ever bought and sold outcome tokens against a pool and never
+ * split, merged or redeemed. That is what `fetchOutcomeTokenPoolCounterparties` is for.
  */
 export async function fetchRouterCollateralCounterparties(
   chainId: SupportedChain,
   minTimestamp = 0,
-): Promise<RouterCollateralCounterparty[]> {
-  const sdk = seerEnvioSdk(chainId);
+): Promise<CandidateScanResult> {
   const routers = routerAddressSet(chainId);
-  const lastByAccount = new Map<string, number>();
-  let offset = 0;
-  for (let page = 0; page < MAX_ROUTER_COUNTERPARTY_PAGES; page++) {
-    const { Transfer: rows } = await sdk.GetTransfers({
-      limit: PAGE,
-      offset,
-      orderBy: [{ timestamp: Order_By.Asc }, { logIndex: Order_By.Asc }],
-      where: {
-        chainId: { _eq: String(chainId) },
-        kind: { _eq: "router_collateral" },
-        ...(minTimestamp > 0 ? { timestamp: { _gte: String(minTimestamp) } } : {}),
-      },
-    });
-    for (const row of rows) {
+  return scanTransferCandidates({
+    chainId,
+    kind: "router_collateral",
+    minTimestamp,
+    accountsOf: (row) => {
+      const accounts: string[] = [];
       for (const party of [row.from, row.to]) {
         const account = party.toLowerCase();
         if (routers.has(account) || account === ZERO_ADDRESS) continue;
-        lastByAccount.set(account, Math.max(lastByAccount.get(account) ?? 0, Number(row.timestamp)));
+        accounts.push(account);
       }
-    }
-    if (rows.length < PAGE) {
-      return [...lastByAccount].map(([account, lastTransferTimestamp]) => ({ account, lastTransferTimestamp }));
-    }
-    offset += PAGE;
-  }
-  console.warn("seerIndexerPortfolio: router collateral scan hit the page cap", {
-    chainId,
-    scanned: lastByAccount.size,
+      return accounts;
+    },
   });
-  return [...lastByAccount].map(([account, lastTransferTimestamp]) => ({ account, lastTransferTimestamp }));
+}
+
+/**
+ * Every wallet that moved outcome tokens against an AMM pool on `chainId` at or after
+ * `minTimestamp` — the non-pool side of `Transfer kind=outcome` when the other side is a pool.
+ *
+ * The third candidate source, and it exists for the population the other two structurally cannot
+ * see: a wallet whose transactions are signed by somebody else *and* that never touched a router.
+ * A DeepFunding TradeExecutor driven by a browser session key is the live example — analytics books
+ * the session key, and a wallet that only swaps never moves primary collateral with the router — but
+ * a Safe, an ERC-4337 account and a sponsored 7702 EOA land in the same hole.
+ *
+ * Requiring a pool on the other side is what keeps this a trader signal rather than a holder one.
+ * `AccountActivity` was tried and reverted (`c6d87eac`): holding an outcome token is something a
+ * Uniswap pool does too, and a pool's P/L is the value of its inventory. Moving outcome tokens
+ * *against* a pool is something only its counterparty does, so pools drop out on both sides — a pool
+ * is never the non-pool side of its own transfer — and so do airdrops and OTC transfers between
+ * wallets, which name nobody who traded.
+ *
+ * `poolAddresses` failing short is safe in the direction that matters: an unknown pool costs a
+ * candidate, and can never promote a pool into one. An empty set disables the scan.
+ *
+ * Not covered: CoW Swap. The pool's counterparty there is the settlement contract, and the trader
+ * receives in a second transfer that touches no pool.
+ */
+export async function fetchOutcomeTokenPoolCounterparties(
+  chainId: SupportedChain,
+  minTimestamp: number,
+  poolAddresses: ReadonlySet<string>,
+): Promise<CandidateScanResult> {
+  if (poolAddresses.size === 0) return EMPTY_CANDIDATE_SCAN;
+  const routers = routerAddressSet(chainId);
+
+  return scanTransferCandidates({
+    chainId,
+    kind: "outcome",
+    minTimestamp,
+    accountsOf: (row) => {
+      const from = row.from.toLowerCase();
+      const to = row.to.toLowerCase();
+      const fromIsPool = poolAddresses.has(from);
+      const toIsPool = poolAddresses.has(to);
+      // Both sides pool is a direct hop between two pools; neither side pool is not a trade.
+      if (fromIsPool === toIsPool) return [];
+      const account = fromIsPool ? to : from;
+      if (routers.has(account) || account === ZERO_ADDRESS) return [];
+      return [account];
+    },
+  });
 }
 
 /**

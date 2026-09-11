@@ -63,6 +63,11 @@ export default async (req: Request) => {
   const comparisons: WalletComparison[] = [];
   const failures: Array<{ account: string; chainId: number; error: string }> = [];
   let abortedByBudget = false;
+  // A candidate scan that stopped at its page cap means the population below is the oldest slice of
+  // the chain's history rather than the whole of it. That is not a wrong comparison, but it is a
+  // partial one, and a coverage report that cannot say so invites reading "no residuals" as "no
+  // gaps" — see `listLeaderboardCandidates`.
+  const truncatedScans = new Set<string>();
 
   for (const chainId of chains) {
     if (Date.now() >= deadlineMs) {
@@ -77,6 +82,10 @@ export default async (req: Request) => {
       : (
           await listLeaderboardCandidates(supabase, chainId, undefined, {
             cutoffDay: recentOnly ? undefined : 0,
+            // A coverage comparison wants the whole population, not the slice discovered since the
+            // last refresh, so it pays for the full indexer scans instead of resuming a watermark.
+            incremental: false,
+            onScanTruncated: (source) => truncatedScans.add(`${chainId}:${source}`),
           })
         )
           .map((c) => c.address)
@@ -134,6 +143,7 @@ export default async (req: Request) => {
       {
         elapsedMs: Date.now() - startedAt,
         abortedByBudget,
+        truncatedScans: [...truncatedScans],
         failures: failures.length,
         ...summary,
       },
@@ -145,7 +155,14 @@ export default async (req: Request) => {
     console.error("compare-pnl-market: wallets that failed to compute", JSON.stringify(failures.slice(0, 20), null, 2));
   }
 
-  return new Response(JSON.stringify({ ...summary, failures: failures.length, abortedByBudget }, null, 2), {
-    headers: { "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify(
+      { ...summary, failures: failures.length, abortedByBudget, truncatedScans: [...truncatedScans] },
+      null,
+      2,
+    ),
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 };
