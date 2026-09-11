@@ -51,7 +51,7 @@ export function SwapTokensFillToEstimate({
 }: SwapTokensFillToEstimateProps) {
   const { address: account } = useAccount();
   const wagmiConfig = useConfig();
-  const { getDraft, setDraft } = useMarketTradeDraft(market);
+  const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
   // Read once: from here on this panel owns the values and writes them back to the draft.
   const [draft] = useState(() => getDraft()?.fillToEstimate);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
@@ -180,9 +180,9 @@ export function SwapTokensFillToEstimate({
   const fillToEstimateTrade = useFillToEstimateTrade(() => {
     closeConfirmModal();
     // Explicit values: the defaults were seeded from the draft, so a bare reset()
-    // would put the traded values back instead of clearing the form. The persistence
-    // effect then writes the cleared values to the draft; the order type is left alone.
+    // would put the traded values back instead of clearing the form.
     reset({ targetEstimate: "", maxCollateralToUse: "" });
+    clearDraft("fillToEstimate");
   });
   const { legExecutionStatuses } = fillToEstimateTrade;
 

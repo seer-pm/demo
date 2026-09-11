@@ -34,6 +34,9 @@ export interface TradeDraft {
 
 export type TradeDrafts = Record<string, TradeDraft>;
 
+/** The panel-owned parts of a draft; the order type is not one of them. */
+export type TradeDraftSection = "market" | "limit" | "fillToEstimate";
+
 /** Drafts are per market; keep only the last few so session storage cannot grow without bound. */
 export const MAX_TRADE_DRAFTS = 5;
 
@@ -71,6 +74,19 @@ export function applyTradeDraft(
     pruned[draftKey] = merged[draftKey];
   }
   return pruned;
+}
+
+/**
+ * Drop one panel's section of the draft for `key`, keeping the order type and the
+ * other panels' sections. Returns the same object when there is nothing to remove.
+ */
+export function clearTradeDraftSection(drafts: TradeDrafts, key: string, section: TradeDraftSection): TradeDrafts {
+  const draft = drafts[key];
+  if (!draft || !(section in draft)) {
+    return drafts;
+  }
+  const { [section]: _removed, ...rest } = draft;
+  return { ...drafts, [key]: rest };
 }
 
 /** A draft only applies to the outcome it was typed against. */

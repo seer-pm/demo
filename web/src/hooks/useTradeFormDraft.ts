@@ -1,8 +1,10 @@
 import {
   type SwapOrderType,
   type TradeDraft,
+  type TradeDraftSection,
   type TradeDrafts,
   applyTradeDraft,
+  clearTradeDraftSection,
   getTradeDraftKey,
   readOrderType,
 } from "@/lib/trade-draft";
@@ -17,6 +19,7 @@ type State = {
 
 type Action = {
   setTradeDraft: (key: string, patch: TradeDraft) => void;
+  clearTradeDraftSection: (key: string, section: TradeDraftSection) => void;
 };
 
 /**
@@ -36,6 +39,10 @@ const useTradeFormDraft = create<State & Action>()(
         set((state) => ({
           drafts: applyTradeDraft(state.drafts, key, patch),
         })),
+      clearTradeDraftSection: (key: string, section: TradeDraftSection) =>
+        set((state) => ({
+          drafts: clearTradeDraftSection(state.drafts, key, section),
+        })),
     }),
     {
       name: "seer-trade-draft",
@@ -47,15 +54,22 @@ const useTradeFormDraft = create<State & Action>()(
 /**
  * Draft accessors for one market. `getDraft` reads a snapshot instead of subscribing:
  * the panels seed their form defaults from it once and own the value afterwards.
+ *
+ * `clearDraft` drops one panel's section right away, without waiting for that panel's
+ * persistence effect: after a trade the widget may already be unmounted (the outcome
+ * token reloads), so the effect never runs and a remount would restore the traded
+ * values. The order type is left alone so the widget stays on the same panel.
  */
 export function useMarketTradeDraft(market: Market) {
   const key = getTradeDraftKey(market.chainId, market.id);
   const setTradeDraft = useTradeFormDraft((state) => state.setTradeDraft);
+  const clearSection = useTradeFormDraft((state) => state.clearTradeDraftSection);
 
   const getDraft = useCallback(() => useTradeFormDraft.getState().drafts[key], [key]);
   const setDraft = useCallback((patch: TradeDraft) => setTradeDraft(key, patch), [key, setTradeDraft]);
+  const clearDraft = useCallback((section: TradeDraftSection) => clearSection(key, section), [key, clearSection]);
 
-  return { getDraft, setDraft };
+  return { getDraft, setDraft, clearDraft };
 }
 
 /** The stored order type for this market, sanitized against what the market offers. */
