@@ -10,7 +10,7 @@ import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFor
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isDraftForOutcome } from "@/lib/trade-draft";
-import { displayBalance, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { displayBalance, displayNumber, isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
 import { isTradingCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
@@ -552,7 +552,7 @@ export function SwapTokensLimitUpto({
               <div className="shimmer-container ml-2 w-[100px]" />
             ) : (
               <div className="flex items-center gap-2">
-                {collateralPerShare} {selectedCollateral.symbol}
+                {displayNumber(collateralPerShare)} {selectedCollateral.symbol}
                 {isSecondaryCollateral && (
                   <span className="tooltip">
                     <p className="tooltiptext">

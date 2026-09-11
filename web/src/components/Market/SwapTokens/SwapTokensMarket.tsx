@@ -572,7 +572,7 @@ export function SwapTokensMarket({
               />
             ) : (
               <div className="flex items-center gap-2">
-                {collateralPerShare.toFixed(3)} {selectedCollateral.symbol}
+                {displayNumber(collateralPerShare)} {selectedCollateral.symbol}
                 {isSecondaryCollateral && (
                   <span className="tooltip">
                     <p className="tooltiptext">
