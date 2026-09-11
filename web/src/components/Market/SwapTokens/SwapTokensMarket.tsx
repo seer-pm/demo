@@ -5,7 +5,9 @@ import { useModal } from "@/hooks/useModal";
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
+import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
+import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
 import { isTradingCredits } from "@seer-pm/sdk";
@@ -114,17 +116,24 @@ export function SwapTokensMarket({
 }: SwapTokensMarketProps) {
   const amountRef = useRef<HTMLInputElement | null>(null);
   const amountOutRef = useRef<HTMLInputElement | null>(null);
-  const [tradeType, setTradeType] = useState(TradeType.EXACT_INPUT);
-  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
+  const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
+  // Read once: from here on this panel owns the values and writes them back to the draft.
+  // A draft typed against another outcome is ignored: the amounts would not mean the same thing.
+  const [draft] = useState(() => {
+    const marketDraft = getDraft()?.market;
+    return isDraftForOutcome(marketDraft, outcomeToken.address) ? marketDraft : undefined;
+  });
+  const [tradeType, setTradeType] = useState(draft?.tradeType ?? TradeType.EXACT_INPUT);
+  const [swapType, setSwapType] = useState<"buy" | "sell">(draft?.swapType ?? "buy");
   const [focusContainer, setFocusContainer] = useState(0);
   const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
-      type: "buy",
-      amount: "",
-      amountOut: "",
+      type: draft?.swapType ?? "buy",
+      amount: draft?.amount ?? "",
+      amountOut: draft?.amountOut ?? "",
     },
   });
 
@@ -141,6 +150,10 @@ export function SwapTokensMarket({
   } = useFormReturn;
 
   const [amount, amountOut] = watch(["amount", "amountOut"]);
+
+  // Explicit values: the defaults were seeded from the draft, so a bare reset()
+  // would put the traded amount back instead of clearing the form.
+  useOnTradeDraftCleared(market, "market", () => reset({ type: swapType, amount: "", amountOut: "" }));
 
   const {
     Modal: ConfirmSwapModal,
@@ -203,7 +216,7 @@ export function SwapTokensMarket({
     quoteData?.trade,
     isTradingCreditsCollateral,
     async () => {
-      reset();
+      clearDraft("market");
       closeConfirmSwapModal();
     },
     market,
@@ -259,8 +272,10 @@ export function SwapTokensMarket({
     getOutcomeTokenVolume(quoteData, swapType),
   );
   const resetInputs = () => {
-    resetField("amount");
-    resetField("amountOut");
+    // defaultValue "": the form defaults were seeded from the draft, so resetting a
+    // field to its default would bring the restored amount back instead of clearing it.
+    resetField("amount", { defaultValue: "" });
+    resetField("amountOut", { defaultValue: "" });
   };
 
   const renderButtons = () => {
@@ -300,14 +315,38 @@ export function SwapTokensMarket({
   // useEffects
 
   useEffect(() => {
-    dirtyFields["amount"] && trigger("amount");
-  }, [balance]);
+    // Re-validate once the balance is known. An amount restored from the draft was
+    // never typed, so it is not dirty: check the value itself, or the Swap button
+    // would stay disabled until the user touches the field.
+    if (!isFetchingBalance && (dirtyFields["amount"] || amount)) {
+      trigger("amount");
+    }
+  }, [balance, isFetchingBalance]);
 
   useEffect(() => {
+    setDraft({ market: { outcomeToken: outcomeToken.address, swapType, tradeType, amount, amountOut } });
+  }, [outcomeToken.address, swapType, tradeType, amount, amountOut, setDraft]);
+
+  // Clear the inputs when the traded pair changes, but never on the first render:
+  // that would throw away the draft we just restored.
+  const pairKey = `${swapType}-${selectedCollateral.address}-${outcomeToken.address}`;
+  const pairKeyRef = useRef(pairKey);
+  useEffect(() => {
+    if (pairKeyRef.current === pairKey) {
+      return;
+    }
+    pairKeyRef.current = pairKey;
     resetInputs();
-  }, [swapType, selectedCollateral.address, outcomeToken.address]);
+  }, [pairKey]);
 
+  const hasQuotedRef = useRef(false);
   useEffect(() => {
+    // Before the first quote lands there is nothing to derive from: leave the restored
+    // draft alone instead of blanking it out.
+    if (!hasQuotedRef.current && isUndefined(quoteData?.value)) {
+      return;
+    }
+    hasQuotedRef.current = true;
     if (tradeType === TradeType.EXACT_INPUT) {
       setValue("amountOut", receivedAmount ? receivedAmount.toString() : "", {
         shouldValidate: true,
@@ -533,7 +572,7 @@ export function SwapTokensMarket({
               />
             ) : (
               <div className="flex items-center gap-2">
-                {collateralPerShare.toFixed(3)} {selectedCollateral.symbol}
+                {displayNumber(collateralPerShare)} {selectedCollateral.symbol}
                 {isSecondaryCollateral && (
                   <span className="tooltip">
                     <p className="tooltiptext">

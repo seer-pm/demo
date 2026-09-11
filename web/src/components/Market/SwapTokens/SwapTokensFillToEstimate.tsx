@@ -3,6 +3,7 @@ import { getOutcomeTokenForIndex, useFillToEstimatePlan } from "@/hooks/fill-to-
 import { useFillToEstimateTrade } from "@/hooks/fill-to-estimate/useFillToEstimateTrade";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
+import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { formatCurrentEstimate, formatFillToEstimateLegPreview } from "@/lib/fill-to-estimate-display";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber } from "@/lib/utils";
@@ -50,6 +51,9 @@ export function SwapTokensFillToEstimate({
 }: SwapTokensFillToEstimateProps) {
   const { address: account } = useAccount();
   const wagmiConfig = useConfig();
+  const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
+  // Read once: from here on this panel owns the values and writes them back to the draft.
+  const [draft] = useState(() => getDraft()?.fillToEstimate);
   const maxSlippage = useGlobalState((state) => state.maxSlippage);
   const selectedCollateral = useMemo(
     () => getFillToEstimateCollateral(market, fixedCollateral),
@@ -69,11 +73,12 @@ export function SwapTokensFillToEstimate({
     formState: { errors },
     reset,
     setValue,
+    trigger,
   } = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
-      targetEstimate: "",
-      maxCollateralToUse: "",
+      targetEstimate: draft?.targetEstimate ?? "",
+      maxCollateralToUse: draft?.maxCollateralToUse ?? "",
     },
   });
 
@@ -149,6 +154,18 @@ export function SwapTokensFillToEstimate({
     autoAdjustMaxCollateralForTargetRef.current = undefined;
   }, [parsedTargetEstimate, necessaryMaxCollateral, parsedMaxCollateralToUse, selectedCollateral.decimals, setValue]);
 
+  useEffect(() => {
+    setDraft({ fillToEstimate: { targetEstimate: targetEstimateInput, maxCollateralToUse: maxCollateralInput } });
+  }, [targetEstimateInput, maxCollateralInput, setDraft]);
+
+  useEffect(() => {
+    // Re-validate once the balance is known: a value restored from the draft was never
+    // typed, and one typed while the balance was still loading validated against 0.
+    if (!isFetchingBalance && maxCollateralInput) {
+      trigger("maxCollateralToUse");
+    }
+  }, [collateralBalance, isFetchingBalance]);
+
   const currentEstimateLabel = useMemo(() => formatCurrentEstimate(odds, market), [odds, market]);
   const marketUnit = getMarketUnit(market);
 
@@ -160,9 +177,13 @@ export function SwapTokensFillToEstimate({
 
   const [isQuoting, setIsQuoting] = useState(false);
 
+  // Explicit values: the defaults were seeded from the draft, so a bare reset()
+  // would put the traded values back instead of clearing the form.
+  useOnTradeDraftCleared(market, "fillToEstimate", () => reset({ targetEstimate: "", maxCollateralToUse: "" }));
+
   const fillToEstimateTrade = useFillToEstimateTrade(() => {
     closeConfirmModal();
-    reset();
+    clearDraft("fillToEstimate");
   });
   const { legExecutionStatuses } = fillToEstimateTrade;
 
