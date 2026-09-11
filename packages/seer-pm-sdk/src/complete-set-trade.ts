@@ -7,6 +7,7 @@ import { sendTransaction } from "viem/actions";
 import type { AmmTrade } from "./amm-trade";
 import { fetchNeededApprovals, getApprovals7702 } from "./approvals";
 import type { SupportedChain } from "./chains";
+import type { CompleteSetLeg } from "./complete-set-quote";
 import { buildAmmTradeExecution, getTradeApprovals7702 } from "./execute-trade";
 import type { Execution } from "./execution";
 import { getMergeExecution } from "./merge-positions";
@@ -15,11 +16,24 @@ import { getSplitExecution } from "./split-position";
 import type { TradeTokensProps } from "./trade-utils";
 import { getMaximumAmountIn } from "./trade-utils";
 
+/** Routes that split collateral first and then swap one leg of the freshly minted set. */
+const SPLIT_FIRST_ROUTES = new Set<CompleteSetLeg["route"]>(["mintSell", "mintToCover"]);
+
 type ValidatedCompleteSetTrade = {
   completeSetLeg: NonNullable<TradeTokensProps["completeSetLeg"]>;
   trade: AmmTrade;
   swapSpender: Address;
-} & ({ route: "mintSell"; splitAmount: bigint } | { route: "buyMerge"; mergeAmount: bigint; maxBuyIn: bigint });
+} & (
+  | {
+      route: "mintSell" | "mintToCover";
+      splitAmount: bigint;
+      /** Token sold after the split: the opposite outcome for mintSell, the target for mintToCover. */
+      swapInputToken: Address;
+      /** Sell size: equal to splitAmount for mintSell, minted + already held for mintToCover. */
+      swapInputAmount: bigint;
+    }
+  | { route: "buyMerge"; mergeAmount: bigint; maxBuyIn: bigint }
+);
 
 function getValidatedMaximumAmountIn(trade: AmmTrade): bigint {
   let maxBuyIn: bigint;
@@ -44,12 +58,26 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
   }
   const swapSpender = trade.approveAddress as Address;
 
-  if (completeSetLeg.route === "mintSell") {
+  if (SPLIT_FIRST_ROUTES.has(completeSetLeg.route)) {
+    const route = completeSetLeg.route as "mintSell" | "mintToCover";
     const splitAmount = completeSetLeg.splitAmount;
     if (!splitAmount) {
-      throw new Error("mintSell route requires splitAmount");
+      throw new Error(`${route} route requires splitAmount`);
     }
-    return { completeSetLeg, trade, swapSpender, route: "mintSell", splitAmount };
+    // Defaults keep mint+sell on its original behaviour: sell exactly what was minted.
+    const swapInputAmount = completeSetLeg.swapInputAmount ?? splitAmount;
+    if (swapInputAmount <= 0n) {
+      throw new Error(`${route} route requires a positive swapInputAmount`);
+    }
+    return {
+      completeSetLeg,
+      trade,
+      swapSpender,
+      route,
+      splitAmount,
+      swapInputToken: (completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken).address,
+      swapInputAmount,
+    };
   }
 
   if (completeSetLeg.route === "buyMerge") {
@@ -87,8 +115,8 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
   const chainId = completeSetLeg.market.chainId as SupportedChain;
   const calls: Execution[] = [];
 
-  if (validated.route === "mintSell") {
-    const { splitAmount } = validated;
+  if (validated.route !== "buyMerge") {
+    const { splitAmount, swapInputToken, swapInputAmount } = validated;
 
     calls.push(
       ...getTradeApprovals7702({
@@ -109,10 +137,10 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
     );
     calls.push(
       ...getTradeApprovals7702({
-        tokensAddresses: [completeSetLeg.oppositeOutcomeToken.address],
+        tokensAddresses: [swapInputToken],
         account,
         spender: swapSpender,
-        amounts: splitAmount,
+        amounts: swapInputAmount,
         chainId,
       }),
     );
@@ -172,8 +200,8 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
   const router = getRouterAddress(completeSetLeg.market);
   const chainId = completeSetLeg.market.chainId as SupportedChain;
 
-  if (validated.route === "mintSell") {
-    const { splitAmount } = validated;
+  if (validated.route !== "buyMerge") {
+    const { splitAmount, swapInputToken, swapInputAmount } = validated;
     const neededSplit = await fetchNeededApprovals(client, [completeSetLeg.collateralToken], account, router, [
       splitAmount,
     ]);
@@ -202,13 +230,7 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
       chain: client.chain,
     });
 
-    const neededSell = await fetchNeededApprovals(
-      client,
-      [completeSetLeg.oppositeOutcomeToken.address],
-      account,
-      swapSpender,
-      [splitAmount],
-    );
+    const neededSell = await fetchNeededApprovals(client, [swapInputToken], account, swapSpender, [swapInputAmount]);
     for (const approval of neededSell) {
       await sendApprovalCalls(
         client,
@@ -307,14 +329,14 @@ export function getCompleteSetApprovalTokens(props: TradeTokensProps): {
   const spenders: Address[] = [];
   const amounts: bigint[] = [];
 
-  if (completeSetLeg.route === "mintSell" && completeSetLeg.splitAmount) {
+  if (SPLIT_FIRST_ROUTES.has(completeSetLeg.route) && completeSetLeg.splitAmount) {
     tokensAddresses.push(completeSetLeg.collateralToken);
     spenders.push(router);
     amounts.push(completeSetLeg.splitAmount);
 
-    tokensAddresses.push(completeSetLeg.oppositeOutcomeToken.address);
+    tokensAddresses.push((completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken).address);
     spenders.push(trade.approveAddress as Address);
-    amounts.push(completeSetLeg.splitAmount);
+    amounts.push(completeSetLeg.swapInputAmount ?? completeSetLeg.splitAmount);
     return { tokensAddresses, spenders, amounts };
   }
 

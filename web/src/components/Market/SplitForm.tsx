@@ -3,6 +3,7 @@ import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
+import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { displayBalance } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
@@ -127,7 +128,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
                 return "Amount must be greater than 0.";
               }
               if (parseUnits(String(v), selectedCollateral.decimals) > balance) {
-                return "Not enough balance.";
+                return NOT_ENOUGH_BALANCE_ERROR;
               }
 
               return true;

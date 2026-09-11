@@ -2,6 +2,7 @@ import { useShareAssetRatio } from "@/hooks/trade/useShareAssetRatio";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useTokenBalance } from "@seer-pm/react";
 
+import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { isTwoStringsEqual } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
 import {
@@ -48,13 +49,16 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     NATIVE_TOKEN,
     market.chainId,
   );
+  // Needed on a sell too: minting the shortfall to cover it is paid for in collateral.
+  // On a buy this is the same query as `balance` above and react-query dedupes it.
+  const { data: collateralBalance = BigInt(0) } = useTokenBalance(account, selectedCollateral.address, market.chainId);
   const amountErrorMessage = errors?.amount?.message;
 
   const showBridgeLink =
     account &&
     !isFetchingBalance &&
     !isFetchingNativeBalance &&
-    ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === "Not enough balance.");
+    ((nativeBalance === 0n && balance === 0n) || amountErrorMessage === NOT_ENOUGH_BALANCE_ERROR);
 
   const activeProfile = getActiveCollateralProfile(market.chainId);
   const isSecondaryCollateral =
@@ -73,6 +77,7 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     buyToken,
     sellToken,
     balance,
+    collateralBalance,
     isFetchingBalance,
     showBridgeLink,
     isSecondaryCollateral,

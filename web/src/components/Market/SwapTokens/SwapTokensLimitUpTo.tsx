@@ -7,6 +7,7 @@ import useDebounce from "@/hooks/useDebounce";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
+import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isDraftForOutcome } from "@/lib/trade-draft";
@@ -446,7 +447,7 @@ export function SwapTokensLimitUpto({
                       const val = parseUnits(v, sellToken.decimals);
 
                       if (val > balance) {
-                        return "Not enough balance.";
+                        return NOT_ENOUGH_BALANCE_ERROR;
                       }
 
                       return true;

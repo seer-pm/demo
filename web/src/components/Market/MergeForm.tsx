@@ -3,6 +3,7 @@ import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useMergePositions } from "@/hooks/useMergePositions";
 import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { displayBalance } from "@/lib/utils";
 import { useTokenBalance, useTokenBalances } from "@seer-pm/react";
 import { useTokensInfo } from "@seer-pm/react";
@@ -156,7 +157,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
                 return "Amount must be greater than 0.";
               }
               if (parseUnits(String(v), selectedCollateral.decimals) > maxPositionAmount) {
-                return "Not enough balance.";
+                return NOT_ENOUGH_BALANCE_ERROR;
               }
 
               return true;
