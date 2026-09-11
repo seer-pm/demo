@@ -14,6 +14,10 @@ import compression from 'compression'
 import { renderPage, createDevMiddleware } from 'vike/server'
 import { root } from './root.js'
 const isProduction = process.env.NODE_ENV === 'production'
+// Where the Netlify functions are served from. Defaults to production so the dev server
+// works on its own; point it at the local `netlify dev` (http://localhost:8888) to exercise
+// your own functions.
+const functionsOrigin = process.env.NETLIFY_FUNCTIONS_ORIGIN || 'https://app.seer.pm'
 
 startServer()
 async function startServer() {
@@ -38,7 +42,7 @@ async function startServer() {
   // Other middlewares (e.g. some RPC middleware such as Telefunc)
   // Proxy middleware for Netlify functions
   app.all(['/.netlify/*', '/subgraph', '/all-markets-search'], async (req, res) => {
-    const url = `http://localhost:8888${req.url}`;
+    const url = `${functionsOrigin}${req.url}`;
     try {
       const response = await fetch(url, {
         method: req.method,

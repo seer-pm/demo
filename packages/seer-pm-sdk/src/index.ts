@@ -209,7 +209,14 @@ export {
   isCompleteSetRoutingEnabled,
   searchMinimalAmountForTargetNetOut,
 } from "./complete-set-quote";
-export type { CompleteSetLeg, CompleteSetQuoteResult, CompleteSetRoute } from "./complete-set-quote";
+export type {
+  CompleteSetLeftover,
+  CompleteSetLeg,
+  CompleteSetQuoteResult,
+  CompleteSetRoute,
+} from "./complete-set-quote";
+export { buildMintToCoverQuote, isMintToCoverEligible } from "./mint-to-cover";
+export type { MintToCoverParams, MintToCoverStatus } from "./mint-to-cover";
 export {
   buildPsm3CompositeTradeCalls7702,
   executePsm3CompositeTrade,

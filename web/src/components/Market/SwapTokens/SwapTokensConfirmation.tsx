@@ -1,4 +1,5 @@
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
+import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
@@ -26,8 +27,8 @@ interface SwapTokensConfirmationProps {
 
 function isCompleteSetSummary(
   quoteData: CompleteSetQuoteResult | undefined,
-): quoteData is CompleteSetQuoteResult & { route: "mintSell" | "buyMerge" } {
-  return quoteData?.route === "mintSell" || quoteData?.route === "buyMerge";
+): quoteData is CompleteSetQuoteResult & { route: "mintSell" | "buyMerge" | "mintToCover" } {
+  return quoteData?.route === "mintSell" || quoteData?.route === "buyMerge" || quoteData?.route === "mintToCover";
 }
 
 function getRouteLabel(route: CompleteSetQuoteResult["route"] | undefined): string | undefined {
@@ -36,6 +37,9 @@ function getRouteLabel(route: CompleteSetQuoteResult["route"] | undefined): stri
   }
   if (route === "buyMerge") {
     return "Strategy: buy + merge";
+  }
+  if (route === "mintToCover") {
+    return "Strategy: mint to cover + sell";
   }
   return undefined;
 }
@@ -113,6 +117,73 @@ function CompleteSetBreakdown({
     );
   }
 
+  if (leg.route === "mintToCover" && leg.splitAmount && leg.swapInputAmount) {
+    const splitAmount = formatCompositeAmount(formatUnits(leg.splitAmount, collateral.decimals));
+    const sellAmount = formatCompositeAmount(formatUnits(leg.swapInputAmount, leg.targetOutcomeToken.decimals));
+    const held = leg.existingBalance ?? 0n;
+    const proceeds = quoteData.value;
+    const netCollateral = proceeds - leg.splitAmount;
+    const leftovers = leg.leftoverTokens ?? [];
+
+    return (
+      <div className="space-y-2 text-[14px] pb-4">
+        <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
+        <div className="flex items-center justify-between gap-2">
+          <span>1. Mint (split)</span>
+          <span className="text-right">
+            {splitAmount} {collateral.symbol}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span>2. Receive</span>
+          <span className="text-right">
+            {splitAmount} {leg.targetOutcomeToken.symbol}
+            {leftovers.map(
+              (leftover) =>
+                ` + ${formatCompositeAmount(formatUnits(leftover.amount, leftover.token.decimals))} ${leftover.token.symbol}`,
+            )}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span>3. Sell {leg.targetOutcomeToken.symbol}</span>
+          <span className="text-right">
+            {sellAmount} {leg.targetOutcomeToken.symbol}
+            {held > 0n
+              ? ` (${formatCompositeAmount(formatUnits(held, leg.targetOutcomeToken.decimals))} held + ${splitAmount} minted)`
+              : ""}
+          </span>
+        </div>
+        {leftovers.length > 0 && (
+          <div className="flex items-center justify-between gap-2 font-semibold">
+            <span>You keep</span>
+            <span className="text-right">
+              {leftovers
+                .map(
+                  (leftover) =>
+                    `${formatCompositeAmount(formatUnits(leftover.amount, leftover.token.decimals))} ${leftover.token.symbol}`,
+                )
+                .join(" + ")}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-2 font-semibold">
+          <span>{netCollateral < 0n ? "Net cost" : "Net received"}</span>
+          <span className="text-right">
+            {formatCompositeAmount(
+              formatUnits(netCollateral < 0n ? -netCollateral : netCollateral, collateral.decimals),
+            )}{" "}
+            {collateral.symbol}
+          </span>
+        </div>
+        <p className="text-[13px] text-black-secondary">
+          Economically this is the same as buying {splitAmount} {leg.oppositeOutcomeToken.symbol}
+          {leg.invalidOutcomeToken ? ` (+ ${splitAmount} ${leg.invalidOutcomeToken.symbol})` : ""}
+          {held > 0n ? ` and selling the ${leg.targetOutcomeToken.symbol} you already hold` : ""}.
+        </p>
+      </div>
+    );
+  }
+
   if (leg.route === "buyMerge" && leg.mergeAmount) {
     const mergeAmount = formatCompositeAmount(formatUnits(leg.mergeAmount, leg.targetOutcomeToken.decimals));
     const buyAmount = formatCompositeAmount(formatUnits(leg.mergeAmount, leg.oppositeOutcomeToken.decimals));
@@ -171,9 +242,10 @@ function ShowCompleteSetSummary({
   collateral: Token;
 }) {
   const { maximumSlippage, minimumReceive, maximumSent } = useGetTradeInfo(trade)!;
+  const supports7702 = useCheck7702Support();
 
   const slippageAlert =
-    quoteData.route === "mintSell" ? (
+    quoteData.route === "mintSell" || quoteData.route === "mintToCover" ? (
       <Alert type="warning">
         Current slippage tolerance is {maximumSlippage}%. The sell step will return at least{" "}
         <span className="font-bold">
@@ -196,6 +268,12 @@ function ShowCompleteSetSummary({
       <div className="min-w-[400px] min-h-[150px]">
         <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} />
       </div>
+      {!supports7702 && (
+        <Alert type="warning" className="mt-2">
+          This runs as separate transactions. If the sell fails after the mint you keep the minted tokens — you can
+          merge them back into {collateral.symbol} from the Merge tab.
+        </Alert>
+      )}
       {slippageAlert}
     </>
   );

@@ -1,6 +1,12 @@
-import { AmmTrade, type CompleteSetLeg, type TradeTokensProps, buildCompleteSetTradeCalls7702 } from "@seer-pm/sdk";
+import {
+  AmmTrade,
+  type CompleteSetLeg,
+  type TradeTokensProps,
+  buildCompleteSetTradeCalls7702,
+  getCompleteSetApprovalTokens,
+} from "@seer-pm/sdk";
 import type { Address } from "viem";
-import { zeroAddress } from "viem";
+import { decodeFunctionData, erc20Abi, zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
 
 const account = "0x0000000000000000000000000000000000000001" as Address;
@@ -95,5 +101,69 @@ describe("validateCompleteSetTradeProps via buildCompleteSetTradeCalls7702", () 
     await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow(
       "Complete-set trade requires a positive maximum amount in",
     );
+  });
+});
+
+describe("mintToCover route", () => {
+  const splitAmount = 6_000n;
+  const sellAmount = 10_000n;
+
+  function createMintToCoverLeg(overrides: Partial<CompleteSetLeg> = {}): CompleteSetLeg {
+    return {
+      ...createBaseCompleteSetLeg("mintToCover", { splitAmount }),
+      swapInputToken: { address: outcomeToken, symbol: "YES", decimals: 18, chainId: 100 },
+      swapInputAmount: sellAmount,
+      existingBalance: sellAmount - splitAmount,
+      ...overrides,
+    };
+  }
+
+  it("throws when splitAmount is missing", async () => {
+    const props = createProps(createMintToCoverLeg({ splitAmount: undefined }));
+
+    await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow("mintToCover route requires splitAmount");
+  });
+
+  it("splits the shortfall but approves the full sell amount", async () => {
+    const calls = await buildCompleteSetTradeCalls7702(createProps(createMintToCoverLeg()));
+
+    expect(calls).toHaveLength(4);
+
+    const [collateralApproval, split, sellApproval] = calls;
+
+    const decodedCollateral = decodeFunctionData({ abi: erc20Abi, data: collateralApproval.data });
+    expect(collateralApproval.to).toBe(collateralToken);
+    expect(decodedCollateral.functionName).toBe("approve");
+    expect(decodedCollateral.args?.[1]).toBe(splitAmount);
+
+    expect(split.data.startsWith("0x")).toBe(true);
+
+    const decodedSell = decodeFunctionData({ abi: erc20Abi, data: sellApproval.data });
+    expect(sellApproval.to).toBe(outcomeToken);
+    expect(decodedSell.functionName).toBe("approve");
+    // The regression this guards: the sell leg moves minted + already held tokens, not just the split.
+    expect(decodedSell.args?.[1]).toBe(sellAmount);
+    expect(decodedSell.args?.[1]).not.toBe(splitAmount);
+  });
+
+  it("reports both approvals with their own spender and amount", () => {
+    const trade = createMockAmmTrade();
+    const { tokensAddresses, spenders, amounts } = getCompleteSetApprovalTokens(
+      createProps(createMintToCoverLeg(), trade),
+    );
+
+    expect(tokensAddresses).toEqual([collateralToken, outcomeToken]);
+    expect(spenders[1]).toBe(trade.approveAddress);
+    expect(amounts).toEqual([splitAmount, sellAmount]);
+  });
+
+  it("leaves mintSell defaults untouched", async () => {
+    const calls = await buildCompleteSetTradeCalls7702(
+      createProps(createBaseCompleteSetLeg("mintSell", { splitAmount })),
+    );
+
+    const decodedSell = decodeFunctionData({ abi: erc20Abi, data: calls[2].data });
+    expect(calls[2].to).toBe(oppositeOutcomeToken);
+    expect(decodedSell.args?.[1]).toBe(splitAmount);
   });
 });

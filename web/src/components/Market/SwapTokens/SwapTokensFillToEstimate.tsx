@@ -5,6 +5,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { formatCurrentEstimate, formatFillToEstimateLegPreview } from "@/lib/fill-to-estimate-display";
+import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { Parameter, QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber } from "@/lib/utils";
 import { useMarketOdds, useTokenBalance } from "@seer-pm/react";
@@ -348,7 +349,7 @@ export function SwapTokensFillToEstimate({
                   return "Amount must be greater than zero";
                 }
                 if (parsed > collateralBalance) {
-                  return "Not enough balance.";
+                  return NOT_ENOUGH_BALANCE_ERROR;
                 }
               } catch {
                 return "Enter a valid amount";

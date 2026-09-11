@@ -3,14 +3,16 @@ import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
 
 import { usePriceFromVolume } from "@/hooks/liquidity/usePriceUntilVolume";
+import { useMintToCover } from "@/hooks/trade/useMintToCover";
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
+import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
 import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
-import { isTradingCredits } from "@seer-pm/sdk";
+import { isMintToCoverEligible, isTradingCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
@@ -26,6 +28,7 @@ import Input from "../../Form/Input";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { TokenSelector } from "./TokenSelector";
+import { MintToCoverNotice } from "./components/MintToCoverNotice";
 import { PotentialReturn } from "./components/PotentialReturn";
 import SwapButtons from "./components/SwapButtons";
 
@@ -175,6 +178,7 @@ export function SwapTokensMarket({
     amountErrorMessage,
     isFetchingBalance,
     balance,
+    collateralBalance,
     selectedCollateral,
   } = useTradeConditions({
     market,
@@ -208,20 +212,56 @@ export function SwapTokensMarket({
     outcomeIndex,
   );
 
+  const mintToCover = useMintToCover({
+    market,
+    outcomeIndex,
+    selectedCollateral,
+    outcomeToken,
+    swapType,
+    tradeType,
+    account,
+    amount,
+    balance,
+    collateralBalance,
+    quoteData,
+  });
+  const isMintToCover = mintToCover.kind === "ready";
+  // Everything downstream of the quote (trade, approvals, confirmation) must see the composite
+  // route, not the plain sell it was derived from.
+  const effectiveQuote = mintToCover.kind === "ready" ? mintToCover.quote : quoteData;
+
+  const parsedAmount = useMemo(() => {
+    try {
+      return parseUnits(amount || "0", sellToken.decimals);
+    } catch {
+      return 0n;
+    }
+  }, [amount, sellToken.decimals]);
+  const hasShortfall = parsedAmount > balance;
+
+  // Whether a shortfall could be minted, decided without waiting for a quote so that
+  // react-hook-form can answer synchronously while the quote is still in flight.
+  const canMintShortfall =
+    hasShortfall &&
+    collateralBalance >= parsedAmount - balance &&
+    isMintToCoverEligible({ market, outcomeIndex, selectedCollateral, swapType, tradeType, account });
+  const canMintShortfallRef = useRef(canMintShortfall);
+  canMintShortfallRef.current = canMintShortfall;
+
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
   } = useTrade(
     account,
-    quoteData?.trade,
+    effectiveQuote?.trade,
     isTradingCreditsCollateral,
     async () => {
       clearDraft("market");
       closeConfirmSwapModal();
     },
     market,
-    quoteData?.psm3Leg,
-    quoteData?.completeSetLeg,
+    effectiveQuote?.psm3Leg,
+    effectiveQuote?.completeSetLeg,
   );
 
   const onSubmit = async (trade: AmmTrade) => {
@@ -229,8 +269,8 @@ export function SwapTokensMarket({
       trade,
       account: account!,
       isTradingCredits: isTradingCreditsCollateral,
-      psm3Leg: quoteData?.psm3Leg,
-      completeSetLeg: quoteData?.completeSetLeg,
+      psm3Leg: effectiveQuote?.psm3Leg,
+      completeSetLeg: effectiveQuote?.completeSetLeg,
     });
   };
 
@@ -282,19 +322,21 @@ export function SwapTokensMarket({
     if (amountErrorMessage && amountErrorMessage !== "This field is required.") {
       return <Button variant="primary" className="w-full" type="button" disabled={true} text={amountErrorMessage} />;
     }
-    if (quoteData?.trade) {
+    if (effectiveQuote?.trade) {
       return (
         <SwapButtons
           account={account}
-          trade={quoteData.trade}
+          trade={effectiveQuote.trade}
           isDisabled={
-            isUndefined(quoteData?.value) ||
-            quoteData?.value === 0n ||
+            isUndefined(effectiveQuote?.value) ||
+            effectiveQuote?.value === 0n ||
             !account ||
             !isValid ||
             tradeTokens.isPending ||
-            isPriceTooHigh
+            isPriceTooHigh ||
+            (hasShortfall && !isMintToCover)
           }
+          text={isMintToCover ? "Mint & Sell" : undefined}
           missingApprovals={missingApprovals}
           isLoading={
             tradeTokens.isPending ||
@@ -321,7 +363,7 @@ export function SwapTokensMarket({
     if (!isFetchingBalance && (dirtyFields["amount"] || amount)) {
       trigger("amount");
     }
-  }, [balance, isFetchingBalance]);
+  }, [balance, isFetchingBalance, collateralBalance, canMintShortfall]);
 
   useEffect(() => {
     setDraft({ market: { outcomeToken: outcomeToken.address, swapType, tradeType, amount, amountOut } });
@@ -366,8 +408,8 @@ export function SwapTokensMarket({
         title="Confirm Swap"
         content={
           <SwapTokensConfirmation
-            trade={quoteData?.trade}
-            quoteData={quoteData}
+            trade={effectiveQuote?.trade}
+            quoteData={effectiveQuote}
             closeModal={closeConfirmSwapModal}
             reset={() => reset()}
             isLoading={tradeTokens.isPending}
@@ -408,8 +450,8 @@ export function SwapTokensMarket({
 
                       const val = parseUnits(v, sellToken.decimals);
 
-                      if (val > balance) {
-                        return "Not enough balance.";
+                      if (val > balance && !canMintShortfallRef.current) {
+                        return NOT_ENOUGH_BALANCE_ERROR;
                       }
 
                       return true;
@@ -552,6 +594,17 @@ export function SwapTokensMarket({
                 }}
               />
             </div>
+            {isMintToCover && (mintToCover.quote.completeSetLeg?.leftoverTokens?.length ?? 0) > 0 && (
+              <p className="text-[12px] text-black-secondary">
+                +{" "}
+                {mintToCover.quote.completeSetLeg?.leftoverTokens
+                  ?.map(
+                    (leftover) =>
+                      `${displayBalance(leftover.amount, leftover.token.decimals, false)} ${leftover.token.symbol}`,
+                  )
+                  .join(" + ")}
+              </p>
+            )}
           </div>
         </div>
         {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
@@ -627,6 +680,7 @@ export function SwapTokensMarket({
           />
         </div>
 
+        <MintToCoverNotice status={mintToCover} collateral={selectedCollateral} outcomeText={outcomeText} />
         {isPriceTooHigh && (
           <Alert type="warning">
             Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.

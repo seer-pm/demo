@@ -3,7 +3,7 @@
  */
 
 import type { Address, Client, PublicClient } from "viem";
-import { erc20Abi, formatUnits, parseUnits } from "viem";
+import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
 import { multicall } from "viem/actions";
 import type { AmmTrade } from "./amm-trade";
 import { isCompleteSetMarket } from "./market";
@@ -18,7 +18,7 @@ import { TradeType } from "./trade-type";
 import { getMaximumAmountIn } from "./trade-utils";
 import { isTradingCredits } from "./trading-credits";
 
-export type CompleteSetRoute = "direct" | "mintSell" | "buyMerge";
+export type CompleteSetRoute = "direct" | "mintSell" | "buyMerge" | "mintToCover";
 
 /**
  * Minimum quoted improvement (%) to prefer mint+sell / buy+merge over a direct swap.
@@ -26,10 +26,31 @@ export type CompleteSetRoute = "direct" | "mintSell" | "buyMerge";
  */
 export const MIN_COMPLETE_SET_SAVINGS_PERCENT = 0.5;
 
+/** A token minted as a side effect of a split that the user keeps. */
+export interface CompleteSetLeftover {
+  token: Token;
+  amount: bigint;
+}
+
 export interface CompleteSetLeg {
-  route: "mintSell" | "buyMerge";
+  route: "mintSell" | "buyMerge" | "mintToCover";
   splitAmount?: bigint;
   mergeAmount?: bigint;
+  /**
+   * Token fed into the AMM leg. Defaults to `oppositeOutcomeToken` (classic mint+sell buy);
+   * mintToCover sells the target outcome instead.
+   */
+  swapInputToken?: Token;
+  /**
+   * Amount fed into the AMM leg (drives both the approval and the sell size).
+   * Defaults to `splitAmount`, which is the only case mint+sell needs: there the user sells
+   * exactly what was just minted. mintToCover breaks that tie — it sells minted + already held.
+   */
+  swapInputAmount?: bigint;
+  /** mintToCover only: outcome tokens the user already held (B), so N = B + splitAmount. */
+  existingBalance?: bigint;
+  /** mintToCover only: the rest of the complete set, which stays in the user's wallet. */
+  leftoverTokens?: CompleteSetLeftover[];
   secondaryTrade: AmmTrade;
   market: MarketLike;
   collateralToken: Address;
@@ -45,7 +66,7 @@ export interface CompleteSetQuoteResult extends QuoteTradeResult {
   route: CompleteSetRoute;
   netCollateral: bigint;
   completeSetLeg?: CompleteSetLeg;
-  /** Present when route is mintSell or buyMerge and beats direct. */
+  /** Present when route is mintSell or buyMerge and beats direct. Never set for mintToCover. */
   savingsPercent?: number;
 }
 
@@ -148,6 +169,13 @@ export function isCompleteSetRoutingEnabled(market: Market, outcomeIndex: number
   if (!isCompleteSetMarket(market)) {
     return false;
   }
+  // Child markets: the router takes the *base* collateral as the split/merge argument (it derives
+  // the position ids from it) while the user spends the parent outcome token. `market.collateralToken`
+  // is the parent outcome token, so building a split or merge from it produces a wrong position id
+  // and the transaction reverts. Routing them needs the two tokens threaded separately.
+  if (market.parentMarket.id !== zeroAddress) {
+    return false;
+  }
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
     return false;
   }
@@ -173,6 +201,9 @@ export function getCompleteSetRoutingDisabledReasons(
 
   if (!isCompleteSetMarket(market)) {
     reasons.push("not a binary Generic market (need exactly 3 wrapped tokens: 2 tradeable + Invalid)");
+  }
+  if (market.parentMarket.id !== zeroAddress) {
+    reasons.push("conditional market: split/merge needs the base collateral, not the parent outcome token");
   }
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
     reasons.push(`outcome index ${outcomeIndex} is not tradeable (only 0 or 1)`);
