@@ -140,6 +140,7 @@
               "app/raise-a-dispute",
               "app/resolve-market",
               "app/provide-liquidity",
+              "app/limit-orders",
               "app/conditional-markets",
               "app/futarchy-markets"
             ]
@@ -172,6 +173,7 @@
               "developers/guides/conditional-markets",
               "developers/guides/futarchy-markets",
               "developers/guides/trading",
+              "developers/guides/limit-orders-and-v4-liquidity",
               "developers/guides/collateral-profiles"
             ]
           },

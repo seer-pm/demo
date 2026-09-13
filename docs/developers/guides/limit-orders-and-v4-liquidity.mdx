@@ -1,0 +1,229 @@
+---
+title: "Limit orders and Uniswap V4 liquidity"
+---
+On Base, Optimism and Ethereum, Seer markets trade on **Uniswap V4** pools attached to OpenZeppelin's [`LimitOrderHook`](https://github.com/OpenZeppelin/uniswap-hooks). The hook turns each pool into a small order book: a limit order is single-tick liquidity that the hook fills and takes out of the pool when a swap crosses its price. This guide covers the pool layout, the packages that wrap it, and the two data sources behind the app.
+
+<Info>
+Only regular markets (`market.type === "Generic"`) on chains 1, 10 and 8453 use these pools. `marketSupportsOrderBook(market)` from `@seer-pm/order-book` is the single check the app relies on.
+</Info>
+
+---
+
+## Pools
+
+Every outcome of a market has one pool against the market's collateral. The pool key is fixed:
+
+| Field | Value |
+|-------|-------|
+| `currency0` / `currency1` | outcome token and collateral, sorted by address |
+| `fee` | `100` (0.01%, `V4_POOL_FEE`) |
+| `tickSpacing` | `60` (`V4_TICK_SPACING`) |
+| `hooks` | the chain's `LimitOrderHook` |
+
+The tick spacing is deliberately coarse: the hook's `afterSwap` walks every crossed tick in `tickSpacing` steps to fill orders, so a finer spacing multiplies the gas of every swap that moves the price.
+
+```typescript
+import { getOrderBookPoolParams, getV4PoolId, readV4PoolState } from "@seer-pm/order-book/v4";
+
+const { poolKey, outcomeIsToken0, token0, token1 } = getOrderBookPoolParams(market, outcomeIndex);
+const poolId = getV4PoolId(poolKey); // keccak256 of the encoded key, as used by the PoolManager
+
+// sqrtPriceX96, tick and liquidity from StateView; null on unsupported chains
+const state = await readV4PoolState(wagmiConfig, market.chainId, poolKey);
+```
+
+Prices are probabilities. `getOutcomePriceAtTick(tick, outcomeIsToken0)` converts a pool tick to the outcome's price in collateral, and `probabilityToTick` goes the other way, snapping to the tick grid. Outcome tokens always have 18 decimals (`OUTCOME_TOKEN_DECIMALS`, minted that way by `MarketFactory`), and so do the primary collaterals of the three chains, which is what lets the tick math treat the ratio as a plain price.
+
+### Deployed hooks
+
+| Chain | LimitOrderHook |
+|-------|----------------|
+| Ethereum (1) | `0xE10A429d18E90fbD44be3678d2AE1ef3c1691040` |
+| Optimism (10) | `0x1f78E79C20d1E77526aC21E3651FABFc22035040` |
+| Base (8453) | `0x19E8B37E9f4d69927Da1e13e989a2f955ee39040` |
+
+The address of a V4 hook encodes its permissions in the low 14 bits (`AFTER_INITIALIZE | AFTER_SWAP` = `0x1040`), so the deploy script mines a CREATE2 salt until it finds one (`contracts/scripts/hook-miner.ts`, tested in `contracts/test/hardhat/LimitOrderHookDeploy.test.ts`). Addresses are exported by `@seer-pm/contracts-ts/order-book`.
+
+---
+
+## Packages
+
+- **`@seer-pm/order-book`**: chain and pool configuration, pool ids, and the Uniswap deep links. No `@uniswap/*` dependency, safe on the server.
+- **`@seer-pm/order-book/v4`**: everything that needs the Uniswap SDKs: order math, calldata builders, Permit2 helpers and position helpers. Keep it out of the SSR graph.
+- **`@seer-pm/react`**: wagmi + react-query hooks, one subpath per feature (`hooks/usePlaceV4LimitOrder`, `hooks/useManageV4LimitOrders`, `hooks/useAddV4Liquidity`, `hooks/useUserV4Positions`, `hooks/useManageV4Positions`, `hooks/useIsOrderBookPoolInitialized`).
+- **`@seer-pm/sdk`**: GraphQL clients and generated queries for the two indexers (`subgraph/limit-order-hook`, `subgraph/uniswap-v4`).
+
+Calldata builders return an `Execution` (`{ to, value, data, chainId }`). Send one with `sendTransaction`, or a list with `sendCalls` when the wallet supports EIP-7702 batching. The react hooks do exactly that through `sendExecutions`, taking a `supports7702` flag.
+
+---
+
+## Limit orders
+
+### Placing an order
+
+`computeLimitOrderParams` turns a price and an amount into the hook's parameters: the order tick, the direction (`zeroForOne`), the liquidity to place, the exact amount that will be pulled and the amount the order receives when filled.
+
+```typescript
+import {
+  buildPlaceLimitOrderCalls7702,
+  computeLimitOrderParams,
+  getApproveLimitOrderExecution,
+  getOrderBookPoolParams,
+  getPlaceLimitOrderExecution,
+  readV4PoolState,
+} from "@seer-pm/order-book/v4";
+
+const { poolKey, outcomeIsToken0, token0, token1 } = getOrderBookPoolParams(market, outcomeIndex);
+const state = await readV4PoolState(wagmiConfig, market.chainId, poolKey);
+
+const order = computeLimitOrderParams({
+  chainId: market.chainId,
+  poolKey,
+  outcomeIsToken0,
+  swapType: "buy", // "buy" pays collateral, "sell" pays outcome tokens
+  limitPrice: 0.42, // probability, snapped to the nearest tick
+  payAmount: 100n * 10n ** 18n,
+  currentTick: state.tick,
+  sqrtPriceX96: state.sqrtPriceX96,
+});
+
+const payToken = order.payToken === "token0" ? token0 : token1;
+const payAmount = order.payToken === "token0" ? order.totalPay.amount0 : order.totalPay.amount1;
+
+// Two executions: ERC-20 approve to the hook, then placeOrder
+const calls = buildPlaceLimitOrderCalls7702({
+  token: payToken,
+  amount: payAmount,
+  chainId: market.chainId,
+  poolKey,
+  tick: order.tick,
+  zeroForOne: order.zeroForOne,
+  liquidity: order.liquidity,
+});
+```
+
+`computeLimitOrderParams` throws when the price is on the wrong side of the market: a buy must sit at or below the current price and a sell at or above it. `getValidLimitOrderBoundaryPrice` and `formatLimitOrderPriceHint` give you the nearest valid level and the message the app shows.
+
+### Cancelling and withdrawing
+
+An open order is cancelled with its pool key, tick and direction. A filled order is identified by the `orderId` the hook assigned, and `withdraw` sends the filled amounts to `owner`.
+
+```typescript
+import {
+  getCancelLimitOrderExecution,
+  getLimitOrderWithdrawAmounts,
+  getWithdrawLimitOrderExecution,
+} from "@seer-pm/order-book/v4";
+
+const cancel = getCancelLimitOrderExecution({ chainId, poolKey, tickLower, zeroForOne, owner });
+
+const amounts = await getLimitOrderWithdrawAmounts(wagmiConfig, { chainId, orderId, owner }); // simulated
+const withdraw = getWithdrawLimitOrderExecution({ chainId, orderId, owner });
+```
+
+`buildCancelLimitOrderCalls` and `buildWithdrawLimitOrderCalls` map arrays of these params to executions; that is what "Cancel all" and "Withdraw all" send.
+
+### Quotes
+
+Market swaps keep going through the Lens quoter. `getLensV4HookParams(market)` returns the `hookPoolFee`, `hookTickSpacing` and `hookAddress` that Lens needs to include the hooked pool among its candidates. `useQuoteTrade` in `@seer-pm/react` passes them; if you call `fetchAmmQuote` from the SDK directly, hand them over as its `v4Hook` argument.
+
+---
+
+## Liquidity
+
+### Adding liquidity
+
+Minting a position goes through the V4 `PositionManager`, which pulls tokens via Permit2. `buildAddV4LiquiditySteps` assembles, in order, the ERC-20 approvals to Permit2 and the Permit2 allowances that are missing, the pool `initialize` when the pool does not exist yet, and the mint. Each step carries a toast title for the sequential path.
+
+```typescript
+import {
+  buildAddV4LiquiditySteps,
+  getMintV4PositionMaxAmounts,
+  hasPermit2Allowance,
+  isOrderBookPoolInitialized,
+  probabilityRangeToTicks,
+} from "@seer-pm/order-book/v4";
+
+const { tickLower, tickUpper } = probabilityRangeToTicks(minPrice, maxPrice, outcomeIsToken0);
+
+// The mint tolerates 50 bps of slippage, so approve the maximum it may pull, not the quote.
+const max = getMintV4PositionMaxAmounts({ chainId, poolKey, sqrtPriceX96, tickLower, tickUpper, amount0, amount1 });
+
+const steps = buildAddV4LiquiditySteps({
+  approvals: [
+    { token: token0, amount: max.amount0, needsErc20Approval: true, needsPermit2Approval: true },
+    { token: token1, amount: max.amount1, needsErc20Approval: false, needsPermit2Approval: false },
+  ],
+  initializePool: !(await isOrderBookPoolInitialized(wagmiConfig, market, outcomeIndex)),
+  mint: { chainId, poolKey, sqrtPriceX96, tickLower, tickUpper, amount0, amount1, recipient: account },
+});
+
+const executions = steps.map((step) => step.execution);
+```
+
+`useAddV4Liquidity(txNotifier, supports7702)` in `@seer-pm/react` does the allowance reads and sends the steps for you. For a pool that does not exist yet, `sqrtPriceX96` comes from the initial price the user picks (`resolveLiquiditySqrtPriceX96`).
+
+### Reading and managing positions
+
+Positions are `PositionManager` NFTs. `fetchUserV4Positions` lists the ones an owner holds in the given pools (from the V4 subgraph, liquidity refreshed on-chain), and the builders produce the `modifyLiquidities` calldata for removing liquidity or collecting fees.
+
+```typescript
+import {
+  buildCollectV4FeesExecution,
+  buildRemoveV4PositionExecution,
+  computeV4PositionAmounts,
+  fetchUserV4Positions,
+} from "@seer-pm/order-book/v4";
+
+const positions = await fetchUserV4Positions(wagmiConfig, { chainId, owner, poolKeys: [poolKey] });
+const { amount0, amount1 } = computeV4PositionAmounts(positions[0], state.sqrtPriceX96, state.tick);
+
+const removeHalf = buildRemoveV4PositionExecution({
+  chainId,
+  position: positions[0],
+  sqrtPriceX96: state.sqrtPriceX96,
+  tick: state.tick,
+  percentageBps: 5_000, // 10_000 removes everything and burns the NFT
+});
+const collect = buildCollectV4FeesExecution({ chainId, position: positions[0], sqrtPriceX96: state.sqrtPriceX96, recipient: owner });
+```
+
+`getLiquidityUrl(market, outcomeIndex, { isPoolInitialized })` from `@seer-pm/order-book` returns the Uniswap deep link for the pool: the explore page when it exists, otherwise the create-position flow with the pool key pre-filled.
+
+---
+
+## Data sources
+
+### Limit-order indexer (Envio)
+
+Orders are indexed from the hook's `Place`, `Fill`, `Cancel` and `Withdraw` events into the Seer markets indexer, which serves all three chains from one endpoint (`orderBookGraphQLClient(chainId)`). Queries live in `@seer-pm/sdk/subgraph/limit-order-hook`.
+
+| Entity | What it holds |
+|--------|---------------|
+| `UserOrder` | one row per order and owner: `pool`, `tickLower`, `zeroForOne`, `liquidity`, `status` (`OPEN`, `FILLED`), `orderId` |
+| `OrderLevel` | aggregate per pool, tick and side: `liquidityTotal`, `price0AtTick` / `price1AtTick`, `participants`. Feeds the order-book depth view. |
+| `OrderEvent` | the raw `PLACE` / `FILL` / `CANCEL` / `WITHDRAW` events with block, timestamp and tx hash. Feeds the history view. |
+
+```typescript
+import { orderBookGraphQLClient } from "@seer-pm/sdk";
+import { getSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+
+const sdk = getSdk(orderBookGraphQLClient(chainId)!);
+const { UserOrder } = await sdk.GetUserOrders({
+  where: { chainId: { _eq: String(chainId) }, owner: { _eq: owner.toLowerCase() }, status: { _eq: "OPEN" } },
+});
+```
+
+### Pools and positions subgraph (Goldsky)
+
+A per-chain fork of the Uniswap V4 subgraph, restricted to pools that contain a Seer outcome token, plus the `PositionManager` positions opened in them (`Position.pool`, `tickLower`, `tickUpper`, `liquidity`, `burned`). It also carries `Tick` data for the liquidity chart. Endpoints are in `SUBGRAPHS.uniswapV4`, the client is `uniswapV4GraphQLClient(chainId)`, and the queries (`GetV4Positions`, `GetV4PositionsByOwner`, `GetV4Pools`, `GetV4Ticks`) are in `@seer-pm/sdk/subgraph/uniswap-v4`.
+
+```
+https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-<network>/1.0.0/gn
+```
+
+with `<network>` one of `mainnet`, `optimism`, `base`.
+
+<Note>
+On-chain state stays the source of truth: pool price and liquidity come from `StateView`, position liquidity is re-read from the `PositionManager`, and the subgraphs only provide discovery, symbols, TVL and history.
+</Note>
