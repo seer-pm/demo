@@ -26,10 +26,12 @@ import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 
 const OrdersTab = clientOnly(() => import("@/components/Portfolio/OrdersTab"));
+const LiquidityTab = clientOnly(() => import("@/components/Portfolio/LiquidityTab"));
 
 const TABS = [
   { id: "positions", label: "Positions", panelId: "portfolio-panel-positions" },
   { id: "orders", label: "Open Orders", panelId: "portfolio-panel-orders" },
+  { id: "liquidity", label: "Liquidity", panelId: "portfolio-panel-liquidity" },
   { id: "history", label: "History", panelId: "portfolio-panel-history" },
   { id: "airdrop", label: "Airdrop", panelId: "portfolio-panel-airdrop" },
 ] as const;
@@ -44,7 +46,9 @@ const PNL_PERIODS: { id: PortfolioPnLPeriod; label: string; aria: string; hint: 
 ];
 
 function parsePortfolioTab(raw: string | null): PortfolioTab {
-  if (raw === "history" || raw === "airdrop" || raw === "positions" || raw === "orders") return raw;
+  if (raw === "history" || raw === "airdrop" || raw === "positions" || raw === "orders" || raw === "liquidity") {
+    return raw;
+  }
   return "positions";
 }
 
@@ -413,6 +417,14 @@ function PortfolioPage() {
               </Alert>
             ) : (
               <OrdersTab account={account} chainId={chainId} />
+            ))}
+          {activeTab === "liquidity" &&
+            (chainId === "all" ? (
+              <Alert type="info" title="Select a network">
+                Liquidity positions are shown per network. Pick one above to see yours.
+              </Alert>
+            ) : (
+              <LiquidityTab account={account} chainId={chainId} />
             ))}
           {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
           {activeTab === "airdrop" && <AirdropTab account={account} />}

@@ -15,9 +15,9 @@ import { useAccount } from "wagmi";
 
 const REMOVE_OPTIONS_BPS = [2_500, 5_000, 7_500, 10_000] as const;
 
-type TokenDisplay = { symbol: string; decimals: number };
+export type TokenDisplay = { symbol: string; decimals: number };
 
-type PoolState = { sqrtPriceX96: bigint; tick: number } | null | undefined;
+export type PoolState = { sqrtPriceX96: bigint; tick: number } | null | undefined;
 
 function positionRange(position: V4Position, outcomeIsToken0: boolean): { min: number; max: number } {
   const a = getOutcomePriceAtTick(position.tickLower, outcomeIsToken0);
@@ -25,7 +25,11 @@ function positionRange(position: V4Position, outcomeIsToken0: boolean): { min: n
   return { min: Math.min(a, b), max: Math.max(a, b) };
 }
 
-function V4PositionRow({
+/**
+ * One V4 position with its range, current token amounts and remove / collect actions.
+ * Pass `showActions={false}` when the viewer is not the position owner.
+ */
+export function V4PositionRow({
   market,
   position,
   poolState,
@@ -33,6 +37,7 @@ function V4PositionRow({
   token0,
   token1,
   account,
+  showActions = true,
 }: {
   market: Market;
   position: V4Position;
@@ -41,6 +46,7 @@ function V4PositionRow({
   token0: TokenDisplay;
   token1: TokenDisplay;
   account: Address;
+  showActions?: boolean;
 }) {
   const supports7702 = useCheck7702Support();
   const removeLiquidity = useRemoveV4Liquidity(toastifyTx, supports7702);
@@ -105,46 +111,48 @@ function V4PositionRow({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex gap-1">
-          {REMOVE_OPTIONS_BPS.map((bps) => (
-            <button
-              key={bps}
-              type="button"
-              className={clsx(
-                "px-2 py-1 rounded border text-[12px]",
-                removeBps === bps ? "bg-purple-primary text-white border-purple-primary" : "border-separator-100",
-              )}
-              onClick={() => setRemoveBps(bps)}
-              disabled={isBusy}
-            >
-              {bps / 100}%
-            </button>
-          ))}
-        </div>
-        <SwitchChainButtonWrapper chainId={market.chainId}>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="primary"
-              size="small"
-              text={removeBps === 10_000 ? "Remove all" : `Remove ${removeBps / 100}%`}
-              isLoading={removeLiquidity.isPending}
-              disabled={!actionParams || isBusy}
-              onClick={() => actionParams && removeLiquidity.mutate({ ...actionParams, percentageBps: removeBps })}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="small"
-              text="Collect fees"
-              isLoading={collectFees.isPending}
-              disabled={!actionParams || isBusy}
-              onClick={() => actionParams && collectFees.mutate(actionParams)}
-            />
+      {showActions && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1">
+            {REMOVE_OPTIONS_BPS.map((bps) => (
+              <button
+                key={bps}
+                type="button"
+                className={clsx(
+                  "px-2 py-1 rounded border text-[12px]",
+                  removeBps === bps ? "bg-purple-primary text-white border-purple-primary" : "border-separator-100",
+                )}
+                onClick={() => setRemoveBps(bps)}
+                disabled={isBusy}
+              >
+                {bps / 100}%
+              </button>
+            ))}
           </div>
-        </SwitchChainButtonWrapper>
-      </div>
+          <SwitchChainButtonWrapper chainId={market.chainId}>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="primary"
+                size="small"
+                text={removeBps === 10_000 ? "Remove all" : `Remove ${removeBps / 100}%`}
+                isLoading={removeLiquidity.isPending}
+                disabled={!actionParams || isBusy}
+                onClick={() => actionParams && removeLiquidity.mutate({ ...actionParams, percentageBps: removeBps })}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="small"
+                text="Collect fees"
+                isLoading={collectFees.isPending}
+                disabled={!actionParams || isBusy}
+                onClick={() => actionParams && collectFees.mutate(actionParams)}
+              />
+            </div>
+          </SwitchChainButtonWrapper>
+        </div>
+      )}
     </div>
   );
 }

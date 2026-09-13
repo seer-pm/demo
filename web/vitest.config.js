@@ -18,6 +18,11 @@ export default defineConfig({
       { find: "@seer-pm/sdk/subgraph", replacement: sdk("src/subgraph/index.ts") },
       { find: /^@seer-pm\/sdk\/contracts\/(.*)$/, replacement: sdk("generated/contracts") + "/$1" },
       { find: "@seer-pm/sdk/abis/eternal-farming", replacement: sdk("abis/EternalFarmingAbi.ts") },
+      // `@seer-pm/react/hooks/*` subpaths resolve to `dist/` via package exports; point them at source.
+      {
+        find: /^@seer-pm\/react\/hooks\/(.*)$/,
+        replacement: path.resolve(__dirname, "../packages/seer-pm-react/src/hooks") + "/$1.ts",
+      },
     ].concat(Object.entries({
       "@seer-pm/sdk/market-types": sdk("src/market-types.ts"),
       "@seer-pm/sdk/market-pools": sdk("src/market-pools.ts"),
