@@ -1,5 +1,10 @@
 import type { PoolMeta, UiUserOrder } from "@/components/LimitOrders/ordersShared";
-import { type OrderBookPoolKey, chainSupportsOrderBook } from "@seer-pm/order-book";
+import {
+  type OrderBookPoolKey,
+  chainSupportsOrderBook,
+  getOrderBookPoolParams,
+  getV4PoolId,
+} from "@seer-pm/order-book";
 import {
   type Market,
   type SupportedChain,
@@ -69,11 +74,96 @@ export type UserLimitOrdersData = {
   poolById: Map<string, PoolMeta>;
 };
 
-export function useUserLimitOrders(account: Address | undefined, chainId: SupportedChain) {
+type RawOrder = {
+  pool?: {
+    poolId: string;
+    currency0: string;
+    currency1: string;
+    fee: number;
+    tickSpacing: number;
+    hooks: string;
+  } | null;
+};
+
+/** Pool metadata for every outcome pool of one market, keyed by pool id. */
+export function getMarketPoolMeta(market: Market): Map<string, PoolMeta> {
+  const poolById = new Map<string, PoolMeta>();
+  for (let outcomeIndex = 0; outcomeIndex < market.wrappedTokens.length; outcomeIndex++) {
+    const params = getOrderBookPoolParams(market, outcomeIndex);
+    poolById.set(getV4PoolId(params.poolKey).toLowerCase(), {
+      outcomeIndex,
+      outcomeIsToken0: params.outcomeIsToken0,
+      poolKey: params.poolKey,
+      market,
+    });
+  }
+  return poolById;
+}
+
+/** Resolves the pools of the given orders to their market and outcome via the markets subgraph. */
+async function resolvePoolMeta(orders: RawOrder[], chainId: SupportedChain): Promise<Map<string, PoolMeta>> {
+  const poolsById = new Map<string, SubgraphPool>();
+  for (const o of orders) {
+    if (!o.pool) continue;
+    const id = o.pool.poolId.toLowerCase();
+    if (!poolsById.has(id)) {
+      poolsById.set(id, {
+        id: o.pool.poolId as Address,
+        currency0: o.pool.currency0 as Address,
+        currency1: o.pool.currency1 as Address,
+        fee: o.pool.fee,
+        tickSpacing: o.pool.tickSpacing,
+        hooks: o.pool.hooks as Address,
+      });
+    }
+  }
+
+  const outcomeTokens = Array.from(
+    new Set(
+      Array.from(poolsById.values())
+        .map((p) => outcomeTokenFromPool(p, chainId))
+        .filter((t): t is Address => Boolean(t))
+        .map((t) => t.toLowerCase() as Address),
+    ),
+  );
+
+  const marketsByToken = new Map<string, { market: Market; outcomeIndex: number }>();
+  if (outcomeTokens.length > 0) {
+    const { markets } = await fetchMarkets({
+      tokens: outcomeTokens,
+      chainsList: [String(chainId)],
+      limit: 500,
+    });
+    for (const market of markets) {
+      for (let i = 0; i < market.wrappedTokens.length; i++) {
+        const token = market.wrappedTokens[i].toLowerCase();
+        if (!marketsByToken.has(token)) {
+          marketsByToken.set(token, { market, outcomeIndex: i });
+        }
+      }
+    }
+  }
+
+  const poolById = new Map<string, PoolMeta>();
+  for (const [id, pool] of poolsById) {
+    const meta = enrichPoolMeta(pool, marketsByToken, chainId);
+    if (meta) {
+      poolById.set(id, meta);
+    }
+  }
+  return poolById;
+}
+
+/**
+ * The account's open and filled (withdrawable) limit orders on a chain.
+ * Pass `market` to restrict to that market's pools; its metadata is then derived locally instead
+ * of resolved through the markets subgraph.
+ */
+export function useUserLimitOrders(account: Address | undefined, chainId: SupportedChain, market?: Market) {
   const orderBookSupported = chainSupportsOrderBook(chainId);
 
   return useQuery({
-    queryKey: ["limitOrderHookUserOrders", chainId, "all", account],
+    queryKey: ["limitOrderHookUserOrders", chainId, market?.id ?? "all", account],
     enabled: Boolean(account) && orderBookSupported,
     refetchInterval: account && orderBookSupported ? REFETCH_INTERVAL_MS : false,
     queryFn: async (): Promise<UserLimitOrdersData> => {
@@ -84,77 +174,22 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
 
       const sdk = getLimitOrderSdk(client);
       const owner = account.toLowerCase();
-      const chainIdFilter = { _eq: String(chainId) };
+      const marketPools = market ? getMarketPoolMeta(market) : undefined;
+      if (marketPools && marketPools.size === 0) {
+        return { open: [], filled: [], poolById: marketPools };
+      }
+      const baseWhere = {
+        chainId: { _eq: String(chainId) },
+        owner: { _eq: owner },
+        ...(marketPools && { pool: { poolId: { _in: Array.from(marketPools.keys()) } } }),
+      };
 
       const [openRes, filledRes] = await Promise.all([
-        sdk.GetUserOrders({
-          limit: 500,
-          where: {
-            chainId: chainIdFilter,
-            owner: { _eq: owner },
-            status: { _eq: "OPEN" },
-          },
-        }),
-        sdk.GetUserOrders({
-          limit: 500,
-          where: {
-            chainId: chainIdFilter,
-            owner: { _eq: owner },
-            status: { _eq: "FILLED" },
-          },
-        }),
+        sdk.GetUserOrders({ limit: 500, where: { ...baseWhere, status: { _eq: "OPEN" } } }),
+        sdk.GetUserOrders({ limit: 500, where: { ...baseWhere, status: { _eq: "FILLED" } } }),
       ]);
 
-      const allRaw = [...openRes.UserOrder, ...filledRes.UserOrder];
-      const poolsById = new Map<string, SubgraphPool>();
-      for (const o of allRaw) {
-        if (!o.pool) continue;
-        const id = o.pool.poolId.toLowerCase();
-        if (!poolsById.has(id)) {
-          poolsById.set(id, {
-            id: o.pool.poolId as Address,
-            currency0: o.pool.currency0 as Address,
-            currency1: o.pool.currency1 as Address,
-            fee: o.pool.fee,
-            tickSpacing: o.pool.tickSpacing,
-            hooks: o.pool.hooks as Address,
-          });
-        }
-      }
-
-      const outcomeTokens = Array.from(
-        new Set(
-          Array.from(poolsById.values())
-            .map((p) => outcomeTokenFromPool(p, chainId))
-            .filter((t): t is Address => Boolean(t))
-            .map((t) => t.toLowerCase() as Address),
-        ),
-      );
-
-      const marketsByToken = new Map<string, { market: Market; outcomeIndex: number }>();
-      if (outcomeTokens.length > 0) {
-        const { markets } = await fetchMarkets({
-          tokens: outcomeTokens,
-          chainsList: [String(chainId)],
-          limit: 500,
-        });
-        for (const market of markets) {
-          for (let i = 0; i < market.wrappedTokens.length; i++) {
-            const token = market.wrappedTokens[i].toLowerCase();
-            if (!marketsByToken.has(token)) {
-              marketsByToken.set(token, { market, outcomeIndex: i });
-            }
-          }
-        }
-      }
-
-      const poolById = new Map<string, PoolMeta>();
-      for (const [id, pool] of poolsById) {
-        const meta = enrichPoolMeta(pool, marketsByToken, chainId);
-        if (meta) {
-          poolById.set(id, meta);
-        }
-      }
+      const poolById = marketPools ?? (await resolvePoolMeta([...openRes.UserOrder, ...filledRes.UserOrder], chainId));
 
       const mapOrder = (o: (typeof openRes)["UserOrder"][number]): UiUserOrder | null => {
         if (!o.pool) return null;
