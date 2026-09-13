@@ -47,3 +47,29 @@ query GetV4Pools($ids: [ID!]!) {
     ...V4PoolFields
   }
 }
+
+query GetV4PositionsByOwner($owner: String!, $first: Int = 500) {
+  positions(
+    where: { owner: $owner, burned: false, liquidity_gt: "0" }
+    first: $first
+    orderBy: tokenId
+    orderDirection: desc
+  ) {
+    id
+    tokenId
+    owner
+    tickLower
+    tickUpper
+    liquidity
+    pool {
+      ...V4PoolFields
+    }
+  }
+}
+
+query GetV4Ticks($where: Tick_filter, $first: Int = 1000) {
+  ticks(where: $where, first: $first, orderBy: tickIdx, orderDirection: asc) {
+    tickIdx
+    liquidityNet
+  }
+}

@@ -10,6 +10,7 @@ import { V4_LIQUIDITY_SLIPPAGE_BPS, createV4PoolInstance } from "./order-book";
 import {
   type OrderBookPoolKey,
   chainSupportsOrderBook,
+  getV4HooksAddress,
   getV4PoolId,
   getV4PositionManagerAddress,
   positionManagerAbi,
@@ -26,6 +27,78 @@ export type V4Position = {
   /** Current liquidity, read on-chain from the PositionManager. */
   liquidity: bigint;
 };
+
+type SubgraphPosition = {
+  tokenId: string;
+  owner: string;
+  tickLower: string;
+  tickUpper: string;
+  liquidity: string;
+  pool: {
+    id: string;
+    feeTier: string;
+    tickSpacing: string;
+    hooks: string;
+    token0: { id: string };
+    token1: { id: string };
+  };
+};
+
+/** Pool key of a subgraph pool, in the canonical (lowercased, sorted) form the order-book uses. */
+export function poolKeyFromSubgraphPool(pool: SubgraphPosition["pool"]): OrderBookPoolKey {
+  const token0 = pool.token0.id.toLowerCase() as Address;
+  const token1 = pool.token1.id.toLowerCase() as Address;
+  const [currency0, currency1] = token0 < token1 ? [token0, token1] : [token1, token0];
+  return {
+    currency0,
+    currency1,
+    fee: Number(pool.feeTier),
+    tickSpacing: Number(pool.tickSpacing),
+    hooks: pool.hooks.toLowerCase() as Address,
+  };
+}
+
+function toV4Position(position: SubgraphPosition, poolKey: OrderBookPoolKey): V4Position {
+  return {
+    tokenId: BigInt(position.tokenId),
+    owner: position.owner.toLowerCase() as Address,
+    poolId: position.pool.id.toLowerCase() as Hex,
+    poolKey,
+    tickLower: Number(position.tickLower),
+    tickUpper: Number(position.tickUpper),
+    liquidity: BigInt(position.liquidity),
+  };
+}
+
+/**
+ * Re-reads each candidate's liquidity from the PositionManager so a position that was just
+ * modified or burned is never shown stale, and drops the ones that are now empty.
+ */
+async function refreshLiquidityOnChain(
+  config: Config,
+  chainId: number,
+  positionManager: Address,
+  candidates: V4Position[],
+): Promise<V4Position[]> {
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const liquidities = await readContracts(config, {
+    allowFailure: false,
+    contracts: candidates.map((position) => ({
+      address: positionManager,
+      abi: positionManagerAbi,
+      functionName: "getPositionLiquidity" as const,
+      args: [position.tokenId] as const,
+      chainId,
+    })),
+  });
+
+  return candidates
+    .map((position, i) => ({ ...position, liquidity: liquidities[i] }))
+    .filter((position) => position.liquidity > 0n);
+}
 
 /**
  * Lists the caller's V4 positions for the given pool keys.
@@ -60,39 +133,40 @@ export async function fetchUserV4Positions(
   const candidates = positions
     .map((position) => {
       const poolKey = poolKeyById.get(position.pool.id.toLowerCase());
-      if (!poolKey) {
-        return null;
-      }
-      return {
-        tokenId: BigInt(position.tokenId),
-        owner: position.owner.toLowerCase() as Address,
-        poolId: position.pool.id.toLowerCase() as Hex,
-        poolKey,
-        tickLower: Number(position.tickLower),
-        tickUpper: Number(position.tickUpper),
-        liquidity: BigInt(position.liquidity),
-      } satisfies V4Position;
+      return poolKey ? toV4Position(position, poolKey) : null;
     })
     .filter((p): p is V4Position => p !== null);
 
-  if (candidates.length === 0) {
+  return refreshLiquidityOnChain(config, chainId, positionManager, candidates);
+}
+
+/**
+ * Lists every V4 position the owner holds in an order-book pool (any market) on the chain.
+ * Same discovery + on-chain refresh as `fetchUserV4Positions`; pools that are not managed by
+ * the LimitOrderHook are ignored.
+ */
+export async function fetchUserV4PositionsByOwner(
+  config: Config,
+  { chainId, owner }: { chainId: number; owner: Address },
+): Promise<V4Position[]> {
+  if (!chainSupportsOrderBook(chainId)) {
     return [];
   }
 
-  const liquidities = await readContracts(config, {
-    allowFailure: false,
-    contracts: candidates.map((position) => ({
-      address: positionManager,
-      abi: positionManagerAbi,
-      functionName: "getPositionLiquidity" as const,
-      args: [position.tokenId] as const,
-      chainId,
-    })),
-  });
+  const client = uniswapV4GraphQLClient(chainId);
+  const positionManager = getV4PositionManagerAddress(chainId);
+  const hooks = getV4HooksAddress(chainId)?.toLowerCase();
+  if (!client || !positionManager || !hooks) {
+    return [];
+  }
 
-  return candidates
-    .map((position, i) => ({ ...position, liquidity: liquidities[i] }))
-    .filter((position) => position.liquidity > 0n);
+  const { positions } = await getUniswapV4Sdk(client).GetV4PositionsByOwner({ owner: owner.toLowerCase() });
+
+  const candidates = positions
+    .filter((position) => position.pool.hooks.toLowerCase() === hooks)
+    .map((position) => toV4Position(position, poolKeyFromSubgraphPool(position.pool)));
+
+  return refreshLiquidityOnChain(config, chainId, positionManager, candidates);
 }
 
 function toSdkPosition(position: V4Position, sqrtPriceX96: bigint, chainId: number, tick?: number): Position {
