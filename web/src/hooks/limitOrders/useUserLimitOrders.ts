@@ -74,7 +74,7 @@ export type UserLimitOrdersData = {
   poolById: Map<string, PoolMeta>;
 };
 
-type RawOrder = {
+export type RawOrder = {
   pool?: {
     poolId: string;
     currency0: string;
@@ -101,7 +101,7 @@ export function getMarketPoolMeta(market: Market): Map<string, PoolMeta> {
 }
 
 /** Resolves the pools of the given orders to their market and outcome via the markets subgraph. */
-async function resolvePoolMeta(orders: RawOrder[], chainId: SupportedChain): Promise<Map<string, PoolMeta>> {
+export async function resolvePoolMeta(orders: RawOrder[], chainId: SupportedChain): Promise<Map<string, PoolMeta>> {
   const poolsById = new Map<string, SubgraphPool>();
   for (const o of orders) {
     if (!o.pool) continue;
