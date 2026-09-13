@@ -8,6 +8,7 @@ export {
   swaprGraphQLClient,
   realityGraphQLClient,
   orderBookGraphQLClient,
+  uniswapV4GraphQLClient,
   type AppSubgraphType,
 } from "./app-subgraph";
 export {

@@ -23,7 +23,7 @@ function getUniswapChainSlug(chainId: number): string | undefined {
   }
 }
 
-function getV4PoolExplorerUrl(chainId: number, poolId: string): string {
+export function getV4PoolExplorerUrl(chainId: number, poolId: string): string {
   const chainName = getUniswapChainSlug(chainId);
   if (!chainName) {
     return "#";

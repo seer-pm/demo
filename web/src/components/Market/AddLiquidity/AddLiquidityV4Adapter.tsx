@@ -16,6 +16,7 @@ import { useCallback, useMemo } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import { AddLiquidityForm, type AddLiquidityFormValues } from "./AddLiquidityForm";
+import { V4PositionsList } from "./V4PositionsList";
 
 interface AddLiquidityV4AdapterProps {
   market: Market;
@@ -55,26 +56,24 @@ export function AddLiquidityV4Adapter({
     return getOutcomePriceAtTick(currentTick, outcomeIsToken0);
   }, [currentTick, outcomeIsToken0]);
 
-  if (!poolParams) {
-    return null;
-  }
-
-  const { token0, token1, outcomeIsToken0: outcomeIsToken0Resolved } = poolParams;
+  const outcomeIsToken0Resolved = poolParams?.outcomeIsToken0 ?? true;
   const outcomeSymbol = tokensInfo[0]?.symbol ?? "Outcome";
 
   const token0Info = {
-    address: token0,
+    address: poolParams?.token0 ?? outcomeTokenAddress,
     symbol: outcomeIsToken0Resolved ? outcomeSymbol : collateral.symbol,
     decimals: outcomeIsToken0Resolved ? 18 : collateral.decimals,
     balance: outcomeIsToken0Resolved ? outcomeBalance : collateralBalance,
   };
 
   const token1Info = {
-    address: token1,
+    address: poolParams?.token1 ?? collateral.address,
     symbol: outcomeIsToken0Resolved ? collateral.symbol : outcomeSymbol,
     decimals: outcomeIsToken0Resolved ? collateral.decimals : 18,
     balance: outcomeIsToken0Resolved ? collateralBalance : outcomeBalance,
   };
+
+  // Hooks stay above the early return so their order never changes between renders.
   const computeDerived = useCallback(
     (values: AddLiquidityFormValues, editedField: "amount0" | "amount1") => {
       const amount0 =
@@ -112,6 +111,10 @@ export function AddLiquidityV4Adapter({
     [market, outcomeIndex, isPoolInitialized, poolState?.sqrtPriceX96, token0Info.decimals, token1Info.decimals],
   );
 
+  if (!poolParams) {
+    return null;
+  }
+
   const handleSubmit = async (values: AddLiquidityFormValues) => {
     if (!address) {
       throw new Error("Connect your wallet");
@@ -130,23 +133,33 @@ export function AddLiquidityV4Adapter({
   };
 
   return (
-    <AddLiquidityForm
-      chainId={market.chainId}
-      token0={token0Info}
-      token1={token1Info}
-      outcomeIsToken0={outcomeIsToken0Resolved}
-      currentPrice={currentPrice}
-      currentTick={currentTick}
-      isPoolInitialized={isPoolInitialized}
-      isPoolStatusLoading={isPoolStatusLoading}
-      isSubmitting={addLiquidity.isPending}
-      onComputeDerivedAmount={computeDerived}
-      onSubmit={handleSubmit}
-      closeModal={closeModal}
-      hideReturnButton={hideReturnButton}
-      uniswapPoolUrl={getLiquidityUrl(market, outcomeIndex, {
-        isPoolInitialized: Boolean(isPoolInitialized),
-      })}
-    />
+    <div className="space-y-8">
+      <V4PositionsList
+        market={market}
+        outcomeIndex={outcomeIndex}
+        poolState={isPoolInitialized ? poolState : null}
+        outcomeIsToken0={outcomeIsToken0Resolved}
+        token0={token0Info}
+        token1={token1Info}
+      />
+      <AddLiquidityForm
+        chainId={market.chainId}
+        token0={token0Info}
+        token1={token1Info}
+        outcomeIsToken0={outcomeIsToken0Resolved}
+        currentPrice={currentPrice}
+        currentTick={currentTick}
+        isPoolInitialized={isPoolInitialized}
+        isPoolStatusLoading={isPoolStatusLoading}
+        isSubmitting={addLiquidity.isPending}
+        onComputeDerivedAmount={computeDerived}
+        onSubmit={handleSubmit}
+        closeModal={closeModal}
+        hideReturnButton={hideReturnButton}
+        uniswapPoolUrl={getLiquidityUrl(market, outcomeIndex, {
+          isPoolInitialized: Boolean(isPoolInitialized),
+        })}
+      />
+    </div>
   );
 }

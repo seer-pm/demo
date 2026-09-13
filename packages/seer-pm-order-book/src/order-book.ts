@@ -12,7 +12,7 @@ import { Pool, Position, V4PositionManager } from "@uniswap/v4-sdk";
 import type { Config } from "@wagmi/core";
 import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import type { Address, Hex } from "viem";
-import { formatUnits, maxUint256 } from "viem";
+import { formatUnits } from "viem";
 import {
   type OrderBookPoolKey,
   PERMIT2_ADDRESS,
@@ -28,6 +28,12 @@ import {
 import { getTickAtSqrtRatio, nearestUsableTick } from "./tick-helpers";
 
 export * from "./order-book-config";
+
+/** Permit2 allowances are uint160. */
+export const MAX_UINT160 = (1n << 160n) - 1n;
+
+/** Default slippage applied to mint/remove calldata (50 bps). */
+export const V4_LIQUIDITY_SLIPPAGE_BPS = 50;
 
 const TICK_SEARCH_MIN = -69077;
 const TICK_SEARCH_MAX = 69077;
@@ -254,6 +260,20 @@ export function buildV4Position({
   });
 }
 
+/**
+ * Maximum token amounts the PositionManager may pull for a mint, i.e. the quoted amounts
+ * plus the slippage tolerance baked into `buildMintV4PositionCalldata`. Approve these.
+ */
+export function getMintV4PositionMaxAmounts(params: Parameters<typeof buildV4Position>[0] & { slippageBps?: number }): {
+  amount0: bigint;
+  amount1: bigint;
+} {
+  const { slippageBps = V4_LIQUIDITY_SLIPPAGE_BPS, ...positionParams } = params;
+  const position = buildV4Position(positionParams);
+  const { amount0, amount1 } = position.mintAmountsWithSlippage(new Percent(slippageBps, 10_000));
+  return { amount0: BigInt(amount0.toString()), amount1: BigInt(amount1.toString()) };
+}
+
 export function buildMintV4PositionCalldata({
   chainId,
   poolKey,
@@ -263,7 +283,7 @@ export function buildMintV4PositionCalldata({
   amount0,
   amount1,
   recipient,
-  slippageBps = 50,
+  slippageBps = V4_LIQUIDITY_SLIPPAGE_BPS,
 }: {
   chainId: number;
   poolKey: OrderBookPoolKey;
@@ -339,7 +359,7 @@ export async function approvePermit2Allowance(
     address: PERMIT2_ADDRESS,
     abi: permit2Abi,
     functionName: "approve",
-    args: [token, positionManager as Address, amount > maxUint256 / 2n ? maxUint256 / 2n : amount, expiration],
+    args: [token, positionManager as Address, amount > MAX_UINT160 ? MAX_UINT160 : amount, expiration],
     chainId,
   });
 }

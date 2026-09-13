@@ -1,0 +1,49 @@
+# Seer Uniswap V4 subgraph (Goldsky, per chain): pools that contain Seer outcome tokens
+# and the PositionManager positions opened in them.
+
+fragment V4PoolFields on Pool {
+  id
+  token0 {
+    id
+    symbol
+    decimals
+  }
+  token1 {
+    id
+    symbol
+    decimals
+  }
+  feeTier
+  tickSpacing
+  hooks
+  liquidity
+  sqrtPrice
+  tick
+  totalValueLockedToken0
+  totalValueLockedToken1
+}
+
+query GetV4Positions($owner: String!, $pools: [String!]!, $first: Int = 200) {
+  positions(
+    where: { owner: $owner, pool_in: $pools, burned: false, liquidity_gt: "0" }
+    first: $first
+    orderBy: tokenId
+    orderDirection: desc
+  ) {
+    id
+    tokenId
+    owner
+    tickLower
+    tickUpper
+    liquidity
+    pool {
+      ...V4PoolFields
+    }
+  }
+}
+
+query GetV4Pools($ids: [ID!]!) {
+  pools(where: { id_in: $ids }, first: 1000) {
+    ...V4PoolFields
+  }
+}

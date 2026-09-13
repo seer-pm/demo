@@ -1,5 +1,5 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
-import { gnosis, mainnet } from "viem/chains";
+import { base, gnosis, mainnet } from "viem/chains";
 import { SUBGRAPHS } from "./src/subgraph/subgraph-endpoints";
 
 const schemasAndDocuments = [
@@ -33,6 +33,11 @@ const schemasAndDocuments = [
     schema: SUBGRAPHS.seer,
     documents: "./queries/limit-order-hook.graphql",
   },
+  {
+    type: "uniswap-v4",
+    schema: SUBGRAPHS.uniswapV4[base.id],
+    documents: "./queries/uniswap-v4.graphql",
+  },
 ];
 
 const generates = schemasAndDocuments.reduce(
@@ -52,7 +57,6 @@ const generates = schemasAndDocuments.reduce(
           Timestamp: "string",
           jsonb: "unknown",
           numeric: "string",
-          bigint: "string",
           markettype: "string",
           ordereventtype: "string",
           transferkind: "string",

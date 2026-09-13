@@ -44,7 +44,41 @@ export const permit2Abi = parseAbi([
   "function allowance(address owner, address token, address spender) view returns (uint160 amount, uint48 expiration, uint48 nonce)",
 ]);
 
-export const positionManagerAbi = parseAbi(["function multicall(bytes[] data) payable returns (bytes[])"]);
+export const positionManagerAbi = parseAbi([
+  "function multicall(bytes[] data) payable returns (bytes[])",
+  "function modifyLiquidities(bytes unlockData, uint256 deadline) payable",
+  "function ownerOf(uint256 tokenId) view returns (address)",
+  "function getPositionLiquidity(uint256 tokenId) view returns (uint128 liquidity)",
+  "function getPoolAndPositionInfo(uint256 tokenId) view returns ((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks) poolKey, uint256 info)",
+]);
+
+const INT24_SIGN_BIT = 1n << 23n;
+const INT24_MASK = (1n << 24n) - 1n;
+
+function toInt24(value: bigint): number {
+  const masked = value & INT24_MASK;
+  return Number(masked & INT24_SIGN_BIT ? masked - (1n << 24n) : masked);
+}
+
+/**
+ * Decodes a PositionManager `PositionInfo` word:
+ * `200 bits poolId | 24 bits tickUpper | 24 bits tickLower | 8 bits hasSubscriber`.
+ * `poolIdPrefix` is the upper 25 bytes of the full pool id (bytes25).
+ */
+export function decodePositionInfo(info: bigint): {
+  poolIdPrefix: Hex;
+  tickLower: number;
+  tickUpper: number;
+  hasSubscriber: boolean;
+} {
+  const poolIdPrefix = `0x${(info >> 56n).toString(16).padStart(50, "0")}` as Hex;
+  return {
+    poolIdPrefix,
+    tickLower: toInt24(info >> 8n),
+    tickUpper: toInt24(info >> 32n),
+    hasSubscriber: (info & 0xffn) !== 0n,
+  };
+}
 
 export type OrderBookPoolKey = {
   currency0: Address;
@@ -193,37 +227,36 @@ export async function readV4PoolState(
     return null;
   }
 
-  try {
-    const [slot0, liquidity] = await Promise.all([
-      readContract(config, {
-        address: stateViewAddress,
-        abi: stateViewAbi,
-        functionName: "getSlot0",
-        args: [poolId],
-        chainId,
-      }),
-      readContract(config, {
-        address: stateViewAddress,
-        abi: stateViewAbi,
-        functionName: "getLiquidity",
-        args: [poolId],
-        chainId,
-      }),
-    ]);
+  // StateView returns zeros (no revert) for pools that were never initialized, so an
+  // exception here is an RPC failure and must surface to the caller instead of reading
+  // as "pool not initialized".
+  const [slot0, liquidity] = await Promise.all([
+    readContract(config, {
+      address: stateViewAddress,
+      abi: stateViewAbi,
+      functionName: "getSlot0",
+      args: [poolId],
+      chainId,
+    }),
+    readContract(config, {
+      address: stateViewAddress,
+      abi: stateViewAbi,
+      functionName: "getLiquidity",
+      args: [poolId],
+      chainId,
+    }),
+  ]);
 
-    if (slot0[0] === 0n) {
-      return null;
-    }
-
-    return {
-      sqrtPriceX96: slot0[0],
-      tick: slot0[1],
-      liquidity,
-      poolId,
-    };
-  } catch {
+  if (slot0[0] === 0n) {
     return null;
   }
+
+  return {
+    sqrtPriceX96: slot0[0],
+    tick: slot0[1],
+    liquidity,
+    poolId,
+  };
 }
 
 export function getV4PositionManagerAddress(chainId: number): Address | undefined {
