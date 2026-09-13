@@ -1,14 +1,11 @@
 import {
   PERMIT2_ADDRESS,
-  approvePermit2Allowance,
+  buildAddV4LiquiditySteps,
   computePositionAmounts,
   getMintV4PositionMaxAmounts,
   getOrderBookPoolParams,
-  getV4PositionManagerAddress,
   hasPermit2Allowance,
-  initializeOrderBookPool,
   isOrderBookPoolInitialized,
-  mintV4Position,
   probabilityRangeToTicks,
   probabilityToTick,
   readV4PoolState,
@@ -17,10 +14,11 @@ import {
 import type { TxNotifierFn } from "@seer-pm/sdk";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { readContract, writeContract } from "@wagmi/core";
+import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
 import { erc20Abi } from "viem";
 import { useConfig } from "wagmi";
+import { sendExecutions } from "./sendExecutions";
 import type { Market } from "./useMarketPools";
 
 export interface AddV4LiquidityParams {
@@ -34,7 +32,11 @@ export interface AddV4LiquidityParams {
   initialPrice?: number;
 }
 
-export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
+/**
+ * Adds liquidity to an outcome's V4 pool. With EIP-7702 the missing approvals, the pool
+ * initialization and the mint go out as one batch; otherwise they are sent one by one.
+ */
+export function useAddV4Liquidity(txNotifier: TxNotifierFn, supports7702 = false) {
   const config = useConfig();
   const queryClient = useQueryClient();
 
@@ -61,11 +63,6 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
         sqrtPriceX96 = getSqrtRatioAtTick(probabilityToTick(initialPrice, outcomeIsToken0, poolKey.tickSpacing));
       }
 
-      const positionManager = getV4PositionManagerAddress(market.chainId);
-      if (!positionManager) {
-        throw new Error("V4 PositionManager not configured");
-      }
-
       // The mint calldata tolerates 50 bps of slippage, so the PositionManager may pull slightly
       // more than the quoted amounts. Approve the maximum it can settle, not the quote.
       const maxAmounts = getMintV4PositionMaxAmounts({
@@ -78,98 +75,57 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
         amount1,
       });
 
-      for (const [token, amount] of [
-        [token0, maxAmounts.amount0],
-        [token1, maxAmounts.amount1],
-      ] as const) {
-        if (amount === 0n) continue;
-
-        const allowance = await readContract(config, {
-          address: token,
-          abi: erc20Abi,
-          functionName: "allowance",
-          args: [account, PERMIT2_ADDRESS],
-          chainId: market.chainId,
-        });
-
-        if (allowance < amount) {
-          const approveResult = await txNotifier(
-            () =>
-              writeContract(config, {
-                address: token,
-                abi: erc20Abi,
-                functionName: "approve",
-                args: [PERMIT2_ADDRESS, amount],
-                chainId: market.chainId,
-              }),
-            {
-              txSent: { title: "Approving token for Permit2..." },
-              txSuccess: { title: "Token approved." },
-            },
-          );
-          if (!approveResult.status) {
-            throw approveResult.error;
+      const approvals = await Promise.all(
+        (
+          [
+            [token0, maxAmounts.amount0],
+            [token1, maxAmounts.amount1],
+          ] as const
+        ).map(async ([token, amount]) => {
+          if (amount === 0n) {
+            return { token, amount, needsErc20Approval: false, needsPermit2Approval: false };
           }
-        }
-
-        const permit2Params = {
-          token,
-          owner: account,
-          amount,
-          chainId: market.chainId,
-        };
-        if (!(await hasPermit2Allowance(config, permit2Params))) {
-          const permit2Result = await txNotifier(() => approvePermit2Allowance(config, permit2Params), {
-            txSent: { title: "Approving Permit2..." },
-            txSuccess: { title: "Permit2 approved." },
-          });
-          if (!permit2Result.status) {
-            throw permit2Result.error;
-          }
-        }
-      }
-
-      if (!poolInitialized) {
-        const initResult = await txNotifier(
-          () =>
-            initializeOrderBookPool(config, {
-              market,
-              outcomeIndex,
-              sqrtPriceX96,
+          const [erc20Allowance, permit2Ok] = await Promise.all([
+            readContract(config, {
+              address: token,
+              abi: erc20Abi,
+              functionName: "allowance",
+              args: [account, PERMIT2_ADDRESS],
+              chainId: market.chainId,
             }),
-          {
-            txSent: { title: "Initializing pool..." },
-            txSuccess: { title: "Pool initialized." },
-          },
-        );
-        if (!initResult.status) {
-          throw initResult.error;
-        }
-      }
-
-      const mintResult = await txNotifier(
-        () =>
-          mintV4Position(config, {
-            chainId: market.chainId,
-            poolKey,
-            sqrtPriceX96,
-            tickLower,
-            tickUpper,
-            amount0,
-            amount1,
-            recipient: account,
-          }),
-        {
-          txSent: { title: "Adding liquidity..." },
-          txSuccess: { title: "Liquidity added." },
-        },
+            hasPermit2Allowance(config, { token, owner: account, amount, chainId: market.chainId }),
+          ]);
+          return { token, amount, needsErc20Approval: erc20Allowance < amount, needsPermit2Approval: !permit2Ok };
+        }),
       );
 
-      if (!mintResult.status) {
-        throw mintResult.error;
-      }
+      const steps = buildAddV4LiquiditySteps({
+        approvals,
+        initializePool: !poolInitialized,
+        mint: {
+          chainId: market.chainId,
+          poolKey,
+          sqrtPriceX96,
+          tickLower,
+          tickUpper,
+          amount0,
+          amount1,
+          recipient: account,
+        },
+      });
 
-      return mintResult.receipt.transactionHash;
+      return sendExecutions(
+        config,
+        steps.map((step) => step.execution),
+        market.chainId,
+        supports7702,
+        txNotifier,
+        {
+          txSent: "Adding liquidity...",
+          txSuccess: "Liquidity added.",
+          stepTitles: steps.map((step) => step.title),
+        },
+      );
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["useMarketPools", variables.market.id] });

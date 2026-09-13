@@ -5,7 +5,8 @@ import type { Hex } from "viem";
 
 /**
  * Sends a list of executions: one `sendCalls` batch when the wallet supports EIP-7702,
- * otherwise sequential transactions with progress toasts.
+ * otherwise sequential transactions with progress toasts. `stepTitles` (one per call) replaces
+ * the generic "Sending i/n..." toast of the sequential path.
  */
 export async function sendExecutions(
   config: Config,
@@ -13,7 +14,7 @@ export async function sendExecutions(
   chainId: number,
   supports7702: boolean,
   txNotifier: TxNotifierFn,
-  messages: { txSent: string; txSuccess: string },
+  messages: { txSent: string; txSuccess: string; stepTitles?: string[] },
 ): Promise<Hex> {
   if (calls.length === 0) {
     throw new Error("Nothing to send");
@@ -42,7 +43,8 @@ export async function sendExecutions(
     const isLast = i === calls.length - 1;
     const result = await txNotifier(() => sendTransaction(config, calls[i]), {
       txSent: {
-        title: calls.length === 1 ? messages.txSent : `Sending ${i + 1}/${calls.length}...`,
+        title:
+          calls.length === 1 ? messages.txSent : (messages.stepTitles?.[i] ?? `Sending ${i + 1}/${calls.length}...`),
       },
       txSuccess: {
         title: isLast ? messages.txSuccess : `Transaction ${i + 1}/${calls.length} sent.`,
