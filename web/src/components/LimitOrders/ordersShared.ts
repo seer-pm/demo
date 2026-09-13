@@ -1,5 +1,10 @@
 import { displayBalance, displayNumber } from "@/lib/utils";
-import { type LimitOrderWithdrawAmounts, type OrderBookPoolKey, createV4PoolInstance } from "@seer-pm/order-book/v4";
+import {
+  type LimitOrderWithdrawAmounts,
+  OUTCOME_TOKEN_DECIMALS,
+  type OrderBookPoolKey,
+  createV4PoolInstance,
+} from "@seer-pm/order-book/v4";
 import { type Market, getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { Position } from "@uniswap/v4-sdk";
@@ -59,7 +64,7 @@ export function getOrderPayAmount(
   const paysToken0 = zeroForOne;
   const token0IsOutcome = pool.outcomeIsToken0;
   const paysOutcome = paysToken0 === token0IsOutcome;
-  const decimals = paysOutcome ? 18 : collateral.decimals;
+  const decimals = paysOutcome ? OUTCOME_TOKEN_DECIMALS : collateral.decimals;
   const symbol = paysOutcome ? (market.outcomes[pool.outcomeIndex] ?? "Outcome") : collateral.symbol;
 
   try {
@@ -100,13 +105,13 @@ function formatWithdrawAmounts(amounts: LimitOrderWithdrawAmounts, pool: PoolMet
   const parts: string[] = [];
 
   if (amounts.amount0 > 0n) {
-    const decimals = pool.outcomeIsToken0 ? 18 : collateral.decimals;
+    const decimals = pool.outcomeIsToken0 ? OUTCOME_TOKEN_DECIMALS : collateral.decimals;
     const symbol = pool.outcomeIsToken0 ? outcomeLabel : collateral.symbol;
     parts.push(`${displayBalance(amounts.amount0, decimals)} ${symbol}`);
   }
 
   if (amounts.amount1 > 0n) {
-    const decimals = pool.outcomeIsToken0 ? collateral.decimals : 18;
+    const decimals = pool.outcomeIsToken0 ? collateral.decimals : OUTCOME_TOKEN_DECIMALS;
     const symbol = pool.outcomeIsToken0 ? collateral.symbol : outcomeLabel;
     parts.push(`${displayBalance(amounts.amount1, decimals)} ${symbol}`);
   }

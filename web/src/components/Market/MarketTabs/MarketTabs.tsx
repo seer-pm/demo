@@ -11,6 +11,15 @@ import TopHolders from "./TopHolders";
 const Comments = clientOnly(() => import("./Comments"));
 const OpenOrders = clientOnly(() => import("../OpenOrders/OpenOrders"));
 
+function OpenOrdersFallback() {
+  return (
+    <output className="flex flex-col gap-6" aria-busy="true" aria-label="Loading orders">
+      <div className="shimmer-container w-full h-[200px]" />
+      <div className="shimmer-container w-full h-[200px]" />
+    </output>
+  );
+}
+
 function CommentsFallback() {
   return (
     <output className="flex w-full justify-center p-8" aria-busy="true" aria-label="Loading comments">
@@ -80,7 +89,7 @@ export default function MarketTabs({ market }: { market: Market }) {
       )}
       {activeTab === "topHolders" && <TopHolders market={market} />}
       {activeTab === "activity" && <Activity market={market} />}
-      {activeTab === "openOrders" && showOpenOrders && <OpenOrders market={market} />}
+      {activeTab === "openOrders" && showOpenOrders && <OpenOrders market={market} fallback={<OpenOrdersFallback />} />}
     </div>
   );
 }

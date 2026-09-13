@@ -1,6 +1,6 @@
 import { toastifyTx } from "@/lib/toastify";
 import { getLiquidityUrl } from "@seer-pm/order-book";
-import { getOutcomePriceAtTick } from "@seer-pm/order-book/v4";
+import { OUTCOME_TOKEN_DECIMALS, getOutcomePriceAtTick } from "@seer-pm/order-book/v4";
 import { useTokenBalance, useTokensInfo } from "@seer-pm/react";
 import {
   computeV4DerivedAmounts,
@@ -58,18 +58,19 @@ export function AddLiquidityV4Adapter({
 
   const outcomeIsToken0Resolved = poolParams?.outcomeIsToken0 ?? true;
   const outcomeSymbol = tokensInfo[0]?.symbol ?? "Outcome";
+  const outcomeDecimals = tokensInfo[0]?.decimals ?? OUTCOME_TOKEN_DECIMALS;
 
   const token0Info = {
     address: poolParams?.token0 ?? outcomeTokenAddress,
     symbol: outcomeIsToken0Resolved ? outcomeSymbol : collateral.symbol,
-    decimals: outcomeIsToken0Resolved ? 18 : collateral.decimals,
+    decimals: outcomeIsToken0Resolved ? outcomeDecimals : collateral.decimals,
     balance: outcomeIsToken0Resolved ? outcomeBalance : collateralBalance,
   };
 
   const token1Info = {
     address: poolParams?.token1 ?? collateral.address,
     symbol: outcomeIsToken0Resolved ? collateral.symbol : outcomeSymbol,
-    decimals: outcomeIsToken0Resolved ? collateral.decimals : 18,
+    decimals: outcomeIsToken0Resolved ? collateral.decimals : outcomeDecimals,
     balance: outcomeIsToken0Resolved ? collateralBalance : outcomeBalance,
   };
 

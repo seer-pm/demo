@@ -50,6 +50,17 @@ const AddLiquidityV4Adapter = clientOnly(async () => {
   return mod.AddLiquidityV4Adapter;
 });
 
+function AddLiquidityV4Fallback() {
+  return (
+    <output className="block space-y-5" aria-busy="true" aria-label="Loading liquidity form">
+      <div className="shimmer-container w-[240px] h-[20px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[40px]" />
+    </output>
+  );
+}
+
 interface OutcomesProps {
   market: Market;
   images?: string[];
@@ -666,6 +677,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   outcomeIndex={activeOutcome}
                   closeModal={closeModal}
                   hideReturnButton={(pools[activeOutcome]?.length ?? 0) > 0}
+                  fallback={<AddLiquidityV4Fallback />}
                 />
                 {(pools[activeOutcome]?.length ?? 0) > 0 && (
                   <AddLiquidityInfo

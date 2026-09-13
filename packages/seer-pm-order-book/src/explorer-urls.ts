@@ -4,6 +4,7 @@ import type { Address } from "viem";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
 import {
   V4_POOL_FEE,
+  V4_TICK_SPACING,
   getOrderBookPoolParams,
   getV4HooksAddress,
   getV4PoolId,
@@ -42,11 +43,13 @@ function getLiquidityUrlUniswapV4(chainId: number, token0: string, token1: strin
   if (!chainName) {
     return "#";
   }
+  // `fee` carries the tick spacing too, so the Uniswap UI creates exactly our pool key
+  // (the older `feeTier` param only accepts the preset tiers).
   const params = new URLSearchParams({
     currencyA: token0,
     currencyB: token1,
     chain: chainName,
-    feeTier: String(V4_POOL_FEE),
+    fee: JSON.stringify({ feeAmount: V4_POOL_FEE, tickSpacing: V4_TICK_SPACING, isDynamic: false }),
     hook,
   });
   return `https://app.uniswap.org/positions/create/v4?${params.toString()}`;

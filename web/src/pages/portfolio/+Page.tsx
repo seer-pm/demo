@@ -28,6 +28,10 @@ import { useAccount } from "wagmi";
 const OrdersTab = clientOnly(() => import("@/components/Portfolio/OrdersTab"));
 const LiquidityTab = clientOnly(() => import("@/components/Portfolio/LiquidityTab"));
 
+function TabFallback({ label }: { label: string }) {
+  return <output className="shimmer-container block w-full h-[200px]" aria-busy="true" aria-label={label} />;
+}
+
 const TABS = [
   { id: "positions", label: "Positions", panelId: "portfolio-panel-positions" },
   { id: "orders", label: "Open Orders", panelId: "portfolio-panel-orders" },
@@ -416,7 +420,7 @@ function PortfolioPage() {
                 Open orders are shown per network. Pick one above to see yours.
               </Alert>
             ) : (
-              <OrdersTab account={account} chainId={chainId} />
+              <OrdersTab account={account} chainId={chainId} fallback={<TabFallback label="Loading orders" />} />
             ))}
           {activeTab === "liquidity" &&
             (chainId === "all" ? (
@@ -424,7 +428,11 @@ function PortfolioPage() {
                 Liquidity positions are shown per network. Pick one above to see yours.
               </Alert>
             ) : (
-              <LiquidityTab account={account} chainId={chainId} />
+              <LiquidityTab
+                account={account}
+                chainId={chainId}
+                fallback={<TabFallback label="Loading liquidity positions" />}
+              />
             ))}
           {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
           {activeTab === "airdrop" && <AirdropTab account={account} />}

@@ -1,4 +1,4 @@
-import { getLiquidityUrl } from "@seer-pm/order-book";
+import { V4_POOL_FEE, V4_TICK_SPACING, getLiquidityUrl } from "@seer-pm/order-book";
 import type { Market } from "@seer-pm/sdk";
 import { base } from "viem/chains";
 import { describe, expect, it } from "vitest";
@@ -16,7 +16,8 @@ describe("getLiquidityUrl", () => {
     expect(url).toContain("app.uniswap.org/positions/create/v4");
     expect(url).toContain("hook=0x19E8B37E9f4d69927Da1e13e989a2f955ee39040");
     expect(url).toContain("chain=base");
-    expect(url).toContain("feeTier=3000");
+    const fee = new URL(url).searchParams.get("fee");
+    expect(fee && JSON.parse(fee)).toEqual({ feeAmount: V4_POOL_FEE, tickSpacing: V4_TICK_SPACING, isDynamic: false });
   });
 
   it("links to Uniswap explore pool page when the V4 pool is initialized", () => {

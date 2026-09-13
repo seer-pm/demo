@@ -7,8 +7,21 @@ import type { Address, Hex } from "viem";
 import { encodeAbiParameters, keccak256, parseAbi } from "viem";
 import { base, mainnet, optimism } from "viem/chains";
 
-export const V4_POOL_FEE = 3000;
+/**
+ * Pool key shared by every Seer outcome pool on the LimitOrderHook: 1 bp fee (same tier the
+ * Uniswap V3 pools use) with a 60-tick spacing. The spacing is kept coarse on purpose: the hook's
+ * `afterSwap` walks every crossed tick in `tickSpacing` steps to fill orders, so a finer spacing
+ * multiplies the gas of every swap that moves the price.
+ */
+export const V4_POOL_FEE = 100;
 export const V4_TICK_SPACING = 60;
+
+/**
+ * Seer wrapped outcome tokens are always minted with 18 decimals
+ * (`MarketFactory.sol` passes `uint8(18)` to the Wrapped1155Factory), so the V4 price model can
+ * rely on it wherever the token's on-chain metadata is not already loaded.
+ */
+export const OUTCOME_TOKEN_DECIMALS = 18;
 
 export const V4_POOL_MANAGER_ADDRESS = {
   [mainnet.id]: "0x000000000004444c5dc75cB358380D2e3dE08A90",

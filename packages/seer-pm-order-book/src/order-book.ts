@@ -12,7 +12,6 @@ import { Pool, Position, V4PositionManager } from "@uniswap/v4-sdk";
 import type { Config } from "@wagmi/core";
 import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import type { Address, Hex } from "viem";
-import { formatUnits } from "viem";
 import {
   type OrderBookPoolKey,
   PERMIT2_ADDRESS,
@@ -563,22 +562,33 @@ function validateLimitOrderTickPlacement(
   }
 }
 
-function computeMinReceiveAmount(
-  payAmount: bigint,
-  nearestPrice: number,
-  swapType: "buy" | "sell",
-  payDecimals: number,
-  receiveDecimals: number,
-): bigint {
-  const pay = Number(formatUnits(payAmount, payDecimals));
-  if (pay <= 0 || nearestPrice <= 0) {
+const Q192 = 1n << 192n;
+
+/**
+ * Exact amount of the other token that `amountIn` converts to at the price encoded by `tick`
+ * (no fee, no slippage). Works on raw units, so it holds for any token decimals.
+ */
+export function getAmountOutAtTick(amountIn: bigint, tick: number, zeroForOne: boolean): bigint {
+  if (amountIn <= 0n) {
     return 0n;
   }
+  const sqrtPriceX96 = getSqrtRatioAtTick(tick);
+  const priceX192 = sqrtPriceX96 * sqrtPriceX96;
+  return zeroForOne ? (amountIn * priceX192) / Q192 : (amountIn * Q192) / priceX192;
+}
 
-  const receive = swapType === "buy" ? pay / nearestPrice : pay * nearestPrice;
-  const factor = 10 ** receiveDecimals;
-  const scaled = Math.floor(receive * factor);
-  return BigInt(scaled);
+/**
+ * Exact amount of the input token needed to receive `amountOut` at the price encoded by `tick`
+ * (rounded up). Inverse of `getAmountOutAtTick`.
+ */
+export function getAmountInAtTick(amountOut: bigint, tick: number, zeroForOne: boolean): bigint {
+  if (amountOut <= 0n) {
+    return 0n;
+  }
+  const sqrtPriceX96 = getSqrtRatioAtTick(tick);
+  const priceX192 = sqrtPriceX96 * sqrtPriceX96;
+  const [numerator, denominator] = zeroForOne ? [amountOut * Q192, priceX192] : [amountOut * priceX192, Q192];
+  return (numerator + denominator - 1n) / denominator;
 }
 
 export type LimitOrderParams = {
@@ -603,8 +613,6 @@ export function computeLimitOrderParams({
   payAmount,
   currentTick,
   sqrtPriceX96: _sqrtPriceX96,
-  payDecimals,
-  receiveDecimals,
 }: {
   chainId: number;
   poolKey: OrderBookPoolKey;
@@ -614,8 +622,6 @@ export function computeLimitOrderParams({
   payAmount: bigint;
   currentTick: number;
   sqrtPriceX96: bigint;
-  payDecimals: number;
-  receiveDecimals: number;
 }): LimitOrderParams {
   if (payAmount <= 0n) {
     throw new Error("Amount must be greater than zero.");
@@ -659,13 +665,7 @@ export function computeLimitOrderParams({
   const payToken = zeroForOne ? "token0" : "token1";
   const receiveToken = zeroForOne ? "token1" : "token0";
   const actualPayAmount = payToken === "token0" ? totalPay.amount0 : totalPay.amount1;
-  const minReceiveAmount = computeMinReceiveAmount(
-    actualPayAmount,
-    nearestPrice,
-    swapType,
-    payDecimals,
-    receiveDecimals,
-  );
+  const minReceiveAmount = getAmountOutAtTick(actualPayAmount, tick, zeroForOne);
 
   const minReceive = {
     amount0: receiveToken === "token0" ? minReceiveAmount : 0n,
