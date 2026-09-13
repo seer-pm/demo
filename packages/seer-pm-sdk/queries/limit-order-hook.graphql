@@ -71,6 +71,11 @@ query GetOrderEvents(
     pool {
       id
       poolId
+      currency0
+      currency1
+      fee
+      tickSpacing
+      hooks
     }
     tickLower
     zeroForOne
