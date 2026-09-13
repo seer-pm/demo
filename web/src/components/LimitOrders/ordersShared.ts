@@ -42,46 +42,53 @@ function formatLiquidityCompact(liquidity: bigint): string {
   return `${s[0]}.${s.slice(1, 3)}e${s.length - 1}`;
 }
 
-function formatOpenOrderSize(order: UiUserOrder, pool: PoolMeta, market: Market): string {
-  const liquidity = BigInt(order.liquidity);
-  if (liquidity === 0n) return "0";
+export type OrderPayAmount = { amount: bigint; decimals: number; symbol: string };
 
+/**
+ * Token the order pays (collateral for buys, outcome for sells) and how much of it the given
+ * liquidity represents at the order's tick range. `null` when the liquidity does not convert.
+ */
+export function getOrderPayAmount(
+  liquidity: bigint,
+  tickLower: number,
+  zeroForOne: boolean,
+  pool: PoolMeta,
+  market: Market,
+): OrderPayAmount | null {
   const collateral = getActivePrimaryCollateral(market.chainId);
-  const payDecimals = order.zeroForOne
-    ? pool.outcomeIsToken0
-      ? 18
-      : collateral.decimals
-    : pool.outcomeIsToken0
-      ? collateral.decimals
-      : 18;
-  const paySymbol = order.zeroForOne
-    ? pool.outcomeIsToken0
-      ? (market.outcomes[pool.outcomeIndex] ?? "Outcome")
-      : collateral.symbol
-    : pool.outcomeIsToken0
-      ? collateral.symbol
-      : (market.outcomes[pool.outcomeIndex] ?? "Outcome");
+  const paysToken0 = zeroForOne;
+  const token0IsOutcome = pool.outcomeIsToken0;
+  const paysOutcome = paysToken0 === token0IsOutcome;
+  const decimals = paysOutcome ? 18 : collateral.decimals;
+  const symbol = paysOutcome ? (market.outcomes[pool.outcomeIndex] ?? "Outcome") : collateral.symbol;
 
   try {
-    const tickUpper = order.tickLower + pool.poolKey.tickSpacing;
-    const depositTick = order.zeroForOne ? order.tickLower - pool.poolKey.tickSpacing : tickUpper;
+    const tickUpper = tickLower + pool.poolKey.tickSpacing;
+    const depositTick = zeroForOne ? tickLower - pool.poolKey.tickSpacing : tickUpper;
     const sqrtPriceX96 = getSqrtRatioAtTick(depositTick);
     const poolInstance = createV4PoolInstance(market.chainId, pool.poolKey, sqrtPriceX96, 0n, depositTick);
     const position = new Position({
       pool: poolInstance,
-      liquidity: order.liquidity,
-      tickLower: order.tickLower,
+      liquidity: liquidity.toString(),
+      tickLower,
       tickUpper,
     });
-    const payAmount = order.zeroForOne
+    const amount = zeroForOne
       ? BigInt(position.mintAmounts.amount0.toString())
       : BigInt(position.mintAmounts.amount1.toString());
-
-    if (payAmount > 0n) {
-      return `${displayBalance(payAmount, payDecimals)} ${paySymbol}`;
-    }
+    return amount > 0n ? { amount, decimals, symbol } : null;
   } catch {
-    // Fall back to compact liquidity units.
+    return null;
+  }
+}
+
+function formatOpenOrderSize(order: UiUserOrder, pool: PoolMeta, market: Market): string {
+  const liquidity = BigInt(order.liquidity);
+  if (liquidity === 0n) return "0";
+
+  const pay = getOrderPayAmount(liquidity, order.tickLower, order.zeroForOne, pool, market);
+  if (pay) {
+    return `${displayBalance(pay.amount, pay.decimals)} ${pay.symbol}`;
   }
 
   return formatLiquidityCompact(liquidity);
