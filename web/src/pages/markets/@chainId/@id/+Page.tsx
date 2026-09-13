@@ -42,6 +42,22 @@ const SwapTokens = clientOnly(async () => {
   return mod.SwapTokens;
 });
 
+/** Same container as SwapTokens so the page keeps its shape while the trade chunk loads. */
+function SwapTokensFallback() {
+  return (
+    <output className="block space-y-5 bg-base-100 p-[24px] shadow-md" aria-busy="true" aria-label="Loading trade form">
+      <div className="flex items-center space-x-[12px]">
+        <div className="shimmer-container w-[40px] h-[40px] rounded-full" />
+        <div className="shimmer-container w-[120px] h-[20px]" />
+      </div>
+      <div className="shimmer-container w-[140px] h-[32px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[40px]" />
+    </output>
+  );
+}
+
 function SwapWidget({
   market,
   outcomeIndex,
@@ -93,6 +109,7 @@ function SwapWidget({
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
       onOutcomeChange={onOutcomeChange}
+      fallback={<SwapTokensFallback />}
     />
   );
 }

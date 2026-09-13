@@ -20,8 +20,6 @@ export interface PlaceV4LimitOrderParams {
   swapType: "buy" | "sell";
   limitPrice: number;
   payAmount: bigint;
-  payDecimals: number;
-  receiveDecimals: number;
 }
 
 export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boolean) {
@@ -30,7 +28,7 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boo
 
   return useMutation({
     mutationFn: async (params: PlaceV4LimitOrderParams) => {
-      const { market, outcomeIndex, swapType, limitPrice, payAmount, payDecimals, receiveDecimals } = params;
+      const { market, outcomeIndex, swapType, limitPrice, payAmount } = params;
 
       const poolInitialized = await isOrderBookPoolInitialized(config, market, outcomeIndex);
       if (!poolInitialized) {
@@ -54,8 +52,6 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boo
         payAmount,
         currentTick: state.tick,
         sqrtPriceX96: state.sqrtPriceX96,
-        payDecimals,
-        receiveDecimals,
       });
 
       const payToken = orderParams.payToken === "token0" ? token0 : token1;

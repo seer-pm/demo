@@ -8,6 +8,7 @@ import { displayBalance, displayNumber } from "@/lib/utils";
 import {
   computeLimitOrderParams,
   formatLimitOrderPriceHint,
+  getAmountInAtTick,
   getLimitOrderHookAddress,
   getNearestLimitOrderPrice,
   getOutcomePriceAtTick,
@@ -51,27 +52,26 @@ interface SwapTokensLimitOrderProps {
   onAddLiquidity: () => void;
 }
 
+/** Collateral needed to receive `shareAmount` outcome tokens at the order's tick (sells pay the shares). */
 function sharesToPayAmount(
   swapType: "buy" | "sell",
   shareAmount: bigint,
-  nearestPrice: number,
-  collateralDecimals: number,
-  shareDecimals: number,
+  tick: number,
+  outcomeIsToken0: boolean,
 ): bigint {
   if (swapType === "sell") {
     return shareAmount;
   }
 
-  const shareHuman = Number(formatUnits(shareAmount, shareDecimals));
-  return parseUnits((shareHuman * nearestPrice).toFixed(collateralDecimals), collateralDecimals);
+  return getAmountInAtTick(shareAmount, tick, resolveLimitOrderZeroForOne(swapType, outcomeIsToken0));
 }
 
-function getEffectiveLimitPrice(limitPrice: string, outcomeIsToken0: boolean): number | undefined {
+function getEffectiveLimitTick(limitPrice: string, outcomeIsToken0: boolean): number | undefined {
   const parsed = limitPrice ? Number(limitPrice) : undefined;
   if (!parsed || parsed <= 0 || parsed >= 1) {
     return undefined;
   }
-  return getNearestLimitOrderPrice(parsed, outcomeIsToken0).nearestPrice;
+  return getNearestLimitOrderPrice(parsed, outcomeIsToken0).tick;
 }
 
 export function SwapTokensLimitOrder({
@@ -109,7 +109,7 @@ export function SwapTokensLimitOrder({
   const debouncedShares = useDebounce(shares, 500);
   const debouncedLimitPrice = useDebounce(limitPrice, 500);
 
-  const { account, buyToken, sellToken } = useTradeConditions({
+  const { account, sellToken } = useTradeConditions({
     market,
     fixedCollateral,
     outcomeToken,
@@ -223,14 +223,8 @@ export function SwapTokensLimitOrder({
       return undefined;
     }
 
-    return sharesToPayAmount(
-      swapType,
-      parsedShareAmount,
-      nearestPriceInfo.nearestPrice,
-      poolCollateral.decimals,
-      outcomeToken.decimals,
-    );
-  }, [parsedShareAmount, swapType, nearestPriceInfo, poolCollateral.decimals, outcomeToken.decimals]);
+    return sharesToPayAmount(swapType, parsedShareAmount, nearestPriceInfo.tick, outcomeIsToken0);
+  }, [parsedShareAmount, swapType, nearestPriceInfo, outcomeIsToken0]);
 
   const orderPreview = useMemo(() => {
     if (!poolParams || !poolState || !parsedLimitPrice || !parsedPayAmount || parsedPayAmount <= 0n) {
@@ -247,24 +241,12 @@ export function SwapTokensLimitOrder({
         payAmount: parsedPayAmount,
         currentTick: poolState.tick,
         sqrtPriceX96: poolState.sqrtPriceX96,
-        payDecimals: sellToken.decimals,
-        receiveDecimals: buyToken.decimals,
       });
       return { error: null, data };
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Unable to compute order", data: null };
     }
-  }, [
-    poolParams,
-    poolState,
-    parsedLimitPrice,
-    parsedPayAmount,
-    market.chainId,
-    outcomeIsToken0,
-    swapType,
-    sellToken.decimals,
-    buyToken.decimals,
-  ]);
+  }, [poolParams, poolState, parsedLimitPrice, parsedPayAmount, market.chainId, outcomeIsToken0, swapType]);
 
   const isLimitPricePlacementError = Boolean(
     orderPreview.error && boundaryPriceInfo && /set a limit price at or (below|above)/.test(orderPreview.error),
@@ -330,8 +312,6 @@ export function SwapTokensLimitOrder({
       swapType,
       limitPrice: parsedLimitPrice,
       payAmount: parsedPayAmount,
-      payDecimals: sellToken.decimals,
-      receiveDecimals: buyToken.decimals,
     });
     reset();
     closeConfirmModal();
@@ -563,18 +543,12 @@ export function SwapTokensLimitOrder({
                       return true;
                     }
 
-                    const price = getEffectiveLimitPrice(limitPrice, outcomeIsToken0);
-                    if (!price) {
+                    const tick = getEffectiveLimitTick(limitPrice, outcomeIsToken0);
+                    if (tick === undefined) {
                       return "Enter a limit price.";
                     }
 
-                    const payAmount = sharesToPayAmount(
-                      "buy",
-                      shareAmount,
-                      price,
-                      poolCollateral.decimals,
-                      outcomeToken.decimals,
-                    );
+                    const payAmount = sharesToPayAmount("buy", shareAmount, tick, outcomeIsToken0);
                     if (payAmount > collateralBalance) {
                       return "Not enough balance.";
                     }

@@ -7,6 +7,8 @@ import {
   createV4PoolInstance,
   formatLimitOrderPriceError,
   formatLimitOrderPriceHint,
+  getAmountInAtTick,
+  getAmountOutAtTick,
   getNearestLimitOrderPrice,
   getOutcomePriceAtTick,
   getValidLimitOrderBoundaryPrice,
@@ -218,14 +220,48 @@ describe("order-book", () => {
       payAmount: 1000000n,
       currentTick,
       sqrtPriceX96,
-      payDecimals: 6,
-      receiveDecimals: 18,
     });
 
     expect(result.liquidity).toBeGreaterThan(0n);
     expect(result.zeroForOne).toBe(false);
     expect(result.totalPay.amount1).toBeGreaterThan(0n);
     expect(result.minReceive.amount0).toBeGreaterThan(0n);
+    // Min receive is the exact conversion of the paid amount at the order tick.
+    expect(result.minReceive.amount0).toBe(getAmountOutAtTick(result.totalPay.amount1, result.tick, false));
+  });
+
+  describe("getAmountOutAtTick / getAmountInAtTick", () => {
+    it("converts exactly at tick 0 (price 1) in both directions", () => {
+      expect(getAmountOutAtTick(10n ** 18n, 0, true)).toBe(10n ** 18n);
+      expect(getAmountOutAtTick(10n ** 18n, 0, false)).toBe(10n ** 18n);
+      expect(getAmountInAtTick(10n ** 18n, 0, true)).toBe(10n ** 18n);
+    });
+
+    it("matches the float price at the tick and keeps full precision on large amounts", () => {
+      const tick = probabilityToTick(0.37, true);
+      const price = getOutcomePriceAtTick(tick, true); // token1 per token0
+      const amountIn = 123_456_789n * 10n ** 18n;
+      const out = getAmountOutAtTick(amountIn, tick, true);
+      const expected = Number(amountIn) * price;
+      expect(Math.abs(Number(out) - expected) / expected).toBeLessThan(1e-12);
+      // The bigint result is exact: it is not a float rounded to a multiple of 2^k.
+      expect(out % 1000n).not.toBe(0n);
+    });
+
+    it("amountIn is the smallest input that yields at least amountOut", () => {
+      const tick = probabilityToTick(0.63, false);
+      const amountOut = 5n * 10n ** 18n;
+      for (const zeroForOne of [true, false]) {
+        const amountIn = getAmountInAtTick(amountOut, tick, zeroForOne);
+        expect(getAmountOutAtTick(amountIn, tick, zeroForOne)).toBeGreaterThanOrEqual(amountOut);
+        expect(getAmountOutAtTick(amountIn - 1n, tick, zeroForOne)).toBeLessThan(amountOut);
+      }
+    });
+
+    it("returns 0 for non-positive amounts", () => {
+      expect(getAmountOutAtTick(0n, 100, true)).toBe(0n);
+      expect(getAmountInAtTick(-1n, 100, false)).toBe(0n);
+    });
   });
 
   it("computeLimitOrderParams rejects buy above current price for outcome token0", () => {
@@ -251,8 +287,6 @@ describe("order-book", () => {
         payAmount: 1000000n,
         currentTick,
         sqrtPriceX96,
-        payDecimals: 6,
-        receiveDecimals: 18,
       }),
     ).toThrow(
       new RegExp(
@@ -289,8 +323,6 @@ describe("order-book", () => {
         payAmount: 1000000n,
         currentTick,
         sqrtPriceX96,
-        payDecimals: 6,
-        receiveDecimals: 18,
       }),
     ).toThrow(/at or below 0\.450 \(market 0\.454\)/);
 
@@ -303,8 +335,6 @@ describe("order-book", () => {
       payAmount: 1000000n,
       currentTick,
       sqrtPriceX96,
-      payDecimals: 6,
-      receiveDecimals: 18,
     });
     expect(accepted.tick).toBe(tick);
     expect(accepted.liquidity).toBeGreaterThan(0n);
