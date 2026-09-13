@@ -123,6 +123,11 @@
       "import": "./dist/generated/subgraph/limit-order-hook.mjs",
       "require": "./dist/generated/subgraph/limit-order-hook.js"
     },
+    "./subgraph/uniswap-v4": {
+      "types": "./generated/subgraph/uniswap-v4.ts",
+      "import": "./dist/generated/subgraph/uniswap-v4.mjs",
+      "require": "./dist/generated/subgraph/uniswap-v4.js"
+    },
     "./abis/eternal-farming": {
       "types": "./abis/EternalFarmingAbi.ts",
       "import": "./dist/abis/EternalFarmingAbi.mjs",

@@ -4,3 +4,4 @@
  */
 export * from "./order-book";
 export * from "./executions";
+export * from "./positions";

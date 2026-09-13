@@ -2,6 +2,7 @@ import {
   PERMIT2_ADDRESS,
   approvePermit2Allowance,
   computePositionAmounts,
+  getMintV4PositionMaxAmounts,
   getOrderBookPoolParams,
   getV4PositionManagerAddress,
   hasPermit2Allowance,
@@ -65,9 +66,21 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn) {
         throw new Error("V4 PositionManager not configured");
       }
 
+      // The mint calldata tolerates 50 bps of slippage, so the PositionManager may pull slightly
+      // more than the quoted amounts. Approve the maximum it can settle, not the quote.
+      const maxAmounts = getMintV4PositionMaxAmounts({
+        chainId: market.chainId,
+        poolKey,
+        sqrtPriceX96,
+        tickLower,
+        tickUpper,
+        amount0,
+        amount1,
+      });
+
       for (const [token, amount] of [
-        [token0, amount0],
-        [token1, amount1],
+        [token0, maxAmounts.amount0],
+        [token1, maxAmounts.amount1],
       ] as const) {
         if (amount === 0n) continue;
 

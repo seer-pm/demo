@@ -7,7 +7,7 @@ import {
 } from "@seer-pm/order-book";
 import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
 import { tickSpacingForFeeTier } from "@seer-pm/sdk";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient, uniswapV4GraphQLClient } from "@seer-pm/sdk";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "@seer-pm/sdk";
 import {
   EternalFarmingAbi,
@@ -24,6 +24,7 @@ import {
   getSdk as getSwaprSdk,
 } from "@seer-pm/sdk/subgraph/swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
+import { getSdk as getUniswapV4Sdk } from "@seer-pm/sdk/subgraph/uniswap-v4";
 import { useQuery } from "@tanstack/react-query";
 import { type Config, getPublicClient, readContracts, waitForTransactionReceipt } from "@wagmi/core";
 import * as batshit from "@yornaath/batshit";
@@ -361,6 +362,36 @@ async function getUniswapV3Pools(chainId: number, tokens: { token0: Address; tok
   );
 }
 
+type V4PoolMeta = {
+  token0Symbol: string;
+  token1Symbol: string;
+  totalValueLockedToken0: number;
+  totalValueLockedToken1: number;
+};
+
+/** Symbols and TVL for V4 pools from the Seer V4 subgraph; empty on failure (on-chain state still wins). */
+async function getV4PoolsMeta(chainId: number, poolIds: string[]): Promise<Map<string, V4PoolMeta>> {
+  const meta = new Map<string, V4PoolMeta>();
+  const client = uniswapV4GraphQLClient(chainId);
+  if (!client || poolIds.length === 0) {
+    return meta;
+  }
+  try {
+    const { pools } = await getUniswapV4Sdk(client).GetV4Pools({ ids: poolIds });
+    for (const pool of pools) {
+      meta.set(pool.id.toLowerCase(), {
+        token0Symbol: pool.token0.symbol,
+        token1Symbol: pool.token1.symbol,
+        totalValueLockedToken0: Number(pool.totalValueLockedToken0),
+        totalValueLockedToken1: Number(pool.totalValueLockedToken1),
+      });
+    }
+  } catch (e) {
+    console.error("getV4PoolsMeta", e);
+  }
+  return meta;
+}
+
 async function getUniswapV4Pools(
   chainId: number,
   config: Config,
@@ -370,45 +401,50 @@ async function getUniswapV4Pools(
     return [];
   }
 
-  const results = await Promise.all(
+  // Pool existence, price and liquidity are read on-chain (source of truth).
+  const states = await Promise.all(
     tokens.map(async (pair) => {
       const poolKey = buildOrderBookPoolKey(pair.token0, pair.token1, chainId);
       if (!poolKey) {
-        return [];
+        return null;
       }
-
       const state = await readV4PoolState(config, chainId, poolKey);
-
       if (!state || state.liquidity === 0n) {
-        return [];
+        return null;
       }
-
-      const [token0PriceStr, token1PriceStr] = sqrtPriceX96ToPrice(state.sqrtPriceX96);
-
-      return [
-        {
-          id: state.poolId as Address,
-          dex: "UniV4",
-          version: "v4" as const,
-          fee: V4_POOL_FEE,
-          token0: poolKey.currency0,
-          token1: poolKey.currency1,
-          token0Price: Number(token0PriceStr),
-          token1Price: Number(token1PriceStr),
-          liquidity: state.liquidity,
-          tick: state.tick,
-          tickSpacing: V4_TICK_SPACING,
-          token0Symbol: "",
-          token1Symbol: "",
-          totalValueLockedToken0: 0,
-          totalValueLockedToken1: 0,
-          incentives: [],
-        },
-      ];
+      return { poolKey, state };
     }),
   );
 
-  return results.flat();
+  const livePools = states.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  const meta = await getV4PoolsMeta(
+    chainId,
+    livePools.map(({ state }) => state.poolId.toLowerCase()),
+  );
+
+  return livePools.map(({ poolKey, state }) => {
+    const [token0PriceStr, token1PriceStr] = sqrtPriceX96ToPrice(state.sqrtPriceX96);
+    const poolMeta = meta.get(state.poolId.toLowerCase());
+
+    return {
+      id: state.poolId as Address,
+      dex: "UniV4",
+      version: "v4" as const,
+      fee: V4_POOL_FEE,
+      token0: poolKey.currency0,
+      token1: poolKey.currency1,
+      token0Price: Number(token0PriceStr),
+      token1Price: Number(token1PriceStr),
+      liquidity: state.liquidity,
+      tick: state.tick,
+      tickSpacing: V4_TICK_SPACING,
+      token0Symbol: poolMeta?.token0Symbol ?? "",
+      token1Symbol: poolMeta?.token1Symbol ?? "",
+      totalValueLockedToken0: poolMeta?.totalValueLockedToken0 ?? 0,
+      totalValueLockedToken1: poolMeta?.totalValueLockedToken1 ?? 0,
+      incentives: [],
+    };
+  });
 }
 
 function dedupeTokenPairs(tokens: { token0: Address; token1: Address }[]) {

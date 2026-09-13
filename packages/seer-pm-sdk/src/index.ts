@@ -365,6 +365,7 @@ export {
   uniswapGraphQLClient,
   swaprGraphQLClient,
   orderBookGraphQLClient,
+  uniswapV4GraphQLClient,
   realityGraphQLClient,
   getSubgraphUrl,
   getTokenPriceFromSubgraph,

@@ -1,11 +1,10 @@
 import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import useDebounce from "@/hooks/useDebounce";
-import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { paths } from "@/lib/paths";
 import { toastifyTx } from "@/lib/toastify";
-import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
+import { displayBalance, displayNumber } from "@/lib/utils";
 import {
   computeLimitOrderParams,
   formatLimitOrderPriceHint,
@@ -15,7 +14,7 @@ import {
   getValidLimitOrderBoundaryPrice,
   resolveLimitOrderZeroForOne,
 } from "@seer-pm/order-book/v4";
-import { useMissingApprovals, useTokenBalance } from "@seer-pm/react";
+import { useMissingApprovals, useTokenBalance, useTokenInfo } from "@seer-pm/react";
 import {
   useIsOrderBookPoolInitialized,
   useOrderBookPoolParams,
@@ -27,13 +26,13 @@ import type { Market, Token } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import type { Address } from "viem";
 import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
 import { ApproveButton } from "../../Form/ApproveButton";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
 import { SwitchChainButtonWrapper } from "../../Form/SwitchChainButtonWrapper";
-import { MarketCollateralDropdown } from "../CollateralDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 import { V4LimitOrderConfirmation } from "./V4LimitOrderConfirmation";
 
@@ -88,7 +87,6 @@ export function SwapTokensLimitOrder({
   const limitPriceRef = useRef<HTMLInputElement | null>(null);
   const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
-  const setPreferredCollateral = useGlobalState((state) => state.setPreferredCollateral);
 
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
@@ -111,7 +109,7 @@ export function SwapTokensLimitOrder({
   const debouncedShares = useDebounce(shares, 500);
   const debouncedLimitPrice = useDebounce(limitPrice, 500);
 
-  const { account, buyToken, sellToken, selectedCollateral } = useTradeConditions({
+  const { account, buyToken, sellToken } = useTradeConditions({
     market,
     fixedCollateral,
     outcomeToken,
@@ -125,13 +123,29 @@ export function SwapTokensLimitOrder({
     outcomeToken.address,
     market.chainId,
   );
+  const poolParams = useOrderBookPoolParams(market, outcomeIndex);
+
+  // The V4 pool is always paired with the market collateral, so the order must be quoted,
+  // approved and settled in that token regardless of the user's preferred collateral.
+  const poolCollateralAddress = poolParams
+    ? poolParams.outcomeIsToken0
+      ? poolParams.token1
+      : poolParams.token0
+    : (market.collateralToken as Address);
+  const { data: poolCollateralInfo } = useTokenInfo(poolCollateralAddress, market.chainId);
+  const poolCollateral = useMemo(
+    () => ({
+      address: poolCollateralAddress,
+      symbol: poolCollateralInfo?.symbol ?? primaryCollateral.symbol,
+      decimals: poolCollateralInfo?.decimals ?? primaryCollateral.decimals,
+    }),
+    [poolCollateralAddress, poolCollateralInfo, primaryCollateral],
+  );
   const { data: collateralBalance = 0n, isFetching: isFetchingCollateralBalance } = useTokenBalance(
     account,
-    selectedCollateral.address,
+    poolCollateral.address,
     market.chainId,
   );
-
-  const poolParams = useOrderBookPoolParams(market, outcomeIndex);
   const { data: isPoolInitialized, isLoading: isPoolStatusLoading } = useIsOrderBookPoolInitialized(
     market,
     outcomeIndex,
@@ -213,10 +227,10 @@ export function SwapTokensLimitOrder({
       swapType,
       parsedShareAmount,
       nearestPriceInfo.nearestPrice,
-      selectedCollateral.decimals,
+      poolCollateral.decimals,
       outcomeToken.decimals,
     );
-  }, [parsedShareAmount, swapType, nearestPriceInfo, selectedCollateral.decimals, outcomeToken.decimals]);
+  }, [parsedShareAmount, swapType, nearestPriceInfo, poolCollateral.decimals, outcomeToken.decimals]);
 
   const orderPreview = useMemo(() => {
     if (!poolParams || !poolState || !parsedLimitPrice || !parsedPayAmount || parsedPayAmount <= 0n) {
@@ -387,7 +401,7 @@ export function SwapTokensLimitOrder({
   const shareSymbol = outcomeText ?? outcomeToken.symbol;
   const collateralSummaryAmount =
     collateralAmount && collateralAmount > 0n
-      ? displayNumber(Number(formatUnits(collateralAmount, selectedCollateral.decimals)), 4)
+      ? displayNumber(Number(formatUnits(collateralAmount, poolCollateral.decimals)), 4)
       : shares && limitPrice
         ? displayNumber(Number(shares) * Number(limitPrice), 4)
         : "0";
@@ -414,12 +428,12 @@ export function SwapTokensLimitOrder({
               shareSymbol={shareSymbol}
               collateralAmount={
                 collateralAmount && collateralAmount > 0n
-                  ? formatUnits(collateralAmount, selectedCollateral.decimals)
+                  ? formatUnits(collateralAmount, poolCollateral.decimals)
                   : shares && limitPrice
-                    ? (Number(shares) * Number(limitPrice)).toFixed(selectedCollateral.decimals)
+                    ? (Number(shares) * Number(limitPrice)).toFixed(poolCollateral.decimals)
                     : "0"
               }
-              collateralSymbol={selectedCollateral.symbol}
+              collateralSymbol={poolCollateral.symbol}
               limitPrice={parsedLimitPrice ?? 0}
               nearestPrice={showNearestPrice ? nearestPriceInfo?.nearestPrice : undefined}
               isLoading={placeLimitOrder.isPending}
@@ -454,16 +468,8 @@ export function SwapTokensLimitOrder({
             <div className="flex items-center gap-2">
               {currentMarketPrice !== undefined && (
                 <p className="text-[14px] text-base-content/70">
-                  Market: {displayNumber(currentMarketPrice, 3)} {selectedCollateral.symbol}
+                  Market: {displayNumber(currentMarketPrice, 3)} {poolCollateral.symbol}
                 </p>
-              )}
-              {isUndefined(fixedCollateral) && (
-                <MarketCollateralDropdown
-                  market={market}
-                  type={swapType}
-                  selectedCollateral={selectedCollateral}
-                  setSelectedCollateral={(collateral) => setPreferredCollateral(collateral, market.chainId)}
-                />
               )}
             </div>
           </div>
@@ -566,7 +572,7 @@ export function SwapTokensLimitOrder({
                       "buy",
                       shareAmount,
                       price,
-                      selectedCollateral.decimals,
+                      poolCollateral.decimals,
                       outcomeToken.decimals,
                     );
                     if (payAmount > collateralBalance) {
@@ -651,7 +657,7 @@ export function SwapTokensLimitOrder({
             <div className="flex justify-between text-[#828282] text-[14px]">
               Current market price
               <span>
-                {displayNumber(currentMarketPrice, 3)} {selectedCollateral.symbol}
+                {displayNumber(currentMarketPrice, 3)} {poolCollateral.symbol}
               </span>
             </div>
           )}
@@ -659,7 +665,7 @@ export function SwapTokensLimitOrder({
             <div className="flex justify-between text-[#828282] text-[14px]">
               The nearest available price
               <span>
-                {displayNumber(nearestPriceInfo.nearestPrice, 3)} {selectedCollateral.symbol}
+                {displayNumber(nearestPriceInfo.nearestPrice, 3)} {poolCollateral.symbol}
               </span>
             </div>
           )}
@@ -672,7 +678,7 @@ export function SwapTokensLimitOrder({
           <div className="flex justify-between text-[#828282] text-[14px]">
             {swapType === "buy" ? "Total cost" : "You'll receive"}
             <span>
-              {collateralSummaryAmount} {selectedCollateral.symbol}
+              {collateralSummaryAmount} {poolCollateral.symbol}
             </span>
           </div>
         </div>

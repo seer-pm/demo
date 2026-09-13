@@ -2,7 +2,8 @@ import { CopyButton } from "@/components/CopyButton";
 import { Link } from "@/components/Link";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { BarChartIcon, DensitySmallIcon } from "@/lib/icons";
-import { displayBalance } from "@/lib/utils";
+import { displayBalance, displayNumber } from "@/lib/utils";
+import { getV4PoolExplorerUrl } from "@seer-pm/order-book";
 import { PoolInfo, fetchTokenBalance, useMarketPools } from "@seer-pm/react";
 import { Market, getPoolExplorerUrl } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
@@ -42,7 +43,11 @@ function PoolTabContent({
         <div className="flex items-center gap-2">
           <p className="font-semibold text-[14px]">Pool Id:</p>
           <Link
-            to={getPoolExplorerUrl(market.chainId, poolId)}
+            to={
+              dataPerPool.version === "v4"
+                ? getV4PoolExplorerUrl(market.chainId, poolId)
+                : getPoolExplorerUrl(market.chainId, poolId)
+            }
             title={poolId}
             className="hover:underline text-purple-primary"
             target="_blank"
@@ -122,7 +127,15 @@ function PoolTab({
     queryKey: ["usePoolTokensBalances", market.chainId, pools?.map((x) => x.id)],
     queryFn: async () => {
       return await Promise.all(
-        pools!.map(async ({ id, token0, token1 }) => {
+        pools!.map(async ({ id, token0, token1, version, totalValueLockedToken0, totalValueLockedToken1 }) => {
+          if (version === "v4") {
+            // V4 reserves live in the PoolManager singleton; the pool id is not an address.
+            // TVL comes from the Seer V4 subgraph (see getUniswapV4Pools).
+            return {
+              balance0: displayNumber(totalValueLockedToken0, 2, true),
+              balance1: displayNumber(totalValueLockedToken1, 2, true),
+            };
+          }
           const balance0BigInt = await fetchTokenBalance(config, token0, id, market.chainId);
           const balance1BigInt = await fetchTokenBalance(config, token1, id, market.chainId);
           return {

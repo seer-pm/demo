@@ -3,4 +3,4 @@
  * For V4 ops that depend on @uniswap/* (limit orders, mint, pool instances), use `@seer-pm/order-book/v4`.
  */
 export * from "./order-book-config";
-export { getLiquidityUrl } from "./explorer-urls";
+export { getLiquidityUrl, getV4PoolExplorerUrl } from "./explorer-urls";

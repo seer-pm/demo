@@ -90,6 +90,8 @@ function poolRewardsInfo(pool: PoolInfo) {
   );
 }
 
+const V4_LIQUIDITY_FORM_ID = "v4-liquidity-form";
+
 function AddLiquidityInfo({
   market,
   outcomeIndex,
@@ -136,7 +138,17 @@ function AddLiquidityInfo({
                 <div>{poolRewardsInfo(pool)}</div>
                 <div>
                   {pool.dex === "UniV4" ? (
-                    <span className="text-black-secondary text-[13px]">Use the V4 form above</span>
+                    <button
+                      type="button"
+                      className="text-purple-primary flex items-center space-x-2"
+                      onClick={() =>
+                        document
+                          .getElementById(V4_LIQUIDITY_FORM_ID)
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    >
+                      <span>Manage in the V4 form</span> <RightArrow />
+                    </button>
                   ) : (
                     <a
                       href={getLiquidityUrl(market, outcomeIndex, {
@@ -640,10 +652,10 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
           );
         })}
         <Modal
-          title="Add Liquidity"
+          title={marketSupportsOrderBook(market) ? "Liquidity" : "Add Liquidity"}
           content={
             marketSupportsOrderBook(market) ? (
-              <div className="space-y-8">
+              <div className="space-y-8" id={V4_LIQUIDITY_FORM_ID}>
                 {(pools[activeOutcome]?.length ?? 0) > 0 && (
                   <Alert type="info" title="Uniswap V4">
                     Add liquidity to the V4 pool below. Other pools are listed at the bottom.

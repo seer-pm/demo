@@ -9,12 +9,11 @@ import { useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 
 const WELCOME_TOAST_SESSION_KEY = "seer:filledOrdersWelcomeToast";
-const PORTFOLIO_ORDERS_PATH = "/portfolio?tab=orders";
 const TOAST_OPTIONS = { autoClose: 10_000 as const };
 
-function portfolioLink() {
+function portfolioLink(chainId: SupportedChain) {
   return (
-    <Link to={PORTFOLIO_ORDERS_PATH} className="underline">
+    <Link to={`/portfolio?tab=orders&chain=${chainId}`} className="underline">
       Go to Portfolio to withdraw
     </Link>
   );
@@ -59,7 +58,7 @@ export function LimitOrdersWatcher() {
             count === 1
               ? "You have 1 filled order ready to withdraw"
               : `You have ${count} filled orders ready to withdraw`,
-          subtitle: portfolioLink(),
+          subtitle: portfolioLink(chainId),
           options: TOAST_OPTIONS,
         });
       }
@@ -73,7 +72,7 @@ export function LimitOrdersWatcher() {
       queryClient.invalidateQueries({ queryKey: ["limitOrderHookUserOrders"] });
       toastInfo({
         title: newCount === 1 ? "1 order just filled" : `${newCount} orders just filled`,
-        subtitle: portfolioLink(),
+        subtitle: portfolioLink(chainId),
         options: TOAST_OPTIONS,
       });
     }

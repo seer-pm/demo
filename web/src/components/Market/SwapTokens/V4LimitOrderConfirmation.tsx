@@ -36,7 +36,7 @@ export function V4LimitOrderConfirmation({
 
   return (
     <div className="flex flex-col justify-center items-center">
-      <div className="min-w-[400px] min-h-[150px]">
+      <div className="w-full max-w-[400px] min-h-[150px]">
         <div className="flex items-center justify-between mb-5 gap-2">
           <p className="text-2xl break-words">
             {leftLabel} {leftSymbol}
@@ -62,7 +62,7 @@ export function V4LimitOrderConfirmation({
         )}
         <div className="flex items-center justify-between">
           <p>Order type</p>
-          <p>Limit order (V4)</p>
+          <p>Limit order</p>
         </div>
       </div>
 
