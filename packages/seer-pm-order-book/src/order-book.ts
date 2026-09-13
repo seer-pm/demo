@@ -5,13 +5,14 @@ import {
   simulateLimitOrderHookWithdraw,
   writeLimitOrderHookPlaceOrder,
 } from "@seer-pm/contracts-ts/order-book";
-import type { Market } from "@seer-pm/sdk";
+import type { Execution, Market } from "@seer-pm/sdk";
 import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
 import { Percent, Token } from "@uniswap/sdk-core";
 import { Pool, Position, V4PositionManager } from "@uniswap/v4-sdk";
 import type { Config } from "@wagmi/core";
-import { readContract, simulateContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { readContract, sendTransaction, simulateContract, waitForTransactionReceipt } from "@wagmi/core";
 import type { Address, Hex } from "viem";
+import { encodeFunctionData, erc20Abi } from "viem";
 import {
   type OrderBookPoolKey,
   PERMIT2_ADDRESS,
@@ -323,44 +324,71 @@ type Permit2AllowanceParams = {
   chainId: number;
 };
 
-export async function hasPermit2Allowance(
-  config: Config,
-  { token, owner, amount, chainId }: Permit2AllowanceParams,
-): Promise<boolean> {
+function requirePositionManager(chainId: number): Address {
   const positionManager = V4_POSITION_MANAGER_ADDRESS[chainId as keyof typeof V4_POSITION_MANAGER_ADDRESS];
   if (!positionManager) {
     throw new Error("V4 PositionManager not configured for chain");
   }
+  return positionManager as Address;
+}
+
+/** Permit2 approvals granted by the app expire after 30 days. */
+const PERMIT2_EXPIRATION_SECONDS = 60 * 60 * 24 * 30;
+
+export async function hasPermit2Allowance(
+  config: Config,
+  { token, owner, amount, chainId }: Permit2AllowanceParams,
+): Promise<boolean> {
+  const positionManager = requirePositionManager(chainId);
 
   const allowance = await readContract(config, {
     address: PERMIT2_ADDRESS,
     abi: permit2Abi,
     functionName: "allowance",
-    args: [owner, token, positionManager as Address],
+    args: [owner, token, positionManager],
     chainId,
   });
 
   return allowance[0] >= amount && Number(allowance[1]) > Date.now() / 1000;
 }
 
-export async function approvePermit2Allowance(
-  config: Config,
-  { token, amount, chainId }: Permit2AllowanceParams,
-): Promise<Hex> {
-  const positionManager = V4_POSITION_MANAGER_ADDRESS[chainId as keyof typeof V4_POSITION_MANAGER_ADDRESS];
-  if (!positionManager) {
-    throw new Error("V4 PositionManager not configured for chain");
-  }
-
-  const expiration = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
-
-  return writeContract(config, {
-    address: PERMIT2_ADDRESS,
-    abi: permit2Abi,
-    functionName: "approve",
-    args: [token, positionManager as Address, amount > MAX_UINT160 ? MAX_UINT160 : amount, expiration],
+/** ERC-20 approval of `amount` to Permit2 (the PositionManager pulls funds through it). */
+export function getApproveErc20ToPermit2Execution({
+  token,
+  amount,
+  chainId,
+}: Omit<Permit2AllowanceParams, "owner">): Execution {
+  return {
+    to: token,
+    value: 0n,
+    data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [PERMIT2_ADDRESS, amount] }),
     chainId,
-  });
+  };
+}
+
+/** Permit2 allowance of `amount` (clamped to uint160) for the PositionManager. */
+export function getApprovePermit2AllowanceExecution({
+  token,
+  amount,
+  chainId,
+}: Omit<Permit2AllowanceParams, "owner">): Execution {
+  const positionManager = requirePositionManager(chainId);
+  const expiration = Math.floor(Date.now() / 1000) + PERMIT2_EXPIRATION_SECONDS;
+
+  return {
+    to: PERMIT2_ADDRESS,
+    value: 0n,
+    data: encodeFunctionData({
+      abi: permit2Abi,
+      functionName: "approve",
+      args: [token, positionManager, amount > MAX_UINT160 ? MAX_UINT160 : amount, expiration],
+    }),
+    chainId,
+  };
+}
+
+export async function approvePermit2Allowance(config: Config, params: Permit2AllowanceParams): Promise<Hex> {
+  return sendTransaction(config, getApprovePermit2AllowanceExecution(params));
 }
 
 export async function ensurePermit2Allowance(config: Config, params: Permit2AllowanceParams): Promise<void> {
@@ -370,6 +398,28 @@ export async function ensurePermit2Allowance(config: Config, params: Permit2Allo
 
   const hash = await approvePermit2Allowance(config, params);
   await waitForTransactionReceipt(config, { hash });
+}
+
+export function getInitializeV4PoolExecution({
+  chainId,
+  poolKey,
+  sqrtPriceX96,
+}: {
+  chainId: number;
+  poolKey: OrderBookPoolKey;
+  sqrtPriceX96: bigint;
+}): Execution {
+  const poolManager = getV4PoolManagerAddress(chainId);
+  if (!poolManager) {
+    throw new Error("V4 PoolManager not configured for chain");
+  }
+
+  return {
+    to: poolManager,
+    value: 0n,
+    data: encodeFunctionData({ abi: poolManagerAbi, functionName: "initialize", args: [poolKey, sqrtPriceX96] }),
+    chainId,
+  };
 }
 
 export async function initializeOrderBookPool(
@@ -385,66 +435,90 @@ export async function initializeOrderBookPool(
   },
 ): Promise<Hex> {
   const { poolKey } = getOrderBookPoolParams(market, outcomeIndex);
-  const poolManager = getV4PoolManagerAddress(market.chainId);
-  if (!poolManager) {
-    throw new Error("V4 PoolManager not configured for chain");
-  }
-
-  return writeContract(config, {
-    address: poolManager,
-    abi: poolManagerAbi,
-    functionName: "initialize",
-    args: [poolKey, sqrtPriceX96],
-    chainId: market.chainId,
-  });
+  return sendTransaction(config, getInitializeV4PoolExecution({ chainId: market.chainId, poolKey, sqrtPriceX96 }));
 }
 
-export async function mintV4Position(
-  config: Config,
-  {
-    chainId,
-    poolKey,
-    sqrtPriceX96,
-    tickLower,
-    tickUpper,
-    amount0,
-    amount1,
-    recipient,
-  }: {
-    chainId: number;
-    poolKey: OrderBookPoolKey;
-    sqrtPriceX96: bigint;
-    tickLower: number;
-    tickUpper: number;
-    amount0: bigint;
-    amount1: bigint;
-    recipient: Address;
-  },
-): Promise<Hex> {
-  const positionManager = V4_POSITION_MANAGER_ADDRESS[chainId as keyof typeof V4_POSITION_MANAGER_ADDRESS];
-  if (!positionManager) {
-    throw new Error("V4 PositionManager not configured for chain");
+type MintV4PositionParams = {
+  chainId: number;
+  poolKey: OrderBookPoolKey;
+  sqrtPriceX96: bigint;
+  tickLower: number;
+  tickUpper: number;
+  amount0: bigint;
+  amount1: bigint;
+  recipient: Address;
+};
+
+/** PositionManager `multicall([mint])` for a new position. */
+export function getMintV4PositionExecution(params: MintV4PositionParams): Execution {
+  const positionManager = requirePositionManager(params.chainId);
+  const { calldata, value } = buildMintV4PositionCalldata(params);
+
+  return {
+    to: positionManager,
+    value,
+    data: encodeFunctionData({ abi: positionManagerAbi, functionName: "multicall", args: [[calldata]] }),
+    chainId: params.chainId,
+  };
+}
+
+export async function mintV4Position(config: Config, params: MintV4PositionParams): Promise<Hex> {
+  return sendTransaction(config, getMintV4PositionExecution(params));
+}
+
+export type AddV4LiquidityApproval = {
+  token: Address;
+  /** Maximum the PositionManager may pull for this token (quote + slippage). */
+  amount: bigint;
+  /** ERC-20 allowance to Permit2 is short. */
+  needsErc20Approval: boolean;
+  /** Permit2 allowance for the PositionManager is short or expired. */
+  needsPermit2Approval: boolean;
+};
+
+export type AddV4LiquidityStep = { execution: Execution; title: string };
+
+/**
+ * Every call needed to add liquidity, in order: missing approvals, pool initialization when the
+ * pool does not exist yet, and the mint. Send them as one EIP-7702 batch or one by one.
+ */
+export function buildAddV4LiquiditySteps({
+  approvals,
+  initializePool,
+  mint,
+}: {
+  approvals: AddV4LiquidityApproval[];
+  initializePool: boolean;
+  mint: MintV4PositionParams;
+}): AddV4LiquidityStep[] {
+  const steps: AddV4LiquidityStep[] = [];
+  const { chainId } = mint;
+
+  for (const { token, amount, needsErc20Approval, needsPermit2Approval } of approvals) {
+    if (amount === 0n) continue;
+    if (needsErc20Approval) {
+      steps.push({
+        execution: getApproveErc20ToPermit2Execution({ token, amount, chainId }),
+        title: "Approving token for Permit2...",
+      });
+    }
+    if (needsPermit2Approval) {
+      steps.push({
+        execution: getApprovePermit2AllowanceExecution({ token, amount, chainId }),
+        title: "Approving Permit2...",
+      });
+    }
   }
 
-  const { calldata, value } = buildMintV4PositionCalldata({
-    chainId,
-    poolKey,
-    sqrtPriceX96,
-    tickLower,
-    tickUpper,
-    amount0,
-    amount1,
-    recipient,
-  });
+  if (initializePool) {
+    steps.push({
+      execution: getInitializeV4PoolExecution({ chainId, poolKey: mint.poolKey, sqrtPriceX96: mint.sqrtPriceX96 }),
+      title: "Initializing pool...",
+    });
+  }
 
-  return writeContract(config, {
-    address: positionManager,
-    abi: positionManagerAbi,
-    functionName: "multicall",
-    args: [[calldata]],
-    value,
-    chainId,
-  });
+  steps.push({ execution: getMintV4PositionExecution(mint), title: "Adding liquidity..." });
+  return steps;
 }
 
 export function getNearestLimitOrderPrice(

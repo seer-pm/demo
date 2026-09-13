@@ -1,12 +1,17 @@
 import {
   MAX_UINT160,
+  PERMIT2_ADDRESS,
   type V4Position,
+  buildAddV4LiquiditySteps,
   buildCollectV4FeesExecution,
   buildRemoveV4PositionExecution,
   computeV4PositionAmounts,
   decodePositionInfo,
+  getApprovePermit2AllowanceExecution,
   getMintV4PositionMaxAmounts,
+  getV4PoolManagerAddress,
   getV4PositionManagerAddress,
+  permit2Abi,
 } from "@seer-pm/order-book/v4";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { decodeFunctionData, parseAbi } from "viem";
@@ -127,5 +132,69 @@ describe("v4 positions", () => {
     const max = getMintV4PositionMaxAmounts(params);
     expect(max.amount0).toBeGreaterThanOrEqual(params.amount0);
     expect(max.amount1).toBeGreaterThan(0n);
+  });
+
+  describe("buildAddV4LiquiditySteps", () => {
+    const mint = {
+      chainId: CHAIN_ID,
+      poolKey: POOL_KEY,
+      sqrtPriceX96: getSqrtRatioAtTick(0),
+      tickLower: -600,
+      tickUpper: 600,
+      amount0: 10n ** 18n,
+      amount1: 10n ** 18n,
+      recipient: POSITION.owner,
+    };
+    const approval = (token: `0x${string}`, needsErc20Approval: boolean, needsPermit2Approval: boolean) => ({
+      token,
+      amount: 10n ** 18n,
+      needsErc20Approval,
+      needsPermit2Approval,
+    });
+
+    it("orders approvals, pool initialization and mint", () => {
+      const steps = buildAddV4LiquiditySteps({
+        approvals: [approval(POOL_KEY.currency0, true, true), approval(POOL_KEY.currency1, false, true)],
+        initializePool: true,
+        mint,
+      });
+      const positionManager = getV4PositionManagerAddress(CHAIN_ID)?.toLowerCase();
+      expect(steps.map((s) => s.execution.to.toLowerCase())).toEqual([
+        POOL_KEY.currency0,
+        PERMIT2_ADDRESS.toLowerCase(),
+        PERMIT2_ADDRESS.toLowerCase(),
+        getV4PoolManagerAddress(CHAIN_ID)?.toLowerCase(),
+        positionManager,
+      ]);
+      expect(steps.every((s) => s.execution.chainId === CHAIN_ID)).toBe(true);
+      const decodedMint = decodeFunctionData({ abi: positionManagerAbi, data: steps[4].execution.data });
+      expect(decodedMint.functionName).toBe("multicall");
+    });
+
+    it("only mints when nothing is missing", () => {
+      const steps = buildAddV4LiquiditySteps({
+        approvals: [
+          approval(POOL_KEY.currency0, false, false),
+          { ...approval(POOL_KEY.currency1, true, true), amount: 0n },
+        ],
+        initializePool: false,
+        mint,
+      });
+      expect(steps).toHaveLength(1);
+      expect(steps[0].title).toBe("Adding liquidity...");
+    });
+  });
+
+  it("getApprovePermit2AllowanceExecution clamps the amount to uint160", () => {
+    const execution = getApprovePermit2AllowanceExecution({
+      token: POOL_KEY.currency0,
+      amount: MAX_UINT160 + 1n,
+      chainId: CHAIN_ID,
+    });
+    expect(execution.to).toBe(PERMIT2_ADDRESS);
+    const decoded = decodeFunctionData({ abi: permit2Abi, data: execution.data });
+    expect(decoded.functionName).toBe("approve");
+    expect(decoded.args?.[1]?.toLowerCase()).toBe(getV4PositionManagerAddress(CHAIN_ID)?.toLowerCase());
+    expect(decoded.args?.[2]).toBe(MAX_UINT160);
   });
 });

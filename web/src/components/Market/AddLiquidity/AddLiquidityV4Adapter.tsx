@@ -1,3 +1,4 @@
+import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { toastifyTx } from "@/lib/toastify";
 import { getLiquidityUrl } from "@seer-pm/order-book";
 import { OUTCOME_TOKEN_DECIMALS, getOutcomePriceAtTick } from "@seer-pm/order-book/v4";
@@ -38,7 +39,8 @@ export function AddLiquidityV4Adapter({
     outcomeIndex,
   );
   const { data: poolState } = useV4PoolState(market, outcomeIndex);
-  const addLiquidity = useAddV4LiquidityBase(toastifyTx);
+  const supports7702 = useCheck7702Support();
+  const addLiquidity = useAddV4LiquidityBase(toastifyTx, supports7702);
 
   const collateral = getActivePrimaryCollateral(market.chainId);
   const outcomeTokenAddress = market.wrappedTokens[outcomeIndex];
