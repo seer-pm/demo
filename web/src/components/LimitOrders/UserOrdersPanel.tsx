@@ -235,7 +235,7 @@ function ActiveOrders({
 
   const open = filterByMarketText(data?.open ?? [], poolById, filterText);
   const filled = filterByMarketText(filledOrders, poolById, filterText);
-  const showMarketColumn = market === undefined;
+  const groupByMarket = market === undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -263,7 +263,7 @@ function ActiveOrders({
             actionLabel="Cancel"
             onAction={(order) => cancelOrders.mutateAsync([toCancelParams(order)])}
             isActionLoading={cancelOrders.isPending}
-            showMarketColumn={showMarketColumn}
+            groupByMarket={groupByMarket}
             showActions={canManage}
           />
         )}
@@ -295,7 +295,7 @@ function ActiveOrders({
             actionLabel="Withdraw"
             onAction={(order) => withdrawOrders.mutateAsync([toWithdrawParams(order)])}
             isActionLoading={withdrawOrders.isPending}
-            showMarketColumn={showMarketColumn}
+            groupByMarket={groupByMarket}
             showActions={canManage}
           />
         )}
