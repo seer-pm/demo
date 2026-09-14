@@ -24,18 +24,27 @@ export interface FillToEstimateDraft {
   maxCollateralToUse: string;
 }
 
+export interface LimitOrderDraft {
+  /** Outcome the shares and limit price belong to; a draft is dropped when the selected outcome moved on. */
+  outcomeToken: string;
+  swapType: "buy" | "sell";
+  shares: string;
+  limitPrice: string;
+}
+
 /** What the user typed in one market's trade widget, kept across unmounts. */
 export interface TradeDraft {
   orderType?: SwapOrderType;
   market?: MarketDraft;
   limit?: LimitDraft;
   fillToEstimate?: FillToEstimateDraft;
+  limitOrder?: LimitOrderDraft;
 }
 
 export type TradeDrafts = Record<string, TradeDraft>;
 
 /** The panel-owned parts of a draft; the order type is not one of them. */
-export type TradeDraftSection = "market" | "limit" | "fillToEstimate";
+export type TradeDraftSection = "market" | "limit" | "fillToEstimate" | "limitOrder";
 
 /** Drafts are per market; keep only the last few so session storage cannot grow without bound. */
 export const MAX_TRADE_DRAFTS = 5;
