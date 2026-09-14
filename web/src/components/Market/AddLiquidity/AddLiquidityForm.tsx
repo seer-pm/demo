@@ -5,12 +5,11 @@ import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWra
 import { displayBalance, displayNumber } from "@/lib/utils";
 import {
   clampProbability,
-  getNearestLimitOrderPrice,
   probabilityRangeToTicks,
   probabilityToTick,
+  snapToNearestTickPrice,
 } from "@seer-pm/order-book/v4";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import type { Address } from "viem";
@@ -39,24 +38,6 @@ function validatePriceRange(minPrice: string, maxPrice: string): string | null {
   }
 
   return null;
-}
-
-function snapToNearestTickPrice(value: string, outcomeIsToken0: boolean): string {
-  if (!value) {
-    return value;
-  }
-
-  const parsed = Number(value);
-
-  if (Number.isNaN(parsed) || parsed <= 0 || parsed >= 1) {
-    return value;
-  }
-
-  const { tick } = getNearestLimitOrderPrice(parsed, outcomeIsToken0);
-  const [price0, price1] = tickToPrice(tick, 18, true);
-  const price = outcomeIsToken0 ? price0 : price1;
-
-  return Number(price).toFixed(8);
 }
 
 function validateInitialPrice(
@@ -135,6 +116,8 @@ export interface AddLiquidityFormProps {
   currentTick?: number;
   isPoolInitialized?: boolean;
   isPoolStatusLoading?: boolean;
+  /** In-range liquidity of the pool; 0n means its price was set at creation and never traded. */
+  poolLiquidity?: bigint;
   isSubmitting?: boolean;
   missingApprovals?: AddLiquidityMissingApproval[];
   onComputeDerivedAmount: (
@@ -156,6 +139,7 @@ export function AddLiquidityForm({
   currentTick,
   isPoolInitialized,
   isPoolStatusLoading,
+  poolLiquidity,
   isSubmitting,
   missingApprovals = [],
   onComputeDerivedAmount,
@@ -496,8 +480,11 @@ export function AddLiquidityForm({
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="text-[14px] font-semibold">Position range ({outcomeLabel})</div>
           {currentPrice !== undefined && (
-            <p className="text-[14px] text-black-secondary">
+            <p className="text-[14px] text-black-secondary text-right">
               Market: {displayNumber(currentPrice, 3)} {collateralSymbol}
+              {poolLiquidity === 0n && (
+                <span className="block text-[12px]">Set when the pool was created, no trades yet.</span>
+              )}
             </p>
           )}
         </div>

@@ -154,6 +154,7 @@ export function AddLiquidityV4Adapter({
         currentTick={currentTick}
         isPoolInitialized={isPoolInitialized}
         isPoolStatusLoading={isPoolStatusLoading}
+        poolLiquidity={isPoolInitialized ? poolState?.liquidity : undefined}
         isSubmitting={addLiquidity.isPending}
         onComputeDerivedAmount={computeDerived}
         onSubmit={handleSubmit}

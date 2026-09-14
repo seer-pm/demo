@@ -30,6 +30,8 @@ export interface LimitOrderDraft {
   swapType: "buy" | "sell";
   shares: string;
   limitPrice: string;
+  /** Price the pool is created at; only meaningful while the pool does not exist. */
+  startingPrice?: string;
 }
 
 /** What the user typed in one market's trade widget, kept across unmounts. */

@@ -4,15 +4,14 @@ import {
   computePositionAmounts,
   getMintV4PositionMaxAmounts,
   getOrderBookPoolParams,
+  getStartingPoolState,
   hasPermit2Allowance,
   isOrderBookPoolInitialized,
   probabilityRangeToTicks,
-  probabilityToTick,
   readV4PoolState,
   resolveLiquiditySqrtPriceX96,
 } from "@seer-pm/order-book/v4";
 import type { TxNotifierFn } from "@seer-pm/sdk";
-import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import type { Address } from "viem";
@@ -60,7 +59,7 @@ export function useAddV4Liquidity(txNotifier: TxNotifierFn, supports7702 = false
         if (initialPrice === undefined) {
           throw new Error("initialPrice is required when creating a new pool");
         }
-        sqrtPriceX96 = getSqrtRatioAtTick(probabilityToTick(initialPrice, outcomeIsToken0, poolKey.tickSpacing));
+        sqrtPriceX96 = getStartingPoolState(initialPrice, outcomeIsToken0, poolKey.tickSpacing).sqrtPriceX96;
       }
 
       // The mint calldata tolerates 50 bps of slippage, so the PositionManager may pull slightly

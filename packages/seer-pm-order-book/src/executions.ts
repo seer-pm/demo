@@ -2,6 +2,7 @@ import { limitOrderHookAbi, limitOrderHookAddress } from "@seer-pm/contracts-ts/
 import type { Execution } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { encodeFunctionData, erc20Abi } from "viem";
+import { getInitializeV4PoolExecution } from "./order-book";
 import { type OrderBookPoolKey, chainSupportsOrderBook } from "./order-book-config";
 
 function requireHookAddress(chainId: number): Address {
@@ -73,30 +74,34 @@ export function getPlaceLimitOrderExecution({
   };
 }
 
+export type PlaceLimitOrderStep = { execution: Execution; title: string };
+
 /**
- * Build 7702 batch: ERC20 approve to hook + placeOrder.
+ * Every call needed to place a limit order, in order: pool initialization when the pool does not
+ * exist yet, the ERC20 approval to the hook when the caller wants it batched, and placeOrder.
+ * Send them as one EIP-7702 batch or one by one.
  */
-export function buildPlaceLimitOrderCalls7702({
-  token,
-  amount,
-  chainId,
-  poolKey,
-  tick,
-  zeroForOne,
-  liquidity,
+export function buildPlaceLimitOrderSteps({
+  initialize,
+  approve,
+  place,
 }: {
-  token: Address;
-  amount: bigint;
-  chainId: number;
-  poolKey: OrderBookPoolKey;
-  tick: number;
-  zeroForOne: boolean;
-  liquidity: bigint;
-}): Execution[] {
-  return [
-    getApproveLimitOrderExecution({ token, amount, chainId }),
-    getPlaceLimitOrderExecution({ chainId, poolKey, tick, zeroForOne, liquidity }),
-  ];
+  initialize?: { chainId: number; poolKey: OrderBookPoolKey; sqrtPriceX96: bigint };
+  approve?: { token: Address; amount: bigint; chainId: number };
+  place: { chainId: number; poolKey: OrderBookPoolKey; tick: number; zeroForOne: boolean; liquidity: bigint };
+}): PlaceLimitOrderStep[] {
+  const steps: PlaceLimitOrderStep[] = [];
+
+  if (initialize) {
+    steps.push({ execution: getInitializeV4PoolExecution(initialize), title: "Initializing pool..." });
+  }
+
+  if (approve) {
+    steps.push({ execution: getApproveLimitOrderExecution(approve), title: "Approving..." });
+  }
+
+  steps.push({ execution: getPlaceLimitOrderExecution(place), title: "Placing limit order..." });
+  return steps;
 }
 
 export type CancelLimitOrderParams = {

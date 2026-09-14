@@ -1,16 +1,16 @@
 import {
-  buildPlaceLimitOrderCalls7702,
+  buildPlaceLimitOrderSteps,
   computeLimitOrderParams,
   getOrderBookPoolParams,
-  getPlaceLimitOrderExecution,
+  getStartingPoolState,
   isOrderBookPoolInitialized,
   readV4PoolState,
 } from "@seer-pm/order-book/v4";
 import type { TxNotifierFn } from "@seer-pm/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { sendCalls, sendTransaction } from "@wagmi/core";
 import type { Address } from "viem";
 import { useConfig } from "wagmi";
+import { sendExecutions } from "./sendExecutions";
 import type { Market } from "./useMarketPools";
 
 export interface PlaceV4LimitOrderParams {
@@ -20,6 +20,11 @@ export interface PlaceV4LimitOrderParams {
   swapType: "buy" | "sell";
   limitPrice: number;
   payAmount: bigint;
+  /**
+   * Price the pool is created at when it does not exist yet: the order then initializes the pool
+   * in the same batch. Ignored once the pool is initialized.
+   */
+  startingPrice?: number;
 }
 
 export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boolean) {
@@ -28,19 +33,26 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boo
 
   return useMutation({
     mutationFn: async (params: PlaceV4LimitOrderParams) => {
-      const { market, outcomeIndex, swapType, limitPrice, payAmount } = params;
-
-      const poolInitialized = await isOrderBookPoolInitialized(config, market, outcomeIndex);
-      if (!poolInitialized) {
-        throw new Error("Pool is not initialized. Add liquidity first.");
-      }
+      const { market, outcomeIndex, swapType, limitPrice, payAmount, startingPrice } = params;
 
       const poolParams = getOrderBookPoolParams(market, outcomeIndex);
       const { poolKey, outcomeIsToken0, token0, token1 } = poolParams;
 
-      const state = await readV4PoolState(config, market.chainId, poolKey);
-      if (!state) {
-        throw new Error("Pool state unavailable");
+      // Re-check on submit: someone else may have created the pool while the panel was open.
+      const poolInitialized = await isOrderBookPoolInitialized(config, market, outcomeIndex);
+
+      let poolState: { tick: number; sqrtPriceX96: bigint };
+      if (poolInitialized) {
+        const state = await readV4PoolState(config, market.chainId, poolKey);
+        if (!state) {
+          throw new Error("Pool state unavailable");
+        }
+        poolState = state;
+      } else {
+        if (startingPrice === undefined) {
+          throw new Error("Starting price is required to create the pool");
+        }
+        poolState = getStartingPoolState(startingPrice, outcomeIsToken0, poolKey.tickSpacing);
       }
 
       const orderParams = computeLimitOrderParams({
@@ -50,60 +62,41 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boo
         swapType,
         limitPrice,
         payAmount,
-        currentTick: state.tick,
-        sqrtPriceX96: state.sqrtPriceX96,
+        currentTick: poolState.tick,
+        sqrtPriceX96: poolState.sqrtPriceX96,
       });
 
       const payToken = orderParams.payToken === "token0" ? token0 : token1;
       const payAmountActual =
         orderParams.payToken === "token0" ? orderParams.totalPay.amount0 : orderParams.totalPay.amount1;
 
-      const placeParams = {
-        chainId: market.chainId,
-        poolKey,
-        tick: orderParams.tick,
-        zeroForOne: orderParams.zeroForOne,
-        liquidity: orderParams.liquidity,
-      };
-
-      if (supports7702) {
-        const calls = buildPlaceLimitOrderCalls7702({
-          token: payToken,
-          amount: payAmountActual,
-          ...placeParams,
-        });
-
-        const placeResult = await txNotifier(
-          () =>
-            sendCalls(config, {
-              calls,
-              chainId: market.chainId,
-            }),
-          {
-            txSent: { title: "Placing limit order..." },
-            txSuccess: { title: "Limit order placed." },
-          },
-        );
-
-        if (!placeResult.status) {
-          throw placeResult.error;
-        }
-
-        return placeResult.receipt.transactionHash;
-      }
-
-      // Legacy: approval is handled by ApproveButton in the UI.
-      const execution = getPlaceLimitOrderExecution(placeParams);
-      const placeResult = await txNotifier(() => sendTransaction(config, execution), {
-        txSent: { title: "Placing limit order..." },
-        txSuccess: { title: "Limit order placed." },
+      // Without 7702 the approval is a separate transaction handled by ApproveButton in the UI.
+      const steps = buildPlaceLimitOrderSteps({
+        initialize: poolInitialized
+          ? undefined
+          : { chainId: market.chainId, poolKey, sqrtPriceX96: poolState.sqrtPriceX96 },
+        approve: supports7702 ? { token: payToken, amount: payAmountActual, chainId: market.chainId } : undefined,
+        place: {
+          chainId: market.chainId,
+          poolKey,
+          tick: orderParams.tick,
+          zeroForOne: orderParams.zeroForOne,
+          liquidity: orderParams.liquidity,
+        },
       });
 
-      if (!placeResult.status) {
-        throw placeResult.error;
-      }
-
-      return placeResult.receipt.transactionHash;
+      return sendExecutions(
+        config,
+        steps.map((step) => step.execution),
+        market.chainId,
+        supports7702,
+        txNotifier,
+        {
+          txSent: poolInitialized ? "Placing limit order..." : "Creating pool and placing limit order...",
+          txSuccess: poolInitialized ? "Limit order placed." : "Pool created and limit order placed.",
+          stepTitles: steps.map((step) => step.title),
+        },
+      );
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["useMarketPools", variables.market.id] });

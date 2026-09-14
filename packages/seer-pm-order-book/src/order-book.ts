@@ -148,7 +148,7 @@ export function resolveLiquiditySqrtPriceX96({
     throw new Error("initialPrice is required when pool is not initialized");
   }
 
-  return getSqrtRatioAtTick(probabilityToTick(initialPrice, outcomeIsToken0, poolKey.tickSpacing));
+  return getStartingPoolState(initialPrice, outcomeIsToken0, poolKey.tickSpacing).sqrtPriceX96;
 }
 
 export function computePositionAmounts({
@@ -532,6 +532,41 @@ export function getNearestLimitOrderPrice(
   return { tick, nearestPrice };
 }
 
+/**
+ * Rewrite a typed outcome price as the price of its nearest usable tick, so what the user sees is
+ * what the pool will use. Values outside (0, 1) are left alone for the field's own validation.
+ */
+export function snapToNearestTickPrice(value: string, outcomeIsToken0: boolean, tickSpacing = 60): string {
+  if (!value) {
+    return value;
+  }
+
+  const parsed = Number(value);
+
+  if (Number.isNaN(parsed) || parsed <= 0 || parsed >= 1) {
+    return value;
+  }
+
+  const { tick } = getNearestLimitOrderPrice(parsed, outcomeIsToken0, tickSpacing);
+  const [price0, price1] = tickToPrice(tick, 18, true);
+  const price = outcomeIsToken0 ? price0 : price1;
+
+  return Number(price).toFixed(8);
+}
+
+/**
+ * The slot0 a pool would have right after `initialize` at `startingPrice`: the price is snapped to a
+ * usable tick, so `getTickAtSqrtRatio(sqrtPriceX96)` is exactly `tick`.
+ */
+export function getStartingPoolState(
+  startingPrice: number,
+  outcomeIsToken0: boolean,
+  tickSpacing = 60,
+): { tick: number; sqrtPriceX96: bigint } {
+  const tick = probabilityToTick(startingPrice, outcomeIsToken0, tickSpacing);
+  return { tick, sqrtPriceX96: getSqrtRatioAtTick(tick) };
+}
+
 export function getOutcomePriceAtTick(tick: number, outcomeIsToken0: boolean): number {
   const [price0, price1] = tickToPrice(tick, 18, true);
   return Number(outcomeIsToken0 ? price0 : price1);
@@ -613,6 +648,19 @@ export function resolveLimitOrderZeroForOne(swapType: "buy" | "sell", outcomeIsT
   return swapType === "buy" ? !outcomeIsToken0 : outcomeIsToken0;
 }
 
+/**
+ * The hook only accepts out-of-range orders: a zeroForOne order must sit strictly above the current
+ * tick and the other direction must end at or below it.
+ */
+export function isLimitOrderTickPlacementValid(
+  zeroForOne: boolean,
+  tickLower: number,
+  currentTick: number,
+  tickSpacing: number,
+): boolean {
+  return zeroForOne ? tickLower > currentTick : tickLower + tickSpacing <= currentTick;
+}
+
 function validateLimitOrderTickPlacement(
   zeroForOne: boolean,
   tickLower: number,
@@ -621,19 +669,33 @@ function validateLimitOrderTickPlacement(
   swapType: "buy" | "sell",
   outcomeIsToken0: boolean,
 ): void {
-  const marketPrice = getOutcomePriceAtTick(currentTick, outcomeIsToken0);
-  const { price: boundaryPrice } = getValidLimitOrderBoundaryPrice(swapType, outcomeIsToken0, currentTick, tickSpacing);
-
-  if (zeroForOne) {
-    if (tickLower <= currentTick) {
-      throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, boundaryPrice, marketPrice));
-    }
+  if (isLimitOrderTickPlacementValid(zeroForOne, tickLower, currentTick, tickSpacing)) {
     return;
   }
 
-  if (tickLower + tickSpacing > currentTick) {
-    throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, boundaryPrice, marketPrice));
+  const marketPrice = getOutcomePriceAtTick(currentTick, outcomeIsToken0);
+  const { price: boundaryPrice } = getValidLimitOrderBoundaryPrice(swapType, outcomeIsToken0, currentTick, tickSpacing);
+  throw new Error(formatLimitOrderPriceError(swapType, outcomeIsToken0, boundaryPrice, marketPrice));
+}
+
+/**
+ * Validation for the starting price of a pool created together with its first order: the same
+ * placement rule as above, but blamed on the starting price rather than the limit price.
+ */
+export function formatStartingPriceError(
+  swapType: "buy" | "sell",
+  outcomeIsToken0: boolean,
+  startingTick: number,
+  limitTick: number,
+  tickSpacing = 60,
+): string | undefined {
+  const zeroForOne = resolveLimitOrderZeroForOne(swapType, outcomeIsToken0);
+  if (isLimitOrderTickPlacementValid(zeroForOne, limitTick, startingTick, tickSpacing)) {
+    return undefined;
   }
+  return swapType === "buy"
+    ? "Starting price must be above your buy price."
+    : "Starting price must be below your sell price.";
 }
 
 const Q192 = 1n << 192n;

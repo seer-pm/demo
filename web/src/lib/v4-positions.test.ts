@@ -4,6 +4,7 @@ import {
   type V4Position,
   buildAddV4LiquiditySteps,
   buildCollectV4FeesExecution,
+  buildPlaceLimitOrderSteps,
   buildRemoveV4PositionExecution,
   computeV4PositionAmounts,
   decodePositionInfo,
@@ -182,6 +183,35 @@ describe("v4 positions", () => {
       });
       expect(steps).toHaveLength(1);
       expect(steps[0].title).toBe("Adding liquidity...");
+    });
+  });
+
+  describe("buildPlaceLimitOrderSteps", () => {
+    const place = { chainId: CHAIN_ID, poolKey: POOL_KEY, tick: 600, zeroForOne: true, liquidity: 10n ** 18n };
+    const initialize = { chainId: CHAIN_ID, poolKey: POOL_KEY, sqrtPriceX96: getSqrtRatioAtTick(0) };
+    const approve = { token: POOL_KEY.currency0, amount: 10n ** 18n, chainId: CHAIN_ID };
+
+    it("orders pool initialization, approval and placeOrder", () => {
+      const steps = buildPlaceLimitOrderSteps({ initialize, approve, place });
+      expect(steps.map((s) => s.execution.to.toLowerCase())).toEqual([
+        getV4PoolManagerAddress(CHAIN_ID)?.toLowerCase(),
+        POOL_KEY.currency0,
+        POOL_KEY.hooks.toLowerCase(),
+      ]);
+      expect(steps.map((s) => s.title)).toEqual(["Initializing pool...", "Approving...", "Placing limit order..."]);
+      expect(steps.every((s) => s.execution.chainId === CHAIN_ID)).toBe(true);
+    });
+
+    it("skips initialization for an existing pool and the approval when not batched", () => {
+      expect(buildPlaceLimitOrderSteps({ approve, place }).map((s) => s.title)).toEqual([
+        "Approving...",
+        "Placing limit order...",
+      ]);
+      expect(buildPlaceLimitOrderSteps({ initialize, place }).map((s) => s.title)).toEqual([
+        "Initializing pool...",
+        "Placing limit order...",
+      ]);
+      expect(buildPlaceLimitOrderSteps({ place }).map((s) => s.title)).toEqual(["Placing limit order..."]);
     });
   });
 
