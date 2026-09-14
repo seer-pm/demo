@@ -2,8 +2,10 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import useDebounce from "@/hooks/useDebounce";
 import { useModal } from "@/hooks/useModal";
+import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { paths } from "@/lib/paths";
 import { toastifyTx } from "@/lib/toastify";
+import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber } from "@/lib/utils";
 import {
   computeLimitOrderParams,
@@ -25,7 +27,7 @@ import { usePlaceV4LimitOrder } from "@seer-pm/react/hooks/usePlaceV4LimitOrder"
 import { TradeType, getActivePrimaryCollateral } from "@seer-pm/sdk";
 import type { Market, Token } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { Address } from "viem";
 import { formatUnits, parseUnits } from "viem";
@@ -85,27 +87,39 @@ export function SwapTokensLimitOrder({
 }: SwapTokensLimitOrderProps) {
   const sharesRef = useRef<HTMLInputElement | null>(null);
   const limitPriceRef = useRef<HTMLInputElement | null>(null);
-  const [swapType, setSwapType] = useState<"buy" | "sell">("buy");
+  const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
+  // Read once: from here on this panel owns the values and writes them back to the draft.
+  // A draft typed against another outcome is ignored: the price would not mean the same thing.
+  const [draft] = useState(() => {
+    const limitOrderDraft = getDraft()?.limitOrder;
+    return isDraftForOutcome(limitOrderDraft, outcomeToken.address) ? limitOrderDraft : undefined;
+  });
+  const [swapType, setSwapType] = useState<"buy" | "sell">(draft?.swapType ?? "buy");
   const primaryCollateral = getActivePrimaryCollateral(market.chainId);
 
   const useFormReturn = useForm<SwapFormValues>({
     mode: "all",
     defaultValues: {
-      shares: "",
-      limitPrice: "",
+      shares: draft?.shares ?? "",
+      limitPrice: draft?.limitPrice ?? "",
     },
   });
 
   const {
     register,
     reset,
-    formState: { errors },
+    formState: { dirtyFields, errors },
     handleSubmit,
     watch,
     setValue,
+    trigger,
   } = useFormReturn;
 
   const [shares, limitPrice] = watch(["shares", "limitPrice"]);
+
+  // Explicit values: the defaults were seeded from the draft, so a bare reset()
+  // would put the placed order's values back instead of clearing the form.
+  useOnTradeDraftCleared(market, "limitOrder", () => reset({ shares: "", limitPrice: "" }));
   const debouncedShares = useDebounce(shares, 500);
   const debouncedLimitPrice = useDebounce(limitPrice, 500);
 
@@ -186,10 +200,10 @@ export function SwapTokensLimitOrder({
     return formatLimitOrderPriceHint(swapType, outcomeIsToken0, boundaryPriceInfo.price);
   }, [swapType, outcomeIsToken0, boundaryPriceInfo]);
 
+  // The typed price and shares are kept across the Buy/Sell tabs: the preview and the
+  // balance validation below re-run against the new direction.
   const handleSwapTypeChange = (nextSwapType: "buy" | "sell") => {
     setSwapType(nextSwapType);
-    setValue("shares", "", { shouldValidate: false });
-    setValue("limitPrice", "", { shouldValidate: false });
   };
 
   const parsedLimitPrice = debouncedLimitPrice ? Number(debouncedLimitPrice) : undefined;
@@ -300,6 +314,20 @@ export function SwapTokensLimitOrder({
   const maxShares = swapType === "sell" ? outcomeBalance : 0n;
   const isFetchingBalance = isFetchingOutcomeBalance || isFetchingCollateralBalance;
 
+  useEffect(() => {
+    setDraft({ limitOrder: { outcomeToken: outcomeToken.address, swapType, shares, limitPrice } });
+  }, [outcomeToken.address, swapType, shares, limitPrice, setDraft]);
+
+  useEffect(() => {
+    // Re-validate once the balances are known and whenever the direction changes, since
+    // buy and sell check different balances. A shares value restored from the draft was
+    // never typed, so it is not dirty: check the value itself, or "Not enough balance"
+    // would only show up on submit.
+    if (!isFetchingBalance && (dirtyFields.shares || shares)) {
+      trigger("shares");
+    }
+  }, [outcomeBalance, collateralBalance, isFetchingBalance, swapType]);
+
   const handlePlaceOrder = async () => {
     if (!account || !parsedPayAmount || !parsedLimitPrice) {
       return;
@@ -313,7 +341,8 @@ export function SwapTokensLimitOrder({
       limitPrice: parsedLimitPrice,
       payAmount: parsedPayAmount,
     });
-    reset();
+    // Emptying the form is left to useOnTradeDraftCleared: see there.
+    clearDraft("limitOrder");
     closeConfirmModal();
   };
 
