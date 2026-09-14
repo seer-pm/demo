@@ -12,6 +12,8 @@ interface V4LimitOrderConfirmationProps {
   collateralSymbol: string;
   limitPrice: number;
   nearestPrice?: number;
+  /** Set when the order also creates the pool. */
+  startingPrice?: number;
   isLoading: boolean;
 }
 
@@ -25,6 +27,7 @@ export function V4LimitOrderConfirmation({
   collateralSymbol,
   limitPrice,
   nearestPrice,
+  startingPrice,
   isLoading,
 }: V4LimitOrderConfirmationProps) {
   const showNearestPrice = nearestPrice !== undefined && Math.abs(nearestPrice - limitPrice) > 0.0001;
@@ -66,11 +69,25 @@ export function V4LimitOrderConfirmation({
           <p>Order type</p>
           <p>Limit order</p>
         </div>
+        {startingPrice !== undefined && (
+          <div className="flex items-center justify-between">
+            <p>Starting price</p>
+            <p>
+              {displayNumber(startingPrice, 3)} {collateralSymbol}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
         <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
-        <Button variant="primary" type="button" text="Place order" onClick={() => onSubmit()} isLoading={isLoading} />
+        <Button
+          variant="primary"
+          type="button"
+          text={startingPrice !== undefined ? "Create pool & place order" : "Place order"}
+          onClick={() => onSubmit()}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

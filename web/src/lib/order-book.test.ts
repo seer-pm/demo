@@ -7,15 +7,18 @@ import {
   createV4PoolInstance,
   formatLimitOrderPriceError,
   formatLimitOrderPriceHint,
+  formatStartingPriceError,
   getAmountInAtTick,
   getAmountOutAtTick,
   getNearestLimitOrderPrice,
   getOutcomePriceAtTick,
+  getStartingPoolState,
   getValidLimitOrderBoundaryPrice,
   probabilityRangeToTicks,
   probabilityToTick,
   resolveLimitOrderZeroForOne,
   resolveLiquiditySqrtPriceX96,
+  snapToNearestTickPrice,
 } from "@seer-pm/order-book/v4";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { Position } from "@uniswap/v4-sdk";
@@ -184,6 +187,88 @@ describe("order-book", () => {
     });
 
     expect(sqrtPriceX96).toBe(poolSqrtPriceX96);
+  });
+
+  it("getStartingPoolState snaps the price to a usable tick that round-trips through sqrtPrice", () => {
+    for (const outcomeIsToken0 of [true, false]) {
+      const { tick, sqrtPriceX96 } = getStartingPoolState(0.65, outcomeIsToken0);
+      expect(tick).toBe(probabilityToTick(0.65, outcomeIsToken0));
+      expect(Math.abs(tick) % 60).toBe(0);
+      expect(sqrtPriceX96).toBe(getSqrtRatioAtTick(tick));
+      expect(getOutcomePriceAtTick(tick, outcomeIsToken0)).toBeCloseTo(0.65, 2);
+    }
+  });
+
+  it("snapToNearestTickPrice rewrites the price as its nearest tick price", () => {
+    const snapped = snapToNearestTickPrice("0.65", true);
+    expect(Number(snapped)).toBeCloseTo(getNearestLimitOrderPrice(0.65, true).nearestPrice, 8);
+    expect(snapToNearestTickPrice(snapped, true)).toBe(snapped);
+    expect(snapToNearestTickPrice("", true)).toBe("");
+    expect(snapToNearestTickPrice("1.5", true)).toBe("1.5");
+    expect(snapToNearestTickPrice("abc", true)).toBe("abc");
+  });
+
+  describe("formatStartingPriceError", () => {
+    it.each([true, false])("buy needs the starting price above the limit (outcomeIsToken0=%s)", (outcomeIsToken0) => {
+      const limitTick = getNearestLimitOrderPrice(0.6, outcomeIsToken0).tick;
+      const above = getStartingPoolState(0.65, outcomeIsToken0).tick;
+      const same = getStartingPoolState(0.6, outcomeIsToken0).tick;
+      const below = getStartingPoolState(0.55, outcomeIsToken0).tick;
+
+      expect(formatStartingPriceError("buy", outcomeIsToken0, above, limitTick)).toBeUndefined();
+      expect(formatStartingPriceError("buy", outcomeIsToken0, same, limitTick)).toBe(
+        "Starting price must be above your buy price.",
+      );
+      expect(formatStartingPriceError("buy", outcomeIsToken0, below, limitTick)).toBe(
+        "Starting price must be above your buy price.",
+      );
+    });
+
+    it.each([true, false])("sell needs the starting price below the limit (outcomeIsToken0=%s)", (outcomeIsToken0) => {
+      const limitTick = getNearestLimitOrderPrice(0.6, outcomeIsToken0).tick;
+      const above = getStartingPoolState(0.65, outcomeIsToken0).tick;
+      const same = getStartingPoolState(0.6, outcomeIsToken0).tick;
+      const below = getStartingPoolState(0.55, outcomeIsToken0).tick;
+
+      expect(formatStartingPriceError("sell", outcomeIsToken0, below, limitTick)).toBeUndefined();
+      expect(formatStartingPriceError("sell", outcomeIsToken0, same, limitTick)).toBe(
+        "Starting price must be below your sell price.",
+      );
+      expect(formatStartingPriceError("sell", outcomeIsToken0, above, limitTick)).toBe(
+        "Starting price must be below your sell price.",
+      );
+    });
+
+    it("agrees with computeLimitOrderParams on the boundary", () => {
+      const poolKey = buildOrderBookPoolKey(
+        "0x0000000000000000000000000000000000000001",
+        "0x0000000000000000000000000000000000000002",
+        8453,
+      )!;
+      const outcomeIsToken0 = true;
+      const limitTick = getNearestLimitOrderPrice(0.6, outcomeIsToken0).tick;
+
+      for (const startingPrice of [0.58, 0.6, 0.62, 0.7]) {
+        const state = getStartingPoolState(startingPrice, outcomeIsToken0, poolKey.tickSpacing);
+        const error = formatStartingPriceError("buy", outcomeIsToken0, state.tick, limitTick, poolKey.tickSpacing);
+        const place = () =>
+          computeLimitOrderParams({
+            chainId: 8453,
+            poolKey,
+            outcomeIsToken0,
+            swapType: "buy",
+            limitPrice: 0.6,
+            payAmount: 10n ** 18n,
+            currentTick: state.tick,
+            sqrtPriceX96: state.sqrtPriceX96,
+          });
+        if (error) {
+          expect(place).toThrow();
+        } else {
+          expect(place).not.toThrow();
+        }
+      }
+    });
   });
 
   it("resolveLimitOrderZeroForOne maps buy/sell to deposit token", () => {

@@ -10,12 +10,15 @@ import { displayBalance, displayNumber } from "@/lib/utils";
 import {
   computeLimitOrderParams,
   formatLimitOrderPriceHint,
+  formatStartingPriceError,
   getAmountInAtTick,
   getLimitOrderHookAddress,
   getNearestLimitOrderPrice,
   getOutcomePriceAtTick,
+  getStartingPoolState,
   getValidLimitOrderBoundaryPrice,
   resolveLimitOrderZeroForOne,
+  snapToNearestTickPrice,
 } from "@seer-pm/order-book/v4";
 import { useMissingApprovals, useTokenBalance, useTokenInfo } from "@seer-pm/react";
 import {
@@ -42,6 +45,8 @@ import { V4LimitOrderConfirmation } from "./V4LimitOrderConfirmation";
 interface SwapFormValues {
   shares: string;
   limitPrice: string;
+  /** Only used while the pool does not exist: the order creates it at this price. */
+  startingPrice: string;
 }
 
 interface SwapTokensLimitOrderProps {
@@ -66,6 +71,14 @@ function sharesToPayAmount(
   }
 
   return getAmountInAtTick(shareAmount, tick, resolveLimitOrderZeroForOne(swapType, outcomeIsToken0));
+}
+
+/** A price typed without a decimal point, like "80", means 0.80. */
+function toDecimalPrice(value: string): string | undefined {
+  if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
+    return `0.${value}`;
+  }
+  return undefined;
 }
 
 function getEffectiveLimitTick(limitPrice: string, outcomeIsToken0: boolean): number | undefined {
@@ -102,6 +115,7 @@ export function SwapTokensLimitOrder({
     defaultValues: {
       shares: draft?.shares ?? "",
       limitPrice: draft?.limitPrice ?? "",
+      startingPrice: draft?.startingPrice ?? "",
     },
   });
 
@@ -115,13 +129,14 @@ export function SwapTokensLimitOrder({
     trigger,
   } = useFormReturn;
 
-  const [shares, limitPrice] = watch(["shares", "limitPrice"]);
+  const [shares, limitPrice, startingPrice] = watch(["shares", "limitPrice", "startingPrice"]);
 
   // Explicit values: the defaults were seeded from the draft, so a bare reset()
   // would put the placed order's values back instead of clearing the form.
-  useOnTradeDraftCleared(market, "limitOrder", () => reset({ shares: "", limitPrice: "" }));
+  useOnTradeDraftCleared(market, "limitOrder", () => reset({ shares: "", limitPrice: "", startingPrice: "" }));
   const debouncedShares = useDebounce(shares, 500);
   const debouncedLimitPrice = useDebounce(limitPrice, 500);
+  const debouncedStartingPrice = useDebounce(startingPrice, 500);
 
   const { account, sellToken } = useTradeConditions({
     market,
@@ -179,19 +194,43 @@ export function SwapTokensLimitOrder({
   const outcomeIsToken0 = poolParams?.outcomeIsToken0 ?? false;
   const hookAddress = getLimitOrderHookAddress(market.chainId);
 
+  // Without a pool there is no price to place the order against: the user picks the starting
+  // price and the order creates the pool at it. Until then the panel treats that price as the
+  // pool's, so the hints, the preview and the placement rule work the same way.
+  const isCreatingPool = !isPoolInitialized && !isPoolStatusLoading;
+  const parsedStartingPrice = useMemo(() => {
+    const parsed = debouncedStartingPrice ? Number(debouncedStartingPrice) : undefined;
+    return parsed && parsed > 0 && parsed < 1 ? parsed : undefined;
+  }, [debouncedStartingPrice]);
+  const startingPoolState = useMemo(() => {
+    if (!isCreatingPool || !parsedStartingPrice || !poolParams) {
+      return null;
+    }
+    return getStartingPoolState(parsedStartingPrice, outcomeIsToken0, poolParams.poolKey.tickSpacing);
+  }, [isCreatingPool, parsedStartingPrice, poolParams, outcomeIsToken0]);
+  const effectivePoolState = poolState ?? startingPoolState;
+  const isStartingPrice = !poolState && Boolean(startingPoolState);
+  // A pool whose price was set at creation and never traded: the price is not a market price.
+  const hasNoTrades = Boolean(poolState) && poolState?.liquidity === 0n;
+
   const currentMarketPrice = useMemo(() => {
-    if (!poolState) {
+    if (!effectivePoolState) {
       return undefined;
     }
-    return getOutcomePriceAtTick(poolState.tick, outcomeIsToken0);
-  }, [poolState, outcomeIsToken0]);
+    return getOutcomePriceAtTick(effectivePoolState.tick, outcomeIsToken0);
+  }, [effectivePoolState, outcomeIsToken0]);
 
   const boundaryPriceInfo = useMemo(() => {
-    if (!poolState) {
+    if (!effectivePoolState) {
       return undefined;
     }
-    return getValidLimitOrderBoundaryPrice(swapType, outcomeIsToken0, poolState.tick, poolParams?.poolKey.tickSpacing);
-  }, [poolState, swapType, outcomeIsToken0, poolParams?.poolKey.tickSpacing]);
+    return getValidLimitOrderBoundaryPrice(
+      swapType,
+      outcomeIsToken0,
+      effectivePoolState.tick,
+      poolParams?.poolKey.tickSpacing,
+    );
+  }, [effectivePoolState, swapType, outcomeIsToken0, poolParams?.poolKey.tickSpacing]);
 
   const limitPriceHint = useMemo(() => {
     if (!boundaryPriceInfo) {
@@ -241,7 +280,7 @@ export function SwapTokensLimitOrder({
   }, [parsedShareAmount, swapType, nearestPriceInfo, outcomeIsToken0]);
 
   const orderPreview = useMemo(() => {
-    if (!poolParams || !poolState || !parsedLimitPrice || !parsedPayAmount || parsedPayAmount <= 0n) {
+    if (!poolParams || !effectivePoolState || !parsedLimitPrice || !parsedPayAmount || parsedPayAmount <= 0n) {
       return { error: null as string | null, data: null };
     }
 
@@ -253,14 +292,14 @@ export function SwapTokensLimitOrder({
         swapType,
         limitPrice: parsedLimitPrice,
         payAmount: parsedPayAmount,
-        currentTick: poolState.tick,
-        sqrtPriceX96: poolState.sqrtPriceX96,
+        currentTick: effectivePoolState.tick,
+        sqrtPriceX96: effectivePoolState.sqrtPriceX96,
       });
       return { error: null, data };
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Unable to compute order", data: null };
     }
-  }, [poolParams, poolState, parsedLimitPrice, parsedPayAmount, market.chainId, outcomeIsToken0, swapType]);
+  }, [poolParams, effectivePoolState, parsedLimitPrice, parsedPayAmount, market.chainId, outcomeIsToken0, swapType]);
 
   const isLimitPricePlacementError = Boolean(
     orderPreview.error && boundaryPriceInfo && /set a limit price at or (below|above)/.test(orderPreview.error),
@@ -315,8 +354,16 @@ export function SwapTokensLimitOrder({
   const isFetchingBalance = isFetchingOutcomeBalance || isFetchingCollateralBalance;
 
   useEffect(() => {
-    setDraft({ limitOrder: { outcomeToken: outcomeToken.address, swapType, shares, limitPrice } });
-  }, [outcomeToken.address, swapType, shares, limitPrice, setDraft]);
+    setDraft({ limitOrder: { outcomeToken: outcomeToken.address, swapType, shares, limitPrice, startingPrice } });
+  }, [outcomeToken.address, swapType, shares, limitPrice, startingPrice, setDraft]);
+
+  useEffect(() => {
+    // The starting price has to sit on the right side of the limit price, so re-check it
+    // whenever the limit price or the direction changes.
+    if (isCreatingPool && startingPrice) {
+      trigger("startingPrice");
+    }
+  }, [limitPrice, swapType]);
 
   useEffect(() => {
     // Re-validate once the balances are known and whenever the direction changes, since
@@ -340,6 +387,7 @@ export function SwapTokensLimitOrder({
       swapType,
       limitPrice: parsedLimitPrice,
       payAmount: parsedPayAmount,
+      startingPrice: isCreatingPool ? parsedStartingPrice : undefined,
     });
     // Emptying the form is left to useOnTradeDraftCleared: see there.
     clearDraft("limitOrder");
@@ -355,16 +403,12 @@ export function SwapTokensLimitOrder({
       return <Button variant="primary" className="w-full" type="button" disabled isLoading text="" />;
     }
 
-    if (!isPoolInitialized) {
-      return (
-        <Button
-          variant="primary"
-          className="w-full"
-          type="button"
-          text="Add liquidity to enable limit orders"
-          onClick={onAddLiquidity}
-        />
-      );
+    if (isCreatingPool && !startingPoolState) {
+      return <Button variant="primary" className="w-full" type="button" disabled text="Enter starting price" />;
+    }
+
+    if (errors.startingPrice?.message) {
+      return <Button variant="primary" className="w-full" type="button" disabled text={errors.startingPrice.message} />;
     }
 
     if (errors.shares?.message && errors.shares.message !== "This field is required.") {
@@ -401,7 +445,7 @@ export function SwapTokensLimitOrder({
         variant="primary"
         className="w-full"
         type="submit"
-        text="Place limit order"
+        text={isCreatingPool ? "Create pool & place order" : "Place limit order"}
         isLoading={placeLimitOrder.isPending}
       />
     );
@@ -445,6 +489,7 @@ export function SwapTokensLimitOrder({
               collateralSymbol={poolCollateral.symbol}
               limitPrice={parsedLimitPrice ?? 0}
               nearestPrice={showNearestPrice ? nearestPriceInfo?.nearestPrice : undefined}
+              startingPrice={isCreatingPool ? parsedStartingPrice : undefined}
               isLoading={placeLimitOrder.isPending}
             />
           )
@@ -471,13 +516,75 @@ export function SwapTokensLimitOrder({
           </button>
         </div>
 
+        {isCreatingPool && (
+          <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
+            <p className="text-base-content/70">Starting price</p>
+            <p className="text-[13px] text-base-content/60">
+              This pool has no price yet. Set the starting price to create it with your order, or{" "}
+              <button type="button" onClick={onAddLiquidity} className="text-purple-primary hover:underline">
+                add liquidity
+              </button>{" "}
+              instead.
+            </p>
+            <Input
+              autoComplete="off"
+              type="number"
+              step="any"
+              min="0"
+              max="1"
+              {...register("startingPrice", {
+                validate: (v) => {
+                  const num = Number(v);
+                  if (!v || Number.isNaN(num) || num <= 0 || num >= 1) {
+                    return "Starting price must be strictly between 0 and 1.";
+                  }
+                  const limitTick = getEffectiveLimitTick(limitPrice, outcomeIsToken0);
+                  if (limitTick === undefined) {
+                    return true;
+                  }
+                  const { tick } = getStartingPoolState(num, outcomeIsToken0, poolParams?.poolKey.tickSpacing);
+                  return (
+                    formatStartingPriceError(
+                      swapType,
+                      outcomeIsToken0,
+                      tick,
+                      limitTick,
+                      poolParams?.poolKey.tickSpacing,
+                    ) ?? true
+                  );
+                },
+                onChange: (e) => {
+                  const formattedValue = toDecimalPrice(e.target.value);
+                  if (formattedValue !== undefined) {
+                    setValue("startingPrice", formattedValue, { shouldValidate: true, shouldDirty: true });
+                  }
+                },
+                onBlur: () => {
+                  const snapped = snapToNearestTickPrice(
+                    startingPrice,
+                    outcomeIsToken0,
+                    poolParams?.poolKey.tickSpacing,
+                  );
+                  if (snapped !== startingPrice) {
+                    setValue("startingPrice", snapped, { shouldValidate: true, shouldDirty: true });
+                  }
+                },
+              })}
+              className="w-full p-0 h-auto text-[24px] !bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-0 focus:outline-transparent focus:ring-0 focus:border-0"
+              placeholder="e.g. 0.65"
+              useFormReturn={useFormReturn}
+            />
+          </div>
+        )}
+
         <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
           <div className="flex items-center justify-between gap-2">
             <p className="text-base-content/70">Limit price</p>
             <div className="flex items-center gap-2">
               {currentMarketPrice !== undefined && (
                 <p className="text-[14px] text-base-content/70">
-                  Market: {displayNumber(currentMarketPrice, 3)} {poolCollateral.symbol}
+                  {isStartingPrice ? "Starting" : "Market"}: {displayNumber(currentMarketPrice, 3)}{" "}
+                  {poolCollateral.symbol}
                 </p>
               )}
             </div>
@@ -503,9 +610,8 @@ export function SwapTokensLimitOrder({
                     return true;
                   },
                   onChange: (e) => {
-                    const value = e.target.value;
-                    if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
-                      const formattedValue = `0.${value}`;
+                    const formattedValue = toDecimalPrice(e.target.value);
+                    if (formattedValue !== undefined) {
                       setValue("limitPrice", formattedValue, {
                         shouldValidate: true,
                         shouldDirty: true,
@@ -645,20 +751,14 @@ export function SwapTokensLimitOrder({
           )}
         </div>
 
-        {!isPoolInitialized && !isPoolStatusLoading && (
-          <Alert type="warning">
-            The V4 pool is not initialized yet.{" "}
-            <button type="button" onClick={onAddLiquidity} className="text-purple-primary hover:underline">
-              Add liquidity
-            </button>{" "}
-            to enable limit orders.
-          </Alert>
-        )}
-
         <div className="space-y-1">
           {currentMarketPrice !== undefined && (
             <div className="flex justify-between text-[#828282] text-[14px]">
-              Current market price
+              {isStartingPrice
+                ? "Starting price"
+                : hasNoTrades
+                  ? "Current price (no trades yet)"
+                  : "Current market price"}
               <span>
                 {displayNumber(currentMarketPrice, 3)} {poolCollateral.symbol}
               </span>
@@ -686,7 +786,7 @@ export function SwapTokensLimitOrder({
           </div>
         </div>
 
-        {orderPreview.error && isPoolInitialized && (
+        {orderPreview.error && !errors.startingPrice && (
           <Alert type="error">
             <div className="space-y-2">
               <p>{orderPreview.error}</p>
