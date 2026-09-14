@@ -51,9 +51,9 @@ export function SwapTokens({
 
   const orderTypeOptions = [
     { text: "Market", value: "market" as const },
+    ...(useInAppLiquidity ? [{ text: "Limit order", value: "limit-order" as const }] : []),
     { text: "Fill-to-price", value: "limit" as const },
     ...(showFillToEstimate ? [{ text: "Fill-to-estimate", value: "fill-to-estimate" as const }] : []),
-    ...(useInAppLiquidity ? [{ text: "Limit order", value: "limit-order" as const }] : []),
   ];
 
   return (
