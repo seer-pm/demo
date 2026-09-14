@@ -12,6 +12,7 @@ import { Parameter, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { toDecimalPrice } from "@seer-pm/order-book/v4";
 import { useQuoteTrade } from "@seer-pm/react";
 import { isTradingCredits } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
@@ -401,12 +402,8 @@ export function SwapTokensLimitUpto({
                     },
                     onChange: (e) => {
                       setUseMax(false);
-                      const value = e.target.value;
-
-                      // All trades must be less than 1. Input field defaults to cents - when user types "86",
-                      // it automatically becomes "0.86" to represent 86 cents
-                      if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
-                        const formattedValue = `0.${value}`;
+                      const formattedValue = toDecimalPrice(e.target.value);
+                      if (formattedValue !== undefined) {
                         setValue("limitPrice", formattedValue, {
                           shouldValidate: true,
                           shouldDirty: true,

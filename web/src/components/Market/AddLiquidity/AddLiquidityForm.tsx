@@ -8,6 +8,7 @@ import {
   probabilityRangeToTicks,
   probabilityToTick,
   snapToNearestTickPrice,
+  toDecimalPrice,
 } from "@seer-pm/order-book/v4";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -250,6 +251,22 @@ export function AddLiquidityForm({
     [canComputeAmounts, getValues, onComputeDerivedAmount],
   );
 
+  const handlePriceChange = (field: "minPrice" | "maxPrice" | "initialPrice", value: string) => {
+    const nextValue = toDecimalPrice(value) ?? value;
+
+    if (field === "minPrice") {
+      setMinPrice(nextValue);
+      return;
+    }
+
+    if (field === "maxPrice") {
+      setMaxPrice(nextValue);
+      return;
+    }
+
+    setInitialPrice(nextValue);
+  };
+
   const handlePriceBlur = (field: "minPrice" | "maxPrice" | "initialPrice") => {
     const snap = (value: string) => snapToNearestTickPrice(value, outcomeIsToken0);
 
@@ -468,7 +485,7 @@ export function AddLiquidityForm({
             max="1"
             step="any"
             value={initialPrice}
-            onChange={(e) => setInitialPrice(e.target.value)}
+            onChange={(e) => handlePriceChange("initialPrice", e.target.value)}
             onBlur={() => handlePriceBlur("initialPrice")}
             className="w-full"
             placeholder="e.g. 0.65"
@@ -497,7 +514,7 @@ export function AddLiquidityForm({
               max="1"
               step="any"
               value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
+              onChange={(e) => handlePriceChange("minPrice", e.target.value)}
               onBlur={() => handlePriceBlur("minPrice")}
               className="w-full"
             />
@@ -510,7 +527,7 @@ export function AddLiquidityForm({
               max="1"
               step="any"
               value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
+              onChange={(e) => handlePriceChange("maxPrice", e.target.value)}
               onBlur={() => handlePriceBlur("maxPrice")}
               className="w-full"
             />

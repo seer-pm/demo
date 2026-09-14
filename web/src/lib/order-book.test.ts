@@ -19,6 +19,7 @@ import {
   resolveLimitOrderZeroForOne,
   resolveLiquiditySqrtPriceX96,
   snapToNearestTickPrice,
+  toDecimalPrice,
 } from "@seer-pm/order-book/v4";
 import { getSqrtRatioAtTick } from "@seer-pm/sdk/tick-math";
 import { Position } from "@uniswap/v4-sdk";
@@ -206,6 +207,15 @@ describe("order-book", () => {
     expect(snapToNearestTickPrice("", true)).toBe("");
     expect(snapToNearestTickPrice("1.5", true)).toBe("1.5");
     expect(snapToNearestTickPrice("abc", true)).toBe("abc");
+  });
+
+  it("toDecimalPrice reads a price typed without a decimal point as cents", () => {
+    expect(toDecimalPrice("80")).toBe("0.80");
+    expect(toDecimalPrice("5")).toBe("0.5");
+    expect(toDecimalPrice("0.8")).toBeUndefined();
+    expect(toDecimalPrice("0,8")).toBeUndefined();
+    expect(toDecimalPrice("0")).toBeUndefined();
+    expect(toDecimalPrice("")).toBeUndefined();
   });
 
   describe("formatStartingPriceError", () => {
