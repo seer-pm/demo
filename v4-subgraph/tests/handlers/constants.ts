@@ -28,7 +28,6 @@ export const TEST_CONFIG: SubgraphConfig = {
   tokenOverrides: [],
   poolsToSkip: [],
   allowedHooks: [],
-  requireSeerOutcomeToken: false,
   positionManagerAddress: '',
   poolMappings: [],
   nativeTokenDetails: {

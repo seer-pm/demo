@@ -47,11 +47,11 @@ export const SUBGRAPHS = {
   // Uniswap V4 pools that contain Seer outcome tokens + PositionManager positions (own Goldsky deployment).
   uniswapV4: {
     [CHAIN_IDS.mainnet]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-mainnet/1.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-mainnet/1.1.0/gn",
     [CHAIN_IDS.optimism]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-optimism/1.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-optimism/1.1.0/gn",
     [CHAIN_IDS.base]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-base/1.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-base/1.1.0/gn",
   },
   poh: {
     [CHAIN_IDS.gnosis]:

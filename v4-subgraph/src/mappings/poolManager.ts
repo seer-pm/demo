@@ -7,7 +7,6 @@ import { getSubgraphConfig, SubgraphConfig } from '../utils/chains'
 import { ADDRESS_ZERO, ONE_BI, ZERO_BD, ZERO_BI } from '../utils/constants'
 import { updatePoolDayData, updatePoolHourData } from '../utils/intervalUpdates'
 import { findNativePerToken, getNativePriceInUSD, sqrtPriceX96ToTokenPrices } from '../utils/pricing'
-import { isSeerPool } from '../utils/seer'
 import { fetchTokenDecimals, fetchTokenName, fetchTokenSymbol, fetchTokenTotalSupply } from '../utils/token'
 
 // The subgraph handler must have this signature to be able to handle events,
@@ -39,11 +38,6 @@ export function handleInitializeHelper(
 
   const hooks = event.params.hooks.toHexString().toLowerCase()
   if (allowedHooks.length > 0 && !allowedHooks.includes(hooks)) {
-    return
-  }
-
-  // Seer deployments only index pools that contain a Seer outcome token.
-  if (subgraphConfig.requireSeerOutcomeToken && !isSeerPool(event.params.currency0, event.params.currency1)) {
     return
   }
 

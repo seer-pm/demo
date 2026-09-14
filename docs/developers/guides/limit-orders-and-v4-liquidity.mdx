@@ -216,10 +216,10 @@ const { UserOrder } = await sdk.GetUserOrders({
 
 ### Pools and positions subgraph (Goldsky)
 
-A per-chain fork of the Uniswap V4 subgraph (source in `v4-subgraph/` at the repo root, with its own Yarn 1 install), restricted to pools that contain a Seer outcome token, plus the `PositionManager` positions opened in them (`Position.pool`, `tickLower`, `tickUpper`, `liquidity`, `burned`). It also carries `Tick` data for the liquidity chart. Endpoints are in `SUBGRAPHS.uniswapV4`, the client is `uniswapV4GraphQLClient(chainId)`, and the queries (`GetV4Positions`, `GetV4PositionsByOwner`, `GetV4Pools`, `GetV4Ticks`) are in `@seer-pm/sdk/subgraph/uniswap-v4`.
+A per-chain fork of the Uniswap V4 subgraph (source in `v4-subgraph/` at the repo root, with its own Yarn 1 install), restricted to the pools attached to the chain's `LimitOrderHook` (any fee tier), plus the `PositionManager` positions opened in them (`Position.pool`, `tickLower`, `tickUpper`, `liquidity`, `burned`). It also carries `Tick` data for the liquidity chart. Endpoints are in `SUBGRAPHS.uniswapV4`, the client is `uniswapV4GraphQLClient(chainId)`, and the queries (`GetV4Positions`, `GetV4PositionsByOwner`, `GetV4Pools`, `GetV4Ticks`) are in `@seer-pm/sdk/subgraph/uniswap-v4`.
 
 ```
-https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-<network>/1.0.0/gn
+https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-<network>/1.1.0/gn
 ```
 
 with `<network>` one of `mainnet`, `optimism`, `base`.
