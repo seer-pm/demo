@@ -1,5 +1,6 @@
 import { Alert } from "@/components/Alert";
 import { Spinner } from "@/components/Spinner";
+import { useOutcomeOrderLevels } from "@/hooks/limitOrders/useMarketOrderLevels";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { isTwoStringsEqual } from "@/lib/utils";
@@ -25,74 +26,92 @@ export default function LiquidityBarChartVertical({
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const containerRef = useRef<HTMLDivElement>(null);
+  const orderLevels = useOutcomeOrderLevels(market, outcomeTokenIndex, poolInfo);
 
-  const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData } = getLiquidityChartData(
+  const {
+    priceList,
+    sellBarsData,
+    buyBarsData,
+    sellOrderBarsData,
+    buyOrderBarsData,
+    orderCounts,
+    sellLineData,
+    buyLineData,
+  } = getLiquidityChartData(
     poolInfo,
     ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length ? ticksByPool?.[id]?.ticks : [],
     isShowToken0Price,
     Number.POSITIVE_INFINITY,
     outcome,
+    orderLevels,
   );
 
   const rows = (() => {
-    const sellBars = sellBarsData
-      .filter((x) => x[1] > 0)
-      .reverse()
-      .map((data, index) => {
-        const currentPriceIndex = data[0] - 0.5;
-        const currentLineIndex = data[0] * 2;
-        return {
-          id: `sell-${index}`,
-          side: "sell",
-          price: priceList[currentPriceIndex],
-          shares: data[1],
-          total: sellLineData[currentLineIndex][1],
-          pct: sellLineData[currentLineIndex][1]
-            ? sellLineData[currentLineIndex][1] /
-              Math.max(...(sellLineData.map((x) => x[1]).filter((x) => x) as number[]))
-            : 0,
-        };
-      });
-    const buyBars = buyBarsData
-      .filter((x) => x[1] > 0)
-      .reverse()
-      .map((data, index) => {
-        const currentPriceIndex = data[0] - 0.5;
-        const currentLineIndex = data[0] * 2;
-        return {
-          id: `buy-${index}`,
-          side: "buy",
-          price: priceList[currentPriceIndex],
-          shares: data[1],
-          total: buyLineData[currentLineIndex][1],
-          pct: buyLineData[currentLineIndex][1]
-            ? buyLineData[currentLineIndex][1] /
-              Math.max(...(buyLineData.map((x) => x[1]).filter((x) => x) as number[]))
-            : 0,
-        };
-      });
-    return sellBars
+    // A row is the full amount of the range: liquidity positions plus resting limit orders.
+    type Row = {
+      id: string;
+      side: "sell" | "buy" | "mid";
+      price: string;
+      shares: number;
+      orderShares: number;
+      orders: number;
+      total: number | null;
+      pct: number;
+    };
+    const toRows = (
+      side: "sell" | "buy",
+      barsData: (number | undefined)[][],
+      orderBarsData: (number | undefined)[][],
+      lineData: [number, number | null][],
+    ): Row[] => {
+      const maxTotal = Math.max(...(lineData.map((x) => x[1]).filter((x) => x) as number[]));
+      return barsData
+        .map((data, index) => {
+          const orderShares = orderBarsData[index]?.[1] ?? 0;
+          return { x: data[0] ?? 0, shares: (data[1] ?? 0) + orderShares, orderShares, index };
+        })
+        .filter((x) => x.shares > 0)
+        .reverse()
+        .map(({ x, shares, orderShares, index }) => {
+          const currentPriceIndex = x - 0.5;
+          const currentLineIndex = x * 2;
+          const total = lineData[currentLineIndex][1];
+          return {
+            id: `${side}-${index}`,
+            side,
+            price: priceList[currentPriceIndex],
+            shares,
+            orderShares,
+            orders: orderCounts[currentPriceIndex] ?? 0,
+            total,
+            pct: total ? total / maxTotal : 0,
+          };
+        });
+    };
+    return toRows("sell", sellBarsData, sellOrderBarsData, sellLineData)
       .concat([
         {
           id: "current",
           side: "mid",
           price: currentOutcomePrice,
           shares: 0,
+          orderShares: 0,
+          orders: 0,
           total: 0,
           pct: 0,
         },
       ])
-      .concat(buyBars);
+      .concat(toRows("buy", buyBarsData, buyOrderBarsData, buyLineData));
   })();
 
   useEffect(() => {
-    const index = sellBarsData.filter((x) => x[1] > 0).length - 4;
+    const index = sellBarsData.filter((x, i) => (x[1] ?? 0) + (sellOrderBarsData[i]?.[1] ?? 0) > 0).length - 4;
     const rowHeight = 40;
 
     if (containerRef.current) {
       containerRef.current.scrollTop = rowHeight * index;
     }
-  }, [containerRef.current, sellBarsData]);
+  }, [containerRef.current, sellBarsData, sellOrderBarsData]);
 
   if (isError) {
     return (
@@ -139,10 +158,18 @@ export default function LiquidityBarChartVertical({
                         : ""
                   }`}
                 >
+                  {r.orderShares > 0 && r.total ? (
+                    // Darker segment: the share of the cumulative total that is resting limit orders.
+                    <div
+                      style={{ width: `${Math.min(100, (r.orderShares / r.total) * 100)}%` }}
+                      className={clsx("absolute inset-y-0 left-0", r.side === "sell" ? "bg-[#f5a3a3]" : "bg-[#5fcf7a]")}
+                      title={`${Number(r.orderShares).toFixed(2)} in limit orders`}
+                    />
+                  ) : null}
                   <p
                     className={clsx(
                       r.side === "sell" ? "text-[#e23939]" : r.side === "buy" ? "text-[#30a159]" : "text-[#77808d]",
-                      "whitespace-nowrap",
+                      "whitespace-nowrap relative",
                     )}
                   >
                     {r.side === "mid" && "Last: "}
@@ -155,6 +182,11 @@ export default function LiquidityBarChartVertical({
             {/* Shares column */}
             <div className="col-span-3  text-center text-gray-700">
               {r.side === "mid" ? "" : Number(r.shares).toFixed(2)}
+              {r.orderShares > 0 && (
+                <p className={clsx("text-xs", r.side === "sell" ? "text-[#e23939]" : "text-[#30a159]")}>
+                  {Number(r.orderShares).toFixed(2)} in {r.orders} {r.orders === 1 ? "order" : "orders"}
+                </p>
+              )}
             </div>
 
             {/* Total column */}

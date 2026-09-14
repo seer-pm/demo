@@ -13,8 +13,7 @@ const OpenOrders = clientOnly(() => import("../OpenOrders/OpenOrders"));
 
 function OpenOrdersFallback() {
   return (
-    <output className="flex flex-col gap-6" aria-busy="true" aria-label="Loading orders">
-      <div className="shimmer-container w-full h-[200px]" />
+    <output className="flex flex-col" aria-busy="true" aria-label="Loading orders">
       <div className="shimmer-container w-full h-[200px]" />
     </output>
   );

@@ -1,9 +1,10 @@
 import type { PoolMeta } from "@/components/LimitOrders/ordersShared";
+import type { ChartOrderLevel } from "@/hooks/liquidity/getLiquidityChartData";
 import { marketSupportsOrderBook } from "@seer-pm/order-book";
-import { getOutcomePriceAtTick } from "@seer-pm/order-book/v4";
 import { type Market, orderBookGraphQLClient } from "@seer-pm/sdk";
 import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { getMarketPoolMeta } from "./useUserLimitOrders";
 
 const REFETCH_INTERVAL_MS = 30_000;
@@ -14,8 +15,6 @@ export type OrderBookLevel = {
   zeroForOne: boolean;
   /** Total liquidity units resting at the level. */
   liquidity: bigint;
-  /** Outcome price (0–1) at the level. */
-  price: number;
   /** Distinct accounts with an order at the level. */
   orders: number;
 };
@@ -23,15 +22,17 @@ export type OrderBookLevel = {
 export type OutcomeOrderBook = {
   outcomeIndex: number;
   pool: PoolMeta;
-  /** Buy orders for the outcome, best (highest) price first. */
+  /** Buy orders for the outcome. */
   bids: OrderBookLevel[];
-  /** Sell orders for the outcome, best (lowest) price first. */
+  /** Sell orders for the outcome. */
   asks: OrderBookLevel[];
 };
 
 /**
  * Resting limit-order levels of every outcome pool of the market, split into bids and asks.
  * Filled levels are reset to zero liquidity by the indexer, so only live depth is returned.
+ * This module is reached from the SSR graph through the liquidity chart, so it must not import
+ * `@seer-pm/order-book/v4` (the Uniswap SDKs break server rendering).
  */
 export function useMarketOrderLevels(market: Market) {
   const enabled = marketSupportsOrderBook(market);
@@ -70,19 +71,30 @@ export function useMarketOrderLevels(market: Market) {
           tickLower: level.tickLower,
           zeroForOne: level.zeroForOne,
           liquidity: BigInt(level.liquidityTotal),
-          price: getOutcomePriceAtTick(level.tickLower, pool.outcomeIsToken0),
           orders: level.participants.length,
         });
         books.set(pool.outcomeIndex, book);
       }
 
-      return Array.from(books.values())
-        .map((book) => ({
-          ...book,
-          bids: book.bids.sort((a, b) => b.price - a.price),
-          asks: book.asks.sort((a, b) => a.price - b.price),
-        }))
-        .sort((a, b) => a.outcomeIndex - b.outcomeIndex);
+      return Array.from(books.values()).sort((a, b) => a.outcomeIndex - b.outcomeIndex);
     },
   });
+}
+
+/**
+ * Resting limit-order levels of one outcome, in the shape the liquidity chart consumes.
+ * Empty unless `pool` is the outcome's hooked V4 pool, since only that pool holds orders.
+ */
+export function useOutcomeOrderLevels(
+  market: Market,
+  outcomeIndex: number,
+  pool: { version?: "v3" | "v4" },
+): ChartOrderLevel[] {
+  const { data: books } = useMarketOrderLevels(market);
+  return useMemo(() => {
+    if (pool.version !== "v4" || !books) return [];
+    const book = books.find((b) => b.outcomeIndex === outcomeIndex);
+    if (!book) return [];
+    return [...book.bids, ...book.asks].map(({ tickLower, liquidity, orders }) => ({ tickLower, liquidity, orders }));
+  }, [books, outcomeIndex, pool.version]);
 }

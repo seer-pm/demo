@@ -116,6 +116,8 @@ export function usePlaceV4LimitOrder(txNotifier: TxNotifierFn, supports7702: boo
       queryClient.invalidateQueries({ queryKey: ["useMarketHasLiquidity", variables.market.id] });
       queryClient.invalidateQueries({ queryKey: ["useTokenBalance"] });
       queryClient.invalidateQueries({ queryKey: ["limitOrderHookUserOrders"] });
+      // The liquidity chart draws the order as pool liquidity.
+      queryClient.invalidateQueries({ queryKey: ["useTicksData", variables.market.id] });
     },
   });
 }

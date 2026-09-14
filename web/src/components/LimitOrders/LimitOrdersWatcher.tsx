@@ -70,6 +70,8 @@ export function LimitOrdersWatcher() {
 
     if (newCount > 0) {
       queryClient.invalidateQueries({ queryKey: ["limitOrderHookUserOrders"] });
+      // Filled orders leave the pool, so the liquidity chart changes too.
+      queryClient.invalidateQueries({ queryKey: ["useTicksData"] });
       toastInfo({
         title: newCount === 1 ? "1 order just filled" : `${newCount} orders just filled`,
         subtitle: portfolioLink(chainId),
