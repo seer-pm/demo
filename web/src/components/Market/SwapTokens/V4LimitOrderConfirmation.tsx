@@ -29,9 +29,11 @@ export function V4LimitOrderConfirmation({
 }: V4LimitOrderConfirmationProps) {
   const showNearestPrice = nearestPrice !== undefined && Math.abs(nearestPrice - limitPrice) > 0.0001;
 
-  const leftLabel = swapType === "buy" ? collateralAmount : shareAmount;
+  const formattedShareAmount = displayNumber(Number(shareAmount), 3);
+  const formattedCollateralAmount = displayNumber(Number(collateralAmount), 3);
+  const leftLabel = swapType === "buy" ? formattedCollateralAmount : formattedShareAmount;
   const leftSymbol = swapType === "buy" ? collateralSymbol : shareSymbol;
-  const rightLabel = swapType === "buy" ? shareAmount : collateralAmount;
+  const rightLabel = swapType === "buy" ? formattedShareAmount : formattedCollateralAmount;
   const rightSymbol = swapType === "buy" ? shareSymbol : collateralSymbol;
 
   return (
