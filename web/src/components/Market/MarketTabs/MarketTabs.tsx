@@ -78,7 +78,7 @@ export default function MarketTabs({ market }: { market: Market }) {
             className={`tab text-[16px] whitespace-nowrap ${activeTab === "openOrders" && "tab-active"}`}
             onClick={() => setActiveTab("openOrders")}
           >
-            Open orders
+            Your orders
           </button>
         )}
       </div>
