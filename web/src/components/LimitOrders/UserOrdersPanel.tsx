@@ -125,7 +125,7 @@ export default function UserOrdersPanel({
   const orderBookSupported = chainSupportsOrderBook(chainId);
 
   if (!account) {
-    return <Alert type="warning">Connect your wallet to see your open orders.</Alert>;
+    return <Alert type="warning">Connect your wallet to see your limit orders.</Alert>;
   }
 
   if (!orderBookSupported) {
@@ -208,7 +208,7 @@ function ActiveOrders({
   }
 
   if (error || !poolById) {
-    return <Alert type="error">Failed to load open orders: {(error as Error | null)?.message}</Alert>;
+    return <Alert type="error">Failed to load limit orders: {(error as Error | null)?.message}</Alert>;
   }
 
   const toCancelParams = (order: UiUserOrder) => {
@@ -241,38 +241,8 @@ function ActiveOrders({
     <div className="flex flex-col gap-6">
       <div>
         <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="text-[16px] font-semibold">Open</div>
-          {canManage && open.length >= 2 && (
-            <Button
-              size="small"
-              text="Cancel all"
-              onClick={() => cancelOrders.mutateAsync(open.map(toCancelParams))}
-              disabled={cancelOrders.isPending}
-              isLoading={cancelOrders.isPending}
-            />
-          )}
-        </div>
-        {open.length === 0 ? (
-          <div className="text-[14px] opacity-70">No open orders.</div>
-        ) : (
-          <OrdersTable
-            orders={open}
-            market={market}
-            poolById={poolById}
-            amountColumnLabel="Size"
-            actionLabel="Cancel"
-            onAction={(order) => cancelOrders.mutateAsync([toCancelParams(order)])}
-            isActionLoading={cancelOrders.isPending}
-            groupByMarket={groupByMarket}
-            showActions={canManage}
-          />
-        )}
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between gap-3 mb-3">
           <div className="text-[16px] font-semibold">Filled (withdrawable)</div>
-          {canManage && filled.length >= 2 && (
+          {canManage && filled.length >= 1 && (
             <Button
               size="small"
               text="Withdraw all"
@@ -295,6 +265,36 @@ function ActiveOrders({
             actionLabel="Withdraw"
             onAction={(order) => withdrawOrders.mutateAsync([toWithdrawParams(order)])}
             isActionLoading={withdrawOrders.isPending}
+            groupByMarket={groupByMarket}
+            showActions={canManage}
+          />
+        )}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="text-[16px] font-semibold">Open</div>
+          {canManage && open.length >= 2 && (
+            <Button
+              size="small"
+              text="Cancel all"
+              onClick={() => cancelOrders.mutateAsync(open.map(toCancelParams))}
+              disabled={cancelOrders.isPending}
+              isLoading={cancelOrders.isPending}
+            />
+          )}
+        </div>
+        {open.length === 0 ? (
+          <div className="text-[14px] opacity-70">No open orders.</div>
+        ) : (
+          <OrdersTable
+            orders={open}
+            market={market}
+            poolById={poolById}
+            amountColumnLabel="Size"
+            actionLabel="Cancel"
+            onAction={(order) => cancelOrders.mutateAsync([toCancelParams(order)])}
+            isActionLoading={cancelOrders.isPending}
             groupByMarket={groupByMarket}
             showActions={canManage}
           />

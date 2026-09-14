@@ -30,7 +30,7 @@ function TabFallback({ label }: { label: string }) {
 
 const TABS = [
   { id: "positions", label: "Positions", panelId: "portfolio-panel-positions" },
-  { id: "orders", label: "Open Orders", panelId: "portfolio-panel-orders" },
+  { id: "orders", label: "Limit Orders", panelId: "portfolio-panel-orders" },
   { id: "liquidity", label: "Liquidity", panelId: "portfolio-panel-liquidity" },
   { id: "history", label: "History", panelId: "portfolio-panel-history" },
   { id: "airdrop", label: "Airdrop", panelId: "portfolio-panel-airdrop" },
@@ -358,7 +358,7 @@ function PortfolioPage() {
           {activeTab === "orders" &&
             (chainId === "all" ? (
               <Alert type="info" title="Select a network">
-                Open orders are shown per network. Pick one above to see yours.
+                Limit orders are shown per network. Pick one above to see yours.
               </Alert>
             ) : (
               <OrdersTab account={account} chainId={chainId} fallback={<TabFallback label="Loading orders" />} />
