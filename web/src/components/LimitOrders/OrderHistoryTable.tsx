@@ -81,13 +81,14 @@ export default function OrderHistoryTable({
               <tr key={e.id}>
                 <td className="whitespace-nowrap">{format(e.timestamp * 1000, "MMM d, yyyy, h:mm a")}</td>
                 {showMarketColumn && (
-                  <td>
+                  <td className="max-w-[280px]">
                     {rowMarket ? (
                       <a
                         href={paths.market(rowMarket)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-purple-primary hover:underline font-semibold"
+                        title={rowMarket.marketName}
+                        className="block truncate text-purple-primary hover:underline font-semibold"
                       >
                         {rowMarket.marketName}
                       </a>
