@@ -1,0 +1,1 @@
+export { handleNewMarket } from './marketFactory'
