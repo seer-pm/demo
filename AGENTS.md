@@ -67,3 +67,24 @@ injected from the linked site. Notes:
 - Functions import `@seer-pm/sdk` through the package `exports` map, i.e. through `dist/`. Build it
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
+
+### Edge functions are NOT covered by that workaround
+
+The CLI's `repositoryRoot` is the first **directory** named `.git` above the cwd. For a worktree
+nested inside the main checkout (our layout, `~/orca-projects/demo/<branch>/`) that is the main
+checkout itself; for a worktree outside it there is none, and paths double up as above.
+
+`edge_functions = "web/netlify/edge-functions"` has no CLI flag, so from a nested worktree
+`netlify dev` silently loads `subgraph.ts` and `og-image*.tsx` from the **main checkout's branch**
+(usually `main`). Symptom: `/subgraph?_subgraph=<new key>&_chainId=…` answers
+`404 {"error":"Subgraph not found <new key> chainId …"}` even though the branch defines the key
+(seen with `orderBook`, 2026-09-14). To check which checkout is being served, look at the
+`import("file:///…/web/netlify/edge-functions/…")` lines in
+`web/.netlify/edge-functions-serve/dev.js`.
+
+Rule: a branch that touches `web/netlify/edge-functions/*` or
+`packages/seer-pm-sdk/src/subgraph/subgraph-endpoints.ts` must be exercised from the **root
+checkout** (`git checkout <branch>` in `~/orca-projects/demo`), not from a worktree.
+
+`netlify dev` also drops an untracked `deno.lock` next to the cwd; it is a local artifact, not
+something to commit.
