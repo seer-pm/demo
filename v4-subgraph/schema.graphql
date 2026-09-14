@@ -501,24 +501,3 @@ type Transfer @entity(immutable: true) {
   # pointer to position
   position: Position!
 }
-
-# A Seer prediction market (from MarketFactory.NewMarket). Only pools that contain
-# one of its outcome tokens are indexed by this subgraph.
-type SeerMarket @entity(immutable: true) {
-  # market address
-  id: ID!
-  marketName: String!
-  parentMarket: Bytes!
-  conditionId: Bytes!
-  createdAtBlockNumber: BigInt!
-  createdAtTimestamp: BigInt!
-  outcomeTokens: [OutcomeToken!]! @derivedFrom(field: "market")
-}
-
-# Wrapped ERC20 outcome token of a Seer market (includes the Invalid outcome).
-type OutcomeToken @entity(immutable: true) {
-  # token address
-  id: ID!
-  market: SeerMarket!
-  outcomeIndex: Int!
-}

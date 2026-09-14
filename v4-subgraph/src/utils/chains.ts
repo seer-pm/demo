@@ -46,12 +46,9 @@ export class SubgraphConfig {
   poolsToSkip: string[]
 
   // if non-empty, only create pools whose hooks address is in this list (lowercased).
-  // empty means index all pools (default Uniswap behavior).
+  // Seer deployments list the chain's LimitOrderHook: every pool attached to it is indexed,
+  // whatever its fee or tick spacing. Empty means index all pools (default Uniswap behavior).
   allowedHooks: string[]
-
-  // when true, only create pools where one currency is a Seer outcome token
-  // (registered through the MarketFactory data source).
-  requireSeerOutcomeToken: boolean
 
   // Uniswap V4 PositionManager (lowercased). ModifyLiquidity events sent by it are
   // tracked as Position entities keyed by the salt (= NFT tokenId). Empty disables tracking.
@@ -146,8 +143,7 @@ export function getSubgraphConfig(): SubgraphConfig {
       ],
       poolMappings: [],
       poolsToSkip: [],
-      allowedHooks: [],
-      requireSeerOutcomeToken: true,
+      allowedHooks: ['0xe10a429d18e90fbd44be3678d2ae1ef3c1691040'], // LimitOrderHook
       positionManagerAddress: '0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e',
       nativeTokenDetails: {
         symbol: 'ETH',
@@ -190,8 +186,7 @@ export function getSubgraphConfig(): SubgraphConfig {
       ],
       poolMappings: [],
       poolsToSkip: [],
-      allowedHooks: [],
-      requireSeerOutcomeToken: true,
+      allowedHooks: ['0x1f78e79c20d1e77526ac21e3651fabfc22035040'], // LimitOrderHook
       positionManagerAddress: '0x3c3ea4b57a46241e54610e5f022e5c45859a1017',
       nativeTokenDetails: {
         symbol: 'ETH',
@@ -217,8 +212,7 @@ export function getSubgraphConfig(): SubgraphConfig {
       ],
       tokenOverrides: [],
       poolsToSkip: [],
-      allowedHooks: [],
-      requireSeerOutcomeToken: true,
+      allowedHooks: ['0x19e8b37e9f4d69927da1e13e989a2f955ee39040'], // LimitOrderHook
       positionManagerAddress: '0x7c5f5a4bbd8fd63184577525326123b519429bdc',
       poolMappings: [],
       nativeTokenDetails: {

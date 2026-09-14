@@ -61,22 +61,22 @@ yarn install --frozen-lockfile
 yarn generate-subgraph base && yarn codegen && yarn build
 ```
 
-This fork indexes only Uniswap V4 pools that contain a Seer outcome token, plus the
-PositionManager positions opened in those pools:
+This fork indexes only the Uniswap V4 pools attached to Seer's `LimitOrderHook` (any fee or
+tick spacing), plus the PositionManager positions opened in those pools:
 
-- `MarketFactory` data source registers every Seer market (`SeerMarket`) and its wrapped
-  outcome tokens (`OutcomeToken`, read from `Market.wrappedOutcome(i)`, Invalid included).
-- `handleInitialize` skips pools whose currencies are not `OutcomeToken`s
-  (`requireSeerOutcomeToken` in `src/utils/chains.ts`).
+- `handleInitialize` skips pools whose `hooks` is not in `allowedHooks` for the chain
+  (`src/utils/chains.ts`). Filtering on the hook needs no prior state, so every data source
+  can start at a recent block.
 - `handleModifyLiquidity` upserts a `Position` (pool, ticks, liquidity, owner via
   `PositionManager.ownerOf`) when the sender is the PositionManager; `handleTransfer`
   only updates owners of known positions and marks burns.
 
-Networks: `base`, `optimism`, `mainnet` (`networks.json`, start blocks = LimitOrderHook deploy).
+Networks: `base`, `optimism`, `mainnet` (`networks.json`). Start blocks are the chain heads of
+2026-09-14: no pool with the hook existed before that on any of the three chains.
 
 ```
 goldsky login                      # Seer project
-yarn deploy-goldsky-base           # seer-v4-pools-base/1.0.0
+yarn deploy-goldsky-base           # seer-v4-pools-base/1.1.0
 yarn deploy-goldsky-optimism
 yarn deploy-goldsky-mainnet
 ```

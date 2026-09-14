@@ -15,9 +15,9 @@
     "test": "graph test -d",
     "test:no-tty": "docker run -i --rm --mount type=bind,source=$INIT_CWD,target=/matchstick matchstick",
     "generate-subgraph": "ts-node scripts/generate-subgraph.ts",
-    "deploy-goldsky-base": "yarn generate-subgraph base && yarn build && goldsky subgraph deploy seer-v4-pools-base/1.0.0 --path .",
-    "deploy-goldsky-optimism": "yarn generate-subgraph optimism && yarn build && goldsky subgraph deploy seer-v4-pools-optimism/1.0.0 --path .",
-    "deploy-goldsky-mainnet": "yarn generate-subgraph mainnet && yarn build && goldsky subgraph deploy seer-v4-pools-mainnet/1.0.0 --path ."
+    "deploy-goldsky-base": "yarn generate-subgraph base && yarn build && goldsky subgraph deploy seer-v4-pools-base/1.1.0 --path .",
+    "deploy-goldsky-optimism": "yarn generate-subgraph optimism && yarn build && goldsky subgraph deploy seer-v4-pools-optimism/1.1.0 --path .",
+    "deploy-goldsky-mainnet": "yarn generate-subgraph mainnet && yarn build && goldsky subgraph deploy seer-v4-pools-mainnet/1.1.0 --path ."
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.64.1",

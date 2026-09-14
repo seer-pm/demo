@@ -2,43 +2,31 @@
   "mainnet": {
     "PoolManager": {
       "address": "0x000000000004444c5dc75cB358380D2e3dE08A90",
-      "startBlock": 25648430
+      "startBlock": 25973009
     },
     "PositionManager": {
       "address": "0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e",
-      "startBlock": 25648430
-    },
-    "MarketFactory": {
-      "address": "0x1F728c2fD6a3008935c1446a965a313E657b7904",
-      "startBlock": 20894990
+      "startBlock": 25973009
     }
   },
   "optimism": {
     "PoolManager": {
       "address": "0x9a13F98Cb987694C9F086b1F5eB990EeA8264Ec3",
-      "startBlock": 154924498
+      "startBlock": 156878918
     },
     "PositionManager": {
       "address": "0x3C3Ea4B57a46241e54610e5f022E5c45859A1017",
-      "startBlock": 154924498
-    },
-    "MarketFactory": {
-      "address": "0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6",
-      "startBlock": 140163863
+      "startBlock": 156878918
     }
   },
   "base": {
     "PoolManager": {
       "address": "0x498581fF718922c3f8e6A244956aF099B2652b2b",
-      "startBlock": 49329207
+      "startBlock": 51283633
     },
     "PositionManager": {
       "address": "0x7C5f5A4bBd8fD63184577525326123B519429bDc",
-      "startBlock": 49329207
-    },
-    "MarketFactory": {
-      "address": "0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6",
-      "startBlock": 34781185
+      "startBlock": 51283633
     }
   }
 }

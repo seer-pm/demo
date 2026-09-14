@@ -73,26 +73,6 @@ const contractTemplates = {
       ],
     },
   },
-  MarketFactory: {
-    kind: 'ethereum/contract',
-    mapping: {
-      kind: 'ethereum/events',
-      apiVersion: '0.0.7',
-      language: 'wasm/assemblyscript',
-      file: './src/mappings/marketFactory.mapping.ts',
-      entities: ['SeerMarket', 'OutcomeToken'],
-      abis: [
-        { name: 'MarketFactory', file: './abis/MarketFactory.json' },
-        { name: 'Market', file: './abis/Market.json' },
-      ],
-      eventHandlers: [
-        {
-          event: 'NewMarket(indexed address,string,address,bytes32,bytes32,bytes32[])',
-          handler: 'handleNewMarket',
-        },
-      ],
-    },
-  },
 }
 
 // Base subgraph configuration
