@@ -690,7 +690,9 @@ export function SwapTokensMarket({
           <Alert type="error">
             {quoteError.message
               ? quoteError.message === "No route found"
-                ? "Not enough liquidity. Try to reduce the input amount."
+                ? swapType === "sell"
+                  ? `Not enough liquidity to sell ${outcomeText} right now.`
+                  : "Not enough liquidity. Try to reduce the input amount."
                 : quoteError.message
               : "Error when quoting price"}
           </Alert>

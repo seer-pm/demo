@@ -6388,15 +6388,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@seer-pm/lens@npm:^1.5.0":
-  version: 1.5.0
-  resolution: "@seer-pm/lens@npm:1.5.0"
+"@seer-pm/lens@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "@seer-pm/lens@npm:1.5.1"
   peerDependencies:
     viem: ^2.0.0
   peerDependenciesMeta:
     viem:
       optional: true
-  checksum: 10c0/718220e0142afe7fa423751d3e64ae12f3f4b0840e3564ee4174f12f1e824e0783428412e4297152b18a87a98a77c20284fae9cb1d62f8335556acc45eb9f25f
+  checksum: 10c0/c0e5e0da42e22f7d16dd1253031a53b037f230b0d2a5ee585f3e6c651bbd9d1c7a6d8d9e18d871ff195a305defc40cecf943d15887d621271b19e8c0b24c4c2d
   languageName: node
   linkType: hard
 
@@ -6434,7 +6434,7 @@ __metadata:
     "@graphql-codegen/typescript-graphql-request": "npm:6.2.0"
     "@graphql-codegen/typescript-operations": "npm:^4.2.0"
     "@graphql-codegen/typescript-react-query": "npm:^6.1.0"
-    "@seer-pm/lens": "npm:^1.5.0"
+    "@seer-pm/lens": "npm:^1.5.1"
     "@uniswap/v3-sdk": "npm:^3.19.0"
     "@wagmi/cli": "npm:^2.1.22"
     graphql: "npm:16.11.0"

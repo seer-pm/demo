@@ -7,7 +7,7 @@
 import { CHAINS, type ChainId, ETH, defaultDeadline } from "@seer-pm/lens";
 import { Lens } from "@seer-pm/lens/client";
 import type { Address, Hex, PublicClient } from "viem";
-import { parseUnits, zeroAddress } from "viem";
+import { BaseError, ContractFunctionRevertedError, parseUnits, zeroAddress } from "viem";
 import { isTwoStringsEqual } from "./quote-utils";
 import type { Token } from "./tokens";
 import { NATIVE_TOKEN } from "./tokens";
@@ -175,6 +175,24 @@ export class AmmTrade {
   }
 }
 
+/**
+ * Selector of `error NoRoute()` from LensQuoter's `ILensQuoter.sol`: no venue could quote the pair
+ * at all, e.g. the only pool has zero liquidity on the side being sold into. The Lens SDK ABI
+ * does not declare the error, so viem surfaces it as an undecodable revert.
+ */
+const LENS_NO_ROUTE_SELECTOR = "0x6586e129";
+
+function isLensNoRouteError(error: unknown): boolean {
+  if (!(error instanceof BaseError)) {
+    return false;
+  }
+  const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
+  if (!(revert instanceof ContractFunctionRevertedError)) {
+    return false;
+  }
+  return revert.signature === LENS_NO_ROUTE_SELECTOR || revert.data?.errorName === "NoRoute";
+}
+
 export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeParams): Promise<AmmTrade> {
   const { chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, tradeType } = params;
   assertLensDeployed(chainId);
@@ -197,15 +215,23 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
   }
 
   const lens = new Lens(client, chainId);
-  const result = await lens.quote({
-    tokenIn: tokenInLens,
-    tokenOut: tokenOutLens,
-    amount: swapAmount,
-    recipient,
-    slippageBps,
-    deadline: defaultDeadline(),
-    exactOut,
-  });
+  let result: Awaited<ReturnType<Lens["quote"]>>;
+  try {
+    result = await lens.quote({
+      tokenIn: tokenInLens,
+      tokenOut: tokenOutLens,
+      amount: swapAmount,
+      recipient,
+      slippageBps,
+      deadline: defaultDeadline(),
+      exactOut,
+    });
+  } catch (error) {
+    if (isLensNoRouteError(error)) {
+      throw new Error("No route found");
+    }
+    throw error;
+  }
 
   if (result.amountIn <= 0n || result.amountOut <= 0n) {
     throw new Error("No route found");
