@@ -27,6 +27,8 @@ export function useCancelV4LimitOrders(txNotifier: TxNotifierFn, supports7702: b
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["limitOrderHookUserOrders"] });
+      // The liquidity chart drew the cancelled orders as pool liquidity.
+      queryClient.invalidateQueries({ queryKey: ["useTicksData"] });
     },
   });
 }

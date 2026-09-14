@@ -4,6 +4,25 @@ import { Address, formatUnits } from "viem";
 
 const TICK_MAX = 69077; //soft cap at price0 = 1000, price1 = 0.001
 const TICK_MIN = -69077; //soft cap at price0 = 0.001, price1 = 1000
+
+/** A resting limit order level: single-tick-spacing liquidity starting at `tickLower`. */
+export type ChartOrderLevel = {
+  tickLower: number;
+  liquidity: bigint;
+  /** Distinct accounts with an order at the level. */
+  orders: number;
+};
+
+/** Token amounts held by `liquidity` across `[tickLower, tickUpper]` (ticks in ascending order). */
+export function getRangeAmounts(liquidity: bigint, tickLower: number, tickUpper: number) {
+  const sqrtA = getSqrtRatioAtTick(tickLower);
+  const sqrtB = getSqrtRatioAtTick(tickUpper);
+  return {
+    amount0: (liquidity * 2n ** 96n * (sqrtB - sqrtA)) / (sqrtA * sqrtB),
+    amount1: (liquidity * (sqrtB - sqrtA)) / 2n ** 96n,
+  };
+}
+
 export function getChartDataByTicks(
   pool: {
     liquidity: bigint;
@@ -14,6 +33,7 @@ export function getChartDataByTicks(
   initialTicks: { liquidityNet: string; tickIdx: string }[],
   zoomCount: number,
   outcome: Address,
+  orderLevels: ChartOrderLevel[] = [],
 ) {
   const ticks = initialTicks.filter((tick) => tick.liquidityNet !== "0");
   const processedTicks: { tickIdx: string; liquidityNet: string }[] = [];
@@ -60,6 +80,10 @@ export function getChartDataByTicks(
       nextTick: number;
       amount0Need: number;
       amount1Need: number;
+      /** Outcome tokens of the resting limit orders inside the range. */
+      orderAmount: number;
+      /** Accounts with a resting limit order inside the range. */
+      orderCount: number;
     };
   } = {};
   for (let i = 0; i < higherTicks.length; i++) {
@@ -67,11 +91,11 @@ export function getChartDataByTicks(
     // if (currentLiquidity === 0n) {
     //   continue;
     // }
-    const sqrtP = getSqrtRatioAtTick(currentHighTick);
-    const sqrtB = getSqrtRatioAtTick(Number(higherTicks[i].tickIdx));
-
-    const amount0 = (currentLiquidity * 2n ** 96n * (sqrtB - sqrtP)) / (sqrtB * sqrtP);
-    const amount1Need = (currentLiquidity * (sqrtB - sqrtP)) / 2n ** 96n;
+    const { amount0, amount1: amount1Need } = getRangeAmounts(
+      currentLiquidity,
+      currentHighTick,
+      Number(higherTicks[i].tickIdx),
+    );
 
     rangeMapping[`${currentHighTick}-${Number(higherTicks[i].tickIdx)}`] = {
       amount0: Number(formatUnits(amount0, 18)),
@@ -81,19 +105,26 @@ export function getChartDataByTicks(
       activeLiquidity: currentLiquidity,
       currentTick: currentHighTick,
       nextTick: Number(higherTicks[i].tickIdx),
+      orderAmount: 0,
+      orderCount: 0,
     };
     currentHighTick = Number(higherTicks[i].tickIdx);
   }
-  currentLiquidity = pool.liquidity;
+  // A position whose upper tick is the current tick is not active (tick >= tickUpper), so it is
+  // not in pool.liquidity, and its negative net at that tick is skipped by both walks. Walking
+  // down crosses it first.
+  const tickAtPrice = ticks.find((tick) => Number(tick.tickIdx) === pool.tick);
+  currentLiquidity = pool.liquidity - BigInt(tickAtPrice?.liquidityNet ?? 0);
   for (let i = lowerTicks.length - 1; i > -1; i--) {
     currentLiquidity = currentLiquidity - BigInt(lowerTicks[i + 1]?.liquidityNet ?? 0);
     // if (currentLiquidity === 0n) {
     //   continue;
     // }
-    const sqrtA = getSqrtRatioAtTick(Number(lowerTicks[i].tickIdx));
-    const sqrtP = getSqrtRatioAtTick(currentLowTick);
-    const amount1 = (currentLiquidity * (sqrtP - sqrtA)) / 2n ** 96n;
-    const amount0Need = ((currentLiquidity * 2n ** 96n * (sqrtA - sqrtP)) / (sqrtA * sqrtP)) * -1n;
+    const { amount0: amount0Need, amount1 } = getRangeAmounts(
+      currentLiquidity,
+      Number(lowerTicks[i].tickIdx),
+      currentLowTick,
+    );
     rangeMapping[`${Number(lowerTicks[i].tickIdx)}-${currentLowTick}`] = {
       amount1: Number(formatUnits(amount1, 18)),
       amount0: 0,
@@ -102,10 +133,30 @@ export function getChartDataByTicks(
       activeLiquidity: currentLiquidity,
       currentTick: Number(lowerTicks[i].tickIdx),
       nextTick: currentLowTick,
+      orderAmount: 0,
+      orderCount: 0,
     };
     currentLowTick = Number(lowerTicks[i].tickIdx);
   }
-  const [amount0List, amount1List, amount0NeedList, amount1NeedList] = Object.values(rangeMapping)
+  // Limit orders are single-tick-spacing liquidity already counted in the ticks above. Attribute
+  // each level to the range holding its lower tick so the bar can show how much of it is orders.
+  const ranges = Object.values(rangeMapping);
+  for (const level of orderLevels) {
+    const range = ranges.find((r) => r.currentTick <= level.tickLower && level.tickLower < r.nextTick);
+    if (!range) continue;
+    const { amount0, amount1 } = getRangeAmounts(level.liquidity, level.tickLower, level.tickLower + pool.tickSpacing);
+    range.orderAmount += Number(formatUnits(isOutcomeToken0 ? amount0 : amount1, 18));
+    range.orderCount += level.orders;
+  }
+  for (const range of ranges) {
+    // Every bar is expressed in outcome tokens; keep the order portion within the bar.
+    const barAmount = isOutcomeToken0
+      ? Math.max(range.amount0, range.amount0Need)
+      : Math.max(range.amount1, range.amount1Need);
+    range.orderAmount = Math.min(range.orderAmount, barAmount);
+  }
+
+  const [amount0List, amount1List, amount0NeedList, amount1NeedList, orderAmountList, orderCountList] = ranges
     .sort((a, b) => Number(a.currentTick) - Number(b.currentTick))
     .reduce(
       (acc, curr) => {
@@ -113,9 +164,11 @@ export function getChartDataByTicks(
         acc[1].push(curr.amount1);
         acc[2].push(curr.amount0Need);
         acc[3].push(curr.amount1Need);
+        acc[4].push(curr.orderAmount);
+        acc[5].push(curr.orderCount);
         return acc;
       },
-      [[], [], [], []] as number[][],
+      [[], [], [], [], [], []] as number[][],
     );
 
   const sortedTickIndices = [
@@ -144,6 +197,8 @@ export function getChartDataByTicks(
     amount1List,
     amount0NeedList,
     amount1NeedList,
+    orderAmountList,
+    orderCountList,
     maxZoomCount: Math.max(processedHigherTicks.length, processedLowerTicks.length),
   };
 }
@@ -159,24 +214,30 @@ export function getLiquidityChartData(
   isShowToken0Price: boolean,
   zoomCount: number,
   outcome: Address,
+  orderLevels: ChartOrderLevel[] = [],
 ) {
   if (!ticks.length) {
     return {
       priceList: [],
       sellBarsData: [],
       buyBarsData: [],
+      sellOrderBarsData: [],
+      buyOrderBarsData: [],
+      orderCounts: [],
       sellLineData: [],
       buyLineData: [],
       maxYValue: 0,
       maxZoomCount: 0,
     };
   }
-  const chartData = getChartDataByTicks(poolInfo, ticks, zoomCount, outcome);
+  const chartData = getChartDataByTicks(poolInfo, ticks, zoomCount, outcome, orderLevels);
   const priceList = isShowToken0Price ? chartData.price0List : [...chartData.price1List].reverse();
   const amount0List = isShowToken0Price ? chartData.amount0List : [...chartData.amount0List].reverse();
   const amount1List = isShowToken0Price ? chartData.amount1List : [...chartData.amount1List].reverse();
   const amount0NeedList = isShowToken0Price ? chartData.amount0NeedList : [...chartData.amount0NeedList].reverse();
   const amount1NeedList = isShowToken0Price ? chartData.amount1NeedList : [...chartData.amount1NeedList].reverse();
+  const orderAmountList = isShowToken0Price ? chartData.orderAmountList : [...chartData.orderAmountList].reverse();
+  const orderCounts = isShowToken0Price ? chartData.orderCountList : [...chartData.orderCountList].reverse();
   const accAmount0List = amount0List.reduce((acc, curr) => {
     if (acc.length === 0) return [curr];
     acc.push(acc[acc.length - 1] + curr);
@@ -197,11 +258,25 @@ export function getLiquidityChartData(
     acc.unshift(curr + acc[0]);
     return acc;
   }, [] as number[]);
+  // Bars are split into the liquidity-position portion and the resting limit-order portion; the
+  // two stack to the full amount of the range. A range only has one side, so the order portion
+  // goes to whichever side holds the amount.
+  const sellAmountList = isShowToken0Price ? amount0List : amount1List;
+  const buyAmountList = isShowToken0Price ? amount0NeedList : amount1NeedList;
+  const sellOrderList = orderAmountList.map((amount, index) => (sellAmountList[index] > 0 ? amount : 0));
+  const buyOrderList = orderAmountList.map((amount, index) => (buyAmountList[index] > 0 ? amount : 0));
+  // The price list has one more entry than there are ranges; the last point stays empty.
   const sellBarsData = priceList.map((_, index) => {
-    return [index + 0.5, (isShowToken0Price ? amount0List : amount1List)[index]];
+    return [index + 0.5, index < sellAmountList.length ? sellAmountList[index] - sellOrderList[index] : undefined];
   });
   const buyBarsData = priceList.map((_, index) => {
-    return [index + 0.5, (isShowToken0Price ? amount0NeedList : amount1NeedList)[index]];
+    return [index + 0.5, index < buyAmountList.length ? buyAmountList[index] - buyOrderList[index] : undefined];
+  });
+  const sellOrderBarsData = priceList.map((_, index) => {
+    return [index + 0.5, sellOrderList[index]];
+  });
+  const buyOrderBarsData = priceList.map((_, index) => {
+    return [index + 0.5, buyOrderList[index]];
   });
   const sellLineData = priceList.reduce<[number, number | null][]>((acc, _, index) => {
     acc.push([index, (isShowToken0Price ? accAmount0List : accAmount1List)[index] || null]);
@@ -218,6 +293,9 @@ export function getLiquidityChartData(
     priceList,
     sellBarsData,
     buyBarsData,
+    sellOrderBarsData,
+    buyOrderBarsData,
+    orderCounts,
     sellLineData,
     buyLineData,
     maxYValue,

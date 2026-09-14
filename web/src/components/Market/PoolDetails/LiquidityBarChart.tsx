@@ -1,6 +1,7 @@
 import { Alert } from "@/components/Alert";
 import { Slider } from "@/components/Slider";
 import { Spinner } from "@/components/Spinner";
+import { useOutcomeOrderLevels } from "@/hooks/limitOrders/useMarketOrderLevels";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
@@ -10,6 +11,9 @@ import { Market } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
+
+const LIQUIDITY_SERIES = "Liquidity";
+const ORDERS_SERIES = "Limit orders";
 
 export default function LiquidityBarChart({
   market,
@@ -26,6 +30,7 @@ export default function LiquidityBarChart({
   const isShowToken0Price = !!isTwoStringsEqual(token0, outcome);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
   const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
+  const orderLevels = useOutcomeOrderLevels(market, outcomeTokenIndex, poolInfo);
   const isSmallScreen = useIsSmallScreen();
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
   if (isError) {
@@ -43,8 +48,18 @@ export default function LiquidityBarChart({
       </div>
     );
   }
-  const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData, maxYValue, maxZoomCount } =
-    getLiquidityChartData(poolInfo, ticksByPool?.[id]?.ticks, isShowToken0Price, zoomCount, outcome);
+  const {
+    priceList,
+    sellBarsData,
+    buyBarsData,
+    sellOrderBarsData,
+    buyOrderBarsData,
+    orderCounts,
+    sellLineData,
+    buyLineData,
+    maxYValue,
+    maxZoomCount,
+  } = getLiquidityChartData(poolInfo, ticksByPool?.[id]?.ticks, isShowToken0Price, zoomCount, outcome, orderLevels);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
   const maxLabelCount = isSmallScreen ? 3 : 10; //max label x axis
   const chartOption = priceList
@@ -91,7 +106,12 @@ export default function LiquidityBarChart({
               }
               const yValue = Number(param.data[1].toFixed(2)).toLocaleString();
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${param.color};margin-right:5px;"></span>`;
-              tooltipContent += `${param.seriesName}: ${yValue}<br>`;
+              tooltipContent += `${param.seriesName}: ${yValue}`;
+              if (param.seriesName === ORDERS_SERIES) {
+                const accounts = orderCounts[currentPriceIndex] ?? 0;
+                tooltipContent += ` (${accounts} ${accounts === 1 ? "account" : "accounts"})`;
+              }
+              tooltipContent += "<br>";
             }
             if (params[0] && sellLineData[currentLineIndex][1]) {
               tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
@@ -136,7 +156,7 @@ export default function LiquidityBarChart({
         },
         series: [
           {
-            name: "Volume",
+            name: LIQUIDITY_SERIES,
             type: "bar",
             stack: "total",
             barWidth: "100%",
@@ -146,13 +166,33 @@ export default function LiquidityBarChart({
             },
           },
           {
-            name: "Volume",
+            name: LIQUIDITY_SERIES,
             type: "bar",
             stack: "total",
             barWidth: "100%",
             data: buyBarsData,
             itemStyle: {
               color: "#90EE90",
+            },
+          },
+          {
+            name: ORDERS_SERIES,
+            type: "bar",
+            stack: "total",
+            barWidth: "100%",
+            data: sellOrderBarsData,
+            itemStyle: {
+              color: "#F5A3A3",
+            },
+          },
+          {
+            name: ORDERS_SERIES,
+            type: "bar",
+            stack: "total",
+            barWidth: "100%",
+            data: buyOrderBarsData,
+            itemStyle: {
+              color: "#5FCF7A",
             },
           },
           {
@@ -239,6 +279,9 @@ export default function LiquidityBarChart({
         </div>
         <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
       </div>
+      {orderLevels.length > 0 && (
+        <p className="text-[12px] text-black-secondary text-center mt-1">Darker segments are resting limit orders.</p>
+      )}
       <div
         className="h-[400px] flex justify-center"
         onWheel={(event) => {

@@ -36,13 +36,14 @@ If the outcome's pool has no liquidity yet, the button reads **Add liquidity to 
 
 ## Following your orders
 
-Every market with limit orders has an **Open orders** tab under the chart. It has two parts:
-
-- **Order book**: for each outcome, the resting **Bids** (buy orders) and **Asks** (sell orders) with their price and size, best price first.
-- **Your orders**: an **Active** view with your **Open** orders and your **Filled (withdrawable)** orders, and a **History** view with every place, fill, cancel and withdrawal.
+Every market with limit orders has an **Open orders** tab under the chart with your orders: an **Active** view with your **Open** orders and your **Filled (withdrawable)** orders, and a **History** view with every place, fill, cancel and withdrawal.
 
 From the Active view you can cancel one open order or use **Cancel all**, and withdraw one filled order or use **Withdraw all**. Withdrawing a filled buy order sends you the outcome tokens; withdrawing a filled sell order sends you the collateral.
 
 The same panel is in your [Portfolio](/app/navigate-our-site) under the **Open Orders** tab, listing your orders across every market of the selected network.
 
 When one of your orders gets filled, the app shows a notification with a link to the Portfolio so you can withdraw.
+
+## Seeing everyone's orders
+
+Resting limit orders are liquidity in the outcome's pool, so they show up in the pool's liquidity chart. Click **View pool details** on an outcome: each bar of the chart is the liquidity at that price, and the darker part of the bar is the share of it that is limit orders. Hovering a bar shows the limit-order size and how many accounts have an order there. Orders above the current price are sells, orders below it are buys.
