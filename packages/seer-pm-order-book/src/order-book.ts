@@ -532,6 +532,14 @@ export function getNearestLimitOrderPrice(
   return { tick, nearestPrice };
 }
 
+/** A price typed without a decimal point, like "80", means 0.80. */
+export function toDecimalPrice(value: string): string | undefined {
+  if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
+    return `0.${value}`;
+  }
+  return undefined;
+}
+
 /**
  * Rewrite a typed outcome price as the price of its nearest usable tick, so what the user sees is
  * what the pool will use. Values outside (0, 1) are left alone for the field's own validation.

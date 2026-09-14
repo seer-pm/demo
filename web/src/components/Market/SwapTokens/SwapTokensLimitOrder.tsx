@@ -19,6 +19,7 @@ import {
   getValidLimitOrderBoundaryPrice,
   resolveLimitOrderZeroForOne,
   snapToNearestTickPrice,
+  toDecimalPrice,
 } from "@seer-pm/order-book/v4";
 import { useMissingApprovals, useTokenBalance, useTokenInfo } from "@seer-pm/react";
 import {
@@ -71,14 +72,6 @@ function sharesToPayAmount(
   }
 
   return getAmountInAtTick(shareAmount, tick, resolveLimitOrderZeroForOne(swapType, outcomeIsToken0));
-}
-
-/** A price typed without a decimal point, like "80", means 0.80. */
-function toDecimalPrice(value: string): string | undefined {
-  if (value && !value.includes(".") && !value.includes(",") && Number(value) >= 1) {
-    return `0.${value}`;
-  }
-  return undefined;
 }
 
 function getEffectiveLimitTick(limitPrice: string, outcomeIsToken0: boolean): number | undefined {
