@@ -11,6 +11,12 @@ import { useEffect, useState } from "react";
 import { useConfig } from "wagmi";
 import LiquidityBarChart from "./LiquidityBarChart";
 import LiquidityBarChartVertical from "./LiquidityBarChartVertical";
+import { LiquidityEmptyState } from "./LiquidityStates";
+
+const LAYOUT_OPTIONS = [
+  { layout: "horizontal", label: "Depth chart", Icon: BarChartIcon },
+  { layout: "vertical", label: "Order book", Icon: DensitySmallIcon },
+] as const;
 
 function PoolTabContent({
   market,
@@ -19,6 +25,7 @@ function PoolTabContent({
   poolIndex,
   isLoading,
   poolTokensBalances,
+  onAddLiquidity,
 }: {
   market: Market;
   outcomeIndex: number;
@@ -29,6 +36,7 @@ function PoolTabContent({
     balance0: string;
     balance1: string;
   }[];
+  onAddLiquidity?: () => void;
 }) {
   const { id: poolId, token0Symbol, token1Symbol } = dataPerPool;
 
@@ -49,7 +57,7 @@ function PoolTabContent({
                 : getPoolExplorerUrl(market.chainId, poolId)
             }
             title={poolId}
-            className="hover:underline text-purple-primary"
+            className="hover:underline text-purple-primary dark:text-purple-secondary"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -63,42 +71,48 @@ function PoolTabContent({
             <div className="shimmer-container w-20 h-4"></div>
           ) : (
             <div>
-              <p className="text-[14px]">
+              <p className="text-[14px] tabular-nums">
                 {poolTokensBalances[poolIndex]?.balance0 ?? 0} {token0Symbol} /{" "}
                 {poolTokensBalances[poolIndex]?.balance1 ?? 0} {token1Symbol}
               </p>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setLiquidityChartLayout("horizontal")}
-            className={`p-2 rounded ${
-              liquidityChartLayout === "horizontal"
-                ? "fill-white bg-purple-primary"
-                : "fill-black-secondary border border-black-secondary"
-            }`}
-          >
-            <BarChartIcon />
-          </button>
-          <button
-            type="button"
-            onClick={() => setLiquidityChartLayout("vertical")}
-            className={`p-2 rounded ${
-              liquidityChartLayout === "vertical"
-                ? "fill-white bg-purple-primary"
-                : "fill-black-secondary border border-black-secondary"
-            }`}
-          >
-            <DensitySmallIcon />
-          </button>
-        </div>
+        <fieldset className="flex items-center gap-2">
+          <legend className="sr-only">Liquidity view</legend>
+          {LAYOUT_OPTIONS.map(({ layout, label, Icon }) => (
+            <button
+              key={layout}
+              type="button"
+              aria-label={label}
+              aria-pressed={liquidityChartLayout === layout}
+              title={label}
+              onClick={() => setLiquidityChartLayout(layout)}
+              className={`p-2 rounded ${
+                liquidityChartLayout === layout
+                  ? "fill-white bg-purple-primary"
+                  : "fill-black-secondary border border-black-secondary"
+              }`}
+            >
+              <Icon />
+            </button>
+          ))}
+        </fieldset>
       </div>
       {liquidityChartLayout === "horizontal" ? (
-        <LiquidityBarChart market={market} outcomeTokenIndex={outcomeIndex} poolInfo={dataPerPool} />
+        <LiquidityBarChart
+          market={market}
+          outcomeTokenIndex={outcomeIndex}
+          poolInfo={dataPerPool}
+          onAddLiquidity={onAddLiquidity}
+        />
       ) : (
-        <LiquidityBarChartVertical market={market} outcomeTokenIndex={outcomeIndex} poolInfo={dataPerPool} />
+        <LiquidityBarChartVertical
+          market={market}
+          outcomeTokenIndex={outcomeIndex}
+          poolInfo={dataPerPool}
+          onAddLiquidity={onAddLiquidity}
+        />
       )}
     </div>
   );
@@ -107,9 +121,11 @@ function PoolTabContent({
 function PoolTab({
   market,
   outcomeIndex,
+  onAddLiquidity,
 }: {
   market: Market;
   outcomeIndex: number;
+  onAddLiquidity?: () => void;
 }) {
   const config = useConfig();
   const { data = [] } = useMarketPools(market);
@@ -157,7 +173,13 @@ function PoolTab({
   const currentPool = pools?.[currentPoolIndex];
 
   if (!pools?.length) {
-    return <p className="mt-3 text-[16px]">No liquidity data.</p>;
+    return (
+      <LiquidityEmptyState
+        className="mt-3"
+        message="There is no liquidity pool for this outcome yet."
+        onAddLiquidity={onAddLiquidity}
+      />
+    );
   }
 
   return (
@@ -169,6 +191,7 @@ function PoolTab({
               key={pool.id}
               type="button"
               role="tab"
+              aria-selected={poolTabId === pool.id}
               className={`tab ${poolTabId === pool.id && "tab-active"} w-[100px]`}
               onClick={() => setPoolTabId(pool.id)}
             >
@@ -186,6 +209,7 @@ function PoolTab({
           poolIndex={currentPoolIndex}
           isLoading={isLoading}
           poolTokensBalances={poolTokensBalances}
+          onAddLiquidity={onAddLiquidity}
         />
       )}
     </div>
