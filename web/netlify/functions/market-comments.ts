@@ -17,6 +17,23 @@ type CommentRow = {
   deleted_at: string | null;
 };
 
+type HoldingRow = {
+  token: string;
+  owner: string;
+  balance: string;
+};
+
+type AuthorPosition = {
+  tokenId: string;
+  outcome: string;
+  balance: string;
+};
+
+function parseChainId(value: unknown): number | null {
+  const chainId = Number(value);
+  return value && Number.isInteger(chainId) ? chainId : null;
+}
+
 function parsePath(url: string) {
   // /.netlify/functions/market-comments/:id?/action?
   const parts = new URL(url).pathname.split("/").filter(Boolean);
@@ -26,7 +43,7 @@ function parsePath(url: string) {
   return { id, action };
 }
 
-function toComment(row: CommentRow, likeCount: number, likedByMe: boolean) {
+function toComment(row: CommentRow, likeCount: number, likedByMe: boolean, positions: AuthorPosition[] = []) {
   const author = row.author.toLowerCase();
   return {
     id: row.id,
@@ -39,7 +56,56 @@ function toComment(row: CommentRow, likeCount: number, likedByMe: boolean) {
     createdAt: Math.floor(new Date(row.created_at).getTime() / 1000),
     likeCount,
     likedByMe,
+    positions,
   };
+}
+
+/** Current outcome-token positions of `authors` in the market, keyed by lowercase address in outcome order. */
+async function getAuthorPositions(chainId: number | null, marketId: string, authors: string[]) {
+  const positionsByAuthor = new Map<string, AuthorPosition[]>();
+  if (chainId === null || authors.length === 0) return positionsByAuthor;
+
+  try {
+    const { data: market, error: marketError } = await supabase
+      .from("markets")
+      .select("wrappedTokens:subgraph_data->wrappedTokens, outcomes:subgraph_data->outcomes")
+      .eq("id", marketId)
+      .eq("chain_id", chainId)
+      .maybeSingle();
+    if (marketError) throw marketError;
+
+    const wrappedTokens = ((market?.wrappedTokens ?? []) as string[]).map((token) => token.toLowerCase());
+    const outcomes = (market?.outcomes ?? []) as string[];
+    if (wrappedTokens.length === 0) return positionsByAuthor;
+
+    const { data: holdings, error } = await supabase
+      .from("tokens_holdings_v")
+      .select("token, owner, balance::text")
+      .eq("chain_id", chainId)
+      .in("token", wrappedTokens)
+      .in("owner", [...new Set(authors.map((author) => author.toLowerCase()))])
+      .gt("balance", 0);
+    if (error) throw error;
+
+    for (const { token, owner, balance } of (holdings ?? []) as HoldingRow[]) {
+      const outcomeIndex = wrappedTokens.indexOf(token.toLowerCase());
+      const outcome = outcomes[outcomeIndex];
+      if (!outcome) continue;
+
+      const address = owner.toLowerCase();
+      const positions = positionsByAuthor.get(address) ?? [];
+      positions.push({ tokenId: wrappedTokens[outcomeIndex], outcome, balance });
+      positionsByAuthor.set(address, positions);
+    }
+    for (const positions of positionsByAuthor.values()) {
+      positions.sort((a, b) => wrappedTokens.indexOf(a.tokenId) - wrappedTokens.indexOf(b.tokenId));
+    }
+  } catch (error) {
+    // Position badges are secondary; never fail the comments request over them.
+    console.error("Author positions error:", error);
+    positionsByAuthor.clear();
+  }
+  return positionsByAuthor;
 }
 
 async function getLikeStats(commentIds: string[], viewer: string | null) {
@@ -99,14 +165,23 @@ export default async (req: Request) => {
       }
 
       const rows = (data || []) as CommentRow[];
-      const { counts, liked } = await getLikeStats(
-        rows.map((r) => r.id),
-        viewer,
-      );
+      const [{ counts, liked }, positionsByAuthor] = await Promise.all([
+        getLikeStats(
+          rows.map((r) => r.id),
+          viewer,
+        ),
+        getAuthorPositions(
+          parseChainId(url.searchParams.get("chain_id")),
+          marketId,
+          rows.map((r) => r.author),
+        ),
+      ]);
 
       return new Response(
         JSON.stringify({
-          data: rows.map((row) => toComment(row, counts.get(row.id) || 0, liked.has(row.id))),
+          data: rows.map((row) =>
+            toComment(row, counts.get(row.id) || 0, liked.has(row.id), positionsByAuthor.get(row.author.toLowerCase())),
+          ),
         }),
         { status: 200, headers: jsonHeaders },
       );
@@ -165,10 +240,18 @@ export default async (req: Request) => {
         });
       }
 
-      return new Response(JSON.stringify({ id: data.id, data: toComment(data as CommentRow, 0, false) }), {
-        status: 200,
-        headers: jsonHeaders,
-      });
+      const positionsByAuthor = await getAuthorPositions(parseChainId(body.chain_id), marketId, [viewer]);
+
+      return new Response(
+        JSON.stringify({
+          id: data.id,
+          data: toComment(data as CommentRow, 0, false, positionsByAuthor.get(viewer.toLowerCase())),
+        }),
+        {
+          status: 200,
+          headers: jsonHeaders,
+        },
+      );
     }
 
     if (req.method === "POST" && id && action === "like") {

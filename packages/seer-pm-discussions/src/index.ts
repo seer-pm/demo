@@ -10,7 +10,6 @@ import { useDiscussions } from "./hooks/useDiscussions";
 export type {
   Comment,
   DiscussionUser,
-  DiscussionMarket,
   DiscussionPosition,
   DiscussionsClient,
   CreateCommentInput,

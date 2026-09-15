@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { DiscussionsContext } from "../../contexts/DiscussionsContext";
-import type { DiscussionComponents, DiscussionPosition, DiscussionUser, DiscussionsClient } from "../../types";
+import type { DiscussionComponents, DiscussionUser, DiscussionsClient } from "../../types";
 import DefaultButton from "../DefaultButton";
 import DefaultUserPositionBadge from "../UserPositionBadge/UserPositionBadge";
 
@@ -21,27 +21,10 @@ export default function DiscussionsProvider({
 }: DiscussionsProviderProps) {
   const [user, setUser] = useState<DiscussionUser | null>(userProp);
   const [connecting, setConnecting] = useState(false);
-  const [positionsByAddress, setPositionsByAddress] = useState<Map<string, DiscussionPosition[]>>(new Map());
 
   useEffect(() => {
     setUser(userProp ?? null);
   }, [userProp]);
-
-  useEffect(() => {
-    let active = true;
-    setPositionsByAddress(new Map());
-    void client
-      .listCommenterPositions(user?.address)
-      .then((positions) => {
-        if (active) setPositionsByAddress(positions);
-      })
-      .catch((error) => {
-        console.error("Failed to load commenter positions:", error);
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, user?.address]);
 
   const components = useMemo(
     () => ({
@@ -60,7 +43,6 @@ export default function DiscussionsProvider({
         connecting,
         setConnecting,
         client,
-        positionsByAddress,
         onRequestConnect: onRequestConnect ?? null,
         components,
       }}

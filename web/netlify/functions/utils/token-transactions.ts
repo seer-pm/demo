@@ -17,14 +17,11 @@ export async function getTokenHolders(
   chainId: number,
   tokenIds: string[],
   count?: number,
-  ownerAddresses?: string[],
 ): Promise<{ [tokenId: string]: TokenHolder[] }> {
-  if (ownerAddresses?.length === 0) return {};
-
   const rows: HoldingsRow[] = [];
   let from = 0;
   while (true) {
-    let query = client
+    const { data, error } = await client
       .from("tokens_holdings_v")
       .select("token, owner, balance")
       .eq("chain_id", chainId)
@@ -33,16 +30,7 @@ export async function getTokenHolders(
         tokenIds.map((id) => id.toLowerCase()),
       )
       .neq("owner", "0x0000000000000000000000000000000000000000")
-      .gt("balance", 0);
-
-    if (ownerAddresses) {
-      query = query.in(
-        "owner",
-        ownerAddresses.map((address) => address.toLowerCase()),
-      );
-    }
-
-    const { data, error } = await query
+      .gt("balance", 0)
       .order("token", { ascending: true })
       .order("balance", { ascending: false })
       .range(from, from + HOLDERS_PAGE_SIZE - 1);

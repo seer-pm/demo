@@ -4,14 +4,6 @@ export type DiscussionUser = {
   address: string;
 };
 
-/** Market fields used by Seer's discussion and holder APIs. */
-export type DiscussionMarket = {
-  id: string;
-  chainId: number;
-  outcomes: readonly string[];
-  wrappedTokens: readonly string[];
-};
-
 export type DiscussionPosition = {
   tokenId: string;
   outcome: string;
@@ -59,6 +51,8 @@ export type Comment = {
   createdAt: number;
   likeCount: number;
   likedByMe?: boolean;
+  /** Author's current outcome-token positions in the market. */
+  positions?: DiscussionPosition[];
 };
 
 export type CreateCommentInput = {
@@ -69,8 +63,7 @@ export type CreateCommentInput = {
 export type DiscussionsClient = {
   marketId: string;
   listComments: () => Promise<Comment[]>;
-  listCommenterPositions: (account?: string) => Promise<Map<string, DiscussionPosition[]>>;
-  createComment: (input: CreateCommentInput) => Promise<{ id: string }>;
+  createComment: (input: CreateCommentInput) => Promise<{ id: string; positions: DiscussionPosition[] }>;
   editComment: (id: string, body: string) => Promise<void>;
   deleteComment: (id: string) => Promise<void>;
   setLike: (id: string, liked: boolean) => Promise<void>;

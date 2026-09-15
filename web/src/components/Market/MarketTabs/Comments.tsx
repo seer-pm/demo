@@ -49,13 +49,14 @@ function Comments({ market }: { market: Market }) {
     () =>
       createDiscussionsClient({
         baseUrl: getAppUrl(),
-        market,
+        marketId: market.id,
+        chainId: market.chainId,
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;
         },
       }),
-    [market],
+    [market.id, market.chainId],
   );
 
   const user = isSignedIn && address ? userFromAddress(address) : null;

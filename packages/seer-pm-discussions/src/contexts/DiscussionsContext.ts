@@ -1,17 +1,10 @@
 import { createContext } from "react";
 import DefaultButton from "../components/DefaultButton";
 import DefaultUserPositionBadge from "../components/UserPositionBadge/UserPositionBadge";
-import type {
-  Comment,
-  DiscussionPosition,
-  DiscussionUser,
-  DiscussionsClient,
-  ResolvedDiscussionComponents,
-} from "../types";
+import type { Comment, DiscussionUser, DiscussionsClient, ResolvedDiscussionComponents } from "../types";
 
 export type DiscussionsContextValue = {
   client: DiscussionsClient | null;
-  positionsByAddress: ReadonlyMap<string, readonly DiscussionPosition[]>;
   user: DiscussionUser | null;
   setUser: ((user: DiscussionUser | null) => void) | null;
   connecting: boolean;
@@ -22,7 +15,6 @@ export type DiscussionsContextValue = {
 
 export const DiscussionsContext = createContext<DiscussionsContextValue>({
   client: null,
-  positionsByAddress: new Map(),
   user: null,
   setUser: null,
   connecting: false,
