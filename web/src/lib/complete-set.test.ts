@@ -110,9 +110,14 @@ describe("isCompleteSetRoutingEnabled", () => {
     expect(isCompleteSetRoutingEnabled(market, 0, market.collateralToken as `0x${string}`)).toBe(true);
   });
 
-  it("returns false for invalid outcome index", () => {
+  it("accepts the Invalid outcome, which trades through every other outcome", () => {
     const market = createMinimalMarket({});
-    expect(isCompleteSetRoutingEnabled(market, 2, market.collateralToken as `0x${string}`)).toBe(false);
+    expect(isCompleteSetRoutingEnabled(market, 2, market.collateralToken as `0x${string}`)).toBe(true);
+  });
+
+  it("rejects indexes that are neither a tradeable outcome nor Invalid", () => {
+    const market = createMinimalMarket({});
+    expect(isCompleteSetRoutingEnabled(market, 3, market.collateralToken as `0x${string}`)).toBe(false);
   });
 
   it("returns false for conditional markets, whose split takes the base collateral", () => {

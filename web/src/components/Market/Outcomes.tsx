@@ -394,7 +394,7 @@ function OutcomeDetails({
             <EtherscanIcon width="12" height="12" />
           </a>
 
-          {market.type === "Generic" && (
+          {market.type === "Generic" && !_isInvalidOutcome && (
             <AddLiquidityLinks
               market={market}
               outcomeIndex={outcomeIndex}
@@ -403,7 +403,7 @@ function OutcomeDetails({
             />
           )}
 
-          {market.type === "Generic" && onTogglePoolDetails && (
+          {market.type === "Generic" && !_isInvalidOutcome && onTogglePoolDetails && (
             <button
               type="button"
               onClick={(e) => {

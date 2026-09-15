@@ -36,7 +36,7 @@ export default function SwapButtons({
         <div className="space-y-[8px] w-full">
           {missingApprovals.map((approval) => (
             <ApproveButton
-              key={approval.address}
+              key={`${approval.address}-${approval.spender}`}
               tokenAddress={approval.address}
               tokenName={approval.name}
               spender={approval.spender}

@@ -1,5 +1,12 @@
 /**
  * Complete-set route quotes: mint+sell (buy) and buy+merge (sell) vs direct AMM swap.
+ *
+ * Both routes work on the whole outcome set. Buying an outcome splits collateral into a complete
+ * set and sells every other outcome the AMM can take; selling buys every other outcome and merges
+ * the set back into collateral. On a binary market that is one swap. For Invalid, which has no
+ * pool of its own, it is one swap per real outcome: Invalid is priced as the complement
+ * (`1 - sum of the other prices`), so minting the set and selling everything else is the only way
+ * to buy it, and buying everything else and merging is the only way to sell it.
  */
 
 import type { Address, Client, PublicClient } from "viem";
@@ -32,6 +39,15 @@ export interface CompleteSetLeftover {
   amount: bigint;
 }
 
+/** One AMM swap of a complete-set route: an outcome sold (mint+sell) or bought (buy+merge). */
+export interface CompleteSetSwapLeg {
+  outcomeIndex: number;
+  outcomeToken: Token;
+  trade: AmmTrade;
+  /** Outcome tokens moved through the AMM by this leg. */
+  amount: bigint;
+}
+
 export interface CompleteSetLeg {
   route: "mintSell" | "buyMerge" | "mintToCover";
   splitAmount?: bigint;
@@ -51,6 +67,24 @@ export interface CompleteSetLeg {
   existingBalance?: bigint;
   /** mintToCover only: the rest of the complete set, which stays in the user's wallet. */
   leftoverTokens?: CompleteSetLeftover[];
+  /**
+   * mint+sell / buy+merge: every AMM swap of the route, one per outcome other than the target
+   * (one leg on a binary market, N-1 legs when the target is Invalid). `secondaryTrade` is the
+   * first of them and is kept for the parts of the pipeline that work on a single trade.
+   */
+  swapLegs?: CompleteSetSwapLeg[];
+  /**
+   * buy+merge: outcome tokens the merge burns that are taken from the wallet instead of bought —
+   * the target itself is not listed. Invalid on a regular target always is (it has no pool);
+   * any other outcome is when the user already held enough of it.
+   */
+  heldOutcomeTokens?: CompleteSetLeftover[];
+  /**
+   * Collateral the wallet must hold when the route starts: the whole split on mint+sell, the
+   * worst-case cost of every buy on buy+merge. Most of it comes back within the same trade, so
+   * it is far above the net amount the quote reports, and it is what the balance check must use.
+   */
+  requiredCollateral?: bigint;
   secondaryTrade: AmmTrade;
   market: MarketLike;
   collateralToken: Address;
@@ -80,62 +114,25 @@ export function getInvalidOutcomeIndex(market: Market): number {
   return market.wrappedTokens.length - 1;
 }
 
+/**
+ * Outcomes a complete-set route swaps on the AMM when targeting `targetOutcomeIndex`: every other
+ * outcome, except that Invalid is skipped when the target is a regular outcome. Invalid has no
+ * pool of its own, so on a mint+sell it stays in the wallet and on a buy+merge it has to be held.
+ */
+export function getCompleteSetSwapOutcomeIndexes(market: Market, targetOutcomeIndex: number): number[] {
+  const invalidIndex = getInvalidOutcomeIndex(market);
+  const isInvalidTarget = targetOutcomeIndex === invalidIndex;
+  return market.wrappedTokens
+    .map((_, index) => index)
+    .filter((index) => index !== targetOutcomeIndex && (isInvalidTarget || index !== invalidIndex));
+}
+
 interface BuyMergeBalanceCheck {
-  role: "collateralForBuy" | "targetOutcomeForMerge" | "invalidOutcomeForMerge";
+  role: "collateralForBuy" | "targetOutcomeForMerge" | "heldOutcomeForMerge";
   token: Token;
   balance: bigint;
   required: bigint;
   sufficient: boolean;
-}
-
-async function getBuyMergeBalanceChecks(params: {
-  client: Client;
-  account: Address;
-  collateralToken: Token;
-  targetOutcomeToken: Token;
-  invalidOutcomeToken: Token;
-  mergeAmount: bigint;
-  maxCollateralSpend: bigint;
-}): Promise<BuyMergeBalanceCheck[]> {
-  const { client, account, collateralToken, targetOutcomeToken, invalidOutcomeToken, mergeAmount, maxCollateralSpend } =
-    params;
-
-  const tokens = [collateralToken, targetOutcomeToken, invalidOutcomeToken];
-  const balances = await multicall(client, {
-    allowFailure: false,
-    contracts: tokens.map((token) => ({
-      address: token.address,
-      abi: erc20Abi,
-      functionName: "balanceOf",
-      args: [account],
-    })),
-  });
-
-  const [collateralBalance, targetBalance, invalidBalance] = balances.map((balance) => BigInt(balance));
-
-  return [
-    {
-      role: "collateralForBuy",
-      token: collateralToken,
-      balance: collateralBalance,
-      required: maxCollateralSpend,
-      sufficient: collateralBalance >= maxCollateralSpend,
-    },
-    {
-      role: "targetOutcomeForMerge",
-      token: targetOutcomeToken,
-      balance: targetBalance,
-      required: mergeAmount,
-      sufficient: targetBalance >= mergeAmount,
-    },
-    {
-      role: "invalidOutcomeForMerge",
-      token: invalidOutcomeToken,
-      balance: invalidBalance,
-      required: mergeAmount,
-      sufficient: invalidBalance >= mergeAmount,
-    },
-  ];
 }
 
 function formatBalanceCheck(check: BuyMergeBalanceCheck) {
@@ -210,8 +207,9 @@ export function getSplitCollateralDisabledReasons(market: Market, collateralToke
 }
 
 /**
- * mint+sell and buy+merge swap a single *opposite* outcome, which only exists on a binary market.
- * mint-to-cover carries no such constraint — see `isMintToCoverRoutingEnabled`.
+ * mint+sell and buy+merge on a regular outcome swap the one outcome opposite the target, which
+ * only exists on a binary market. Targeting Invalid swaps every other outcome instead, so it works
+ * on any outcome count. mint-to-cover carries no such constraint — see `isMintToCoverRoutingEnabled`.
  */
 export function isCompleteSetRoutingEnabled(market: Market, outcomeIndex: number, collateralToken: Address): boolean {
   return getCompleteSetRoutingDisabledReasons(market, outcomeIndex, collateralToken).length === 0;
@@ -225,11 +223,14 @@ export function getCompleteSetRoutingDisabledReasons(
 ): string[] {
   const reasons = getSplitCollateralDisabledReasons(market, collateralToken);
 
+  if (market.type === "Generic" && outcomeIndex === getInvalidOutcomeIndex(market)) {
+    return reasons;
+  }
   if (!isCompleteSetMarket(market)) {
     reasons.push("not a binary Generic market (need exactly 3 wrapped tokens: 2 tradeable + Invalid)");
   }
   if (outcomeIndex !== 0 && outcomeIndex !== 1) {
-    reasons.push(`outcome index ${outcomeIndex} is not tradeable (only 0 or 1)`);
+    reasons.push(`outcome index ${outcomeIndex} is neither a tradeable outcome (0 or 1) nor Invalid`);
   }
 
   return reasons;
@@ -444,9 +445,252 @@ export function compareCompleteSetRoutes(
   return winner;
 }
 
+/** Shared inputs of one multi-leg quote. Collateral and outcome tokens are all 18 decimals. */
+interface CompleteSetQuoteContext {
+  market: Market;
+  marketLike: MarketLike;
+  targetOutcomeIndex: number;
+  targetOutcomeToken: Token;
+  /** Outcomes swapped on the AMM, see `getCompleteSetSwapOutcomeIndexes`. */
+  swapOutcomeIndexes: number[];
+  /** Outcomes the merge burns that no pool can supply: Invalid when the target is a regular outcome. */
+  heldOutcomeIndexes: number[];
+  poolCollateral: Token;
+  account: Address | undefined;
+  client: PublicClient;
+  maxSlippage: string;
+}
+
+function createQuoteContext(params: {
+  market: Market;
+  targetOutcomeIndex: number;
+  account: Address | undefined;
+  client: PublicClient;
+  maxSlippage: string;
+}): CompleteSetQuoteContext {
+  const { market, targetOutcomeIndex, account, client, maxSlippage } = params;
+  const swapOutcomeIndexes = getCompleteSetSwapOutcomeIndexes(market, targetOutcomeIndex);
+  const heldOutcomeIndexes = market.wrappedTokens
+    .map((_, index) => index)
+    .filter((index) => index !== targetOutcomeIndex && !swapOutcomeIndexes.includes(index));
+
+  return {
+    market,
+    marketLike: { id: market.id, type: market.type, chainId: market.chainId },
+    targetOutcomeIndex,
+    targetOutcomeToken: getOutcomeToken(market, targetOutcomeIndex),
+    swapOutcomeIndexes,
+    heldOutcomeIndexes,
+    poolCollateral: {
+      address: market.collateralToken as Address,
+      chainId: market.chainId,
+      decimals: 18,
+      symbol: "",
+    },
+    account,
+    client,
+    maxSlippage,
+  };
+}
+
+/** Wallet balances of the collateral and of every wrapped outcome, indexed like `wrappedTokens`. */
+interface WalletBalances {
+  collateral: bigint;
+  outcomes: bigint[];
+}
+
+async function fetchWalletBalances(ctx: CompleteSetQuoteContext): Promise<WalletBalances | undefined> {
+  const { account } = ctx;
+  if (!account) {
+    return undefined;
+  }
+
+  const tokens = [ctx.poolCollateral.address, ...(ctx.market.wrappedTokens as Address[])];
+  const balances = await multicall(ctx.client, {
+    allowFailure: false,
+    contracts: tokens.map((address) => ({
+      address,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [account],
+    })),
+  });
+
+  const [collateral, ...outcomes] = balances.map((balance) => BigInt(balance));
+  return { collateral, outcomes };
+}
+
+/** Binary legs keep the single-outcome fields so older consumers of the leg still work. */
+function getBinaryLegFields(
+  legs: CompleteSetSwapLeg[],
+): Pick<CompleteSetLeg, "oppositeOutcomeIndex" | "oppositeOutcomeToken"> {
+  if (legs.length !== 1) {
+    return {};
+  }
+  const [leg] = legs;
+  return { oppositeOutcomeIndex: leg.outcomeIndex, oppositeOutcomeToken: leg.outcomeToken };
+}
+
+interface SellLegsQuote {
+  legs: CompleteSetSwapLeg[];
+  /** Collateral every sell returns, added up. */
+  proceeds: bigint;
+}
+
+/** Sell `amount` of every swapped outcome for collateral. The legs are quoted in parallel. */
+async function quoteSellLegs(ctx: CompleteSetQuoteContext, amount: bigint): Promise<SellLegsQuote> {
+  const quoted = await Promise.all(
+    ctx.swapOutcomeIndexes.map(async (outcomeIndex) => {
+      const outcomeToken = getOutcomeToken(ctx.market, outcomeIndex);
+      const quote = await fetchAmmQuote(
+        ctx.client,
+        TradeType.EXACT_INPUT,
+        ctx.market.chainId,
+        ctx.account,
+        formatUnits(amount, outcomeToken.decimals),
+        outcomeToken,
+        ctx.poolCollateral,
+        "sell",
+        ctx.maxSlippage,
+      );
+      return { leg: { outcomeIndex, outcomeToken, trade: quote.trade, amount }, proceeds: quote.value };
+    }),
+  );
+
+  return {
+    legs: quoted.map((entry) => entry.leg),
+    proceeds: quoted.reduce((acc, entry) => acc + entry.proceeds, 0n),
+  };
+}
+
+interface BuyLegsQuote {
+  legs: CompleteSetSwapLeg[];
+  /** Collateral every buy costs at the quoted price, added up. */
+  buyCost: bigint;
+  /** Same, at the slippage limit: what the wallet must hold for the buys to go through. */
+  maxCollateralIn: bigint;
+  heldOutcomeTokens: CompleteSetLeftover[];
+}
+
+/**
+ * Buy what is missing of every swapped outcome to merge `mergeAmount` sets. Outcome tokens the
+ * wallet already holds are used first, so a user sitting on part of the set only buys the rest.
+ */
+async function quoteBuyLegs(
+  ctx: CompleteSetQuoteContext,
+  mergeAmount: bigint,
+  balances: WalletBalances | undefined,
+): Promise<BuyLegsQuote> {
+  const quoted = await Promise.all(
+    ctx.swapOutcomeIndexes.map(async (outcomeIndex) => {
+      const outcomeToken = getOutcomeToken(ctx.market, outcomeIndex);
+      const balance = balances?.outcomes[outcomeIndex] ?? 0n;
+      const held = balance < mergeAmount ? balance : mergeAmount;
+      const buyAmount = mergeAmount - held;
+      if (buyAmount === 0n) {
+        return { outcomeToken, held, leg: undefined, cost: 0n, maxIn: 0n };
+      }
+      const quote = await fetchAmmQuote(
+        ctx.client,
+        TradeType.EXACT_OUTPUT,
+        ctx.market.chainId,
+        ctx.account,
+        formatUnits(buyAmount, outcomeToken.decimals),
+        outcomeToken,
+        ctx.poolCollateral,
+        "buy",
+        ctx.maxSlippage,
+      );
+      return {
+        outcomeToken,
+        held,
+        leg: { outcomeIndex, outcomeToken, trade: quote.trade, amount: buyAmount },
+        cost: quote.value,
+        maxIn: getMaximumAmountIn(quote.trade),
+      };
+    }),
+  );
+
+  const result: BuyLegsQuote = {
+    legs: [],
+    buyCost: 0n,
+    maxCollateralIn: 0n,
+    heldOutcomeTokens: ctx.heldOutcomeIndexes.map((index) => ({
+      token: getOutcomeToken(ctx.market, index),
+      amount: mergeAmount,
+    })),
+  };
+  for (const entry of quoted) {
+    if (entry.held > 0n) {
+      result.heldOutcomeTokens.push({ token: entry.outcomeToken, amount: entry.held });
+    }
+    if (entry.leg) {
+      result.legs.push(entry.leg);
+      result.buyCost += entry.cost;
+      result.maxCollateralIn += entry.maxIn;
+    }
+  }
+  return result;
+}
+
+const MINT_SELL_EXACT_INPUT_MAX_QUOTES = 6;
+/** Stop the exact-input split search once the net cost is within this much of the budget. */
+const MINT_SELL_EXACT_INPUT_TOLERANCE_BPS = 5n;
+
+/**
+ * Largest split whose net cost (split minus sell proceeds) stays within `budget`.
+ *
+ * Splitting exactly `budget` always fits, since the sells only give collateral back, but it leaves
+ * most of the budget unspent — and for Invalid nearly all of it, as the other outcomes sell for
+ * almost the whole split. The user asked to spend the budget, so the split has to grow until the
+ * net cost meets it. Net cost is `split * (1 - r)` with `r` the proceeds per split token, and `r`
+ * only falls as the sells push the pools, so iterating `split = budget / (1 - r)` closes in from
+ * both sides within a few quotes; the best fitting split seen is what gets returned.
+ *
+ * The wallet balance caps the split: the whole amount has to be there when the split runs, even
+ * though the sells return most of it in the same trade.
+ */
+async function findLargestSplitWithinBudget(
+  ctx: CompleteSetQuoteContext,
+  budget: bigint,
+  collateralBalance: bigint | undefined,
+): Promise<{ splitAmount: bigint; sellQuote: SellLegsQuote }> {
+  const cap = collateralBalance !== undefined && collateralBalance > 0n ? collateralBalance : undefined;
+  const clamp = (amount: bigint) => (cap !== undefined && amount > cap ? cap : amount);
+  const tolerance = (budget * MINT_SELL_EXACT_INPUT_TOLERANCE_BPS) / 10_000n;
+
+  let splitAmount = clamp(budget);
+  let sellQuote = await quoteSellLegs(ctx, splitAmount);
+  let best = { splitAmount, sellQuote };
+
+  for (let quotes = 1; ; quotes++) {
+    const netCost = splitAmount > sellQuote.proceeds ? splitAmount - sellQuote.proceeds : 0n;
+    const fits = netCost <= budget;
+    if (fits && splitAmount >= best.splitAmount) {
+      best = { splitAmount, sellQuote };
+    }
+    if ((fits && budget - netCost <= tolerance) || quotes >= MINT_SELL_EXACT_INPUT_MAX_QUOTES) {
+      break;
+    }
+    // Proceeds at or above the split means the set sells for more than it costs to mint: no finite
+    // split spends the budget, and there is nothing sensible to iterate towards.
+    if (sellQuote.proceeds >= splitAmount) {
+      break;
+    }
+    const next = clamp((budget * splitAmount) / (splitAmount - sellQuote.proceeds));
+    if (next === splitAmount) {
+      break;
+    }
+    splitAmount = next;
+    sellQuote = await quoteSellLegs(ctx, splitAmount);
+  }
+
+  return best;
+}
+
 async function quoteMintSellBuy(params: {
   market: Market;
-  targetOutcomeIndex: 0 | 1;
+  targetOutcomeIndex: number;
   tradeType: TradeType;
   amount: string;
   account: Address | undefined;
@@ -454,174 +698,168 @@ async function quoteMintSellBuy(params: {
   maxSlippage: string;
 }): Promise<CompleteSetQuoteResult | undefined> {
   const { market, targetOutcomeIndex, tradeType, amount, account, client, maxSlippage } = params;
-  const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
-  const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
-  const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
-  const poolCollateral: Token = {
-    address: market.collateralToken as Address,
-    chainId: market.chainId,
-    decimals: 18,
-    symbol: "",
-  };
-
-  let splitAmount: bigint;
-  if (tradeType === TradeType.EXACT_OUTPUT) {
-    splitAmount = parseUnits(amount, targetOutcomeToken.decimals);
-  } else {
-    splitAmount = parseUnits(amount, poolCollateral.decimals);
-  }
-
-  if (splitAmount <= 0n) {
+  const ctx = createQuoteContext({ market, targetOutcomeIndex, account, client, maxSlippage });
+  if (ctx.swapOutcomeIndexes.length === 0) {
     return undefined;
   }
 
-  const sellQuote = await fetchAmmQuote(
-    client,
-    TradeType.EXACT_INPUT,
-    market.chainId,
-    account,
-    formatUnits(splitAmount, oppositeOutcomeToken.decimals),
-    oppositeOutcomeToken,
-    poolCollateral,
-    "sell",
-    maxSlippage,
-  );
+  // Outcome tokens (exact output) and the collateral (exact input) are both 18 decimals.
+  const parsedAmount = parseUnits(amount, ctx.targetOutcomeToken.decimals);
+  if (parsedAmount <= 0n) {
+    return undefined;
+  }
 
-  const sellProceeds = sellQuote.value;
-  const netCollateralIn = splitAmount > sellProceeds ? splitAmount - sellProceeds : 0n;
-  const tokensOut = splitAmount;
+  let splitAmount: bigint;
+  let sellQuote: SellLegsQuote;
+  if (tradeType === TradeType.EXACT_OUTPUT) {
+    splitAmount = parsedAmount;
+    sellQuote = await quoteSellLegs(ctx, splitAmount);
+  } else {
+    const balances = await fetchWalletBalances(ctx);
+    ({ splitAmount, sellQuote } = await findLargestSplitWithinBudget(ctx, parsedAmount, balances?.collateral));
+  }
 
-  const marketLike: MarketLike = { id: market.id, type: market.type, chainId: market.chainId };
-  const sellTrade = sellQuote.trade as AmmTrade;
+  const netCollateralIn = splitAmount > sellQuote.proceeds ? splitAmount - sellQuote.proceeds : 0n;
+  const [firstLeg] = sellQuote.legs;
 
   return {
-    value: tokensOut,
-    decimals: targetOutcomeToken.decimals,
-    buyToken: targetOutcomeToken.address,
-    sellToken: poolCollateral.address,
-    sellAmount: formatUnits(netCollateralIn, poolCollateral.decimals),
+    value: splitAmount,
+    decimals: ctx.targetOutcomeToken.decimals,
+    buyToken: ctx.targetOutcomeToken.address,
+    sellToken: ctx.poolCollateral.address,
+    sellAmount: formatUnits(netCollateralIn, ctx.poolCollateral.decimals),
     swapType: "buy",
-    trade: sellTrade,
+    trade: firstLeg.trade,
     route: "mintSell",
     netCollateral: netCollateralIn,
     completeSetLeg: {
       route: "mintSell",
       splitAmount,
-      secondaryTrade: sellTrade,
-      market: marketLike,
-      collateralToken: poolCollateral.address,
+      swapLegs: sellQuote.legs,
+      requiredCollateral: splitAmount,
+      secondaryTrade: firstLeg.trade,
+      market: ctx.marketLike,
+      collateralToken: ctx.poolCollateral.address,
       targetOutcomeIndex,
-      oppositeOutcomeIndex,
-      targetOutcomeToken,
-      oppositeOutcomeToken,
+      targetOutcomeToken: ctx.targetOutcomeToken,
+      ...getBinaryLegFields(sellQuote.legs),
     },
   };
 }
 
-async function assertBuyMergeBalances(
-  client: Client | undefined,
-  account: Address | undefined,
-  collateralToken: Token,
-  targetOutcomeToken: Token,
-  invalidOutcomeToken: Token,
+function getBuyMergeBalanceChecks(
+  ctx: CompleteSetQuoteContext,
+  balances: WalletBalances,
   mergeAmount: bigint,
-  buyTrade: AmmTrade,
-): Promise<boolean> {
-  if (!client || !account) {
+  maxCollateralIn: bigint,
+): BuyMergeBalanceCheck[] {
+  const checks: Omit<BuyMergeBalanceCheck, "sufficient">[] = [
+    {
+      role: "collateralForBuy",
+      token: ctx.poolCollateral,
+      balance: balances.collateral,
+      required: maxCollateralIn,
+    },
+    {
+      role: "targetOutcomeForMerge",
+      token: ctx.targetOutcomeToken,
+      balance: balances.outcomes[ctx.targetOutcomeIndex],
+      required: mergeAmount,
+    },
+    ...ctx.heldOutcomeIndexes.map((index) => ({
+      role: "heldOutcomeForMerge" as const,
+      token: getOutcomeToken(ctx.market, index),
+      balance: balances.outcomes[index],
+      required: mergeAmount,
+    })),
+  ];
+
+  return checks.map((check) => ({ ...check, sufficient: check.balance >= check.required }));
+}
+
+function buildBuyMergeResult(
+  ctx: CompleteSetQuoteContext,
+  params: { mergeAmount: bigint; buyQuote: BuyLegsQuote; value: bigint; sellAmount: string },
+): CompleteSetQuoteResult {
+  const { mergeAmount, buyQuote, value, sellAmount } = params;
+  const [firstLeg] = buyQuote.legs;
+  const invalidOutcomeIndex = getInvalidOutcomeIndex(ctx.market);
+
+  return {
+    value,
+    decimals: ctx.poolCollateral.decimals,
+    buyToken: ctx.poolCollateral.address,
+    sellToken: ctx.targetOutcomeToken.address,
+    sellAmount,
+    swapType: "sell",
+    trade: firstLeg.trade,
+    route: "buyMerge",
+    netCollateral: buyQuote.buyCost,
+    completeSetLeg: {
+      route: "buyMerge",
+      mergeAmount,
+      swapLegs: buyQuote.legs,
+      heldOutcomeTokens: buyQuote.heldOutcomeTokens,
+      requiredCollateral: buyQuote.maxCollateralIn,
+      secondaryTrade: firstLeg.trade,
+      market: ctx.marketLike,
+      collateralToken: ctx.poolCollateral.address,
+      targetOutcomeIndex: ctx.targetOutcomeIndex,
+      targetOutcomeToken: ctx.targetOutcomeToken,
+      ...getBinaryLegFields(buyQuote.legs),
+      invalidOutcomeToken:
+        ctx.targetOutcomeIndex === invalidOutcomeIndex ? undefined : getOutcomeToken(ctx.market, invalidOutcomeIndex),
+    },
+  };
+}
+
+/**
+ * Whether the wallet can run the buys and the merge. Without an account there is nothing to
+ * check. A set the wallet already holds in full is not a buy+merge at all: the Merge tab does that.
+ */
+function canExecuteBuyMerge(
+  ctx: CompleteSetQuoteContext,
+  balances: WalletBalances | undefined,
+  mergeAmount: bigint,
+  buyQuote: BuyLegsQuote,
+): boolean {
+  if (buyQuote.legs.length === 0) {
+    console.log("[complete-set] buy+merge skipped: every other outcome is already held, merge instead");
+    return false;
+  }
+  if (!balances) {
     return true;
   }
-
-  const checks = await getBuyMergeBalanceChecks({
-    client,
-    account,
-    collateralToken,
-    targetOutcomeToken,
-    invalidOutcomeToken,
-    mergeAmount,
-    maxCollateralSpend: getMaximumAmountIn(buyTrade),
-  });
-
-  return logBuyMergeBalanceChecks(checks);
+  return logBuyMergeBalanceChecks(getBuyMergeBalanceChecks(ctx, balances, mergeAmount, buyQuote.maxCollateralIn));
 }
 
 async function quoteBuyMergeSellExactInput(params: {
   market: Market;
-  targetOutcomeIndex: 0 | 1;
+  targetOutcomeIndex: number;
   amount: string;
   account: Address | undefined;
-  client: Client | undefined;
+  client: PublicClient;
   maxSlippage: string;
 }): Promise<CompleteSetQuoteResult | undefined> {
   const { market, targetOutcomeIndex, amount, account, client, maxSlippage } = params;
-  const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
-  const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
-  const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
-  const poolCollateral: Token = {
-    address: market.collateralToken as Address,
-    chainId: market.chainId,
-    decimals: 18,
-    symbol: "",
-  };
+  const ctx = createQuoteContext({ market, targetOutcomeIndex, account, client, maxSlippage });
+  if (ctx.swapOutcomeIndexes.length === 0) {
+    return undefined;
+  }
 
-  const mergeAmount = parseUnits(amount, targetOutcomeToken.decimals);
+  const mergeAmount = parseUnits(amount, ctx.targetOutcomeToken.decimals);
   if (mergeAmount <= 0n) {
     return undefined;
   }
 
-  const buyQuote = await fetchAmmQuote(
-    client as PublicClient,
-    TradeType.EXACT_OUTPUT,
-    market.chainId,
-    account,
-    formatUnits(mergeAmount, oppositeOutcomeToken.decimals),
-    oppositeOutcomeToken,
-    poolCollateral,
-    "buy",
-    maxSlippage,
-  );
-
-  const buyTrade = buyQuote.trade as AmmTrade;
-  const invalidOutcomeToken = getOutcomeToken(market, getInvalidOutcomeIndex(market));
-  const hasBalances = await assertBuyMergeBalances(
-    client,
-    account,
-    poolCollateral,
-    targetOutcomeToken,
-    invalidOutcomeToken,
-    mergeAmount,
-    buyTrade,
-  );
-  if (!hasBalances) {
+  const balances = await fetchWalletBalances(ctx);
+  const buyQuote = await quoteBuyLegs(ctx, mergeAmount, balances);
+  if (!canExecuteBuyMerge(ctx, balances, mergeAmount, buyQuote)) {
     return undefined;
   }
 
-  const buyCost = buyQuote.value;
-  const netCollateralOut = mergeAmount > buyCost ? mergeAmount - buyCost : 0n;
-  const marketLike: MarketLike = { id: market.id, type: market.type, chainId: market.chainId };
-
-  return {
-    value: netCollateralOut,
-    decimals: poolCollateral.decimals,
-    buyToken: poolCollateral.address,
-    sellToken: targetOutcomeToken.address,
-    sellAmount: amount,
-    swapType: "sell",
-    trade: buyTrade,
-    route: "buyMerge",
-    netCollateral: buyCost,
-    completeSetLeg: {
-      route: "buyMerge",
-      mergeAmount,
-      secondaryTrade: buyTrade,
-      market: marketLike,
-      collateralToken: poolCollateral.address,
-      targetOutcomeIndex,
-      oppositeOutcomeIndex,
-      targetOutcomeToken,
-      oppositeOutcomeToken,
-      invalidOutcomeToken,
-    },
-  };
+  const netCollateralOut = mergeAmount > buyQuote.buyCost ? mergeAmount - buyQuote.buyCost : 0n;
+  return buildBuyMergeResult(ctx, { mergeAmount, buyQuote, value: netCollateralOut, sellAmount: amount });
 }
 
 const BUY_MERGE_SEARCH_MAX_EXPONENTIAL_STEPS = 32;
@@ -700,64 +938,22 @@ export async function searchMinimalAmountForTargetNetOut<T>(params: {
   return { amount: bestAmount, netOut: bestEval.netOut, payload: bestEval.payload };
 }
 
-type BuyMergeNetEval = {
-  buyQuote: QuoteTradeResult;
-  netCollateralOut: bigint;
-};
-
-async function evalBuyMergeNetOut(params: {
-  mergeAmount: bigint;
-  market: Market;
-  account: Address | undefined;
-  client: PublicClient;
-  oppositeOutcomeToken: Token;
-  poolCollateral: Token;
-  maxSlippage: string;
-}): Promise<BuyMergeNetEval | undefined> {
-  const { mergeAmount, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
-  if (mergeAmount <= 0n) {
-    return undefined;
-  }
-
-  const buyQuote = await fetchAmmQuote(
-    client,
-    TradeType.EXACT_OUTPUT,
-    market.chainId,
-    account,
-    formatUnits(mergeAmount, oppositeOutcomeToken.decimals),
-    oppositeOutcomeToken,
-    poolCollateral,
-    "buy",
-    maxSlippage,
-  );
-  const buyCost = buyQuote.value;
-  const netCollateralOut = mergeAmount > buyCost ? mergeAmount - buyCost : 0n;
-
-  return { buyQuote, netCollateralOut };
-}
-
 /** Minimal mergeAmount such that mergeAmount - buyCost(mergeAmount) >= desiredOut. */
-async function findMinimalMergeAmountForDesiredOut(params: {
-  desiredOut: bigint;
-  market: Market;
-  account: Address | undefined;
-  client: PublicClient;
-  oppositeOutcomeToken: Token;
-  poolCollateral: Token;
-  maxSlippage: string;
-}): Promise<(BuyMergeNetEval & { mergeAmount: bigint }) | undefined> {
-  const { desiredOut, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
-  const evalCtx = { market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage };
-
+async function findMinimalMergeAmountForDesiredOut(
+  ctx: CompleteSetQuoteContext,
+  desiredOut: bigint,
+  balances: WalletBalances | undefined,
+): Promise<{ mergeAmount: bigint; buyQuote: BuyLegsQuote; netCollateralOut: bigint } | undefined> {
   const searchResult = await searchMinimalAmountForTargetNetOut({
     desiredOut,
     initialGuess: desiredOut,
     evaluate: async (mergeAmount) => {
-      const result = await evalBuyMergeNetOut({ mergeAmount, ...evalCtx });
-      if (!result) {
+      if (mergeAmount <= 0n) {
         return undefined;
       }
-      return { netOut: result.netCollateralOut, payload: result.buyQuote };
+      const buyQuote = await quoteBuyLegs(ctx, mergeAmount, balances);
+      const netOut = mergeAmount > buyQuote.buyCost ? mergeAmount - buyQuote.buyCost : 0n;
+      return { netOut, payload: buyQuote };
     },
   });
 
@@ -774,84 +970,40 @@ async function findMinimalMergeAmountForDesiredOut(params: {
 
 async function quoteBuyMergeSellExactOutput(params: {
   market: Market;
-  targetOutcomeIndex: 0 | 1;
+  targetOutcomeIndex: number;
   amount: string;
   account: Address | undefined;
-  client: Client | undefined;
+  client: PublicClient;
   maxSlippage: string;
 }): Promise<CompleteSetQuoteResult | undefined> {
   const { market, targetOutcomeIndex, amount, account, client, maxSlippage } = params;
-  const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
-  const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
-  const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
-  const poolCollateral: Token = {
-    address: market.collateralToken as Address,
-    chainId: market.chainId,
-    decimals: 18,
-    symbol: "",
-  };
+  const ctx = createQuoteContext({ market, targetOutcomeIndex, account, client, maxSlippage });
+  if (ctx.swapOutcomeIndexes.length === 0) {
+    return undefined;
+  }
 
-  const desiredOut = parseUnits(amount, poolCollateral.decimals);
+  const desiredOut = parseUnits(amount, ctx.poolCollateral.decimals);
   if (desiredOut <= 0n) {
     return undefined;
   }
 
-  const searchResult = await findMinimalMergeAmountForDesiredOut({
-    desiredOut,
-    market,
-    account,
-    client: client as PublicClient,
-    oppositeOutcomeToken,
-    poolCollateral,
-    maxSlippage,
-  });
-
+  const balances = await fetchWalletBalances(ctx);
+  const searchResult = await findMinimalMergeAmountForDesiredOut(ctx, desiredOut, balances);
   if (!searchResult || searchResult.netCollateralOut < desiredOut) {
     return undefined;
   }
 
   const { mergeAmount, buyQuote } = searchResult;
-
-  const buyTrade = buyQuote.trade as AmmTrade;
-  const invalidOutcomeToken = getOutcomeToken(market, getInvalidOutcomeIndex(market));
-  const hasBalances = await assertBuyMergeBalances(
-    client,
-    account,
-    poolCollateral,
-    targetOutcomeToken,
-    invalidOutcomeToken,
-    mergeAmount,
-    buyTrade,
-  );
-  if (!hasBalances) {
+  if (!canExecuteBuyMerge(ctx, balances, mergeAmount, buyQuote)) {
     return undefined;
   }
 
-  const marketLike: MarketLike = { id: market.id, type: market.type, chainId: market.chainId };
-
-  return {
+  return buildBuyMergeResult(ctx, {
+    mergeAmount,
+    buyQuote,
     value: mergeAmount,
-    decimals: targetOutcomeToken.decimals,
-    buyToken: poolCollateral.address,
-    sellToken: targetOutcomeToken.address,
-    sellAmount: formatUnits(mergeAmount, targetOutcomeToken.decimals),
-    swapType: "sell",
-    trade: buyTrade,
-    route: "buyMerge",
-    netCollateral: buyQuote.value,
-    completeSetLeg: {
-      route: "buyMerge",
-      mergeAmount,
-      secondaryTrade: buyTrade,
-      market: marketLike,
-      collateralToken: poolCollateral.address,
-      targetOutcomeIndex,
-      oppositeOutcomeIndex,
-      targetOutcomeToken,
-      oppositeOutcomeToken,
-      invalidOutcomeToken,
-    },
-  };
+    sellAmount: formatUnits(mergeAmount, ctx.targetOutcomeToken.decimals),
+  });
 }
 
 export async function fetchCompleteSetAlternativeQuote(params: {
@@ -869,49 +1021,26 @@ export async function fetchCompleteSetAlternativeQuote(params: {
   if (!isCompleteSetRoutingEnabled(market, targetOutcomeIndex, market.collateralToken as Address)) {
     return undefined;
   }
-
-  const index = targetOutcomeIndex as 0 | 1;
-
-  if (swapType === "buy") {
-    if (!client) {
-      throw new Error("Public client is required for complete-set AMM quotes");
-    }
-    return quoteMintSellBuy({
-      market,
-      targetOutcomeIndex: index,
-      tradeType,
-      amount,
-      account,
-      client: client as PublicClient,
-      maxSlippage,
-    });
-  }
-
-  if (tradeType === TradeType.EXACT_INPUT) {
-    if (!client) {
-      throw new Error("Public client is required for complete-set AMM quotes");
-    }
-    return quoteBuyMergeSellExactInput({
-      market,
-      targetOutcomeIndex: index,
-      amount,
-      account,
-      client,
-      maxSlippage,
-    });
-  }
-
   if (!client) {
     throw new Error("Public client is required for complete-set AMM quotes");
   }
-  return quoteBuyMergeSellExactOutput({
+
+  const quoteParams = {
     market,
-    targetOutcomeIndex: index,
+    targetOutcomeIndex,
     amount,
     account,
-    client,
+    client: client as PublicClient,
     maxSlippage,
-  });
+  };
+
+  if (swapType === "buy") {
+    return quoteMintSellBuy({ ...quoteParams, tradeType });
+  }
+  if (tradeType === TradeType.EXACT_INPUT) {
+    return quoteBuyMergeSellExactInput(quoteParams);
+  }
+  return quoteBuyMergeSellExactOutput(quoteParams);
 }
 
 export async function fetchBestCompleteSetQuote(params: {

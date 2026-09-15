@@ -251,6 +251,12 @@ export function SwapTokensMarket({
   const canMintShortfallRef = useRef(canMintShortfall);
   canMintShortfallRef.current = canMintShortfall;
 
+  // A complete-set route fronts far more collateral than its net cost: the whole split, or every
+  // buy at the slippage limit. Most of it returns within the trade, but the wallet must hold it.
+  const requiredCollateral = effectiveQuote?.completeSetLeg?.requiredCollateral;
+  const lacksUpfrontCollateral =
+    Boolean(account) && requiredCollateral !== undefined && collateralBalance < requiredCollateral;
+
   const {
     tradeTokens,
     approvals: { data: missingApprovals = [], isLoading: isLoadingApprovals },
@@ -337,7 +343,8 @@ export function SwapTokensMarket({
             !isValid ||
             tradeTokens.isPending ||
             isPriceTooHigh ||
-            (hasShortfall && !isMintToCover)
+            (hasShortfall && !isMintToCover) ||
+            lacksUpfrontCollateral
           }
           text={isMintToCover ? "Mint & Sell" : undefined}
           missingApprovals={missingApprovals}
@@ -680,6 +687,31 @@ export function SwapTokensMarket({
         </div>
 
         <MintToCoverNotice status={mintToCover} collateral={selectedCollateral} outcomeText={outcomeText} />
+        {effectiveQuote?.route === "mintSell" && Boolean(effectiveQuote.completeSetLeg?.splitAmount) && (
+          <Alert type="info">
+            Mint & sell:{" "}
+            <span className="font-bold">
+              {displayBalance(effectiveQuote.completeSetLeg?.splitAmount ?? 0n, selectedCollateral.decimals, false)}{" "}
+              {selectedCollateral.symbol}
+            </span>{" "}
+            is split into a full set and the other outcomes are sold back, for a net cost of{" "}
+            <span className="font-bold">
+              {displayNumber(Number(effectiveQuote.sellAmount), 4)} {selectedCollateral.symbol}
+            </span>
+            .
+          </Alert>
+        )}
+        {lacksUpfrontCollateral && requiredCollateral !== undefined && (
+          <Alert type="warning">
+            This route needs{" "}
+            <span className="font-bold">
+              {displayBalance(requiredCollateral, selectedCollateral.decimals, false)} {selectedCollateral.symbol}
+            </span>{" "}
+            in your wallet while it runs (you hold{" "}
+            {displayBalance(collateralBalance, selectedCollateral.decimals, false)} {selectedCollateral.symbol}); most
+            of it comes back in the same trade. Add {selectedCollateral.symbol} or reduce the amount.
+          </Alert>
+        )}
         {isPriceTooHigh && (
           <Alert type="warning">
             Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.

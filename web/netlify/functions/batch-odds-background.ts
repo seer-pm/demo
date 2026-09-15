@@ -1,5 +1,5 @@
 import { getToken0Token1, tickToPrice } from "@seer-pm/sdk";
-import { normalizeOdds } from "@seer-pm/sdk/market-odds";
+import { normalizeOdds, withInvalidPriceAsComplement } from "@seer-pm/sdk/market-odds";
 import { createClient } from "@supabase/supabase-js";
 import { formatUnits, zeroAddress } from "viem";
 import { chainIds, gnosis } from "./utils/config";
@@ -113,7 +113,7 @@ export default async () => {
         return wrappedAddress.toLowerCase() === token0.toLowerCase() ? Number(price0) : Number(price1);
       });
 
-      return normalizeOdds(prices);
+      return normalizeOdds(withInvalidPriceAsComplement(market, prices));
     });
     const { error: errorOdds } = await supabase.from("markets").upsert(
       markets.map((market, index) => ({

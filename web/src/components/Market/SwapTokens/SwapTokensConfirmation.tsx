@@ -4,11 +4,12 @@ import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
 import { summarizeLeftovers } from "@/lib/leftovers";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
-import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
-import { getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
+import type { CompleteSetLeg, CompleteSetQuoteResult, CompleteSetSwapLeg, Token } from "@seer-pm/sdk";
+import { countCompleteSetBatches, getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
 import { type AmmTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
+import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import { Spinner } from "../../Spinner";
@@ -68,6 +69,85 @@ function getSavingsMessage(quoteData: CompleteSetQuoteResult): string | undefine
   return undefined;
 }
 
+/**
+ * The AMM legs of a mint+sell / buy+merge leg. Quotes built before `swapLegs` existed carry one
+ * leg in the opposite-outcome fields; both shapes render the same way.
+ */
+function getSwapLegs(leg: CompleteSetLeg, amount: bigint): CompleteSetSwapLeg[] {
+  if (leg.swapLegs && leg.swapLegs.length > 0) {
+    return leg.swapLegs;
+  }
+  if (leg.oppositeOutcomeToken && leg.oppositeOutcomeIndex !== undefined) {
+    return [
+      {
+        outcomeIndex: leg.oppositeOutcomeIndex,
+        outcomeToken: leg.oppositeOutcomeToken,
+        trade: leg.secondaryTrade,
+        amount,
+      },
+    ];
+  }
+  return [];
+}
+
+/** Tokens a buy+merge takes from the wallet besides the target: Invalid on a regular target, or what was already held. */
+function getHeldOutcomeTokens(leg: CompleteSetLeg): { token: Token; amount: bigint }[] {
+  if (leg.heldOutcomeTokens) {
+    return leg.heldOutcomeTokens;
+  }
+  return leg.invalidOutcomeToken && leg.mergeAmount
+    ? [{ token: leg.invalidOutcomeToken, amount: leg.mergeAmount }]
+    : [];
+}
+
+/** "0.5 NO" for one leg, "0.5 of each of the 3 other outcomes" for many; every leg sells the same amount on mint+sell. */
+function summarizeSwapLegs(legs: CompleteSetSwapLeg[]): string {
+  const [first] = legs;
+  if (!first) {
+    return "";
+  }
+  const amount = formatCompositeAmount(formatUnits(first.amount, first.outcomeToken.decimals));
+  if (legs.length === 1) {
+    return `${amount} ${first.outcomeToken.symbol}`;
+  }
+  return `${amount} of each of the ${legs.length} other outcomes`;
+}
+
+/** One line per leg with the collateral it moves; folded when there are many. */
+function SwapLegList({
+  legs,
+  collateral,
+  amountField,
+  className,
+}: {
+  legs: CompleteSetSwapLeg[];
+  collateral: Token;
+  /** Collateral out of a sell, or into a buy. */
+  amountField: "amountOut" | "amountIn";
+  className?: string;
+}) {
+  const lines = legs.map((leg) => (
+    <span key={leg.outcomeToken.address} className="block">
+      {formatCompositeAmount(formatUnits(leg.amount, leg.outcomeToken.decimals))} {leg.outcomeToken.symbol} (
+      {formatCompositeAmount(formatUnits(leg.trade[amountField], collateral.decimals))} {collateral.symbol})
+    </span>
+  ));
+
+  if (legs.length <= 2) {
+    return <span className={className}>{lines}</span>;
+  }
+
+  const total = legs.reduce((sum, leg) => sum + leg.trade[amountField], 0n);
+  return (
+    <details className={className}>
+      <summary className="cursor-pointer">
+        {legs.length} swaps, {formatCompositeAmount(formatUnits(total, collateral.decimals))} {collateral.symbol}
+      </summary>
+      <div className="mt-1">{lines}</div>
+    </details>
+  );
+}
+
 function CompleteSetBreakdown({
   quoteData,
   collateral,
@@ -82,10 +162,12 @@ function CompleteSetBreakdown({
     return null;
   }
 
-  if (leg.route === "mintSell" && leg.splitAmount && leg.oppositeOutcomeToken) {
+  if (leg.route === "mintSell" && leg.splitAmount) {
+    const legs = getSwapLegs(leg, leg.splitAmount);
     const splitAmount = formatCompositeAmount(formatUnits(leg.splitAmount, collateral.decimals));
-    const sellAmount = formatCompositeAmount(formatUnits(leg.splitAmount, leg.oppositeOutcomeToken.decimals));
+    const proceeds = legs.reduce((sum, swapLeg) => sum + swapLeg.trade.amountOut, 0n);
     const netCost = formatCompositeAmount(quoteData.sellAmount);
+    const invalidKept = leg.invalidOutcomeToken;
 
     return (
       <div className="space-y-2 text-[14px] pb-4">
@@ -100,21 +182,32 @@ function CompleteSetBreakdown({
         <div className="flex items-center justify-between gap-2">
           <span>2. Receive</span>
           <span className="text-right">
-            {splitAmount} {leg.targetOutcomeToken.symbol} + {splitAmount} {leg.oppositeOutcomeToken.symbol}
+            {splitAmount} {leg.targetOutcomeToken.symbol} + {summarizeSwapLegs(legs)}
           </span>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span>3. Sell {leg.oppositeOutcomeToken.symbol}</span>
-          <span className="text-right">
-            {sellAmount} {leg.oppositeOutcomeToken.symbol}
-          </span>
+        <div className="flex items-start justify-between gap-2">
+          <span>3. Sell {legs.length === 1 ? legs[0].outcomeToken.symbol : `${legs.length} outcomes`}</span>
+          <SwapLegList legs={legs} collateral={collateral} amountField="amountOut" className="text-right" />
         </div>
+        {invalidKept && (
+          <div className="flex items-center justify-between gap-2">
+            <span>You keep</span>
+            <span className="text-right">
+              {splitAmount} {invalidKept.symbol}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2 font-semibold">
           <span>Net cost</span>
           <span className="text-right">
             {netCost} {collateral.symbol}
           </span>
         </div>
+        <p className="text-[13px] text-black-secondary">
+          The whole {splitAmount} {collateral.symbol} leaves your wallet for the split;{" "}
+          {formatCompositeAmount(formatUnits(proceeds, collateral.decimals))} {collateral.symbol} comes back from the
+          sells in the same trade.
+        </p>
       </div>
     );
   }
@@ -175,37 +268,46 @@ function CompleteSetBreakdown({
     );
   }
 
-  if (leg.route === "buyMerge" && leg.mergeAmount && leg.oppositeOutcomeToken) {
+  if (leg.route === "buyMerge" && leg.mergeAmount) {
+    const legs = getSwapLegs(leg, leg.mergeAmount);
     const mergeAmount = formatCompositeAmount(formatUnits(leg.mergeAmount, leg.targetOutcomeToken.decimals));
-    const buyAmount = formatCompositeAmount(formatUnits(leg.mergeAmount, leg.oppositeOutcomeToken.decimals));
     const buyCost = formatCompositeAmount(formatUnits(quoteData.netCollateral, collateral.decimals));
+    const held = getHeldOutcomeTokens(leg);
+    let step = 1;
 
     return (
       <div className="space-y-2 text-[14px] pb-4">
         <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
         {savingsMessage && <p className="text-[13px] text-black-secondary">{savingsMessage}</p>}
         <div className="flex items-center justify-between gap-2">
-          <span>1. Use {leg.targetOutcomeToken.symbol}</span>
+          <span>
+            {step++}. Use {leg.targetOutcomeToken.symbol}
+          </span>
           <span className="text-right">
             {mergeAmount} {leg.targetOutcomeToken.symbol}
           </span>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span>2. Buy {leg.oppositeOutcomeToken.symbol}</span>
-          <span className="text-right">
-            {buyAmount} {leg.oppositeOutcomeToken.symbol} ({buyCost} {collateral.symbol})
+        <div className="flex items-start justify-between gap-2">
+          <span>
+            {step++}. Buy {legs.length === 1 ? legs[0].outcomeToken.symbol : `${legs.length} outcomes`} ({buyCost}{" "}
+            {collateral.symbol})
           </span>
+          <SwapLegList legs={legs} collateral={collateral} amountField="amountIn" className="text-right" />
         </div>
-        {leg.invalidOutcomeToken && (
-          <div className="flex items-center justify-between gap-2">
-            <span>3. Use {leg.invalidOutcomeToken.symbol}</span>
+        {held.length > 0 && (
+          <div className="flex items-start justify-between gap-2">
+            <span>{step++}. Use held tokens</span>
             <span className="text-right">
-              {mergeAmount} {leg.invalidOutcomeToken.symbol}
+              {held.map((entry) => (
+                <span key={entry.token.address} className="block">
+                  {formatCompositeAmount(formatUnits(entry.amount, entry.token.decimals))} {entry.token.symbol}
+                </span>
+              ))}
             </span>
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span>{leg.invalidOutcomeToken ? "4. Merge sets" : "3. Merge sets"}</span>
+          <span>{step++}. Merge sets</span>
           <span className="text-right">
             {mergeAmount} {collateral.symbol}
           </span>
@@ -234,25 +336,58 @@ function ShowCompleteSetSummary({
 }) {
   const { maximumSlippage, minimumReceive, maximumSent } = useGetTradeInfo(trade)!;
   const supports7702 = useCheck7702Support();
+  const { address: account } = useAccount();
+  const leg = quoteData.completeSetLeg;
+  const isSplitFirst = quoteData.route === "mintSell" || quoteData.route === "mintToCover";
 
-  const slippageAlert =
-    quoteData.route === "mintSell" || quoteData.route === "mintToCover" ? (
-      <Alert type="warning">
-        Current slippage tolerance is {maximumSlippage}%. The sell step will return at least{" "}
-        <span className="font-bold">
-          {minimumReceive} {collateral.symbol}
-        </span>{" "}
-        or the transaction will revert.
-      </Alert>
-    ) : (
-      <Alert type="warning">
-        Current slippage tolerance is {maximumSlippage}%. The buy step will spend at most{" "}
-        <span className="font-bold">
-          {maximumSent} {collateral.symbol}
-        </span>{" "}
-        or the transaction will revert.
-      </Alert>
-    );
+  // With several legs the limits add up across all of them; one leg is the plain trade info.
+  const legs = leg ? getSwapLegs(leg, (isSplitFirst ? leg.splitAmount : leg.mergeAmount) ?? 0n) : [];
+  const limitAcrossLegs =
+    legs.length > 1
+      ? formatCompositeAmount(
+          formatUnits(
+            legs.reduce(
+              (sum, swapLeg) =>
+                sum + (isSplitFirst ? swapLeg.trade.minimumAmountOut() : swapLeg.trade.maximumAmountIn()),
+              0n,
+            ),
+            collateral.decimals,
+          ),
+        )
+      : undefined;
+  const stepLabel = legs.length > 1 ? "The sells together" : "The sell step";
+  const buyLabel = legs.length > 1 ? "The buys together" : "The buy step";
+
+  const slippageAlert = isSplitFirst ? (
+    <Alert type="warning">
+      Current slippage tolerance is {maximumSlippage}%. {stepLabel} will return at least{" "}
+      <span className="font-bold">
+        {limitAcrossLegs ?? minimumReceive} {collateral.symbol}
+      </span>{" "}
+      or the transaction will revert.
+    </Alert>
+  ) : (
+    <Alert type="warning">
+      Current slippage tolerance is {maximumSlippage}%. {buyLabel} will spend at most{" "}
+      <span className="font-bold">
+        {limitAcrossLegs ?? maximumSent} {collateral.symbol}
+      </span>{" "}
+      or the transaction will revert.
+    </Alert>
+  );
+
+  // Legs are packed into transactions under a gas budget; a market with many outcomes needs more than one.
+  let batchCount = 1;
+  if (supports7702 && leg && account) {
+    try {
+      batchCount = countCompleteSetBatches({ trade, account, isTradingCredits: false, completeSetLeg: leg });
+    } catch {
+      batchCount = 1;
+    }
+  }
+  const keptOnFailure = isSplitFirst
+    ? `you keep the minted tokens — you can merge them back into ${collateral.symbol} from the Merge tab`
+    : "you keep the outcome tokens already bought — you can merge them from the Merge tab once you hold the full set";
 
   return (
     <>
@@ -261,8 +396,13 @@ function ShowCompleteSetSummary({
       </div>
       {!supports7702 && (
         <Alert type="warning" className="mt-2">
-          This runs as separate transactions. If the sell fails after the mint you keep the minted tokens — you can
-          merge them back into {collateral.symbol} from the Merge tab.
+          This runs as separate transactions. If a later step fails {keptOnFailure}.
+        </Alert>
+      )}
+      {supports7702 && batchCount > 1 && (
+        <Alert type="warning" className="mt-2">
+          This trade has too many swaps for one transaction, so it is sent as {batchCount} transactions, each confirmed
+          in your wallet. If a later one fails {keptOnFailure}.
         </Alert>
       )}
       {slippageAlert}

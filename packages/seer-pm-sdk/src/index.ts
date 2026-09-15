@@ -163,6 +163,7 @@ export type { QuoteAmmTradeParams } from "./amm-trade";
 export {
   executeAmmTrade,
   tradeTokens,
+  buildTradeBatches7702,
   buildTradeCalls7702,
   buildAmmTradeExecution,
   getMaximumAmountIn,
@@ -206,6 +207,7 @@ export {
   getOppositeOutcomeIndex,
   getInvalidOutcomeIndex,
   getCompleteSetRoutingDisabledReasons,
+  getCompleteSetSwapOutcomeIndexes,
   getMintToCoverDisabledReasons,
   getOutcomeToken,
   getSplitCollateralDisabledReasons,
@@ -219,6 +221,7 @@ export type {
   CompleteSetLeg,
   CompleteSetQuoteResult,
   CompleteSetRoute,
+  CompleteSetSwapLeg,
 } from "./complete-set-quote";
 export { buildMintToCoverQuote, isMintToCoverEligible } from "./mint-to-cover";
 export type { MintToCoverParams, MintToCoverStatus } from "./mint-to-cover";
@@ -228,10 +231,15 @@ export {
   getPsm3CompositeApprovalTokens,
 } from "./psm3-composite-trade";
 export {
+  COMPLETE_SET_BATCH_GAS_BUDGET,
+  buildCompleteSetTradeBatches7702,
   buildCompleteSetTradeCalls7702,
+  countCompleteSetBatches,
   executeCompleteSetTrade,
   getCompleteSetApprovalTokens,
+  getCompleteSetGasProfile,
 } from "./complete-set-trade";
+export type { CompleteSetGasProfile } from "./complete-set-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/contracts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";
@@ -246,6 +254,7 @@ export {
   isOdd,
   rescaleOdds,
   normalizeOdds,
+  withInvalidPriceAsComplement,
   getMarketOdds,
   getMarketEstimate,
 } from "./market-odds";

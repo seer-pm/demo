@@ -39,11 +39,17 @@ export function SwapTokens({
   const isInvalidOutcome = market.type === "Generic" && outcomeIndex === market.wrappedTokens.length - 1;
   const showFillToEstimate = isFillToEstimateEnabled(market);
 
+  // Invalid has no pool: it is bought by minting a set and selling the other outcomes, and sold
+  // the other way round. That is a market order by construction, so the price-driven order types
+  // (and the "provide liquidity" prompt) do not apply to it.
   const orderTypeOptions = [
     { text: "Market", value: "market" as const },
-    { text: "Fill-to-price", value: "limit" as const },
-    ...(showFillToEstimate ? [{ text: "Fill-to-estimate", value: "fill-to-estimate" as const }] : []),
+    ...(isInvalidOutcome ? [] : [{ text: "Fill-to-price", value: "limit" as const }]),
+    ...(showFillToEstimate && !isInvalidOutcome
+      ? [{ text: "Fill-to-estimate", value: "fill-to-estimate" as const }]
+      : []),
   ];
+  const effectiveOrderType = isInvalidOutcome && orderType !== "market" ? "market" : orderType;
 
   return (
     <div className="space-y-5 bg-base-100 p-[24px] shadow-md">
@@ -53,7 +59,13 @@ export function SwapTokens({
         </div>
         <div className="text-[16px]">{outcomeText}</div>
       </div>
-      {hasEnoughLiquidity === false && (
+      {hasEnoughLiquidity === false && isInvalidOutcome && (
+        <Alert type="warning">
+          {outcomeText} trades through the other outcomes, and at least one of them lacks liquidity. You can still mint
+          tokens.
+        </Alert>
+      )}
+      {hasEnoughLiquidity === false && !isInvalidOutcome && (
         <Alert type="warning">
           This outcome lacks sufficient liquidity for trading. You can mint tokens or{" "}
           <a
@@ -73,13 +85,13 @@ export function SwapTokens({
             <div className="flex items-center justify-between">
               <Dropdown
                 options={orderTypeOptions}
-                value={orderType}
+                value={effectiveOrderType}
                 onClick={(value) => setDraft({ orderType: value })}
                 defaultLabel="Order Type"
               />
             </div>
           )}
-          {orderType === "market" && (
+          {effectiveOrderType === "market" && (
             <SwapTokensMarket
               market={market}
               outcomeIndex={outcomeIndex}
@@ -91,7 +103,7 @@ export function SwapTokens({
               onOutcomeChange={onOutcomeChange}
             />
           )}
-          {orderType === "limit" && (
+          {effectiveOrderType === "limit" && (
             <SwapTokensLimitUpto
               market={market}
               outcomeIndex={outcomeIndex}
@@ -103,7 +115,7 @@ export function SwapTokens({
               onOutcomeChange={onOutcomeChange}
             />
           )}
-          {orderType === "fill-to-estimate" && (
+          {effectiveOrderType === "fill-to-estimate" && (
             <SwapTokensFillToEstimate
               market={market}
               fixedCollateral={fixedCollateral}

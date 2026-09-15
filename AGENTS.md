@@ -67,3 +67,21 @@ injected from the linked site. Notes:
 - Functions import `@seer-pm/sdk` through the package `exports` map, i.e. through `dist/`. Build it
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
+
+## Invalid has no pool
+
+The Invalid outcome of a Generic market is priced as the complement of the others
+(`withInvalidPriceAsComplement` in `packages/seer-pm-sdk/src/market-odds.ts`: `1 - sum(other prices)`),
+never from a pool of its own, and the UI offers no liquidity link for it. It trades only through the
+complete-set routes in `complete-set-quote.ts` / `complete-set-trade.ts`: buying Invalid splits
+collateral and sells every other outcome, selling it buys every other outcome and merges. Rules that
+follow from that:
+
+- A route has one AMM leg per other outcome (`CompleteSetLeg.swapLegs`). On a market with many
+  outcomes the 7702 calls are packed into several batches under `COMPLETE_SET_BATCH_GAS_BUDGET`
+  (EIP-7825 caps every transaction at 2^24 gas on every chain we support); the split opens the first
+  batch and the merge closes the last, so a failure in between leaves the user holding tokens, not short.
+- `requiredCollateral` on the leg is what the wallet must hold up front (the whole split, or every buy
+  at its slippage limit), far above the net cost the quote reports. Check balances against it.
+- Invalid is liquid when every other outcome is (`useMarketHasLiquidity`), and only market orders
+  apply to it: fill-to-price and fill-to-estimate need a pool of its own.

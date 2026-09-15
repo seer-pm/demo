@@ -41,6 +41,26 @@ export function normalizeOdds(prices: number[]): number[] {
   return formatOdds(filteredPrices);
 }
 
+/**
+ * Prices Invalid as the complement of the other outcomes: a complete set redeems for exactly one
+ * collateral, so `1 - sum(other prices)` is what Invalid is worth, and it needs no pool of its own.
+ * Undefined while any other outcome has no price; pinned at 0 when the others already sum past 1.
+ * Only Generic markets carry an Invalid outcome (always the last wrapped token).
+ */
+export function withInvalidPriceAsComplement(
+  market: Pick<Market, "type" | "wrappedTokens">,
+  prices: number[],
+): number[] {
+  if (market.type !== "Generic" || prices.length !== market.wrappedTokens.length || prices.length < 2) {
+    return prices;
+  }
+  const others = prices.slice(0, -1);
+  const invalidPrice = others.some((price) => Number.isNaN(price))
+    ? Number.NaN
+    : Math.max(0, 1 - others.reduce((sum, price) => sum + price, 0));
+  return [...others, invalidPrice];
+}
+
 export async function getMarketOdds(market: Market, hasLiquidity: boolean): Promise<number[]> {
   if (!hasLiquidity || market.type === "Futarchy") {
     return Array(market.wrappedTokens.length).fill(Number.NaN);
@@ -57,7 +77,7 @@ export async function getMarketOdds(market: Market, hasLiquidity: boolean): Prom
     market.wrappedTokens.map((wrappedAddress) => getTokenPrice(wrappedAddress, collateralToken, market.chainId)),
   );
 
-  return normalizeOdds(prices);
+  return normalizeOdds(withInvalidPriceAsComplement(market, prices));
 }
 
 export function getMarketEstimate(odds: (number | null)[], market: Market, convertToString?: boolean): number | string {

@@ -6,81 +6,16 @@ import {
   getTradeApproveTokenAddress,
 } from "@seer-pm/sdk";
 import type { Address } from "viem";
-import { useMissingApprovals } from "./useMissingApprovals";
+import { type ApprovalRequest, useMissingApprovals, useMissingApprovalsList } from "./useMissingApprovals";
 
-type MissingApprovalsResult = ReturnType<typeof useMissingApprovals>;
-
-function mergeApprovalResults(results: MissingApprovalsResult[]): MissingApprovalsResult {
-  const base = results[0];
-  return {
-    ...base,
-    data: results.flatMap((result) => result.data ?? []),
-    error: results.find((result) => result.error)?.error ?? null,
-    isError: results.some((result) => result.isError),
-    isLoading: results.some((result) => result.isLoading),
-    isFetching: results.some((result) => result.isFetching),
-    isSuccess: results.every((result) => result.isSuccess),
-    status: results.some((result) => result.isError)
-      ? "error"
-      : results.every((result) => result.isSuccess)
-        ? "success"
-        : "pending",
-  } as MissingApprovalsResult;
-}
-
-function useCompositeMissingApprovals(
-  account: Address | undefined,
-  tokensAddresses: Address[],
-  spenders: Address[],
-  amounts: bigint[],
-  chainId: number | undefined,
-) {
-  const slot0 = useMissingApprovals(
-    tokensAddresses[0] && spenders[0] && chainId
-      ? {
-          tokensAddresses: [tokensAddresses[0]],
-          account,
-          spender: spenders[0],
-          amounts: amounts[0],
-          chainId: chainId as SupportedChain,
-        }
-      : undefined,
+function toApprovalRequests(approval: { tokensAddresses: Address[]; spenders: Address[]; amounts: bigint[] }) {
+  return approval.tokensAddresses.map(
+    (tokenAddress, i): ApprovalRequest => ({
+      tokenAddress,
+      spender: approval.spenders[i],
+      amount: approval.amounts[i],
+    }),
   );
-  const slot1 = useMissingApprovals(
-    tokensAddresses[1] && spenders[1] && chainId
-      ? {
-          tokensAddresses: [tokensAddresses[1]],
-          account,
-          spender: spenders[1],
-          amounts: amounts[1],
-          chainId: chainId as SupportedChain,
-        }
-      : undefined,
-  );
-  const slot2 = useMissingApprovals(
-    tokensAddresses[2] && spenders[2] && chainId
-      ? {
-          tokensAddresses: [tokensAddresses[2]],
-          account,
-          spender: spenders[2],
-          amounts: amounts[2],
-          chainId: chainId as SupportedChain,
-        }
-      : undefined,
-  );
-  const slot3 = useMissingApprovals(
-    tokensAddresses[3] && spenders[3] && chainId
-      ? {
-          tokensAddresses: [tokensAddresses[3]],
-          account,
-          spender: spenders[3],
-          amounts: amounts[3],
-          chainId: chainId as SupportedChain,
-        }
-      : undefined,
-  );
-
-  return mergeApprovalResults([slot0, slot1, slot2, slot3]);
 }
 
 export function useMissingTradeApproval(
@@ -116,11 +51,9 @@ export function useMissingTradeApproval(
         ? psm3Approval
         : null;
 
-  const compositeApprovals = useCompositeMissingApprovals(
+  const compositeApprovals = useMissingApprovalsList(
+    compositeApproval ? toApprovalRequests(compositeApproval) : [],
     account,
-    compositeApproval?.tokensAddresses ?? [],
-    compositeApproval?.spenders ?? [],
-    compositeApproval?.amounts ?? [],
     trade?.chainId,
   );
 

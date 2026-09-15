@@ -261,7 +261,9 @@ export function useQuoteTrade(
     data,
     isLoading: directQuery.isLoading || (completeSetEnabled && completeSetQuery.isLoading),
     isFetching: directQuery.isFetching || completeSetQuery.isFetching,
-    error: directQuery.error ?? completeSetQuery.error,
+    // Invalid has no pool, so its direct quote always fails with "No route found" while the
+    // complete-set route is the real answer: an error only stands when there is no quote at all.
+    error: data ? null : (directQuery.error ?? completeSetQuery.error),
   };
 }
 
