@@ -6,6 +6,7 @@ import {
   getLiquidityPair,
   getPoolLegDirection,
   getPriceFromVolume,
+  getVolumeUntilPrice,
   isFillToEstimateEnabled,
   targetOddsFromEstimate,
   tickToPrice,
@@ -232,9 +233,10 @@ describe("fill-to-estimate plan", () => {
 });
 
 describe("pool-volume", () => {
+  const token0: Address = "0x00000000000000000000000000000000000000aa";
+  const token1: Address = "0x00000000000000000000000000000000000000bb";
+
   it("returns current price when target volume is non-positive", () => {
-    const token0: Address = "0x00000000000000000000000000000000000000aa";
-    const token1: Address = "0x00000000000000000000000000000000000000bb";
     const pool = {
       liquidity: 10n ** 18n,
       tickSpacing: 60,
@@ -246,5 +248,58 @@ describe("pool-volume", () => {
 
     expect(getPriceFromVolume(pool, [], 0, token0, "buy")).toBe(currentPrice);
     expect(getPriceFromVolume(pool, [], -1, token0, "sell")).toBe(currentPrice);
+  });
+
+  it("with empty ticks and small buy volume, does not converge to 1", () => {
+    // tick -8000 ≈ 0.449 outcome price (token0)
+    const pool = {
+      liquidity: 10n ** 20n,
+      tickSpacing: 60,
+      tick: -8000,
+      token0,
+      token1,
+    };
+    const currentPrice = Number(tickToPrice(-8000, 18, true)[0]);
+    const volumeToSlightlyHigher = getVolumeUntilPrice(pool, [], currentPrice * 1.01, token0, "buy");
+    expect(volumeToSlightlyHigher).toBeGreaterThan(0);
+
+    const priceAfter = getPriceFromVolume(pool, [], volumeToSlightlyHigher * 0.1, token0, "buy");
+    expect(priceAfter).toBeDefined();
+    expect(priceAfter!).toBeGreaterThan(currentPrice);
+    expect(priceAfter!).toBeLessThan(currentPrice * 1.01);
+    expect(priceAfter!).toBeLessThan(0.5);
+  });
+
+  it("returns undefined when liquidity is zero (insufficient depth)", () => {
+    const pool = {
+      liquidity: 0n,
+      tickSpacing: 60,
+      tick: -8000,
+      token0,
+      token1,
+    };
+    expect(getPriceFromVolume(pool, [], 0.001, token0, "buy")).toBeUndefined();
+  });
+
+  it("includes final segment when target is beyond the last initialized tick", () => {
+    const pool = {
+      liquidity: 10n ** 20n,
+      tickSpacing: 60,
+      tick: -8000,
+      token0,
+      token1,
+    };
+    // One tick above current; target price further above that tick.
+    const ticks = [{ tickIdx: "-7900", liquidityNet: "0" }];
+    const currentPrice = Number(tickToPrice(-8000, 18, true)[0]);
+    const priceAtTick = Number(tickToPrice(-7900, 18, true)[0]);
+    const targetBeyond = priceAtTick * 1.05;
+
+    const volumeToTickOnly = getVolumeUntilPrice(pool, ticks, priceAtTick, token0, "buy");
+    const volumeBeyond = getVolumeUntilPrice(pool, ticks, targetBeyond, token0, "buy");
+
+    expect(volumeToTickOnly).toBeGreaterThan(0);
+    expect(volumeBeyond).toBeGreaterThan(volumeToTickOnly);
+    expect(currentPrice).toBeLessThan(priceAtTick);
   });
 });

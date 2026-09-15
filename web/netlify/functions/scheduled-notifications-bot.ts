@@ -1,7 +1,7 @@
 import { sepolia } from "@/lib/chains.ts";
 import type { Config } from "@netlify/functions";
+import { realityAddress } from "@seer-pm/contracts-ts/reality";
 import type { Question, SupportedChain } from "@seer-pm/sdk";
-import { realityAddress } from "@seer-pm/sdk/contracts/reality";
 import { decodeQuestion, getAnswerText, getRealityLink, isScalarBoundInWei } from "@seer-pm/sdk/reality";
 import { createClient } from "@supabase/supabase-js";
 import { parseAbiItem } from "viem";

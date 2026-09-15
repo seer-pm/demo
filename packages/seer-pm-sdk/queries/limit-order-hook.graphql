@@ -1,0 +1,84 @@
+query GetUserOrders(
+  $where: UserOrder_bool_exp
+  $offset: Int = 0
+  $limit: Int = 100
+  $orderBy: [UserOrder_order_by!]
+) {
+  UserOrder(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
+    chainId
+    orderId
+    owner
+    pool {
+      id
+      poolId
+      currency0
+      currency1
+      fee
+      tickSpacing
+      hooks
+      initialized
+    }
+    tickLower
+    zeroForOne
+    liquidity
+    status
+    placedAtBlock
+    updatedAtBlock
+  }
+}
+
+query GetOrderLevels(
+  $where: OrderLevel_bool_exp
+  $offset: Int = 0
+  $limit: Int = 1000
+  $orderBy: [OrderLevel_order_by!]
+) {
+  OrderLevel(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
+    chainId
+    pool {
+      id
+      poolId
+    }
+    orderId
+    tickLower
+    zeroForOne
+    liquidityTotal
+    price0AtTick
+    price1AtTick
+    side
+    updatedAtBlock
+    participants
+  }
+}
+
+query GetOrderEvents(
+  $where: OrderEvent_bool_exp
+  $offset: Int = 0
+  $limit: Int = 100
+  $orderBy: [OrderEvent_order_by!]
+) {
+  OrderEvent(where: $where, offset: $offset, limit: $limit, order_by: $orderBy) {
+    id
+    chainId
+    type
+    blockNumber
+    timestamp
+    transactionHash
+    owner
+    orderId
+    pool {
+      id
+      poolId
+      currency0
+      currency1
+      fee
+      tickSpacing
+      hooks
+    }
+    tickLower
+    zeroForOne
+    liquidity
+  }
+}

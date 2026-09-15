@@ -5,7 +5,7 @@
 import type { Address, Client, PublicClient } from "viem";
 import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
 import { multicall } from "viem/actions";
-import type { AmmTrade } from "./amm-trade";
+import type { AmmTrade, V4HookParams } from "./amm-trade";
 import { isCompleteSetMarket } from "./market";
 import type { Market } from "./market-types";
 import { isPsm3SwapToken } from "./psm3";
@@ -452,8 +452,9 @@ async function quoteMintSellBuy(params: {
   account: Address | undefined;
   client: PublicClient;
   maxSlippage: string;
+  v4Hook?: V4HookParams;
 }): Promise<CompleteSetQuoteResult | undefined> {
-  const { market, targetOutcomeIndex, tradeType, amount, account, client, maxSlippage } = params;
+  const { market, targetOutcomeIndex, tradeType, amount, account, client, maxSlippage, v4Hook } = params;
   const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
   const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
   const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
@@ -485,6 +486,7 @@ async function quoteMintSellBuy(params: {
     poolCollateral,
     "sell",
     maxSlippage,
+    v4Hook,
   );
 
   const sellProceeds = sellQuote.value;
@@ -551,8 +553,9 @@ async function quoteBuyMergeSellExactInput(params: {
   account: Address | undefined;
   client: Client | undefined;
   maxSlippage: string;
+  v4Hook?: V4HookParams;
 }): Promise<CompleteSetQuoteResult | undefined> {
-  const { market, targetOutcomeIndex, amount, account, client, maxSlippage } = params;
+  const { market, targetOutcomeIndex, amount, account, client, maxSlippage, v4Hook } = params;
   const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
   const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
   const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
@@ -578,6 +581,7 @@ async function quoteBuyMergeSellExactInput(params: {
     poolCollateral,
     "buy",
     maxSlippage,
+    v4Hook,
   );
 
   const buyTrade = buyQuote.trade as AmmTrade;
@@ -713,8 +717,9 @@ async function evalBuyMergeNetOut(params: {
   oppositeOutcomeToken: Token;
   poolCollateral: Token;
   maxSlippage: string;
+  v4Hook?: V4HookParams;
 }): Promise<BuyMergeNetEval | undefined> {
-  const { mergeAmount, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
+  const { mergeAmount, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage, v4Hook } = params;
   if (mergeAmount <= 0n) {
     return undefined;
   }
@@ -729,6 +734,7 @@ async function evalBuyMergeNetOut(params: {
     poolCollateral,
     "buy",
     maxSlippage,
+    v4Hook,
   );
   const buyCost = buyQuote.value;
   const netCollateralOut = mergeAmount > buyCost ? mergeAmount - buyCost : 0n;
@@ -745,9 +751,10 @@ async function findMinimalMergeAmountForDesiredOut(params: {
   oppositeOutcomeToken: Token;
   poolCollateral: Token;
   maxSlippage: string;
+  v4Hook?: V4HookParams;
 }): Promise<(BuyMergeNetEval & { mergeAmount: bigint }) | undefined> {
-  const { desiredOut, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage } = params;
-  const evalCtx = { market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage };
+  const { desiredOut, market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage, v4Hook } = params;
+  const evalCtx = { market, account, client, oppositeOutcomeToken, poolCollateral, maxSlippage, v4Hook };
 
   const searchResult = await searchMinimalAmountForTargetNetOut({
     desiredOut,
@@ -779,8 +786,9 @@ async function quoteBuyMergeSellExactOutput(params: {
   account: Address | undefined;
   client: Client | undefined;
   maxSlippage: string;
+  v4Hook?: V4HookParams;
 }): Promise<CompleteSetQuoteResult | undefined> {
-  const { market, targetOutcomeIndex, amount, account, client, maxSlippage } = params;
+  const { market, targetOutcomeIndex, amount, account, client, maxSlippage, v4Hook } = params;
   const oppositeOutcomeIndex = getOppositeOutcomeIndex(targetOutcomeIndex);
   const targetOutcomeToken = getOutcomeToken(market, targetOutcomeIndex);
   const oppositeOutcomeToken = getOutcomeToken(market, oppositeOutcomeIndex);
@@ -804,6 +812,7 @@ async function quoteBuyMergeSellExactOutput(params: {
     oppositeOutcomeToken,
     poolCollateral,
     maxSlippage,
+    v4Hook,
   });
 
   if (!searchResult || searchResult.netCollateralOut < desiredOut) {
@@ -863,8 +872,9 @@ export async function fetchCompleteSetAlternativeQuote(params: {
   account: Address | undefined;
   client?: Client;
   maxSlippage: string;
+  v4Hook?: V4HookParams;
 }): Promise<CompleteSetQuoteResult | undefined> {
-  const { market, targetOutcomeIndex, tradeType, swapType, amount, account, client, maxSlippage } = params;
+  const { market, targetOutcomeIndex, tradeType, swapType, amount, account, client, maxSlippage, v4Hook } = params;
 
   if (!isCompleteSetRoutingEnabled(market, targetOutcomeIndex, market.collateralToken as Address)) {
     return undefined;
@@ -884,6 +894,7 @@ export async function fetchCompleteSetAlternativeQuote(params: {
       account,
       client: client as PublicClient,
       maxSlippage,
+      v4Hook,
     });
   }
 
@@ -898,6 +909,7 @@ export async function fetchCompleteSetAlternativeQuote(params: {
       account,
       client,
       maxSlippage,
+      v4Hook,
     });
   }
 
@@ -911,6 +923,7 @@ export async function fetchCompleteSetAlternativeQuote(params: {
     account,
     client,
     maxSlippage,
+    v4Hook,
   });
 }
 
@@ -925,6 +938,7 @@ export async function fetchBestCompleteSetQuote(params: {
   maxSlippage: string;
   directQuote: QuoteTradeResult | undefined;
   selectedCollateralToken?: Address;
+  v4Hook?: V4HookParams;
 }): Promise<CompleteSetQuoteResult | undefined> {
   const collateralToken = params.selectedCollateralToken ?? (params.market.collateralToken as Address);
   const disabledReasons = getCompleteSetRoutingDisabledReasons(

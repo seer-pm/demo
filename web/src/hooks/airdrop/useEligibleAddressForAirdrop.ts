@@ -1,6 +1,6 @@
 import { config } from "@/wagmi";
+import { readGovernedRecipientIsEligible } from "@seer-pm/contracts-ts/multi-drop";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { readGovernedRecipientIsEligible } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { gnosis } from "viem/chains";

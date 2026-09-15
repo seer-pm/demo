@@ -1,0 +1,49 @@
+---
+title: "Limit orders"
+---
+On **Base, Optimism and Ethereum**, markets trade on Uniswap V4 pools that run Seer's limit-order hook. Besides buying and selling at the market price, you can leave a **limit order**: an order that only executes when the price of an outcome reaches the level you choose.
+
+<Info>
+Limit orders are available on regular (non-futarchy) markets on Base, Optimism and Ethereum. On Gnosis, markets trade on Swapr and there are no limit orders.
+</Info>
+
+## How a limit order works
+
+A limit order is a small slice of liquidity placed just outside the current price of the outcome, at the price you set. When trades move the market through that price, the pool sells or buys through your order and it is **filled** at your price.
+
+- A **buy** order pays collateral (for example sUSDS) and receives outcome tokens once it is filled.
+- A **sell** order pays outcome tokens and receives collateral once it is filled.
+- While an order is open you can **cancel** it and get your tokens back.
+- Once an order is filled, the tokens you bought (or the collateral you sold for) sit in the order until you **withdraw** them. The app tells you when you have filled orders waiting.
+
+Prices in the pool live on a fixed grid, so the price you type is rounded to the nearest available level. The app shows you that **nearest available price** before you confirm.
+
+## Placing a limit order
+
+1. Open a market and select an outcome.
+2. In the trade panel, change the **Order type** dropdown from **Market** to **Limit order**.
+3. Choose **Buy** or **Sell**.
+4. Enter the number of **Shares** and the **Limit price** you want, between 0 and 1 (the price of one outcome token in collateral).
+
+The form tells you where the order can go. A buy has to be at or below the current price, and a sell at or above it. If your price is on the wrong side, the message under the field shows the nearest price that works.
+
+5. Click **Place limit order**. If this is the first time you trade this token, approve it first.
+6. Review the **Confirm Limit Order** popup. It shows the order type, your limit price and the nearest available price the order will actually use. Click **Place order**.
+
+<Info>
+If the outcome's pool has no liquidity yet, the button reads **Add liquidity to enable limit orders**. See [Provide liquidity](/app/provide-liquidity).
+</Info>
+
+## Following your orders
+
+Every market with limit orders has an **Open orders** tab under the chart with your orders: an **Active** view with your **Open** orders and your **Filled (withdrawable)** orders, and a **History** view with every place, fill, cancel and withdrawal.
+
+From the Active view you can cancel one open order or use **Cancel all**, and withdraw one filled order or use **Withdraw all**. Withdrawing a filled buy order sends you the outcome tokens; withdrawing a filled sell order sends you the collateral.
+
+The same panel is in your [Portfolio](/app/navigate-our-site) under the **Open Orders** tab, listing your orders across every market of the selected network.
+
+When one of your orders gets filled, the app shows a notification with a link to the Portfolio so you can withdraw.
+
+## Seeing everyone's orders
+
+Resting limit orders are liquidity in the outcome's pool, so they show up in the pool's liquidity chart. Click **View pool details** on an outcome: each bar of the chart is the liquidity at that price, and the darker part of the bar is the share of it that is limit orders. Hovering a bar shows the limit-order size and how many accounts have an order there. Orders above the current price are sells, orders below it are buys.

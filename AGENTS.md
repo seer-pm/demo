@@ -67,3 +67,37 @@ injected from the linked site. Notes:
 - Functions import `@seer-pm/sdk` through the package `exports` map, i.e. through `dist/`. Build it
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
+
+### Edge functions need a CLI patch
+
+The CLI computes `repositoryRoot` as the first **directory** named `.git` above the cwd. For a
+worktree nested inside the main checkout (our layout, `~/orca-projects/demo/<branch>/`) that is the
+main checkout itself; for a worktree outside it there is none, and paths double up as above.
+
+`edge_functions = "web/netlify/edge-functions"` has no CLI flag, so from a nested worktree an
+unpatched `netlify dev` silently loads `subgraph.ts` and `og-image*.tsx` from the **main
+checkout's branch** (usually `main`). Symptom: `/subgraph?_subgraph=<new key>&_chainId=…` answers
+`404 {"error":"Subgraph not found <new key> chainId …"}` even though the branch defines the key
+(seen with `orderBook`, 2026-09-14). To check which checkout is being served, look at the
+`import("file:///…/web/netlify/edge-functions/…")` lines in the generated
+`.netlify/edge-functions-serve/dev.js` (with the patch below it lands in `web/web/.netlify/`, which is
+gitignored).
+
+Fix (upstream bug: https://github.com/netlify/cli/issues/7868, open): patch the cached CLI so the
+`.git` lookup accepts a file or a directory and keeps the nearest one:
+
+```bash
+node scripts/patch-netlify-cli-worktree.mjs
+```
+
+It patches every `netlify` install in `~/.npm/_npx` (three files: `base-command.js`,
+`get-repo-data.js` and `@netlify/config`'s `repository_root.js`), is idempotent, and has to be
+re-run whenever npx pulls a new CLI version. Do **not** use the bare `sed` from the issue: without
+`type` find-up defaults to files only, and the main checkout (a real `.git` directory) stops being
+detected. With the patch applied, `netlify dev` from a worktree serves that worktree's edge
+functions and the `-f`/`-c` overrides above are still needed. Without it, exercise branches that
+touch `web/netlify/edge-functions/*` or `packages/seer-pm-sdk/src/subgraph/subgraph-endpoints.ts`
+from the root checkout.
+
+`netlify dev` also drops an untracked `deno.lock` next to the cwd; it is a local artifact, not
+something to commit.

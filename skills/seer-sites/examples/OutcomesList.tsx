@@ -15,10 +15,10 @@
 import * as React from "react";
 import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
+import { getLiquidityUrl } from "@seer-pm/order-book";
 import type { Market } from "@seer-pm/sdk";
 import {
   getTokenExplorerUrl,
-  getLiquidityUrlByMarket,
   getPoolExplorerUrl,
   isInvalidOutcome,
 } from "@seer-pm/sdk";
@@ -146,7 +146,7 @@ export function OutcomesList({ market, images }: OutcomesListProps): React.React
                   </a>
                 ) : (
                   <a
-                    href={getLiquidityUrlByMarket(market, i)}
+                    href={getLiquidityUrl(market, i)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-purple-600 dark:text-purple-400 hover:underline"

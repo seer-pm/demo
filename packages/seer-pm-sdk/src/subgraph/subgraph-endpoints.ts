@@ -4,6 +4,8 @@ export type SubgraphTypes =
   | "uniswap"
   | "algebra"
   | "algebrafarming"
+  | "orderBook"
+  | "uniswapV4"
   | "poh"
   | "reality"
   | "bunniMainnet"
@@ -41,6 +43,16 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.optimism]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/49LkWjoVKd3bM9ZrMdFgYkjaCuVj4ExZttQi6XfbcPpG`,
     [CHAIN_IDS.base]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/96eJ9Go8gFjySRGnndG7EYxThaiwVDV8BYPp1TMDcoYh`,
   },
+  orderBook: SEER_MARKETS_SUBGRAPH,
+  // Uniswap V4 pools that contain Seer outcome tokens + PositionManager positions (own Goldsky deployment).
+  uniswapV4: {
+    [CHAIN_IDS.mainnet]:
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-mainnet/1.1.0/gn",
+    [CHAIN_IDS.optimism]:
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-optimism/1.1.0/gn",
+    [CHAIN_IDS.base]:
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/seer-v4-pools-base/1.1.0/gn",
+  },
   poh: {
     [CHAIN_IDS.gnosis]:
       "https://gateway.thegraph.com/api/d5c7982a40f63da9504805d11919004d/subgraphs/id/FFx16fGNSpdq2TpQer3KqpadP8UaLELS4Jocd1LtwAmG",
@@ -67,8 +79,8 @@ export function getSubgraphUrl(name: SubgraphTypes, chainId: number): string | u
   const subgraph = SUBGRAPHS[name];
   if (!subgraph) return undefined;
 
-  if (name === "seer") {
-    return subgraph as (typeof SUBGRAPHS)["seer"];
+  if (name === "seer" || name === "orderBook") {
+    return subgraph as string;
   }
 
   return (subgraph as Record<number, string>)[chainId];

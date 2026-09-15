@@ -1,3 +1,4 @@
+import { TradeType } from "@seer-pm/sdk";
 import { describe, expect, it } from "vitest";
 import {
   type TradeDrafts,
@@ -80,6 +81,35 @@ describe("clearTradeDraftSection", () => {
     });
   });
 
+  it("drops the limit order section and keeps the sibling sections", () => {
+    const drafts: TradeDrafts = {
+      [KEY]: {
+        orderType: "limit-order",
+        market: {
+          outcomeToken: OUTCOME,
+          swapType: "buy",
+          tradeType: TradeType.EXACT_INPUT,
+          amount: "1",
+          amountOut: "",
+        },
+        limitOrder: { outcomeToken: OUTCOME, swapType: "sell", shares: "10", limitPrice: "0.4" },
+      },
+    };
+
+    expect(clearTradeDraftSection(drafts, KEY, "limitOrder")).toEqual({
+      [KEY]: {
+        orderType: "limit-order",
+        market: {
+          outcomeToken: OUTCOME,
+          swapType: "buy",
+          tradeType: TradeType.EXACT_INPUT,
+          amount: "1",
+          amountOut: "",
+        },
+      },
+    });
+  });
+
   it("returns the same object when there is nothing to remove", () => {
     const drafts: TradeDrafts = { [KEY]: { orderType: "limit" } };
 
@@ -115,5 +145,12 @@ describe("readOrderType", () => {
 
   it("falls back to market when fill-to-estimate is not available here", () => {
     expect(readOrderType("fill-to-estimate", { isGeneric: true, allowFillToEstimate: false })).toBe("market");
+  });
+
+  it("falls back to market when the market has no order-book pool", () => {
+    expect(readOrderType("limit-order", { isGeneric: true, allowFillToEstimate: true })).toBe("market");
+    expect(readOrderType("limit-order", { isGeneric: true, allowFillToEstimate: true, allowLimitOrder: true })).toBe(
+      "limit-order",
+    );
   });
 });

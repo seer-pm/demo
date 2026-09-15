@@ -17,6 +17,36 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./hooks/useAddV4Liquidity": {
+      "types": "./dist/hooks/useAddV4Liquidity.d.ts",
+      "import": "./dist/hooks/useAddV4Liquidity.mjs",
+      "require": "./dist/hooks/useAddV4Liquidity.js"
+    },
+    "./hooks/useIsOrderBookPoolInitialized": {
+      "types": "./dist/hooks/useIsOrderBookPoolInitialized.d.ts",
+      "import": "./dist/hooks/useIsOrderBookPoolInitialized.mjs",
+      "require": "./dist/hooks/useIsOrderBookPoolInitialized.js"
+    },
+    "./hooks/usePlaceV4LimitOrder": {
+      "types": "./dist/hooks/usePlaceV4LimitOrder.d.ts",
+      "import": "./dist/hooks/usePlaceV4LimitOrder.mjs",
+      "require": "./dist/hooks/usePlaceV4LimitOrder.js"
+    },
+    "./hooks/useManageV4LimitOrders": {
+      "types": "./dist/hooks/useManageV4LimitOrders.d.ts",
+      "import": "./dist/hooks/useManageV4LimitOrders.mjs",
+      "require": "./dist/hooks/useManageV4LimitOrders.js"
+    },
+    "./hooks/useUserV4Positions": {
+      "types": "./dist/hooks/useUserV4Positions.d.ts",
+      "import": "./dist/hooks/useUserV4Positions.mjs",
+      "require": "./dist/hooks/useUserV4Positions.js"
+    },
+    "./hooks/useManageV4Positions": {
+      "types": "./dist/hooks/useManageV4Positions.d.ts",
+      "import": "./dist/hooks/useManageV4Positions.mjs",
+      "require": "./dist/hooks/useManageV4Positions.js"
     }
   },
   "files": [
@@ -27,11 +57,13 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup --config tsup.config.ts",
+    "dev": "tsup --config tsup.config.ts --watch",
     "prepublishOnly": "yarn build"
   },
   "peerDependencies": {
+    "@seer-pm/contracts-ts": "*",
+    "@seer-pm/order-book": "*",
     "@seer-pm/sdk": "~0.0.1",
     "@tanstack/react-query": ">=5.0.0",
     "@wagmi/core": ">=2.0.0",

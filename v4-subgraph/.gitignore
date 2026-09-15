@@ -1,0 +1,10 @@
+build/
+node_modules/
+src/types/
+.DS_STORE
+yarn-error.log
+tests/.bin/
+tests/.docker/
+tests/.latest.json
+# Generated per network by `yarn generate-subgraph <network>`
+subgraph.yaml

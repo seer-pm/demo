@@ -9,7 +9,6 @@ import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
-import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
@@ -34,8 +33,30 @@ import {
 import { switchChain } from "@wagmi/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Address, zeroAddress } from "viem";
+import { clientOnly } from "vike-react/clientOnly";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useSwitchChain } from "wagmi";
+
+const SwapTokens = clientOnly(async () => {
+  const mod = await import("@/components/Market/SwapTokens/SwapTokens");
+  return mod.SwapTokens;
+});
+
+/** Same container as SwapTokens so the page keeps its shape while the trade chunk loads. */
+function SwapTokensFallback() {
+  return (
+    <output className="block space-y-5 bg-base-100 p-[24px] shadow-md" aria-busy="true" aria-label="Loading trade form">
+      <div className="flex items-center space-x-[12px]">
+        <div className="shimmer-container w-[40px] h-[40px] rounded-full" />
+        <div className="shimmer-container w-[120px] h-[20px]" />
+      </div>
+      <div className="shimmer-container w-[140px] h-[32px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[40px]" />
+    </output>
+  );
+}
 
 function SwapWidget({
   market,
@@ -88,6 +109,7 @@ function SwapWidget({
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
       onOutcomeChange={onOutcomeChange}
+      fallback={<SwapTokensFallback />}
     />
   );
 }

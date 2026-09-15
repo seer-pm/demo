@@ -1,11 +1,20 @@
-import { type Market as BaseMarket, getMarketPoolsPairs, sqrtPriceX96ToPrice } from "@seer-pm/sdk";
-import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
+import {
+  V4_POOL_FEE,
+  V4_TICK_SPACING,
+  buildOrderBookPoolKey,
+  chainSupportsOrderBook,
+  readV4PoolState,
+} from "@seer-pm/order-book";
+import { type Market as BaseMarket, getMarketPoolsPairs } from "@seer-pm/sdk";
+import { tickSpacingForFeeTier } from "@seer-pm/sdk";
+import { swaprGraphQLClient, uniswapGraphQLClient, uniswapV4GraphQLClient } from "@seer-pm/sdk";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "@seer-pm/sdk";
 import {
   EternalFarmingAbi,
   EternalFarmingCreatedEvent,
   EternalFarmingRewardsRatesChangedEvent,
 } from "@seer-pm/sdk/abis/eternal-farming";
+import { sqrtPriceX96ToPrice } from "@seer-pm/sdk/liquidity-utils";
 import {
   GetDepositsQuery,
   GetEternalFarmingsQuery,
@@ -15,8 +24,8 @@ import {
   getSdk as getSwaprSdk,
 } from "@seer-pm/sdk/subgraph/swapr";
 import { Pool_OrderBy as UniswapPool_OrderBy, getSdk as getUniswapSdk } from "@seer-pm/sdk/subgraph/uniswap";
+import { getSdk as getUniswapV4Sdk } from "@seer-pm/sdk/subgraph/uniswap-v4";
 import { useQuery } from "@tanstack/react-query";
-import { FeeAmount, TICK_SPACINGS } from "@uniswap/v3-sdk";
 import { type Config, getPublicClient, readContracts, waitForTransactionReceipt } from "@wagmi/core";
 import * as batshit from "@yornaath/batshit";
 import memoize from "micro-memoize";
@@ -42,6 +51,7 @@ export interface PoolIncentive {
 export interface PoolInfo {
   id: Address;
   dex: string;
+  version?: "v3" | "v4";
   fee: number;
   token0: Address;
   token1: Address;
@@ -311,7 +321,7 @@ async function getSwaprPools(
   }
 }
 
-async function getUniswapPools(chainId: number, tokens: { token0: Address; token1: Address }[]): Promise<PoolInfo[]> {
+async function getUniswapV3Pools(chainId: number, tokens: { token0: Address; token1: Address }[]): Promise<PoolInfo[]> {
   const uniswapClient = uniswapGraphQLClient(chainId);
 
   if (!uniswapClient) {
@@ -333,7 +343,8 @@ async function getUniswapPools(chainId: number, tokens: { token0: Address; token
   return await Promise.all(
     pools.map(async (pool) => ({
       id: pool.id as Address,
-      dex: "Bunni",
+      dex: "UniV3",
+      version: "v3" as const,
       fee: Number(pool.feeTier),
       token0: pool.token0.id as Address,
       token1: pool.token1.id as Address,
@@ -341,7 +352,7 @@ async function getUniswapPools(chainId: number, tokens: { token0: Address; token
       token1Price: Number(pool.token1Price),
       liquidity: BigInt(pool.liquidity),
       tick: Number(pool.tick),
-      tickSpacing: TICK_SPACINGS[Number(pool.feeTier) as FeeAmount] ?? 60,
+      tickSpacing: tickSpacingForFeeTier(Number(pool.feeTier)),
       token0Symbol: pool.token0.symbol,
       token1Symbol: pool.token1.symbol,
       totalValueLockedToken0: Number(pool.totalValueLockedToken0),
@@ -351,11 +362,119 @@ async function getUniswapPools(chainId: number, tokens: { token0: Address; token
   );
 }
 
+type V4PoolMeta = {
+  token0Symbol: string;
+  token1Symbol: string;
+  totalValueLockedToken0: number;
+  totalValueLockedToken1: number;
+};
+
+/** Symbols and TVL for V4 pools from the Seer V4 subgraph; empty on failure (on-chain state still wins). */
+async function getV4PoolsMeta(chainId: number, poolIds: string[]): Promise<Map<string, V4PoolMeta>> {
+  const meta = new Map<string, V4PoolMeta>();
+  const client = uniswapV4GraphQLClient(chainId);
+  if (!client || poolIds.length === 0) {
+    return meta;
+  }
+  try {
+    const { pools } = await getUniswapV4Sdk(client).GetV4Pools({ ids: poolIds });
+    for (const pool of pools) {
+      meta.set(pool.id.toLowerCase(), {
+        token0Symbol: pool.token0.symbol,
+        token1Symbol: pool.token1.symbol,
+        totalValueLockedToken0: Number(pool.totalValueLockedToken0),
+        totalValueLockedToken1: Number(pool.totalValueLockedToken1),
+      });
+    }
+  } catch (e) {
+    console.error("getV4PoolsMeta", e);
+  }
+  return meta;
+}
+
+async function getUniswapV4Pools(
+  chainId: number,
+  config: Config,
+  tokens: { token0: Address; token1: Address }[],
+): Promise<PoolInfo[]> {
+  if (!chainSupportsOrderBook(chainId)) {
+    return [];
+  }
+
+  // Pool existence, price and liquidity are read on-chain (source of truth).
+  const states = await Promise.all(
+    tokens.map(async (pair) => {
+      const poolKey = buildOrderBookPoolKey(pair.token0, pair.token1, chainId);
+      if (!poolKey) {
+        return null;
+      }
+      const state = await readV4PoolState(config, chainId, poolKey);
+      if (!state || state.liquidity === 0n) {
+        return null;
+      }
+      return { poolKey, state };
+    }),
+  );
+
+  const livePools = states.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  const meta = await getV4PoolsMeta(
+    chainId,
+    livePools.map(({ state }) => state.poolId.toLowerCase()),
+  );
+
+  return livePools.map(({ poolKey, state }) => {
+    const [token0PriceStr, token1PriceStr] = sqrtPriceX96ToPrice(state.sqrtPriceX96);
+    const poolMeta = meta.get(state.poolId.toLowerCase());
+
+    return {
+      id: state.poolId as Address,
+      dex: "UniV4",
+      version: "v4" as const,
+      fee: V4_POOL_FEE,
+      token0: poolKey.currency0,
+      token1: poolKey.currency1,
+      token0Price: Number(token0PriceStr),
+      token1Price: Number(token1PriceStr),
+      liquidity: state.liquidity,
+      tick: state.tick,
+      tickSpacing: V4_TICK_SPACING,
+      token0Symbol: poolMeta?.token0Symbol ?? "",
+      token1Symbol: poolMeta?.token1Symbol ?? "",
+      totalValueLockedToken0: poolMeta?.totalValueLockedToken0 ?? 0,
+      totalValueLockedToken1: poolMeta?.totalValueLockedToken1 ?? 0,
+      incentives: [],
+    };
+  });
+}
+
+function dedupeTokenPairs(tokens: { token0: Address; token1: Address }[]) {
+  const seen = new Set<string>();
+  return tokens.filter((pair) => {
+    const key = `${pair.token0.toLocaleLowerCase()}-${pair.token1.toLocaleLowerCase()}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
 export const getPools = memoize((chainId: number, config: Config) => {
   return batshit.create({
     name: "getPools",
     fetcher: async (tokens: { token0: Address; token1: Address }[]) => {
-      return chainId === gnosis.id ? getSwaprPools(chainId, config, tokens) : getUniswapPools(chainId, tokens);
+      const uniqueTokens = dedupeTokenPairs(tokens);
+
+      if (chainId === gnosis.id) {
+        return getSwaprPools(chainId, config, uniqueTokens);
+      }
+
+      const [v3Pools, v4Pools] = await Promise.all([
+        getUniswapV3Pools(chainId, uniqueTokens),
+        getUniswapV4Pools(chainId, config, uniqueTokens),
+      ]);
+
+      return [...v3Pools, ...v4Pools];
     },
     scheduler: batshit.windowScheduler(10),
     resolver: (pools, tokens) =>

@@ -4,7 +4,7 @@
 
 import type { Address, PublicClient } from "viem";
 import { formatUnits, parseUnits } from "viem";
-import type { AmmTrade } from "./amm-trade";
+import type { AmmTrade, V4HookParams } from "./amm-trade";
 import { getActivePrimaryCollateral } from "./collateral";
 import {
   applySlippageToleranceDown,
@@ -60,6 +60,7 @@ async function quoteBuyExactIn(
   outcomeToken: Token,
   collateralToken: Token,
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   const primary = getActivePrimaryCollateral(chainId);
   const amountIn = parseUnits(amount, collateralToken.decimals);
@@ -75,6 +76,7 @@ async function quoteBuyExactIn(
     primary,
     "buy",
     maxSlippage,
+    v4Hook,
   );
   return {
     ...uniswapQuote,
@@ -93,6 +95,7 @@ async function quoteBuyExactOut(
   outcomeToken: Token,
   collateralToken: Token,
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   const primary = getActivePrimaryCollateral(chainId);
   const uniswapQuote = await fetchAmmQuote(
@@ -105,6 +108,7 @@ async function quoteBuyExactOut(
     primary,
     "buy",
     maxSlippage,
+    v4Hook,
   );
   const sUsdsNeeded = (uniswapQuote.trade as AmmTrade).maximumAmountIn();
   const usdcIn = await previewPsm3SwapExactOut(client, chainId, collateralToken.address, primary.address, sUsdsNeeded);
@@ -126,6 +130,7 @@ async function quoteSellExactIn(
   outcomeToken: Token,
   collateralToken: Token,
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   const primary = getActivePrimaryCollateral(chainId);
   const uniswapQuote = await fetchAmmQuote(
@@ -138,6 +143,7 @@ async function quoteSellExactIn(
     primary,
     "sell",
     maxSlippage,
+    v4Hook,
   );
   const sUsdsOut = uniswapQuote.value;
   const collateralOut = await previewPsm3SwapExactIn(
@@ -164,6 +170,7 @@ async function quoteSellExactOut(
   outcomeToken: Token,
   collateralToken: Token,
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   const primary = getActivePrimaryCollateral(chainId);
   const collateralOut = parseUnits(amount, collateralToken.decimals);
@@ -191,6 +198,7 @@ async function quoteSellExactOut(
     primary,
     "sell",
     maxSlippage,
+    v4Hook,
   );
   return {
     ...uniswapQuote,
@@ -211,6 +219,7 @@ export async function fetchPsm3AmmQuote(
   collateralToken: Token,
   swapType: "buy" | "sell",
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   if (!isPsm3SwapToken(chainId, collateralToken.address)) {
     throw new Error("Collateral is not a PSM3 swap token");
@@ -218,11 +227,11 @@ export async function fetchPsm3AmmQuote(
 
   if (swapType === "buy") {
     return tradeType === TradeType.EXACT_INPUT
-      ? quoteBuyExactIn(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage)
-      : quoteBuyExactOut(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage);
+      ? quoteBuyExactIn(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage, v4Hook)
+      : quoteBuyExactOut(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage, v4Hook);
   }
 
   return tradeType === TradeType.EXACT_INPUT
-    ? quoteSellExactIn(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage)
-    : quoteSellExactOut(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage);
+    ? quoteSellExactIn(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage, v4Hook)
+    : quoteSellExactOut(client, chainId, account, amount, outcomeToken, collateralToken, maxSlippage, v4Hook);
 }
