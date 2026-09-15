@@ -3,8 +3,14 @@ import type { Address } from "viem";
 import { isAddress } from "viem";
 import { useEnsName } from "wagmi";
 import type { DiscussionUser } from "../../types";
+import { shortAddress } from "../../utils/address";
 import { addressAccent } from "../../utils/linkify";
 import { EnsIcon } from "../EnsIcon/EnsIcon";
+
+/** Label for a discussion user: the username when the host resolved one, otherwise the short address. */
+function displayName(details: DiscussionUser): string {
+  return details.username ?? shortAddress(details.address);
+}
 
 /** Renders a deterministic wallet avatar linked to the user's profile when available. */
 export function UserPfp({ details, height = 44 }: { details?: DiscussionUser | null; height?: number }) {
@@ -33,7 +39,7 @@ export function UserPfp({ details, height = 44 }: { details?: DiscussionUser | n
         <a
           href={href}
           className="inline-flex rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sd-color-active"
-          aria-label={details ? `View @${details.username} profile` : "View profile"}
+          aria-label={details ? `View ${displayName(details)} profile` : "View profile"}
         >
           {avatar}
         </a>
@@ -124,10 +130,10 @@ export function Username({ details }: { details?: DiscussionUser | null }) {
           href={href}
           className="truncate rounded-sm font-medium text-sd-color-main no-underline hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sd-color-active"
         >
-          {details.username}
+          {displayName(details)}
         </a>
       ) : (
-        <span className="truncate font-medium">{details.username}</span>
+        <span className="truncate font-medium">{displayName(details)}</span>
       )}
       {ensName && (
         <>

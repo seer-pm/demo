@@ -417,15 +417,34 @@ async function addUsernames(rows: PnlLeaderboardRow[]): Promise<PnlLeaderboardRo
   });
 }
 
-/** Wallets whose username contains `search`. Usernames are `[a-z0-9_-]`, so any other input cannot match. */
+/**
+ * Wallets whose username contains `search`. Usernames are `[a-z0-9_-]`, so any other input cannot match.
+ * Paged like `loadMaterializedRows`: a short fragment can match more users than one PostgREST page.
+ * Username matches only widen an address search, so a lookup failure degrades to address-only results.
+ */
 async function findUsernameAddresses(search: string): Promise<Set<string>> {
-  if (!/^[a-z0-9_-]+$/.test(search)) return new Set();
-  const { data, error } = await supabase
-    .from("users")
-    .select("id")
-    .ilike("username", `%${search.replace(/_/g, "\\_")}%`);
-  if (error) throw new Error(error.message);
-  return new Set((data ?? []).map((user) => user.id.toLowerCase()));
+  const addresses = new Set<string>();
+  if (!/^[a-z0-9_-]+$/.test(search)) return addresses;
+
+  for (let offset = 0; ; offset += LOAD_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id")
+      .ilike("username", `%${search.replace(/_/g, "\\_")}%`)
+      .order("id", { ascending: true })
+      .range(offset, offset + LOAD_PAGE_SIZE - 1);
+    if (error) {
+      console.error("Unable to search leaderboard usernames:", error);
+      return new Set();
+    }
+
+    const page = data ?? [];
+    for (const user of page) {
+      addresses.add(user.id.toLowerCase());
+    }
+    if (page.length < LOAD_PAGE_SIZE) break;
+  }
+  return addresses;
 }
 
 export default async (req: Request) => {

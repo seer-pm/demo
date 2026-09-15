@@ -124,4 +124,37 @@ describe("createDiscussionsClient", () => {
 
     expect(comments[0].authorDetails.profileHref).toBe("/portfolio/@seer-user");
   });
+
+  it("links authors without a username to their address portfolio", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          data: [
+            {
+              id: "comment-2",
+              author: ADDRESS,
+              authorDetails: { address: ADDRESS },
+              body: "hello",
+              parentId: null,
+              createdAt: 1,
+              likeCount: 0,
+            },
+          ],
+        }),
+      ),
+    );
+
+    const client = createDiscussionsClient({
+      marketId: "0xABC",
+      chainId: 100,
+      getAccessToken: () => "",
+      getProfileHref: ({ address, username }) => (username ? `/portfolio/@${username}` : `/portfolio/${address}`),
+    });
+
+    const comments = await client.listComments();
+
+    expect(comments[0].authorDetails.username).toBeUndefined();
+    expect(comments[0].authorDetails.profileHref).toBe(`/portfolio/${ADDRESS}`);
+  });
 });

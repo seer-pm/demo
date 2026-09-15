@@ -2,8 +2,8 @@ import type { ComponentType, ReactNode } from "react";
 
 export type DiscussionUser = {
   address: string;
-  /** Seer username resolved by the host API. */
-  username: string;
+  /** Seer username resolved by the host API; absent when the wallet has no Seer profile row. */
+  username?: string;
   /** Host-owned route to this user's profile. */
   profileHref?: string | null;
 };

@@ -62,7 +62,8 @@ function Comments({ market }: { market: Market }) {
         baseUrl: getAppUrl(),
         marketId: market.id,
         chainId: market.chainId,
-        getProfileHref: ({ username }) => paths.portfolioUsername(username),
+        getProfileHref: ({ address, username }) =>
+          username ? paths.portfolioUsername(username) : `/portfolio/${address}`,
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;
@@ -77,6 +78,11 @@ function Comments({ market }: { market: Market }) {
       : null;
 
   const requestConnect = async () => {
+    if (isSignedIn && address) {
+      // Signed in but the profile lookup failed: retry it instead of asking for another signature.
+      await refetchCurrentUser();
+      return;
+    }
     if (!isConnected || !address || !chainId) {
       await open({ view: "Connect" });
       return;
@@ -89,23 +95,23 @@ function Comments({ market }: { market: Market }) {
     return <div className="shimmer-container h-48 w-full" />;
   }
 
-  if (isSignedIn && address && (currentUserError || !currentUser)) {
-    return (
-      <Alert type="error" title="Unable to load your discussion profile">
-        <div className="mt-2">
-          <Button
-            text="Try again"
-            size="small"
-            isLoading={isCurrentUserFetching}
-            onClick={() => void refetchCurrentUser()}
-          />
-        </div>
-      </Alert>
-    );
-  }
+  // Posting needs the username; reading does not. A failed lookup keeps the thread readable.
+  const profileUnavailable = isSignedIn && address && (currentUserError || !currentUser);
 
   return (
     <ErrorBoundary fallback={<p>Something went wrong.</p>}>
+      {profileUnavailable ? (
+        <Alert type="error" title="Unable to load your discussion profile" className="mb-4">
+          <div className="mt-2">
+            <Button
+              text="Try again"
+              size="small"
+              isLoading={isCurrentUserFetching}
+              onClick={() => void refetchCurrentUser()}
+            />
+          </div>
+        </Alert>
+      ) : null}
       <Discussion
         client={client}
         user={user}

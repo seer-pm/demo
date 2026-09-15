@@ -202,17 +202,16 @@ export default async (req: Request) => {
 
       return new Response(
         JSON.stringify({
-          data: rows.map((row) => {
-            const username = usernames.get(row.author.toLowerCase());
-            if (!username) throw new Error(`Username not found for ${row.author}`);
-            return toComment(
+          // An author without a users row still renders (by address) rather than failing the whole thread.
+          data: rows.map((row) =>
+            toComment(
               row,
               counts.get(row.id) || 0,
               liked.has(row.id),
-              username,
+              usernames.get(row.author.toLowerCase()),
               positionsByAuthor.get(row.author.toLowerCase()),
-            );
-          }),
+            ),
+          ),
         }),
         { status: 200, headers: jsonHeaders },
       );
