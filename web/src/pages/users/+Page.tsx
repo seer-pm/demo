@@ -229,13 +229,11 @@ function ConnectedUsernamePrompt({
         isLoading={loading}
         title={error ? "Profile unavailable" : user ? `@${user.username}` : "Choose your username"}
         description={
-          error ? (
-            "Try loading your profile again before signing in."
-          ) : user ? (
-            "Sign in to update it."
-          ) : (
-            "Sign in to create a public username linked to your connected wallet."
-          )
+          error
+            ? "Try loading your profile again before signing in."
+            : user
+              ? "Sign in to update it."
+              : "Sign in to create a public username linked to your connected wallet."
         }
       />
       <div className="border-t border-base-300 p-6 sm:p-8">
