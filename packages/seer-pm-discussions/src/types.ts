@@ -4,6 +4,12 @@ export type DiscussionUser = {
   address: string;
 };
 
+export type DiscussionPosition = {
+  tokenId: string;
+  outcome: string;
+  balance: bigint;
+};
+
 export type DiscussionButtonProps = {
   children?: ReactNode;
   onClick?: () => void;
@@ -21,6 +27,7 @@ export type DiscussionConnectButtonProps = {
 
 export type DiscussionUserPositionBadgeProps = {
   user: DiscussionUser;
+  positions: readonly DiscussionPosition[];
 };
 
 export type DiscussionComponents = {
@@ -32,7 +39,7 @@ export type DiscussionComponents = {
 export type ResolvedDiscussionComponents = {
   Button: ComponentType<DiscussionButtonProps>;
   ConnectButton?: ComponentType<DiscussionConnectButtonProps>;
-  UserPositionBadge?: ComponentType<DiscussionUserPositionBadgeProps>;
+  UserPositionBadge: ComponentType<DiscussionUserPositionBadgeProps>;
 };
 
 export type Comment = {
@@ -44,6 +51,8 @@ export type Comment = {
   createdAt: number;
   likeCount: number;
   likedByMe?: boolean;
+  /** Author's current outcome-token positions in the market. */
+  positions?: DiscussionPosition[];
 };
 
 export type CreateCommentInput = {
@@ -54,7 +63,7 @@ export type CreateCommentInput = {
 export type DiscussionsClient = {
   marketId: string;
   listComments: () => Promise<Comment[]>;
-  createComment: (input: CreateCommentInput) => Promise<{ id: string }>;
+  createComment: (input: CreateCommentInput) => Promise<{ id: string; positions: DiscussionPosition[] }>;
   editComment: (id: string, body: string) => Promise<void>;
   deleteComment: (id: string) => Promise<void>;
   setLike: (id: string, liked: boolean) => Promise<void>;

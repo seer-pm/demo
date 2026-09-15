@@ -1,12 +1,24 @@
-import type { Comment, CreateCommentInput, DiscussionUser, DiscussionsClient } from "../types";
+import type { Comment, CreateCommentInput, DiscussionPosition, DiscussionUser, DiscussionsClient } from "../types";
 
 export type CreateDiscussionsClientOptions = {
   /** Base URL, e.g. "" or "https://app.seer.pm" */
   baseUrl?: string;
   /** Market id used as market_id */
   marketId: string;
+  /** Market chain, used to resolve commenter outcome positions */
+  chainId: number;
   /** Returns current Seer JWT, or empty string if signed out */
   getAccessToken: () => string;
+};
+
+type ApiPosition = {
+  tokenId: string;
+  outcome: string;
+  balance: string;
+};
+
+type ApiComment = Omit<Comment, "positions"> & {
+  positions?: ApiPosition[];
 };
 
 function authHeaders(token: string): HeadersInit {
@@ -24,25 +36,30 @@ async function readError(res: Response): Promise<string> {
   }
 }
 
+function parsePositions(positions: ApiPosition[] | undefined): DiscussionPosition[] {
+  return (positions ?? []).map(({ tokenId, outcome, balance }) => ({ tokenId, outcome, balance: BigInt(balance) }));
+}
+
 /** HTTP client for market discussion comments. */
 export function createDiscussionsClient(options: CreateDiscussionsClientOptions): DiscussionsClient {
   const base = (options.baseUrl ?? "").replace(/\/$/, "");
   const endpoint = `${base}/.netlify/functions/market-comments`;
   const marketId = options.marketId.toLowerCase();
+  const chainId = options.chainId;
 
   return {
     marketId,
 
     async listComments() {
       const token = options.getAccessToken();
-      const res = await fetch(`${endpoint}?market_id=${encodeURIComponent(marketId)}`, {
+      const res = await fetch(`${endpoint}?market_id=${encodeURIComponent(marketId)}&chain_id=${chainId}`, {
         headers: authHeaders(token),
       });
       if (!res.ok) {
         throw new Error(await readError(res));
       }
-      const json = (await res.json()) as { data: Comment[] };
-      return json.data ?? [];
+      const json = (await res.json()) as { data?: ApiComment[] };
+      return (json.data ?? []).map((comment) => ({ ...comment, positions: parsePositions(comment.positions) }));
     },
 
     async createComment(input: CreateCommentInput) {
@@ -52,6 +69,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
         headers: authHeaders(token),
         body: JSON.stringify({
           market_id: marketId,
+          chain_id: chainId,
           body: input.body,
           parent_id: input.parentId ?? null,
         }),
@@ -59,10 +77,10 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
       if (!res.ok) {
         throw new Error(await readError(res));
       }
-      const json = (await res.json()) as { id?: string };
+      const json = (await res.json()) as { id?: string; data?: ApiComment };
       const id = json.id;
       if (!id) throw new Error("Missing comment id in response");
-      return { id };
+      return { id, positions: parsePositions(json.data?.positions) };
     },
 
     async editComment(id: string, body: string) {

@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { DiscussionsContext } from "../../contexts/DiscussionsContext";
 import type { DiscussionComponents, DiscussionUser, DiscussionsClient } from "../../types";
 import DefaultButton from "../DefaultButton";
+import DefaultUserPositionBadge from "../UserPositionBadge/UserPositionBadge";
 
 type DiscussionsProviderProps = {
   children: ReactNode;
@@ -29,7 +30,7 @@ export default function DiscussionsProvider({
     () => ({
       Button: componentsProp?.Button ?? DefaultButton,
       ConnectButton: componentsProp?.ConnectButton,
-      UserPositionBadge: componentsProp?.UserPositionBadge,
+      UserPositionBadge: componentsProp?.UserPositionBadge ?? DefaultUserPositionBadge,
     }),
     [componentsProp?.Button, componentsProp?.ConnectButton, componentsProp?.UserPositionBadge],
   );

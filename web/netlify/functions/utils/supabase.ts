@@ -375,6 +375,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      market_comments: {
+        Row: {
+          author: string;
+          body: string;
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          market_id: string;
+          parent_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          author: string;
+          body: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          market_id: string;
+          parent_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          author?: string;
+          body?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          market_id?: string;
+          parent_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "market_comments_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "market_comments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       market_events: {
         Row: {
           chain_id: number;

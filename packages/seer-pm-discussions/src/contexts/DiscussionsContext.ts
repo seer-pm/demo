@@ -1,5 +1,6 @@
 import { createContext } from "react";
 import DefaultButton from "../components/DefaultButton";
+import DefaultUserPositionBadge from "../components/UserPositionBadge/UserPositionBadge";
 import type { Comment, DiscussionUser, DiscussionsClient, ResolvedDiscussionComponents } from "../types";
 
 export type DiscussionsContextValue = {
@@ -19,7 +20,7 @@ export const DiscussionsContext = createContext<DiscussionsContextValue>({
   connecting: false,
   setConnecting: null,
   onRequestConnect: null,
-  components: { Button: DefaultButton },
+  components: { Button: DefaultButton, UserPositionBadge: DefaultUserPositionBadge },
 });
 
 export type CommentsContextValue = {

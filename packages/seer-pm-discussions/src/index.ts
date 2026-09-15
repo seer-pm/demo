@@ -10,6 +10,7 @@ import { useDiscussions } from "./hooks/useDiscussions";
 export type {
   Comment,
   DiscussionUser,
+  DiscussionPosition,
   DiscussionsClient,
   CreateCommentInput,
   DiscussionButtonProps,

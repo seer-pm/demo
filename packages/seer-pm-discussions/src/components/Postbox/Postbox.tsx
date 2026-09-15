@@ -80,7 +80,7 @@ export default function Postbox({
         callback?.(trimmed);
       } else {
         const parentId = reply?.id ?? null;
-        const { id } = await client.createComment({ body: trimmed, parentId });
+        const { id, positions } = await client.createComment({ body: trimmed, parentId });
         const optimistic: Comment = {
           id,
           createdAt: Number(getTimestamp()),
@@ -90,6 +90,7 @@ export default function Postbox({
           parentId,
           likeCount: 0,
           likedByMe: false,
+          positions,
         };
         setComments((prev) => (ascending ? [...prev, optimistic] : [optimistic, ...prev]));
         callback?.();
