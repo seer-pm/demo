@@ -44,6 +44,7 @@ import { DisplayOdds } from "./DisplayOdds";
 import { FarmingActions } from "./FarmingActions";
 import { OutcomeActivePanel } from "./OutcomeActivePanel";
 import { OutcomeImage } from "./OutcomeImage";
+import { getOutcomeActivePanelId } from "./outcomePanelId";
 
 const AddLiquidityV4Adapter = clientOnly(async () => {
   const mod = await import("./AddLiquidity/AddLiquidityV4Adapter");
@@ -447,6 +448,8 @@ function OutcomeDetails({
           {market.type === "Generic" && onTogglePoolDetails && (
             <button
               type="button"
+              aria-expanded={!!isPoolDetailsOpen}
+              aria-controls={isPoolDetailsOpen ? getOutcomeActivePanelId(outcomeIndex) : undefined}
               onClick={(e) => {
                 e.stopPropagation();
                 onTogglePoolDetails();
@@ -658,7 +661,9 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   />
                 </div>
               </div>
-              {poolDetailsOutcomeIndex === i && <OutcomeActivePanel market={market} outcomeIndex={i} />}
+              {poolDetailsOutcomeIndex === i && (
+                <OutcomeActivePanel market={market} outcomeIndex={i} onAddLiquidity={openModalCallback} />
+              )}
             </div>
           );
         })}

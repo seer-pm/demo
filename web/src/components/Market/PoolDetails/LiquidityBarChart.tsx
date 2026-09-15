@@ -1,51 +1,87 @@
-import { Alert } from "@/components/Alert";
 import { Slider } from "@/components/Slider";
 import { Spinner } from "@/components/Spinner";
 import { useOutcomeOrderLevels } from "@/hooks/limitOrders/useMarketOrderLevels";
 import { getLiquidityChartData } from "@/hooks/liquidity/getLiquidityChartData";
 import { useTicksData } from "@/hooks/liquidity/useTicksData";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
+import { useTheme } from "@/hooks/useTheme";
 import { formatBigNumbers, isTwoStringsEqual } from "@/lib/utils";
 import { PoolInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk/tick-math";
 import ReactECharts from "echarts-for-react";
 import { useState } from "react";
+import { LiquidityEmptyState, LiquidityErrorState } from "./LiquidityStates";
+import { formatLadderPrice, formatShareAmount } from "./format";
 
 const LIQUIDITY_SERIES = "Liquidity";
 const ORDERS_SERIES = "Limit orders";
+
+/**
+ * ECharts needs concrete colors, so these mirror the theme tokens the order-book ladder uses:
+ * liquidity is a tint of --error-primary / --success-primary, limit orders and the cumulative line
+ * are the AA --signed-down / --signed-up pair, and the price marker is Seer purple.
+ */
+const CHART_PALETTE = {
+  light: {
+    sellLiquidity: "rgba(246, 12, 54, 0.22)",
+    buyLiquidity: "rgba(0, 196, 43, 0.22)",
+    sell: "#B42318",
+    buy: "#007A26",
+    sellArea: "rgba(246, 12, 54, 0.06)",
+    buyArea: "rgba(0, 196, 43, 0.06)",
+    marker: "#9747FF",
+    axis: "rgba(31, 41, 55, 0.7)",
+    tooltipBackground: "#ffffff",
+    tooltipBorder: "#e5e5e5",
+    tooltipText: "#1f2937",
+  },
+  dark: {
+    sellLiquidity: "rgba(255, 107, 122, 0.28)",
+    buyLiquidity: "rgba(0, 196, 43, 0.28)",
+    sell: "#FF6B7A",
+    buy: "#00C42B",
+    sellArea: "rgba(255, 107, 122, 0.08)",
+    buyArea: "rgba(0, 196, 43, 0.08)",
+    marker: "#B38FFF",
+    axis: "rgba(255, 255, 255, 0.7)",
+    tooltipBackground: "#1e2329",
+    tooltipBorder: "#323942",
+    tooltipText: "#ffffff",
+  },
+} as const;
+
+const tooltipDot = (color: string) =>
+  `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${color};margin-right:5px;"></span>`;
 
 export default function LiquidityBarChart({
   market,
   outcomeTokenIndex,
   poolInfo,
+  onAddLiquidity,
 }: {
   market: Market;
   outcomeTokenIndex: number;
   poolInfo: PoolInfo;
+  onAddLiquidity?: () => void;
 }) {
   const outcome = market.wrappedTokens[outcomeTokenIndex];
   const { token0Symbol, token1Symbol, tick, id, token0 } = poolInfo;
   const [price0, price1] = tickToPrice(tick);
   const isShowToken0Price = !!isTwoStringsEqual(token0, outcome);
   const currentOutcomePrice = isShowToken0Price ? price0 : price1;
-  const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
+  const { data: ticksByPool, isLoading, isError, refetch, isRefetching } = useTicksData(market, outcomeTokenIndex);
   const orderLevels = useOutcomeOrderLevels(market, outcomeTokenIndex, poolInfo);
   const isSmallScreen = useIsSmallScreen();
+  const palette = CHART_PALETTE[useTheme((state) => state.theme)];
   const [zoomCount, setZoomCount] = useState(4); // default zoom to 4 item each side of the current price
   if (isError) {
-    return (
-      <Alert type="error" className="mb-5">
-        Error loading liquidity data.
-      </Alert>
-    );
+    return <LiquidityErrorState onRetry={() => refetch()} isRetrying={isRefetching} />;
   }
 
   if (!ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length) {
     return (
-      <div>
-        <div className="mt-2">{isLoading ? <Spinner></Spinner> : <Alert type="warning">No Liquidity Data.</Alert>}</div>
-      </div>
+      <div className="mt-2">{isLoading ? <Spinner /> : <LiquidityEmptyState onAddLiquidity={onAddLiquidity} />}</div>
     );
   }
   const {
@@ -62,29 +98,36 @@ export default function LiquidityBarChart({
   } = getLiquidityChartData(poolInfo, ticksByPool?.[id]?.ticks, isShowToken0Price, zoomCount, outcome, orderLevels);
   const currentOutcomePriceIndex = priceList.findIndex((price) => price === currentOutcomePrice);
   const maxLabelCount = isSmallScreen ? 3 : 10; //max label x axis
+  const axisStyle = {
+    axisLabel: { color: palette.axis },
+    axisLine: { lineStyle: { color: palette.axis } },
+    nameTextStyle: { color: palette.axis },
+  };
   const chartOption = priceList
     ? {
         xAxis: [
           {
+            ...axisStyle,
             type: "value",
             max: priceList.length - 1,
             interval: Math.ceil((zoomCount * 2) / (maxLabelCount - 1)),
             axisLabel: {
+              ...axisStyle.axisLabel,
               rotate: 35,
               formatter(value: number) {
                 if (value === currentOutcomePriceIndex) {
-                  return `{bold|${priceList[value]}}`;
+                  return `{bold|${formatLadderPrice(priceList[value])}}`;
                 }
-                return priceList[value];
+                return formatLadderPrice(priceList[value]);
               },
               rich: {
                 bold: {
                   fontWeight: "bold",
-                  color: "#9747ff",
+                  color: palette.marker,
                 },
               },
             },
-            name: `${isShowToken0Price ? token0Symbol : token1Symbol} Price`,
+            name: `${isShowToken0Price ? token0Symbol : token1Symbol} price`,
             nameLocation: "middle",
             nameGap: 45,
             splitLine: {
@@ -95,6 +138,9 @@ export default function LiquidityBarChart({
 
         tooltip: {
           trigger: "axis",
+          backgroundColor: palette.tooltipBackground,
+          borderColor: palette.tooltipBorder,
+          textStyle: { color: palette.tooltipText },
           // biome-ignore lint/suspicious/noExplicitAny:
           formatter: (params: any[]) => {
             let tooltipContent = "";
@@ -104,9 +150,8 @@ export default function LiquidityBarChart({
               if (!param?.data[1]) {
                 continue;
               }
-              const yValue = Number(param.data[1].toFixed(2)).toLocaleString();
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${param.color};margin-right:5px;"></span>`;
-              tooltipContent += `${param.seriesName}: ${yValue}`;
+              tooltipContent += tooltipDot(param.color);
+              tooltipContent += `${param.seriesName}: ${formatShareAmount(param.data[1])}`;
               if (param.seriesName === ORDERS_SERIES) {
                 const accounts = orderCounts[currentPriceIndex] ?? 0;
                 tooltipContent += ` (${accounts} ${accounts === 1 ? "account" : "accounts"})`;
@@ -114,31 +159,27 @@ export default function LiquidityBarChart({
               tooltipContent += "<br>";
             }
             if (params[0] && sellLineData[currentLineIndex][1]) {
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(
-                sellLineData[currentLineIndex][1]!.toFixed(2),
-              ).toLocaleString()}<br>`;
-              //current price
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[0].color};margin-right:5px;"></span>`;
-              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
+              tooltipContent += tooltipDot(params[0].color);
+              tooltipContent += `Cumulative: ${formatShareAmount(sellLineData[currentLineIndex][1])}<br>`;
+              tooltipContent += tooltipDot(params[0].color);
+              tooltipContent += `Price: ${formatLadderPrice(priceList[currentPriceIndex])}<br>`;
             }
             if (params[1] && buyLineData[currentLineIndex][1]) {
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
-              tooltipContent += `Total Volume: ${Number(
-                buyLineData[currentLineIndex][1]!.toFixed(2),
-              ).toLocaleString()}<br>`;
-              tooltipContent += `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${params[1].color};margin-right:5px;"></span>`;
-              tooltipContent += `Price: ${priceList[currentPriceIndex]}<br>`;
+              tooltipContent += tooltipDot(params[1].color);
+              tooltipContent += `Cumulative: ${formatShareAmount(buyLineData[currentLineIndex][1])}<br>`;
+              tooltipContent += tooltipDot(params[1].color);
+              tooltipContent += `Price: ${formatLadderPrice(priceList[currentPriceIndex])}<br>`;
             }
-            // Return the formatted tooltip content with the colored dot
             return tooltipContent;
           },
         },
         yAxis: [
           {
+            ...axisStyle,
             type: "value",
             scale: true,
             axisLabel: {
+              ...axisStyle.axisLabel,
               formatter(value: number) {
                 return formatBigNumbers(value);
               },
@@ -162,7 +203,7 @@ export default function LiquidityBarChart({
             barWidth: "100%",
             data: sellBarsData,
             itemStyle: {
-              color: "#FFCCCB",
+              color: palette.sellLiquidity,
             },
           },
           {
@@ -172,7 +213,7 @@ export default function LiquidityBarChart({
             barWidth: "100%",
             data: buyBarsData,
             itemStyle: {
-              color: "#90EE90",
+              color: palette.buyLiquidity,
             },
           },
           {
@@ -182,7 +223,7 @@ export default function LiquidityBarChart({
             barWidth: "100%",
             data: sellOrderBarsData,
             itemStyle: {
-              color: "#F5A3A3",
+              color: palette.sell,
             },
           },
           {
@@ -192,7 +233,7 @@ export default function LiquidityBarChart({
             barWidth: "100%",
             data: buyOrderBarsData,
             itemStyle: {
-              color: "#5FCF7A",
+              color: palette.buy,
             },
           },
           {
@@ -200,10 +241,10 @@ export default function LiquidityBarChart({
             type: "line",
             data: sellLineData,
             itemStyle: {
-              color: "#dc3545",
+              color: palette.sell,
             },
             areaStyle: {
-              color: "#FFCCCB50",
+              color: palette.sellArea,
             },
             symbol: "none",
             smooth: true,
@@ -214,10 +255,10 @@ export default function LiquidityBarChart({
             type: "line",
             data: buyLineData,
             itemStyle: {
-              color: "#28a745",
+              color: palette.buy,
             },
             areaStyle: {
-              color: "#90EE9050",
+              color: palette.buyArea,
             },
             symbol: "none",
             smooth: true,
@@ -231,7 +272,7 @@ export default function LiquidityBarChart({
               [currentOutcomePriceIndex, maxYValue * 1.2], //make it higher than the rest of the data
             ],
             lineStyle: {
-              color: "#9747ff",
+              color: palette.marker,
               type: "dotted",
               width: 2,
             },
@@ -247,13 +288,13 @@ export default function LiquidityBarChart({
               label: {
                 show: true,
                 position: "end",
-                color: "#9747ff",
+                color: palette.marker,
                 fontWeight: "bold",
               },
               data: [
                 [
                   {
-                    name: currentOutcomePrice,
+                    name: formatLadderPrice(currentOutcomePrice),
                     xAxis: currentOutcomePriceIndex,
                     yAxis: 1,
                   },
@@ -277,10 +318,12 @@ export default function LiquidityBarChart({
             onChange={(value) => setZoomCount(Number.parseInt(value.toString()))}
           />
         </div>
-        <span className="text-sm text-base-content min-w-[3ch]">{priceList.length - 1}</span>
+        <span className="text-sm text-base-content min-w-[3ch] tabular-nums">{priceList.length - 1}</span>
       </div>
       {orderLevels.length > 0 && (
-        <p className="text-[12px] text-black-secondary text-center mt-1">Darker segments are resting limit orders.</p>
+        <p className="text-[12px] text-base-content/70 text-center mt-1">
+          The solid part of each bar is resting limit orders.
+        </p>
       )}
       <div
         className="h-[400px] flex justify-center"
