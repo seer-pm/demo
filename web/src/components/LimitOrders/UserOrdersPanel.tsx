@@ -2,9 +2,11 @@ import { Alert } from "@/components/Alert";
 import OrderHistoryTable from "@/components/LimitOrders/OrderHistoryTable";
 import OrdersTable, { type ActiveOrderRow } from "@/components/LimitOrders/OrdersTable";
 import type { OrdersPanelView, PoolMeta, UiUserOrder } from "@/components/LimitOrders/ordersShared";
+import { LoadError, LoadingBlock, RefreshError } from "@/components/LoadStates";
 import { useUserLimitOrderHistory } from "@/hooks/limitOrders/useUserLimitOrderHistory";
 import { ORDERS_LIMIT, useUserLimitOrders } from "@/hooks/limitOrders/useUserLimitOrders";
 import { useCheck7702Support } from "@/hooks/useCheck7702Support";
+import { PRIMARY_BUTTON_CLASS, QUIET_BUTTON_CLASS } from "@/lib/buttonClasses";
 import { toastifyTx } from "@/lib/toastify";
 import { displayBalance, isTextInString } from "@/lib/utils";
 import {
@@ -24,9 +26,6 @@ const VIEWS: { id: OrdersPanelView; label: string }[] = [
   { id: "active", label: "Active" },
   { id: "activity", label: "Activity" },
 ];
-
-const QUIET_BUTTON_CLASS = "btn btn-ghost btn-sm min-h-11 px-4 border border-separator-100";
-const PRIMARY_BUTTON_CLASS = "btn btn-primary btn-sm min-h-11 px-4";
 
 function plural(count: number, one: string, many: string) {
   return count === 1 ? one : many;
@@ -53,39 +52,7 @@ function ViewSwitch({ value, onChange }: { value: OrdersPanelView; onChange: (vi
   );
 }
 
-function LoadingBlock({ label }: { label: string }) {
-  return (
-    <div aria-busy="true" aria-live="polite">
-      <span className="sr-only">{label}</span>
-      <div className="shimmer-container w-full h-[200px]" aria-hidden />
-    </div>
-  );
-}
-
-function LoadError({
-  title,
-  error,
-  onRetry,
-  isRetrying,
-}: {
-  title: string;
-  error: unknown;
-  onRetry: () => void;
-  isRetrying: boolean;
-}) {
-  const message = error instanceof Error ? error.message : undefined;
-  return (
-    <Alert type="error" title={title}>
-      <div className="space-y-3">
-        <p>Try again in a moment.</p>
-        {message && <p className="text-[13px] opacity-80 break-words">{message}</p>}
-        <button type="button" className={PRIMARY_BUTTON_CLASS} disabled={isRetrying} onClick={onRetry}>
-          {isRetrying ? "Retrying…" : "Try again"}
-        </button>
-      </div>
-    </Alert>
-  );
-}
+const INDEXER_ERROR = "The order book indexer didn't answer. Nothing changed on-chain.";
 
 function NoMatches({ filterText, onClearFilter }: { filterText: string; onClearFilter?: () => void }) {
   return (
@@ -127,38 +94,60 @@ type PanelProps = {
 function OrderActivity({ account, chainId, market, filterText, onClearFilter }: PanelProps) {
   const { data, isLoading, error, refetch, isFetching } = useUserLimitOrderHistory(account, chainId, market);
 
-  if (isLoading) {
+  if (isLoading || (!data && !error)) {
     return <LoadingBlock label="Loading order activity" />;
   }
 
-  if (error || !data) {
+  // The full error is only for a list that never loaded; cached events stay up when a refetch fails.
+  if (!data) {
     return (
-      <LoadError title="Couldn't load order activity" error={error} onRetry={() => refetch()} isRetrying={isFetching} />
+      <LoadError
+        title="Couldn't load order activity"
+        description={INDEXER_ERROR}
+        error={error}
+        onRetry={() => refetch()}
+        isRetrying={isFetching}
+      />
     );
   }
 
+  const refreshNotice = error ? (
+    <RefreshError subject="order activity" onRetry={() => refetch()} isRetrying={isFetching} />
+  ) : null;
+
   if (data.events.length === 0) {
     return (
-      <Alert type="info" title="No order activity yet">
-        Placed, filled, cancelled and withdrawn limit orders show up here.
-      </Alert>
+      <>
+        {refreshNotice}
+        <Alert type="info" title="No order activity yet">
+          Placed, filled, cancelled and withdrawn limit orders show up here.
+        </Alert>
+      </>
     );
   }
 
   const events = filterByMarketText(data.events, data.poolById, filterText);
 
   if (events.length === 0) {
-    return <NoMatches filterText={filterText} onClearFilter={onClearFilter} />;
+    return (
+      <>
+        {refreshNotice}
+        <NoMatches filterText={filterText} onClearFilter={onClearFilter} />
+      </>
+    );
   }
 
   return (
-    <OrderHistoryTable
-      events={events}
-      chainId={chainId}
-      market={market}
-      poolById={data.poolById}
-      showMarketColumn={market === undefined}
-    />
+    <>
+      {refreshNotice}
+      <OrderHistoryTable
+        events={events}
+        chainId={chainId}
+        market={market}
+        poolById={data.poolById}
+        showMarketColumn={market === undefined}
+      />
+    </>
   );
 }
 
@@ -280,15 +269,27 @@ function ActiveOrders({
     }
   }, [isConfirmingCancelAll]);
 
-  if (isLoading) {
+  if (isLoading || (!data && !error)) {
     return <LoadingBlock label="Loading your limit orders" />;
   }
 
-  if (error || !data || !poolById) {
+  // The full error is only for a list that never loaded. The 30s poll and the fill watcher's
+  // invalidations refetch this query constantly, and one failed poll used to wipe a loaded list.
+  if (!data || !poolById) {
     return (
-      <LoadError title="Couldn't load limit orders" error={error} onRetry={() => refetch()} isRetrying={isFetching} />
+      <LoadError
+        title="Couldn't load limit orders"
+        description={INDEXER_ERROR}
+        error={error}
+        onRetry={() => refetch()}
+        isRetrying={isFetching}
+      />
     );
   }
+
+  const refreshNotice = error ? (
+    <RefreshError subject="your limit orders" onRetry={() => refetch()} isRetrying={isFetching} />
+  ) : null;
 
   const toCancelParams = (order: UiUserOrder) => {
     if (!connectedAddress) throw new Error("Connect your wallet");
@@ -341,17 +342,21 @@ function ActiveOrders({
     ...open.map((order) => ({ order, kind: "open" as const })),
   ];
 
-  const notices =
-    data.hiddenCount > 0 || data.truncated ? (
-      <Alert type="warning" title="Some orders aren't listed" className="mb-4">
-        {data.hiddenCount > 0 && (
-          <p>
-            {data.hiddenCount} {plural(data.hiddenCount, "order", "orders")} couldn't be matched to a market.
-          </p>
-        )}
-        {data.truncated && <p>Only the first {ORDERS_LIMIT} orders of each status are loaded.</p>}
-      </Alert>
-    ) : null;
+  const notices = (
+    <>
+      {refreshNotice}
+      {(data.hiddenCount > 0 || data.truncated) && (
+        <Alert type="warning" title="Some orders aren't listed" className="mb-4">
+          {data.hiddenCount > 0 && (
+            <p>
+              {data.hiddenCount} {plural(data.hiddenCount, "order", "orders")} couldn't be matched to a market.
+            </p>
+          )}
+          {data.truncated && <p>Only the first {ORDERS_LIMIT} orders of each status are loaded.</p>}
+        </Alert>
+      )}
+    </>
+  );
 
   if (data.open.length + data.filled.length === 0) {
     return (

@@ -386,7 +386,7 @@ function PortfolioPage() {
         <div
           role="tablist"
           aria-label="Portfolio sections"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[720px] mb-6"
+          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-full mb-6"
           onKeyDown={onTabListKeyDown}
         >
           {TABS.map((tab, index) => {
@@ -403,7 +403,7 @@ function PortfolioPage() {
                 ref={(el) => {
                   tabRefs.current[index] = el;
                 }}
-                className={`tab min-h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary ${selected ? "tab-active" : ""}`}
+                className={`tab min-h-11 whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary ${selected ? "tab-active" : ""}`}
                 onClick={() => setTab(tab.id)}
               >
                 {tab.label}

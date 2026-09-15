@@ -224,7 +224,7 @@ function OrderAction({
   );
 }
 
-function CardField({ label, children }: { label: string; children: ReactNode }) {
+export function CardField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
       <dt className="text-[13px] text-base-content/70">{label}</dt>

@@ -12,10 +12,11 @@ import { useAccount } from "wagmi";
 const WELCOME_TOAST_SESSION_KEY = "seer:filledOrdersWelcomeToast";
 const TOAST_OPTIONS = { autoClose: 10_000 as const };
 
-function portfolioLink(chainId: SupportedChain) {
+// Already on another portfolio tab, "Go to Portfolio" names the page the user is on; name the tab instead.
+function ordersLink(chainId: SupportedChain, onPortfolio: boolean) {
   return (
     <Link to={`/portfolio?tab=orders&chain=${chainId}`} className="underline">
-      Go to Portfolio to withdraw
+      {onPortfolio ? "Open Limit Orders to withdraw" : "Go to Portfolio to withdraw"}
     </Link>
   );
 }
@@ -29,10 +30,12 @@ export function LimitOrdersWatcher() {
   const seenFilledIdsRef = useRef<Set<string> | null>(null);
   const accountKeyRef = useRef<string | null>(null);
   const { urlParsed } = usePageContext();
-  // On the orders tab the filled orders are already on screen, so a "Go to Portfolio" link points
-  // at the page the user is reading. Kept in a ref so navigating does not re-run the fill check.
+  // On the orders tab the filled orders are already on screen, so a link would point at the page the
+  // user is reading. Kept in refs so navigating does not re-run the fill check.
+  const onPortfolioRef = useRef(false);
   const onOrdersTabRef = useRef(false);
-  onOrdersTabRef.current = urlParsed.pathname.startsWith("/portfolio") && urlParsed.search.tab === "orders";
+  onPortfolioRef.current = urlParsed.pathname.startsWith("/portfolio");
+  onOrdersTabRef.current = onPortfolioRef.current && urlParsed.search.tab === "orders";
 
   useEffect(() => {
     const accountKey = address ? `${chainId}:${address.toLowerCase()}` : null;
@@ -65,7 +68,7 @@ export function LimitOrdersWatcher() {
             count === 1
               ? "You have 1 filled order ready to withdraw"
               : `You have ${count} filled orders ready to withdraw`,
-          subtitle: portfolioLink(chainId),
+          subtitle: ordersLink(chainId, onPortfolioRef.current),
           options: TOAST_OPTIONS,
         });
       }
@@ -85,7 +88,7 @@ export function LimitOrdersWatcher() {
           ? newCount === 1
             ? "It's ready to withdraw in the list below."
             : "They're ready to withdraw in the list below."
-          : portfolioLink(chainId),
+          : ordersLink(chainId, onPortfolioRef.current),
         options: TOAST_OPTIONS,
       });
     }
