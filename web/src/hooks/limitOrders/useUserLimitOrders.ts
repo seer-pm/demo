@@ -12,11 +12,12 @@ import {
   getActivePrimaryCollateral,
   orderBookGraphQLClient,
 } from "@seer-pm/sdk";
-import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+import { Order_By, getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 
 const REFETCH_INTERVAL_MS = 30_000;
+export const ORDERS_LIMIT = 500;
 
 type SubgraphPool = {
   id: Address;
@@ -72,7 +73,45 @@ export type UserLimitOrdersData = {
   open: UiUserOrder[];
   filled: UiUserOrder[];
   poolById: Map<string, PoolMeta>;
+  /** Orders the indexer returned whose pool could not be matched to a market, so they are not listed. */
+  hiddenCount: number;
+  /** A status query hit the page limit, so older orders may be missing. */
+  truncated: boolean;
 };
+
+/**
+ * When each order was first placed, keyed by order id. Best effort: the dates are context, so a
+ * failed lookup leaves them out rather than failing the whole list.
+ */
+async function fetchPlacedAtByOrderId(
+  sdk: ReturnType<typeof getLimitOrderSdk>,
+  chainId: SupportedChain,
+  owner: string,
+  orderIds: string[],
+): Promise<Map<string, number>> {
+  const placedAt = new Map<string, number>();
+  if (orderIds.length === 0) return placedAt;
+
+  try {
+    const { OrderEvent: events } = await sdk.GetOrderEvents({
+      limit: 1000,
+      orderBy: [{ timestamp: Order_By.Asc }],
+      where: {
+        chainId: { _eq: String(chainId) },
+        owner: { _eq: owner },
+        type: { _eq: "PLACE" },
+        orderId: { _in: orderIds },
+      },
+    });
+    for (const event of events) {
+      const orderId = String(event.orderId);
+      if (!placedAt.has(orderId)) placedAt.set(orderId, Number(event.timestamp));
+    }
+  } catch {
+    // Placement dates are optional context.
+  }
+  return placedAt;
+}
 
 export type RawOrder = {
   pool?: {
@@ -176,7 +215,7 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
       const owner = account.toLowerCase();
       const marketPools = market ? getMarketPoolMeta(market) : undefined;
       if (marketPools && marketPools.size === 0) {
-        return { open: [], filled: [], poolById: marketPools };
+        return { open: [], filled: [], poolById: marketPools, hiddenCount: 0, truncated: false };
       }
       const baseWhere = {
         chainId: { _eq: String(chainId) },
@@ -185,11 +224,20 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
       };
 
       const [openRes, filledRes] = await Promise.all([
-        sdk.GetUserOrders({ limit: 500, where: { ...baseWhere, status: { _eq: "OPEN" } } }),
-        sdk.GetUserOrders({ limit: 500, where: { ...baseWhere, status: { _eq: "FILLED" } } }),
+        sdk.GetUserOrders({ limit: ORDERS_LIMIT, where: { ...baseWhere, status: { _eq: "OPEN" } } }),
+        sdk.GetUserOrders({ limit: ORDERS_LIMIT, where: { ...baseWhere, status: { _eq: "FILLED" } } }),
       ]);
+      const rawOrders = [...openRes.UserOrder, ...filledRes.UserOrder];
 
-      const poolById = marketPools ?? (await resolvePoolMeta([...openRes.UserOrder, ...filledRes.UserOrder], chainId));
+      const [poolById, placedAtByOrderId] = await Promise.all([
+        marketPools ?? resolvePoolMeta(rawOrders, chainId),
+        fetchPlacedAtByOrderId(
+          sdk,
+          chainId,
+          owner,
+          rawOrders.map((o) => String(o.orderId)),
+        ),
+      ]);
 
       const mapOrder = (o: (typeof openRes)["UserOrder"][number]): UiUserOrder | null => {
         if (!o.pool) return null;
@@ -210,13 +258,19 @@ export function useUserLimitOrders(account: Address | undefined, chainId: Suppor
           liquidity: o.liquidity,
           placedAtBlock: o.placedAtBlock,
           updatedAtBlock: o.updatedAtBlock,
+          placedAt: placedAtByOrderId.get(String(o.orderId)),
         };
       };
 
+      const open = openRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[];
+      const filled = filledRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[];
+
       return {
-        open: openRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[],
-        filled: filledRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[],
+        open,
+        filled,
         poolById,
+        hiddenCount: rawOrders.length - open.length - filled.length,
+        truncated: openRes.UserOrder.length >= ORDERS_LIMIT || filledRes.UserOrder.length >= ORDERS_LIMIT,
       };
     },
   });
