@@ -23,7 +23,23 @@ export type UiUserOrder = {
   liquidity: string;
   placedAtBlock: string;
   updatedAtBlock: string;
+  /** Unix seconds of the order's first placement, when the indexer returned it. */
+  placedAt?: number;
 };
+
+/**
+ * Column headers for the order tables. The global `.simple-table` headers are brand purple, which
+ * is 3.7:1 on the dark card and competes with the market links; here they are quiet, AA labels.
+ */
+export const ORDERS_TABLE_HEADER_CLASSES =
+  "[&_th]:!text-base-content/70 [&_th]:!text-[13px] [&_th]:!font-medium [&_th]:whitespace-nowrap";
+
+/** The orders panel's sub-views: live orders with their actions, and the event log. */
+export type OrdersPanelView = "active" | "activity";
+
+export function parseOrdersPanelView(value: string | null | undefined): OrdersPanelView {
+  return value === "activity" ? "activity" : "active";
+}
 
 export type PoolMeta = {
   outcomeIndex: number;
@@ -34,6 +50,31 @@ export type PoolMeta = {
 
 export function getOrderSideLabel(zeroForOne: boolean, outcomeIsToken0: boolean): "Buy" | "Sell" {
   return zeroForOne === !outcomeIsToken0 ? "Buy" : "Sell";
+}
+
+/**
+ * An outcome price (collateral per outcome token) in cents, the way prediction-market traders read
+ * it: 0.4017 → "40.2¢", 0.0035 → "0.35¢". Unknown prices render as an em dash.
+ */
+export function formatPriceCents(price: number | null | undefined): string {
+  if (price === null || price === undefined || !Number.isFinite(price) || price < 0) return "—";
+  const cents = price * 100;
+  return `${Number(cents.toFixed(cents >= 10 ? 1 : 2))}¢`;
+}
+
+/** The outcome's latest indexed price (0–1), taken from the market's odds, when known. */
+export function getOutcomeMarketPrice(market: Market | undefined, outcomeIndex: number): number | undefined {
+  const odd = market?.odds?.[outcomeIndex];
+  return typeof odd === "number" && Number.isFinite(odd) ? odd / 100 : undefined;
+}
+
+/**
+ * How far the price still has to move for an open order to fill. Buys rest below the market and
+ * fill when it falls to the limit; sells rest above and fill when it rises. Zero or less means the
+ * market price is already at or past the limit.
+ */
+export function getPriceToFill(side: "Buy" | "Sell", limitPrice: number, marketPrice: number): number {
+  return side === "Buy" ? marketPrice - limitPrice : limitPrice - marketPrice;
 }
 
 function formatLiquidityCompact(liquidity: bigint): string {

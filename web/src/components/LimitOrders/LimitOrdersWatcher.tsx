@@ -6,6 +6,7 @@ import { chainSupportsOrderBook } from "@seer-pm/order-book";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 
 const WELCOME_TOAST_SESSION_KEY = "seer:filledOrdersWelcomeToast";
@@ -27,6 +28,11 @@ export function LimitOrdersWatcher() {
   const { data } = useUserLimitOrders(orderBookSupported ? address : undefined, chainId);
   const seenFilledIdsRef = useRef<Set<string> | null>(null);
   const accountKeyRef = useRef<string | null>(null);
+  const { urlParsed } = usePageContext();
+  // On the orders tab the filled orders are already on screen, so a "Go to Portfolio" link points
+  // at the page the user is reading. Kept in a ref so navigating does not re-run the fill check.
+  const onOrdersTabRef = useRef(false);
+  onOrdersTabRef.current = urlParsed.pathname.startsWith("/portfolio") && urlParsed.search.tab === "orders";
 
   useEffect(() => {
     const accountKey = address ? `${chainId}:${address.toLowerCase()}` : null;
@@ -52,6 +58,7 @@ export function LimitOrdersWatcher() {
       const welcomeKey = `${WELCOME_TOAST_SESSION_KEY}:${accountKey}`;
       if (filledIds.size > 0 && !sessionStorage.getItem(welcomeKey)) {
         sessionStorage.setItem(welcomeKey, "1");
+        if (onOrdersTabRef.current) return;
         const count = filledIds.size;
         toastInfo({
           title:
@@ -74,7 +81,11 @@ export function LimitOrdersWatcher() {
       queryClient.invalidateQueries({ queryKey: ["useTicksData"] });
       toastInfo({
         title: newCount === 1 ? "1 order just filled" : `${newCount} orders just filled`,
-        subtitle: portfolioLink(chainId),
+        subtitle: onOrdersTabRef.current
+          ? newCount === 1
+            ? "It's ready to withdraw in the list below."
+            : "They're ready to withdraw in the list below."
+          : portfolioLink(chainId),
         options: TOAST_OPTIONS,
       });
     }
