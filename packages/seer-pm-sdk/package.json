@@ -145,7 +145,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup --config tsup.config.ts && tsup generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "build": "yarn generate:gql && tsup --config tsup.config.ts && tsup generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
     "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/tick-math.ts src/chart-data.ts src/chains.ts src/sign-in.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:gql && yarn generate:hooks",
