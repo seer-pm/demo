@@ -56,8 +56,7 @@ function Comments({ market }: { market: Market }) {
         baseUrl: getAppUrl(),
         marketId: market.id,
         chainId: market.chainId,
-        getProfileHref: ({ address, username }) =>
-          username ? paths.portfolioUsername(username) : `/portfolio/${address}`,
+        getProfileHref: ({ address, username }) => paths.portfolio(address, username),
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;
@@ -68,11 +67,7 @@ function Comments({ market }: { market: Market }) {
 
   const user =
     isSignedIn && address
-      ? userFromAddress(
-          address,
-          currentUser?.username,
-          currentUser?.username ? paths.portfolioUsername(currentUser.username) : `/portfolio/${address}`,
-        )
+      ? userFromAddress(address, currentUser?.username, paths.portfolio(address, currentUser?.username))
       : null;
 
   const requestConnect = async () => {

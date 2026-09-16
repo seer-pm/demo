@@ -4,6 +4,7 @@ import { Link } from "@/components/Link";
 import { TokenTransactionsResponse, useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 import { displayBalance, isTwoStringsEqual } from "@/lib/utils";
 import { useComputedPoolAddresses } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
@@ -92,7 +93,10 @@ export default function TopHolders({ market }: TopHoldersProps) {
                           <tr key={holder.address}>
                             <td className="text-left">
                               <span className="text-sm text-base-content/90 flex space-x-2 items-center">
-                                <Link to={`/portfolio/${holder.address}`} className="hover:text-purple-primary">
+                                <Link
+                                  to={paths.portfolio(holder.address, holder.username)}
+                                  className="hover:text-purple-primary"
+                                >
                                   <DisplayName address={holder.address} username={holder.username} />
                                 </Link>
 

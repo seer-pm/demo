@@ -9,6 +9,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { type PublicUser, getPublicUser, usePublicUser } from "@/hooks/usePublicUser";
 import { useSignIn } from "@/hooks/useSignIn";
+import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { normalizeUsername, validateUsername } from "@/lib/username";
 import { fetchAuth } from "@/lib/utils";
@@ -186,7 +187,7 @@ function UsernameSection({ accessToken, address }: { accessToken: string; addres
               {message.username ? (
                 <p className="mt-2">
                   <Link
-                    to={`/portfolio/@${message.username}`}
+                    to={paths.portfolio(address, message.username)}
                     className="text-purple-primary hover:underline font-medium"
                   >
                     See how you appear on Seer
@@ -265,7 +266,10 @@ export default function AccountPage() {
           <>
             <div className="p-6 sm:p-8">
               <ProfileIdentity address={address} username={user?.username} isLoading={isUserLoading}>
-                <Link to={`/portfolio/${address}`} className="text-[14px] text-purple-primary hover:underline">
+                <Link
+                  to={paths.portfolio(address, user?.username)}
+                  className="text-[14px] text-purple-primary hover:underline"
+                >
                   View your public profile
                 </Link>
               </ProfileIdentity>

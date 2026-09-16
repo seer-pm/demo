@@ -31,6 +31,9 @@ export const paths = {
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
   profile: () => "/profile",
   portfolioUsername: (username: string) => `/portfolio/@${username}`,
+  /** A wallet's portfolio: the `@username` vanity route when it has one, else the address route. */
+  portfolio: (address: string, username?: string | null) =>
+    username ? `/portfolio/@${username}` : `/portfolio/${address}`,
   collection: (collectionId: string) => `/collections/${collectionId}`,
   tradeCollateral: () => "/trade-collateral",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>

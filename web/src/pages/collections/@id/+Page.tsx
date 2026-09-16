@@ -3,6 +3,7 @@ import { DisplayName } from "@/components/DisplayName";
 import Button from "@/components/Form/Button";
 import DropdownWrapper from "@/components/Form/DropdownWrapper";
 import Input from "@/components/Form/Input";
+import { Link } from "@/components/Link";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import { useCollectionMarkets } from "@/hooks/collections/useCollectionMarkets";
@@ -33,7 +34,11 @@ import { useAccount } from "wagmi";
 /** Owner label for a collection someone else created; resolves that single wallet's username. */
 function CollectionOwnerName({ address }: { address: string }) {
   const { data: owner } = usePublicUser(address ? { address: address as `0x${string}` } : null);
-  return <DisplayName address={address} username={owner?.username} />;
+  return (
+    <Link to={paths.portfolio(address, owner?.username)} className="hover:text-purple-primary">
+      <DisplayName address={address} username={owner?.username} />
+    </Link>
+  );
 }
 
 function CollectionsPage() {

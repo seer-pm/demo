@@ -4,6 +4,7 @@ import { Link } from "@/components/Link";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
@@ -119,7 +120,7 @@ export default function Activity({ market }: ActivityProps) {
                       <div className="flex flex-wrap items-center gap-2">
                         {trader ? (
                           <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
-                            <Link to={`/portfolio/${trader}`} className="hover:text-purple-primary">
+                            <Link to={paths.portfolio(trader, row.username)} className="hover:text-purple-primary">
                               <DisplayName address={trader} username={row.username} />
                             </Link>
 

@@ -147,8 +147,7 @@ function LeaderboardAccount({
 }) {
   const normalizedAddress = address.toLowerCase() as Address;
   const { label, source, ensName } = useDisplayName({ address: normalizedAddress, username });
-  // Only a stored username has a resolvable @route; every other label links by address.
-  const profileHref = username ? paths.portfolioUsername(username) : `/portfolio/${normalizedAddress}`;
+  const profileHref = paths.portfolio(normalizedAddress, username);
   const showEnsBadge = source === "username" && Boolean(ensName);
 
   return (

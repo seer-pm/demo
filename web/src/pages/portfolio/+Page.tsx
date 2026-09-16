@@ -14,12 +14,14 @@ import { parsePortfolioChainParam } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual, shortenAddress } from "@/lib/utils";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
-import { type KeyboardEvent, useRef } from "react";
+import { type KeyboardEvent, useEffect, useRef } from "react";
 import { Address, getAddress, isAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
+import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 
 const TABS = [
@@ -232,6 +234,21 @@ function PortfolioPage() {
       : undefined;
   const isSelf = isTwoStringsEqual(connectedAccount, account);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // `/portfolio/@name` is the one URL a person with a username should ever see or share, but the
+  // address route stays the fallback for every wallet without one, so links, the header and pasted
+  // URLs still arrive here by address. Replace the address (or bare `/portfolio`) with the vanity
+  // route once the lookup says there is one. The redirect never fires for `@` routes or unknown
+  // wallets, so it cannot loop.
+  useEffect(() => {
+    if (isUsernameRoute || !publicUser?.username) return;
+    // The `@` route re-runs the lookup under its own key; seed it so the header does not shimmer.
+    queryClient.setQueryData(["publicUser", "username", publicUser.username], publicUser);
+    navigate(`${paths.portfolioUsername(publicUser.username)}${window.location.search}`, {
+      overwriteLastHistoryEntry: true,
+      keepScrollPosition: true,
+    });
+  }, [isUsernameRoute, publicUser]);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
