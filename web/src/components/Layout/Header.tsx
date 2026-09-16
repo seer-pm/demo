@@ -1,8 +1,6 @@
 import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
-import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
-import { useSignIn } from "@/hooks/useSignIn";
 import { filterChain } from "@/lib/chains";
 import {
   BookIcon,
@@ -13,14 +11,13 @@ import {
   DownArrow,
   EthIcon,
   Menu,
-  NotificationIcon,
   PersonAdd,
   PolicyIcon,
   QuestionIcon,
   SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { displayBalance, fetchAuth, isAccessTokenExpired } from "@/lib/utils";
+import { displayBalance } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
 import {
   DEFAULT_COLLATERAL_PROFILE,
@@ -35,7 +32,6 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
-import { NotificationsForm } from "../Market/Header/NotificationsForm";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import { UseSmartAccountToggle } from "./UseSmartAccountToggle";
 
@@ -53,51 +49,6 @@ function useWalletBalance() {
 }
 
 // ── Small components ─────────────────────────────────────────────────────────
-
-function AccountSettings({ isMobile }: { isMobile?: boolean }) {
-  const { isConnected, address, chainId } = useAccount();
-  const accessToken = useGlobalState((s) => s.accessToken);
-  const [email, setEmail] = useState("");
-  const signIn = useSignIn();
-
-  useEffect(() => {
-    if (!accessToken) return;
-    fetchAuth(accessToken, "/.netlify/functions/me", "GET").then((d) => setEmail(d?.user?.email ?? ""));
-  }, [accessToken]);
-
-  const isAuthValid = !isAccessTokenExpired(accessToken);
-
-  return (
-    <div className={clsx(isMobile ? "space-y-2" : "w-[416px] max-w-full px-[32px] py-[35px] space-y-6")}>
-      <div className={clsx("font-semibold", isMobile ? "text-[16px]" : "text-[20px] text-center")}>
-        Email Notifications
-      </div>
-      <p className="text-[14px] text-black-secondary">
-        Receive email notifications for your followed markets and important updates.
-      </p>
-      {isConnected ? (
-        <div className="text-center space-y-4">
-          {isAuthValid ? (
-            <NotificationsForm key={`email-${email}`} email={email} accessToken={accessToken} />
-          ) : (
-            <Button
-              variant="primary"
-              size="large"
-              text="Sign In"
-              onClick={() => signIn.mutateAsync({ address: address!, chainId: chainId! })}
-            />
-          )}
-        </div>
-      ) : isMobile ? (
-        <p className="text-[14px] text-black-secondary">Connect wallet to continue.</p>
-      ) : (
-        <div className="text-center">
-          <ConnectWallet size="large" />
-        </div>
-      )}
-    </div>
-  );
-}
 
 function BetaWarning() {
   const [visible, setVisible] = useState(false);
@@ -298,7 +249,6 @@ export default function Header() {
           : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[16px] space-x-[24px]",
         children: [
           { id: "market", type: "link", url: "/", title: "Markets" },
-          { id: "users", type: "link", url: paths.users(), title: "Users" },
           { id: "leaderboard", type: "link", url: "/leaderboard", title: "Leaderboard" },
           { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
           {
@@ -357,6 +307,13 @@ export default function Header() {
                 className: isMobile ? "space-y-[12px]" : undefined,
                 element: balanceDisplay,
                 children: [
+                  {
+                    id: "account",
+                    type: "link",
+                    url: paths.profile(),
+                    title: "Account",
+                    className: profileMenuLinkClassName,
+                  },
                   { id: "deposit", type: "custom", element: deposit },
                   {
                     id: "portfolio",
@@ -393,18 +350,6 @@ export default function Header() {
             type: "container",
             className: isMobile ? "" : "flex items-center space-x-2",
             children: [
-              {
-                id: "notification-dropdown",
-                type: "nested_links",
-                icon: <NotificationIcon />,
-                children: [
-                  {
-                    id: "notification-settings",
-                    type: "custom",
-                    element: <AccountSettings isMobile={isMobile} />,
-                  },
-                ],
-              },
               {
                 id: "information",
                 type: "nested_links",
