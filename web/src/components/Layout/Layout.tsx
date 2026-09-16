@@ -8,7 +8,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     // <Suspense>
     <LayoutShell>
       <Header />
-      <div>{children}</div>
+      <main>{children}</main>
       <Footer />
     </LayoutShell>
     // </Suspense>
