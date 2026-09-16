@@ -123,7 +123,11 @@ async function getUsernames(addresses: string[]) {
   if (normalized.length === 0) return new Map<string, string>();
 
   const { data, error } = await supabase.from("users").select("id, username").in("id", normalized);
-  if (error) throw error;
+  if (error) {
+    // Labels are secondary; a lookup failure renders every author by address rather than failing the thread.
+    console.error("Comment author usernames error:", error);
+    return new Map<string, string>();
+  }
 
   // Usernames are optional, so rows without one are omitted and the author renders by fallback.
   return new Map(
