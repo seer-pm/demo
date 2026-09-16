@@ -40,6 +40,25 @@ Rules:
 - When the web app imports a new SDK subpath in local Vite, add a matching alias in `web/vite.config.ts` (and `web/tsconfig.json` paths) **before** the catch-all `@seer-pm/sdk` → `src/index.ts` alias; otherwise Vite resolves `@seer-pm/sdk/<subpath>` against `index.ts` and fails.
 - Historical context: EMFILE / wagmi cleanup in PRs `#324` and `#447`.
 
+## Local dev
+
+Run only `netlify dev` from `web/` and open the app at **http://localhost:3000**. `[dev].command`
+starts the Express + Vike dev server on :3000. Under `netlify dev` that server proxies `/.netlify/*`,
+`/subgraph` and `/all-markets-search` to the local functions on :8888. Run standalone (`yarn dev`),
+it proxies to production.
+
+Don't browse :8888. The production rewrite `/* → /.netlify/functions/index` applies there, so pages
+render from whatever old build sits in `web/dist/` and its hashed `/assets/*` 500 in the Vike dev
+server (`RunnerError`). Keep `VITE_WEBSITE_URL` and `X_REDIRECT_URI` in `web/.env.local` on :3000.
+
+The CLI starts that server with cwd at the repo root (`base = "/"`). So:
+
+- `web/postcss.config.js` passes Tailwind an absolute config path, and `web/tailwind.config.js` uses
+  `content.relative`. Resolved from the root, Tailwind finds no config and SSR dies on
+  ``The `bg-base-100` class does not exist``.
+- `[dev].envFiles` points at `web/.env*`. Otherwise the CLI reads `.env*` from the root, and the linked
+  site's variables (production `X_REDIRECT_URI`, etc.) win over `web/.env.local`.
+
 ## `netlify dev` in a git worktree
 
 The Netlify CLI resolves the repo root with `findUp('.git', { type: 'directory' })`. In a git

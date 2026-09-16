@@ -13,6 +13,8 @@
   framework = "#custom"
   targetPort = 3000
   port = 8888
+  # Resolved from the repo root (base "/"), where the CLI would otherwise look for them. Highest priority first.
+  envFiles = ["web/.env.development.local", "web/.env.local", "web/.env.development", "web/.env"]
 
 [functions]
   node_bundler = "esbuild"

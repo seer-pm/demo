@@ -14,10 +14,13 @@ import compression from 'compression'
 import { renderPage, createDevMiddleware } from 'vike/server'
 import { root } from './root.js'
 const isProduction = process.env.NODE_ENV === 'production'
-// Where the Netlify functions are served from. Defaults to production so the dev server
-// works on its own; point it at the local `netlify dev` (http://localhost:8888) to exercise
-// your own functions.
-const functionsOrigin = process.env.NETLIFY_FUNCTIONS_ORIGIN || 'https://app.seer.pm'
+// Where the Netlify functions are served from. Under `netlify dev` (which spawns this server and
+// sets NETLIFY_DEV) that is the local functions server on :8888. :8888 itself can't serve the UI:
+// its `/*` rewrite renders the stale `dist/` build. Standalone, it defaults to production so the
+// dev server works on its own. NETLIFY_FUNCTIONS_ORIGIN overrides both.
+const functionsOrigin =
+  process.env.NETLIFY_FUNCTIONS_ORIGIN ||
+  (process.env.NETLIFY_DEV ? 'http://localhost:8888' : 'https://app.seer.pm')
 
 startServer()
 async function startServer() {
@@ -46,17 +49,31 @@ async function startServer() {
     try {
       const response = await fetch(url, {
         method: req.method,
-        headers: {
-          "Content-Type": req.headers["content-type"],
-          Authorization: req.headers.authorization
-        },
+        // fetch sends an undefined header value as the literal string "undefined".
+        headers: Object.fromEntries(
+          Object.entries({
+            "Content-Type": req.headers["content-type"],
+            Authorization: req.headers.authorization,
+            Cookie: req.headers.cookie,
+          }).filter(([, value]) => value !== undefined),
+        ),
         body: ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) ? JSON.stringify(req.body ?? {}) : undefined,
+        // OAuth callbacks answer with a 302 plus a cookie meant for the browser, not for this proxy.
+        redirect: 'manual',
       });
 
       const data = await response.text();
       const contentType = response.headers.get('Content-Type');
       if (contentType) {
         res.set('Content-Type', contentType);
+      }
+      const location = response.headers.get('Location');
+      if (location) {
+        res.set('Location', location);
+      }
+      const setCookie = response.headers.getSetCookie();
+      if (setCookie.length) {
+        res.set('Set-Cookie', setCookie);
       }
       res.status(response.status).send(data);
     } catch (error) {
