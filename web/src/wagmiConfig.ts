@@ -17,6 +17,16 @@ const metadata = {
 
 export const connectors = [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })];
 
+/**
+ * Reads arrive in bursts (one table row per wallet), and ungrouped each one pays its own round trip.
+ * `wait` catches the calls that miss the same tick: at 0 only what shares a microtask flush groups.
+ * `batchSize` stays well under viem's default because an endpoint that refuses an oversized batch
+ * fails every call in it, and the fallbacks below are public endpoints with differing tolerances.
+ */
+const BATCH = { wait: 16, batchSize: 100 } as const;
+
+const rpc = (url?: string) => http(url, { batch: BATCH });
+
 export const config = defaultWagmiConfig({
   metadata,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
@@ -24,12 +34,12 @@ export const config = defaultWagmiConfig({
   connectors,
   enableCoinbase: false,
   transports: {
-    [gnosis.id]: fallback([http(GNOSIS_RPC), http("https://rpc.gnosischain.com")]),
-    [mainnet.id]: fallback([http(MAINNET_RPC), http("https://eth-pokt.nodies.app")]),
-    [optimism.id]: fallback([http(OPTIMISM_RPC), http("https://mainnet.optimism.io")]),
-    [base.id]: fallback([http(BASE_RPC), http("https://base.llamarpc.com")]),
-    [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
-    [hardhat.id]: http(),
+    [gnosis.id]: fallback([rpc(GNOSIS_RPC), rpc("https://rpc.gnosischain.com")]),
+    [mainnet.id]: fallback([rpc(MAINNET_RPC), rpc("https://eth-pokt.nodies.app")]),
+    [optimism.id]: fallback([rpc(OPTIMISM_RPC), rpc("https://mainnet.optimism.io")]),
+    [base.id]: fallback([rpc(BASE_RPC), rpc("https://base.llamarpc.com")]),
+    [sepolia.id]: rpc("https://ethereum-sepolia-rpc.publicnode.com"),
+    [hardhat.id]: rpc(),
   },
   ssr: true,
 });
