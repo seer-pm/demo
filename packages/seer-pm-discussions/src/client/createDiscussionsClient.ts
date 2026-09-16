@@ -133,11 +133,20 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   };
 }
 
-/** Builds the discussion identity supplied by a signed-in host application. */
-export function userFromAddress(address: string, username: string, profileHref?: string | null): DiscussionUser {
+/**
+ * Builds the discussion identity supplied by a signed-in host application.
+ *
+ * `username` is optional: a wallet that never chose one still posts and renders, falling back to
+ * its ENS name or a generated nickname.
+ */
+export function userFromAddress(
+  address: string,
+  username?: string | null,
+  profileHref?: string | null,
+): DiscussionUser {
   return {
     address: address.toLowerCase(),
-    username,
+    ...(username ? { username } : {}),
     profileHref: profileHref ?? null,
   };
 }

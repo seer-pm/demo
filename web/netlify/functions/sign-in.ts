@@ -5,13 +5,12 @@ import { verifyMessage } from "viem/actions";
 import { parseSiweMessage } from "viem/siwe";
 import { CORS_HEADERS } from "./utils/common";
 import { getPublicClientByChainId } from "./utils/config";
-import { makeUsername } from "./utils/username";
 
 const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
 
-/** Updates the login time or creates a new user with a unique username. */
+/** Updates the login time, creating the user row on first sign-in. Usernames are opt-in, so none is assigned. */
 async function findOrCreateUser(address: string) {
   const userId = address.toLowerCase();
   const lastLoginAt = new Date().toISOString();
@@ -25,28 +24,24 @@ async function findOrCreateUser(address: string) {
   if (updateError) throw updateError;
   if (existingUser) return existingUser;
 
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const username = makeUsername(attempt === 0 ? address.toLowerCase() : undefined);
-    const { data: user, error } = await supabase
-      .from("users")
-      .insert({ id: userId, last_login_at: lastLoginAt, username })
-      .select()
-      .single();
+  const { data: user, error } = await supabase
+    .from("users")
+    .insert({ id: userId, last_login_at: lastLoginAt })
+    .select()
+    .single();
+  if (!error && user) return user;
+  if (error?.code !== "23505") throw error;
 
-    if (!error && user) return user;
-    if (error?.code !== "23505") throw error;
+  // A concurrent sign-in for this address created the row between the update and the insert.
+  const { data: concurrentUser, error: concurrentUserError } = await supabase
+    .from("users")
+    .select()
+    .eq("id", userId)
+    .maybeSingle();
+  if (concurrentUserError) throw concurrentUserError;
+  if (concurrentUser) return concurrentUser;
 
-    // A concurrent sign-in for this address may have created the row.
-    const { data: concurrentUser, error: concurrentUserError } = await supabase
-      .from("users")
-      .select()
-      .eq("id", userId)
-      .maybeSingle();
-    if (concurrentUserError) throw concurrentUserError;
-    if (concurrentUser) return concurrentUser;
-  }
-
-  throw new Error("Unable to create user with a unique username");
+  throw new Error(`Unable to create user ${userId}`);
 }
 
 /** Verifies a SIWE signature, persists the user, and returns a short-lived JWT. */

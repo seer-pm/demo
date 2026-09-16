@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import type { Address } from "viem";
-import { isAddress } from "viem";
-import { useEnsName } from "wagmi";
+import { useDisplayName } from "../../hooks/useDisplayName";
 import type { DiscussionUser } from "../../types";
-import { shortAddress } from "../../utils/address";
+import { addressUsername } from "../../utils/addressUsername";
 import { addressAccent } from "../../utils/linkify";
 import { EnsIcon } from "../EnsIcon/EnsIcon";
 
-/** Label for a discussion user: the username when the host resolved one, otherwise the short address. */
-function displayName(details: DiscussionUser): string {
-  return details.username ?? shortAddress(details.address);
+/**
+ * Label for a discussion user without resolving ENS.
+ *
+ * Used where a name is needed as a plain string (avatar alt text). Deliberately skips ENS so that
+ * rendering an avatar does not fire a reverse lookup per post.
+ */
+function displayNameFromDetails(details: DiscussionUser): string {
+  return details.username ?? addressUsername(details.address);
 }
 
 /** Renders a deterministic wallet avatar linked to the user's profile when available. */
@@ -39,7 +42,7 @@ export function UserPfp({ details, height = 44 }: { details?: DiscussionUser | n
         <a
           href={href}
           className="inline-flex rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sd-color-active"
-          aria-label={details ? `View ${displayName(details)} profile` : "View profile"}
+          aria-label={details ? `View ${displayNameFromDetails(details)} profile` : "View profile"}
         >
           {avatar}
         </a>
@@ -109,33 +112,46 @@ function EnsBadge({ name }: { name: string }) {
   );
 }
 
-/** Renders a Seer username and, when available, its verified primary ENS name. */
+/** Renders a user's identity: Seer username, else verified ENS primary name, else a generated nickname. */
 export function Username({ details }: { details?: DiscussionUser | null }) {
-  const address = details?.address;
-  const normalizedAddress = address && isAddress(address) ? (address.toLowerCase() as Address) : undefined;
-  const { data: ensName } = useEnsName({
-    address: normalizedAddress,
-    chainId: 1,
-    query: { enabled: Boolean(normalizedAddress) },
+  const { label, source, ensName } = useDisplayName({
+    address: details?.address,
+    username: details?.username,
   });
   const href = details?.profileHref ?? null;
   if (!details) return <>-</>;
 
+  // Only a username label leaves the ENS name unshown, so only it needs the separate badge.
+  const showEnsBadge = source === "username" && Boolean(ensName);
+
+  const labelNode = (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      {source === "ens" && (
+        <span className="shrink-0" title="Verified ENS primary name" aria-hidden="true">
+          <EnsIcon />
+        </span>
+      )}
+      <span className={`truncate${source === "generated" ? " text-sd-color-secondary" : ""}`}>
+        {source === "username" ? `@${label}` : label}
+      </span>
+    </span>
+  );
+
   return (
     <span
-      className={`inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5${ensName ? " sd-user-has-ens" : ""}`}
+      className={`inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5${showEnsBadge ? " sd-user-has-ens" : ""}`}
     >
       {href ? (
         <a
           href={href}
-          className="truncate rounded-sm font-medium text-sd-color-main no-underline hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sd-color-active"
+          className="min-w-0 truncate rounded-sm font-medium text-sd-color-main no-underline hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sd-color-active"
         >
-          {displayName(details)}
+          {labelNode}
         </a>
       ) : (
-        <span className="truncate font-medium">{displayName(details)}</span>
+        <span className="min-w-0 truncate font-medium">{labelNode}</span>
       )}
-      {ensName && (
+      {showEnsBadge && ensName && (
         <>
           <span className="shrink-0 text-sd-color-secondary" aria-hidden="true">
             ·

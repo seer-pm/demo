@@ -1,4 +1,11 @@
 -- Idempotent username schema. Apply before deploying username-aware functions.
+--
+-- The column stays NULLABLE on purpose: a Seer username is opt-in, and the display layer falls back
+-- to ENS and then to a nickname generated from the address. Two Postgres details make that safe, so
+-- do not "tighten" either one:
+--   * a btree unique index treats NULLs as distinct, so any number of users may have no username;
+--   * a CHECK whose operand is NULL evaluates to NULL, which PASSES, so users_username_format below
+--     already tolerates a null username without needing an explicit `username is null or ...`.
 alter table public.users add column if not exists username text;
 
 do $$

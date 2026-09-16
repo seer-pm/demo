@@ -25,8 +25,7 @@ multi-statement scripts in one, so run those statements individually.
 | `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Also carries the trader-score sufficient statistics (`scored_market_count`, `winning_market_count`, `gross_profit_usd`, `gross_loss_usd`, `best_market_pnl_usd`, `scored_capital_usd`); the score itself is derived at read time, never stored. Those six columns hold an *owner's* statistics: for a wallet trading through a TradeExecutor, they are gathered over the combined book and written on the owner's row, and the executor's row carries zeros (its other columns stay its own). Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
-| `users_username.sql` | Adds the unique wallet-linked username column and validation constraints. |
-| `users_username_not_null.sql` | Makes usernames required after existing users have been backfilled. |
+| `users_username.sql` | Adds the optional unique wallet-linked username column and validation constraints. |
 
 Analytics matview RPC `refresh_market_outcome_tokens` lives in
 [`dashboard/supabase/sql/analytics_rpcs.sql`](../../dashboard/supabase/sql/analytics_rpcs.sql)
@@ -64,19 +63,16 @@ drop function if exists public.pnl_leaderboard_all_chains_rank(text, text, text)
 
 ## Apply for usernames
 
-1. Put the app into maintenance mode so sign-ins and user creation stop.
-2. Run `users_username.sql` to add the nullable username column.
-3. From the repository root, backfill existing users with the production Supabase service-role key:
+Run `users_username.sql` in the Supabase SQL editor, then deploy. That is the whole procedure.
 
-   ```bash
-   SUPABASE_PROJECT_URL="https://PROJECT.supabase.co" \
-   SUPABASE_API_KEY="SERVICE_ROLE_KEY" \
-   yarn --cwd web tsx scripts/backfill-usernames.ts
-   ```
+No maintenance mode, no backfill and no verification query are needed: usernames are **optional**,
+the column stays nullable, and nothing assigns one automatically. A wallet without a username is
+displayed by its ENS primary name, or by a nickname generated from the address at render time.
 
-4. Verify `select count(*) from public.users where username is null;` returns `0`.
-5. Run `users_username_not_null.sql`.
-6. Deploy the new build, restore the app, and smoke-test sign-in, profiles, comments, and leaderboard search.
+The two orderings are both safe, which is why this no longer needs staging:
+
+- **SQL first:** the column exists and is null for everyone; the app reads null and falls back.
+- **Deploy first:** `users` `PATCH` fails until the column exists, and nothing else touches it.
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

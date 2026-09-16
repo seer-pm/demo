@@ -1,14 +1,15 @@
 import { Alert } from "@/components/Alert";
+import { DisplayName } from "@/components/DisplayName";
 import { Link } from "@/components/Link";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
-import { displayBalance, displayNumber, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { TransactionData } from "@seer-pm/sdk";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Address, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 
@@ -55,7 +56,15 @@ export default function Activity({ market }: ActivityProps) {
   const isFilteringMyActivity = Boolean(address && showMyActivity);
   const accountFilter = isFilteringMyActivity ? address : undefined;
   const { data, isLoading, error } = useMarketHolders(market, accountFilter);
-
+  const rows = useMemo(
+    () =>
+      (data?.recentActivity ?? []).filter((row) => {
+        if (!isFilteringMyActivity) return true;
+        if (!address || !row.trader) return false;
+        return isTwoStringsEqual(row.trader as string, address);
+      }),
+    [data, isFilteringMyActivity, address],
+  );
   if (isLoading) {
     return <div className="shimmer-container w-full h-[50px]"></div>;
   }
@@ -65,12 +74,6 @@ export default function Activity({ market }: ActivityProps) {
   }
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
-
-  const rows = (data?.recentActivity ?? []).filter((row) => {
-    if (!isFilteringMyActivity) return true;
-    if (!address || !row.trader) return false;
-    return isTwoStringsEqual(row.trader as string, address);
-  });
 
   return (
     <div className="p-4 card shadow-sm border-separator-100">
@@ -117,7 +120,7 @@ export default function Activity({ market }: ActivityProps) {
                         {trader ? (
                           <span className="text-sm font-medium text-base-content/90 flex items-center space-x-2">
                             <Link to={`/portfolio/${trader}`} className="hover:text-purple-primary">
-                              {shortenAddress(trader)}
+                              <DisplayName address={trader} username={row.username} />
                             </Link>
 
                             <a

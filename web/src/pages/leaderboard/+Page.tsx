@@ -21,12 +21,12 @@ import { SIGNED_TONE_CLASS, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Filter } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { SCORE_UNAVAILABLE, type ScoreUnavailable } from "@/lib/traderScore";
-import { shortenAddress } from "@/lib/utils";
+import { EnsIcon, useDisplayName } from "@seer-pm/discussions";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
-import { useAccount, useEnsName } from "wagmi";
+import { useAccount } from "wagmi";
 
 type Period = "1d" | "1w" | "1m" | "all";
 type SortKey = "pnl" | "volume" | "roi" | "markets" | "score";
@@ -135,7 +135,7 @@ function appHasMarkets(appId: SeerAppId, chainIds: number[]) {
   return chainIds.some((id) => (marketsForAppFilter(appId, id)?.length ?? 0) > 0);
 }
 
-/** Displays the Seer identity for a ranked wallet and its verified primary ENS name. */
+/** Displays a ranked wallet's identity: Seer username, else ENS primary name, else a generated nickname. */
 function LeaderboardAccount({
   address,
   isConnected,
@@ -143,18 +143,31 @@ function LeaderboardAccount({
 }: {
   address: Address;
   isConnected: boolean;
-  username?: string;
+  username?: string | null;
 }) {
   const normalizedAddress = address.toLowerCase() as Address;
-  const { data: ensName } = useEnsName({ address: normalizedAddress, chainId: 1 });
+  const { label, source, ensName } = useDisplayName({ address: normalizedAddress, username });
+  // Only a stored username has a resolvable @route; every other label links by address.
   const profileHref = username ? paths.portfolioUsername(username) : `/portfolio/${normalizedAddress}`;
+  const showEnsBadge = source === "username" && Boolean(ensName);
 
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
-      <a className="truncate text-sm font-medium hover:text-purple-primary hover:underline" href={profileHref}>
-        {username ? `@${username}` : shortenAddress(normalizedAddress)}
+      <a
+        className="inline-flex min-w-0 items-center gap-1 truncate text-sm font-medium hover:text-purple-primary hover:underline"
+        href={profileHref}
+        title={normalizedAddress}
+      >
+        {source === "ens" ? (
+          <span className="shrink-0" title="Verified ENS primary name" aria-hidden="true">
+            <EnsIcon />
+          </span>
+        ) : null}
+        <span className={`truncate${source === "generated" ? " text-black-secondary" : ""}`}>
+          {source === "username" ? `@${label}` : label}
+        </span>
       </a>
-      {ensName ? (
+      {showEnsBadge && ensName ? (
         <>
           <span className="text-black-secondary" aria-hidden="true">
             ·

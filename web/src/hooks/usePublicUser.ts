@@ -3,7 +3,8 @@ import type { Address } from "viem";
 
 export type PublicUser = {
   address: Address;
-  username: string;
+  /** Null when the wallet has not chosen one; callers fall back to ENS or a generated name. */
+  username: string | null;
 };
 
 type UserLookup = { address: Address } | { username: string };

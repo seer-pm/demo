@@ -125,7 +125,10 @@ async function getUsernames(addresses: string[]) {
   const { data, error } = await supabase.from("users").select("id, username").in("id", normalized);
   if (error) throw error;
 
-  return new Map((data ?? []).map((row) => [row.id.toLowerCase(), row.username]));
+  // Usernames are optional, so rows without one are omitted and the author renders by fallback.
+  return new Map(
+    (data ?? []).flatMap((row) => (row.username ? ([[row.id.toLowerCase(), row.username]] as [string, string][]) : [])),
+  );
 }
 
 /** Returns like totals and the set liked by the current viewer. */

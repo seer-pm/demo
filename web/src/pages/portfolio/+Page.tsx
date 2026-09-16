@@ -1,7 +1,6 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
-import { AddressOrName } from "@/components/ConnectWallet/AccountDisplay";
 import { CopyButton } from "@/components/CopyButton";
 import { EnsBadge } from "@/components/EnsBadge";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
@@ -15,12 +14,13 @@ import { parsePortfolioChainParam } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
 import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
 import { isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { EnsIcon, useDisplayName } from "@seer-pm/discussions";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { type KeyboardEvent, useRef } from "react";
 import { Address, getAddress, isAddress } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
-import { useAccount, useEnsName } from "wagmi";
+import { useAccount } from "wagmi";
 
 const TABS = [
   { id: "positions", label: "Positions", panelId: "portfolio-panel-positions" },
@@ -220,7 +220,7 @@ function PortfolioPage() {
       : null;
   const { data: publicUser, isLoading, error: userError } = usePublicUser(userLookup);
   const account = isUsernameRoute ? (publicUser ? getAddress(publicUser.address) : undefined) : requestedAddress;
-  const username = publicUser?.username;
+  const username = publicUser?.username ?? null;
   const error = isUsernameRoute
     ? userError instanceof Error
       ? userError.message
@@ -230,11 +230,7 @@ function PortfolioPage() {
     : requestedIdentity && !addressIsValid
       ? "This portfolio address is invalid."
       : undefined;
-  const { data: ensName } = useEnsName({
-    address: account,
-    chainId: 1,
-    query: { enabled: Boolean(account) },
-  });
+  const { label, source, ensName } = useDisplayName({ address: account, username });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -326,23 +322,30 @@ function PortfolioPage() {
               <Union />
             </div>
             <div className="min-w-0">
-              <div className={`flex items-center gap-1 min-w-0 ${activeTab === "airdrop" && !username ? "" : "mb-2"}`}>
-                <h1 className="text-[18px] font-semibold text-base-content truncate">
-                  {username ? `@${username}` : <AddressOrName address={account} />}
+              <div className="flex items-center gap-1 min-w-0 mb-2">
+                <h1 className="text-[18px] font-semibold text-base-content truncate flex items-center gap-1 min-w-0">
+                  {source === "ens" ? (
+                    <span className="shrink-0" title="Verified ENS primary name" aria-hidden="true">
+                      <EnsIcon />
+                    </span>
+                  ) : null}
+                  <span className={`truncate${source === "generated" ? " text-black-secondary" : ""}`}>
+                    {source === "username" ? `@${label}` : label}
+                  </span>
                 </h1>
                 <CopyButton textToCopy={account} size={16} className="shrink-0 min-h-11 min-w-11 text-black-primary" />
                 {isTwoStringsEqual(connectedAccount, account) ? (
                   <span className="text-xs text-purple-primary font-medium shrink-0">You</span>
                 ) : null}
               </div>
-              {username ? (
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-xs text-black-primary font-mono" title={account}>
-                    {shortenAddress(account)}
-                  </span>
-                  {ensName ? <EnsBadge name={ensName} /> : null}
-                </div>
-              ) : null}
+              {/* The address is now the only literal identifier on screen: the label above may be a
+                  generated nickname, so it is shown unconditionally rather than only beside a username. */}
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="text-xs text-black-primary font-mono" title={account}>
+                  {shortenAddress(account)}
+                </span>
+                {source === "username" && ensName ? <EnsBadge name={ensName} /> : null}
+              </div>
               <LinkedExecutors account={account} />
               {activeTab !== "airdrop" ? <PortfolioValueVariation account={account} chainId={chainId} /> : null}
             </div>

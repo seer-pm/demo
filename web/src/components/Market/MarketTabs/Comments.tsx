@@ -1,4 +1,3 @@
-import { Alert } from "@/components/Alert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import { useGlobalState } from "@/hooks/useGlobalState";
@@ -48,13 +47,8 @@ function Comments({ market }: { market: Market }) {
   const isSignedIn = useIsConnectedAndSignedIn();
   const signIn = useSignIn();
   const { open } = useWeb3Modal();
-  const {
-    data: currentUser,
-    isPending: isCurrentUserPending,
-    isFetching: isCurrentUserFetching,
-    error: currentUserError,
-    refetch: refetchCurrentUser,
-  } = usePublicUser(isSignedIn && address ? { address } : null);
+  // Decorative only: a username upgrades the author label, and its absence or failure is not an error.
+  const { data: currentUser } = usePublicUser(isSignedIn && address ? { address } : null);
 
   const client = useMemo(
     () =>
@@ -73,16 +67,16 @@ function Comments({ market }: { market: Market }) {
   );
 
   const user =
-    isSignedIn && address && !isCurrentUserPending && currentUser
-      ? userFromAddress(address, currentUser.username, paths.portfolioUsername(currentUser.username))
+    isSignedIn && address
+      ? userFromAddress(
+          address,
+          currentUser?.username,
+          currentUser?.username ? paths.portfolioUsername(currentUser.username) : `/portfolio/${address}`,
+        )
       : null;
 
   const requestConnect = async () => {
-    if (isSignedIn && address) {
-      // Signed in but the profile lookup failed: retry it instead of asking for another signature.
-      await refetchCurrentUser();
-      return;
-    }
+    if (isSignedIn && address) return;
     if (!isConnected || !address || !chainId) {
       await open({ view: "Connect" });
       return;
@@ -91,27 +85,8 @@ function Comments({ market }: { market: Market }) {
     await signIn.mutateAsync({ address, chainId }).catch(() => undefined);
   };
 
-  if (isSignedIn && address && isCurrentUserPending) {
-    return <div className="shimmer-container h-48 w-full" />;
-  }
-
-  // Posting needs the username; reading does not. A failed lookup keeps the thread readable.
-  const profileUnavailable = isSignedIn && address && (currentUserError || !currentUser);
-
   return (
     <ErrorBoundary fallback={<p>Something went wrong.</p>}>
-      {profileUnavailable ? (
-        <Alert type="error" title="Unable to load your discussion profile" className="mb-4">
-          <div className="mt-2">
-            <Button
-              text="Try again"
-              size="small"
-              isLoading={isCurrentUserFetching}
-              onClick={() => void refetchCurrentUser()}
-            />
-          </div>
-        </Alert>
-      ) : null}
       <Discussion
         client={client}
         user={user}

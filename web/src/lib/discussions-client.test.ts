@@ -1,4 +1,4 @@
-import { createDiscussionsClient } from "@seer-pm/discussions";
+import { createDiscussionsClient, userFromAddress } from "@seer-pm/discussions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
@@ -156,5 +156,23 @@ describe("createDiscussionsClient", () => {
 
     expect(comments[0].authorDetails.username).toBeUndefined();
     expect(comments[0].authorDetails.profileHref).toBe(`/portfolio/${ADDRESS}`);
+  });
+});
+
+describe("userFromAddress", () => {
+  it("builds an identity for a wallet that never chose a username", () => {
+    // Posting must not require a username, so the key is omitted rather than set to a placeholder.
+    expect(userFromAddress(ADDRESS.toUpperCase())).toEqual({
+      address: ADDRESS,
+      profileHref: null,
+    });
+  });
+
+  it("keeps a username and profile route when the host supplies them", () => {
+    expect(userFromAddress(ADDRESS, "alice", "/portfolio/@alice")).toEqual({
+      address: ADDRESS,
+      username: "alice",
+      profileHref: "/portfolio/@alice",
+    });
   });
 });

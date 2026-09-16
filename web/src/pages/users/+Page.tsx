@@ -1,5 +1,6 @@
 import { Alert } from "@/components/Alert";
 import ConnectWallet from "@/components/ConnectWallet";
+import { DisplayName } from "@/components/DisplayName";
 import { EnsBadge } from "@/components/EnsBadge";
 import Button from "@/components/Form/Button";
 import { useGlobalState } from "@/hooks/useGlobalState";
@@ -11,19 +12,16 @@ import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { normalizeUsername, validateUsername } from "@/lib/username";
 import { fetchAuth, shortenAddress } from "@/lib/utils";
-import { CopyableAddress } from "@seer-pm/discussions";
+import { CopyableAddress, useDisplayName } from "@seer-pm/discussions";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import type { Address } from "viem";
 import { navigate } from "vike/client/router";
-import { useAccount, useEnsName } from "wagmi";
+import { useAccount } from "wagmi";
 
 /** Displays the connected address's verified primary ENS identity, when one exists. */
 function EnsIdentity({ address }: { address: Address }) {
-  const { data: ensName, isLoading } = useEnsName({
-    address,
-    chainId: 1,
-    query: { enabled: Boolean(address) },
-  });
+  // Shares the reverse lookup the profile title already performs, rather than issuing a second one.
+  const { ensName, isLoading } = useDisplayName({ address });
 
   if (isLoading) return <div className="shimmer-container mt-2 h-6 w-32" />;
   if (!ensName) return <p className="mt-2 text-xs text-base-content/50">No ENS primary name detected.</p>;
@@ -98,7 +96,7 @@ function UsernameManager({ accessToken, address }: { accessToken: string; addres
         user: PublicUser;
       };
       await queryClient.invalidateQueries({ queryKey: ["publicUser"] });
-      setDraft(data.user.username);
+      setDraft(data.user.username ?? "");
       setMessage({ type: "success", text: `Your username is now @${data.user.username}.` });
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Unable to save username" });
@@ -113,15 +111,18 @@ function UsernameManager({ accessToken, address }: { accessToken: string; addres
         address={address}
         eyebrow="Your Seer profile"
         isLoading={isLoading && !user}
-        title={user ? `@${user.username}` : "Username unavailable"}
+        title={<DisplayName address={address} username={user?.username} />}
         description={
-          user ? (
+          user?.username ? (
             <>
               Linked to <CopyableAddress address={user.address} shortAddress={shortenAddress(user.address)} />. You can
               update it below.
             </>
           ) : (
-            "Every profile receives a username during its first verified wallet sign-in."
+            <>
+              Linked to <CopyableAddress address={address} shortAddress={shortenAddress(address)} />. A username is
+              optional — without one you are shown by your ENS name, or by the nickname above.
+            </>
           )
         }
       />
@@ -143,7 +144,8 @@ function UsernameManager({ accessToken, address }: { accessToken: string; addres
           </div>
         </label>
         <p className="text-xs text-base-content/60">
-          3–50 characters. Use lowercase letters, numbers, hyphens, or underscores. Usernames are unique.
+          Optional. 3–50 characters, using lowercase letters, numbers, hyphens, or underscores. Usernames are unique,
+          and once set cannot be removed.
         </p>
         <Button text="Save username" type="submit" disabled={saving || !draft.trim()} isLoading={saving} />
         {message && <Alert type={message.type}>{message.text}</Alert>}
@@ -171,7 +173,7 @@ function UserSearch() {
     setSearching(true);
     try {
       const user = await getPublicUser({ username });
-      if (!user) {
+      if (!user?.username) {
         setError("User not found.");
         return;
       }
@@ -225,15 +227,15 @@ function ConnectedUsernamePrompt({
     <section className="overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
       <ProfileHeader
         address={address}
-        eyebrow={user || error ? "Your Seer profile" : "Set up your profile"}
+        eyebrow={user?.username || error ? "Your Seer profile" : "Set up your profile"}
         isLoading={loading}
-        title={error ? "Profile unavailable" : user ? `@${user.username}` : "Choose your username"}
+        title={error ? "Profile unavailable" : <DisplayName address={address} username={user?.username} />}
         description={
           error
             ? "Try loading your profile again before signing in."
-            : user
+            : user?.username
               ? "Sign in to update it."
-              : "Sign in to create a public username linked to your connected wallet."
+              : "Sign in to choose a username. Without one you are shown by ENS or the nickname above."
         }
       />
       <div className="border-t border-base-300 p-6 sm:p-8">
@@ -280,7 +282,7 @@ export default function UsersPage() {
           </div>
           <h2 className="mt-4 text-xl font-semibold">Create your Seer profile</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-base-content/70">
-            Connect your wallet once to create a username linked verifiably to your address.
+            Connect your wallet once to claim a username linked verifiably to your address.
           </p>
           <div className="mt-5 flex justify-center">
             <ConnectWallet size="large" />

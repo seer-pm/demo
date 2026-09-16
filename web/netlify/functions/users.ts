@@ -9,7 +9,8 @@ const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
 
 type PublicUser = {
   address: string;
-  username: string;
+  /** Null when the wallet has not chosen one; the UI then falls back to ENS or a generated name. */
+  username: string | null;
 };
 
 /** Creates a JSON response with the function's standard CORS headers. */
@@ -17,13 +18,13 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
-/** Converts a complete database profile to its public representation. */
-function publicUser(row: { id: string; username: string }): PublicUser {
-  return { address: row.id.toLowerCase(), username: row.username };
+/** Converts a database profile to its public representation. */
+function publicUser(row: { id: string; username: string | null }): PublicUser {
+  return { address: row.id.toLowerCase(), username: row.username ?? null };
 }
 
 /** Finds a user by their normalized username. */
-async function findByUsername(username: string): Promise<{ id: string; username: string } | null> {
+async function findByUsername(username: string): Promise<{ id: string; username: string | null } | null> {
   const { data, error } = await supabase.from("users").select("id, username").eq("username", username).maybeSingle();
   if (error) throw error;
   return data;
@@ -56,7 +57,9 @@ export default async (req: Request) => {
           .eq("id", addressParam.toLowerCase())
           .maybeSingle();
         if (error) throw error;
-        return data ? json({ user: publicUser(data) }) : json({ error: "User not found" }, 404);
+        // A row with no username carries nothing a caller could not already infer from the address,
+        // so an absent row and a username-less row are reported identically rather than as a 404.
+        return json({ user: data ? publicUser(data) : { address: addressParam.toLowerCase(), username: null } });
       }
 
       return json({ error: "Provide username or address" }, 400);

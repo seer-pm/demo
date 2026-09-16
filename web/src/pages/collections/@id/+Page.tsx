@@ -1,4 +1,5 @@
 import { Alert } from "@/components/Alert";
+import { DisplayName } from "@/components/DisplayName";
 import Button from "@/components/Form/Button";
 import DropdownWrapper from "@/components/Form/DropdownWrapper";
 import Input from "@/components/Form/Input";
@@ -14,19 +15,26 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useModal } from "@/hooks/useModal";
+import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSignIn } from "@/hooks/useSignIn";
 import { useMarkets } from "@seer-pm/react";
 
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { EditIcon, PlusCircleIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { isAccessTokenExpired, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
 import { checkWalletConnectCallback } from "@/lib/wallet";
 import clsx from "clsx";
 import { useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
+
+/** Owner label for a collection someone else created; resolves that single wallet's username. */
+function CollectionOwnerName({ address }: { address: string }) {
+  const { data: owner } = usePublicUser(address ? { address: address as `0x${string}` } : null);
+  return <DisplayName address={address} username={owner?.username} />;
+}
 
 function CollectionsPage() {
   const isAccountConnectedAndSignedIn = useIsConnectedAndSignedIn();
@@ -201,11 +209,13 @@ function CollectionsPage() {
           <div className="flex gap-2 items-center">
             <p className="text-[24px] font-semibold">
               {currentCollection.name}
-              {isTwoStringsEqual(currentCollection.userId, address)
-                ? ""
-                : currentCollection.userId
-                  ? ` (${shortenAddress(currentCollection.userId)}'s collection)`
-                  : ""}
+              {isTwoStringsEqual(currentCollection.userId, address) ? null : currentCollection.userId ? (
+                <>
+                  {" ("}
+                  <CollectionOwnerName address={currentCollection.userId} />
+                  {"'s collection)"}
+                </>
+              ) : null}
             </p>
             {id !== "default" &&
               isAccountConnectedAndSignedIn &&

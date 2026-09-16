@@ -38,6 +38,9 @@
     "prepublishOnly": "yarn build",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "unique-names-generator": "4.7.1"
+  },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",

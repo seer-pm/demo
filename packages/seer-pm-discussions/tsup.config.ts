@@ -7,6 +7,8 @@ const external = [
   "react/jsx-runtime",
   "viem",
   "wagmi",
+  // A declared dependency, so consumers install it; inlining it here would ship a second copy.
+  "unique-names-generator",
 ];
 
 function injectCssImport(file: string, statement: string) {
