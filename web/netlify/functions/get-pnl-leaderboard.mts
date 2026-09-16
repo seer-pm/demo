@@ -76,6 +76,15 @@ export type PnlLeaderboardRow = {
 
 const LOAD_PAGE_SIZE = 1000;
 
+/**
+ * A username is at least 3 characters (`users_username_format` in web/supabase/sql/users_username.sql),
+ * so a shorter fragment can only ever be a substring, and matching one means scanning every row.
+ */
+const MIN_USERNAME_SEARCH_LENGTH = 3;
+
+/** Upper bound on wallets a username search resolves, mirroring `USERNAME_ADDRESS_CAP` in get-token-transactions. */
+const USERNAME_SEARCH_CAP = 500;
+
 /** Accepted truthy spellings of `?breakdown`, matching how `debug` is parsed in get-portfolio-pl. */
 const BREAKDOWN_VALUES = new Set(["1", "true"]);
 
@@ -403,8 +412,7 @@ async function addUsernames(rows: PnlLeaderboardRow[]): Promise<PnlLeaderboardRo
   if (rows.length === 0) return rows;
 
   const addresses = [...new Set(rows.map((row) => row.address.toLowerCase()))];
-  const addressFilter = addresses.map((address) => `id.ilike.${address}`).join(",");
-  const { data, error } = await supabase.from("users").select("id, username").or(addressFilter);
+  const { data, error } = await supabase.from("users").select("id, username").in("id", addresses);
   if (error) {
     console.error("Unable to load leaderboard usernames:", error);
     return rows;
@@ -419,30 +427,30 @@ async function addUsernames(rows: PnlLeaderboardRow[]): Promise<PnlLeaderboardRo
 
 /**
  * Wallets whose username contains `search`. Usernames are `[a-z0-9_-]`, so any other input cannot match.
- * Paged like `loadMaterializedRows`: a short fragment can match more users than one PostgREST page.
+ *
+ * A leading-wildcard `ilike` cannot use an index, so both ends are bounded: a fragment shorter than
+ * `MIN_USERNAME_SEARCH_LENGTH` is refused, and the match stops at `USERNAME_SEARCH_CAP` wallets. The
+ * address filter in `paginateRows` is independent of this, so a short fragment still searches by address.
  * Username matches only widen an address search, so a lookup failure degrades to address-only results.
  */
 async function findUsernameAddresses(search: string): Promise<Set<string>> {
   const addresses = new Set<string>();
+  if (search.length < MIN_USERNAME_SEARCH_LENGTH) return addresses;
   if (!/^[a-z0-9_-]+$/.test(search)) return addresses;
 
-  for (let offset = 0; ; offset += LOAD_PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("users")
-      .select("id")
-      .ilike("username", `%${search.replace(/_/g, "\\_")}%`)
-      .order("id", { ascending: true })
-      .range(offset, offset + LOAD_PAGE_SIZE - 1);
-    if (error) {
-      console.error("Unable to search leaderboard usernames:", error);
-      return new Set();
-    }
+  const { data, error } = await supabase
+    .from("users")
+    .select("id")
+    .ilike("username", `%${search.replace(/_/g, "\\_")}%`)
+    .order("id", { ascending: true })
+    .limit(USERNAME_SEARCH_CAP);
+  if (error) {
+    console.error("Unable to search leaderboard usernames:", error);
+    return addresses;
+  }
 
-    const page = data ?? [];
-    for (const user of page) {
-      addresses.add(user.id.toLowerCase());
-    }
-    if (page.length < LOAD_PAGE_SIZE) break;
+  for (const user of data ?? []) {
+    addresses.add(user.id.toLowerCase());
   }
   return addresses;
 }

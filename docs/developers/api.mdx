@@ -406,7 +406,7 @@ Ranked wallet P/L for markets configured under Seer apps (`web/src/lib/apps.ts`)
 | `chainId` | No | Chain id, or `all` to sum USD across chains (default Gnosis `100`). |
 | `period` | No | `1d` \| `1w` \| `1m` \| `all` (default `all`). |
 | `limit` / `offset` | No | Pagination (limit max 200). |
-| `search` | No | Case-insensitive substring filter on username or address. A leading `@` is optional. Only stored Seer usernames are matched — ENS names and generated display names are not searchable. |
+| `search` | No | Case-insensitive substring filter on username or address. A leading `@` is optional. Only stored Seer usernames are matched: ENS names and generated display names are not searchable. Username matching needs at least 3 characters and resolves at most 500 wallets; a shorter fragment still filters by address. |
 | `sort` | No | `pnl` \| `volume` \| `roi` \| `markets` \| `score` (default `pnl`). |
 | `dir` | No | `asc` \| `desc` (default `desc`). Null values (`roi` on dust capital, `score` below the gate) always sort last, in both directions. |
 | `rankFor` | No | `0x`-prefixed wallet address. Returns `{ app, chainId, period, sort, dir, address, rank, total }` instead of leaderboard rows. |
