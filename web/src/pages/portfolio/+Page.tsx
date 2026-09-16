@@ -1,20 +1,20 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
-import { CopyButton } from "@/components/CopyButton";
-import { EnsBadge } from "@/components/EnsBadge";
+import { Link } from "@/components/Link";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
+import { ProfileIdentity } from "@/components/ProfileIdentity";
 import { usePortfolioIdentity } from "@/hooks/portfolio/usePortfolioIdentity";
 import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolioTabs";
 import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
 import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
-import { ArrowDropDown, ArrowDropUp, Union } from "@/lib/icons";
+import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
+import { paths } from "@/lib/paths";
 import { isTwoStringsEqual, shortenAddress } from "@/lib/utils";
-import { EnsIcon, useDisplayName } from "@seer-pm/discussions";
 import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { type KeyboardEvent, useRef } from "react";
@@ -230,7 +230,7 @@ function PortfolioPage() {
     : requestedIdentity && !addressIsValid
       ? "This portfolio address is invalid."
       : undefined;
-  const { label, source, ensName } = useDisplayName({ address: account, username });
+  const isSelf = isTwoStringsEqual(connectedAccount, account);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -305,7 +305,16 @@ function PortfolioPage() {
       <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
         <Breadcrumb links={[{ title: "Portfolio" }]} />
         <Alert type="warning" title="Account not found">
-          {error || "Connect your wallet to see this portfolio."}
+          <p>{error || "Connect your wallet to see this portfolio."}</p>
+          {/* A mistyped or renamed @username otherwise dead-ends here; the leaderboard is the one
+              place that searches usernames and addresses by substring. */}
+          {isUsernameRoute ? (
+            <p className="mt-2">
+              <Link to="/leaderboard" className="text-purple-primary hover:underline">
+                Search traders by username or address
+              </Link>
+            </p>
+          ) : null}
         </Alert>
       </div>
     );
@@ -317,39 +326,17 @@ function PortfolioPage() {
       <div className="mt-8 space-y-4">
         {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
         <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
-          <div className="flex gap-4 min-w-0">
-            <div className="bg-purple-primary w-16 h-16 rounded-full flex items-center justify-center shrink-0">
-              <Union />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1 min-w-0 mb-2">
-                <h1 className="text-[18px] font-semibold text-base-content truncate flex items-center gap-1 min-w-0">
-                  {source === "ens" ? (
-                    <span className="shrink-0" title="Verified ENS primary name" aria-hidden="true">
-                      <EnsIcon />
-                    </span>
-                  ) : null}
-                  <span className={`truncate${source === "generated" ? " text-black-secondary" : ""}`}>
-                    {source === "username" ? `@${label}` : label}
-                  </span>
-                </h1>
-                <CopyButton textToCopy={account} size={16} className="shrink-0 min-h-11 min-w-11 text-black-primary" />
-                {isTwoStringsEqual(connectedAccount, account) ? (
-                  <span className="text-xs text-purple-primary font-medium shrink-0">You</span>
-                ) : null}
-              </div>
-              {/* The address is now the only literal identifier on screen: the label above may be a
-                  generated nickname, so it is shown unconditionally rather than only beside a username. */}
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="text-xs text-black-primary font-mono" title={account}>
-                  {shortenAddress(account)}
-                </span>
-                {source === "username" && ensName ? <EnsBadge name={ensName} /> : null}
-              </div>
-              <LinkedExecutors account={account} />
-              {activeTab !== "airdrop" ? <PortfolioValueVariation account={account} chainId={chainId} /> : null}
-            </div>
-          </div>
+          <ProfileIdentity address={account} username={username} isSelf={isSelf} isLoading={isLoading} nameAs="h1">
+            {/* The one place a user without a username meets the idea, on the page that shows the
+                generated nickname standing in for one. */}
+            {isSelf && !username ? (
+              <Link to={paths.profile()} className="text-sm text-purple-primary hover:underline">
+                Set a username
+              </Link>
+            ) : null}
+            <LinkedExecutors account={account} />
+            {activeTab !== "airdrop" ? <PortfolioValueVariation account={account} chainId={chainId} /> : null}
+          </ProfileIdentity>
 
           {activeTab === "airdrop" ? (
             <AirdropHero account={account} />
