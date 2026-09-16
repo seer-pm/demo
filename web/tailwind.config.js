@@ -29,6 +29,7 @@ export default {
       'purple-dark': 'oklch(var(--purple-dark) / <alpha-value>)',
       'black-primary': 'oklch(var(--black-primary) / <alpha-value>)',
       'black-secondary': 'oklch(var(--black-secondary) / <alpha-value>)',
+      'black-secondary-fg': 'oklch(var(--black-secondary-fg) / <alpha-value>)',
       'black-medium': 'oklch(var(--black-medium) / <alpha-value>)',
       'black-light': 'oklch(var(--black-light) / <alpha-value>)',
       'success-primary': 'oklch(var(--success-primary) / <alpha-value>)',

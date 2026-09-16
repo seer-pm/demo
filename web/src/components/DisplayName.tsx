@@ -27,7 +27,7 @@ export function DisplayName({
           <EnsIcon />
         </span>
       )}
-      <span className={clsx("truncate", source === "generated" && "text-black-secondary")}>
+      <span className={clsx("truncate", source === "generated" && "text-black-secondary-fg")}>
         {source === "username" ? `@${label}` : label}
       </span>
     </span>

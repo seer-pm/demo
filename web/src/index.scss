@@ -22,6 +22,13 @@
   --black: 0% 0 0; /* #000000 */
   --black-primary: 23.5% 0 0; /* #333333 */
   --black-secondary: 66% 0 0; /* #999999 */
+  /*
+   * Text-only sibling of --black-secondary, which also serves as a border and fill colour in market
+   * tables and pool charts: those uses want the lighter value, while text needs a darker one to
+   * clear AA. 54% is 5.07:1 on the light card; dark keeps 66%, which is 5.08:1 on #1e2329. Same
+   * split as --signed-up above.
+   */
+  --black-secondary-fg: 54% 0 0;
   --black-medium: 92.19% 0 0; /* #E5E5E5 */
   --black-light: 98.81% 0 0; /* #FBFBFB */
 
@@ -77,6 +84,7 @@
 :root:root[data-theme="dark"] {
   /* Invert Seer body/muted roles; daisyUI already remaps --bc. */
   --black-primary: 91.5% 0 0; /* #E5E5E5 */
+  --black-secondary-fg: 66% 0 0;
   --signed-up: #00C42B;
   --signed-down: #FF6B7A;
 
