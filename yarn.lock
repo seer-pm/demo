@@ -6526,6 +6526,7 @@ __metadata:
     slug: "npm:^10.0.0"
     tailwindcss: "npm:^3.4.1"
     typescript: "npm:^5.2.2"
+    unique-names-generator: "npm:4.7.1"
     valibot: "npm:0.38.0"
     viem: "npm:2.38.3"
     vike: "npm:^0.4.230"
