@@ -34,6 +34,7 @@ function parseChainId(value: unknown): number | null {
   return value && Number.isInteger(chainId) ? chainId : null;
 }
 
+/** Parses an optional comment id and action from a function request URL. */
 function parsePath(url: string) {
   // /.netlify/functions/market-comments/:id?/action?
   const parts = new URL(url).pathname.split("/").filter(Boolean);
@@ -43,13 +44,21 @@ function parsePath(url: string) {
   return { id, action };
 }
 
-function toComment(row: CommentRow, likeCount: number, likedByMe: boolean, positions: AuthorPosition[] = []) {
+/** Converts a stored comment and its viewer-specific metadata to the API shape. */
+function toComment(
+  row: CommentRow,
+  likeCount: number,
+  likedByMe: boolean,
+  username?: string,
+  positions: AuthorPosition[] = [],
+) {
   const author = row.author.toLowerCase();
   return {
     id: row.id,
     author,
     authorDetails: {
       address: author,
+      ...(username ? { username } : {}),
     },
     body: row.body,
     parentId: row.parent_id,
@@ -108,6 +117,25 @@ async function getAuthorPositions(chainId: number | null, marketId: string, auth
   return positionsByAuthor;
 }
 
+/** Loads usernames for the supplied comment-author addresses. */
+async function getUsernames(addresses: string[]) {
+  const normalized = [...new Set(addresses.map((address) => address.toLowerCase()))];
+  if (normalized.length === 0) return new Map<string, string>();
+
+  const { data, error } = await supabase.from("users").select("id, username").in("id", normalized);
+  if (error) {
+    // Labels are secondary; a lookup failure renders every author by address rather than failing the thread.
+    console.error("Comment author usernames error:", error);
+    return new Map<string, string>();
+  }
+
+  // Usernames are optional, so rows without one are omitted and the author renders by fallback.
+  return new Map(
+    (data ?? []).flatMap((row) => (row.username ? ([[row.id.toLowerCase(), row.username]] as [string, string][]) : [])),
+  );
+}
+
+/** Returns like totals and the set liked by the current viewer. */
 async function getLikeStats(commentIds: string[], viewer: string | null) {
   if (commentIds.length === 0) {
     return { counts: new Map<string, number>(), liked: new Set<string>() };
@@ -130,6 +158,7 @@ async function getLikeStats(commentIds: string[], viewer: string | null) {
   return { counts, liked };
 }
 
+/** Handles public comment reads and authenticated comment mutations. */
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -165,11 +194,12 @@ export default async (req: Request) => {
       }
 
       const rows = (data || []) as CommentRow[];
-      const [{ counts, liked }, positionsByAuthor] = await Promise.all([
+      const [{ counts, liked }, usernames, positionsByAuthor] = await Promise.all([
         getLikeStats(
           rows.map((r) => r.id),
           viewer,
         ),
+        getUsernames(rows.map((row) => row.author)),
         getAuthorPositions(
           parseChainId(url.searchParams.get("chain_id")),
           marketId,
@@ -179,8 +209,15 @@ export default async (req: Request) => {
 
       return new Response(
         JSON.stringify({
+          // An author without a users row still renders (by address) rather than failing the whole thread.
           data: rows.map((row) =>
-            toComment(row, counts.get(row.id) || 0, liked.has(row.id), positionsByAuthor.get(row.author.toLowerCase())),
+            toComment(
+              row,
+              counts.get(row.id) || 0,
+              liked.has(row.id),
+              usernames.get(row.author.toLowerCase()),
+              positionsByAuthor.get(row.author.toLowerCase()),
+            ),
           ),
         }),
         { status: 200, headers: jsonHeaders },
@@ -245,7 +282,7 @@ export default async (req: Request) => {
       return new Response(
         JSON.stringify({
           id: data.id,
-          data: toComment(data as CommentRow, 0, false, positionsByAuthor.get(viewer.toLowerCase())),
+          data: toComment(data as CommentRow, 0, false, undefined, positionsByAuthor.get(viewer.toLowerCase())),
         }),
         {
           status: 200,

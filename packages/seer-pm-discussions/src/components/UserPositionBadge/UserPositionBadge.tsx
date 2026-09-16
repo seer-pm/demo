@@ -26,16 +26,33 @@ export default function UserPositionBadge({ positions }: DiscussionUserPositionB
     const [position] = positions;
     const label = formatPosition(position);
     return (
-      <span
-        className="max-w-40 shrink truncate rounded-full border border-sd-color-active bg-sd-color-active px-2 py-0.5 text-[11px] font-medium leading-4 text-white"
-        title={label}
-      >
-        {position.outcome} {formatBalance(position.balance)}
-      </span>
+      <>
+        <PositionSeparator />
+        <span
+          className="max-w-40 shrink truncate rounded-full border border-sd-color-active bg-sd-color-active px-2 py-0.5 text-[11px] font-medium leading-4 text-white"
+          title={label}
+        >
+          {position.outcome} {formatBalance(position.balance)}
+        </span>
+      </>
     );
   }
 
-  return <MultiplePositionsBadge positions={positions} />;
+  return (
+    <>
+      <PositionSeparator />
+      <MultiplePositionsBadge positions={positions} />
+    </>
+  );
+}
+
+/** Hidden via CSS when the username already renders an ENS badge with its own separator. */
+function PositionSeparator() {
+  return (
+    <span className="sd-position-separator shrink-0 text-sd-color-secondary" aria-hidden="true">
+      ·
+    </span>
+  );
 }
 
 function MultiplePositionsBadge({ positions }: { positions: readonly DiscussionPosition[] }) {

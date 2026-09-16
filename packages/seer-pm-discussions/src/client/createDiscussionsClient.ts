@@ -9,6 +9,8 @@ export type CreateDiscussionsClientOptions = {
   chainId: number;
   /** Returns current Seer JWT, or empty string if signed out */
   getAccessToken: () => string;
+  /** Optional host-owned profile route builder. */
+  getProfileHref?: (user: DiscussionUser) => string;
 };
 
 type ApiPosition = {
@@ -47,6 +49,15 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   const marketId = options.marketId.toLowerCase();
   const chainId = options.chainId;
 
+  /** Adds the host application's profile route to a server comment. */
+  const withProfileHref = (comment: Comment): Comment => ({
+    ...comment,
+    authorDetails: {
+      ...comment.authorDetails,
+      profileHref: options.getProfileHref?.(comment.authorDetails) ?? null,
+    },
+  });
+
   return {
     marketId,
 
@@ -59,7 +70,9 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
         throw new Error(await readError(res));
       }
       const json = (await res.json()) as { data?: ApiComment[] };
-      return (json.data ?? []).map((comment) => ({ ...comment, positions: parsePositions(comment.positions) }));
+      return (json.data ?? []).map((comment) =>
+        withProfileHref({ ...comment, positions: parsePositions(comment.positions) }),
+      );
     },
 
     async createComment(input: CreateCommentInput) {
@@ -120,8 +133,20 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   };
 }
 
-export function userFromAddress(address: string): DiscussionUser {
+/**
+ * Builds the discussion identity supplied by a signed-in host application.
+ *
+ * `username` is optional: a wallet that never chose one still posts and renders, falling back to
+ * its ENS name or a generated nickname.
+ */
+export function userFromAddress(
+  address: string,
+  username?: string | null,
+  profileHref?: string | null,
+): DiscussionUser {
   return {
     address: address.toLowerCase(),
+    ...(username ? { username } : {}),
+    profileHref: profileHref ?? null,
   };
 }

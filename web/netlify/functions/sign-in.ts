@@ -10,6 +10,41 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUP
 
 const jsonHeaders = { "Content-Type": "application/json", ...CORS_HEADERS };
 
+/** Updates the login time, creating the user row on first sign-in. Usernames are opt-in, so none is assigned. */
+async function findOrCreateUser(address: string) {
+  const userId = address.toLowerCase();
+  const lastLoginAt = new Date().toISOString();
+
+  const { data: existingUser, error: updateError } = await supabase
+    .from("users")
+    .update({ last_login_at: lastLoginAt })
+    .eq("id", userId)
+    .select()
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (existingUser) return existingUser;
+
+  const { data: user, error } = await supabase
+    .from("users")
+    .insert({ id: userId, last_login_at: lastLoginAt })
+    .select()
+    .single();
+  if (!error && user) return user;
+  if (error?.code !== "23505") throw error;
+
+  // A concurrent sign-in for this address created the row between the update and the insert.
+  const { data: concurrentUser, error: concurrentUserError } = await supabase
+    .from("users")
+    .select()
+    .eq("id", userId)
+    .maybeSingle();
+  if (concurrentUserError) throw concurrentUserError;
+  if (concurrentUser) return concurrentUser;
+
+  throw new Error(`Unable to create user ${userId}`);
+}
+
+/** Verifies a SIWE signature, persists the user, and returns a short-lived JWT. */
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -49,23 +84,7 @@ export default async (req: Request) => {
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: jsonHeaders });
     }
 
-    // Store or update user in Supabase
-    const { data: user, error: upsertError } = await supabase
-      .from("users")
-      .upsert({
-        id: address.toLowerCase(),
-        last_login_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (upsertError) {
-      console.error("Error upserting user:", upsertError);
-      return new Response(JSON.stringify({ error: "Failed to update user data" }), {
-        status: 500,
-        headers: jsonHeaders,
-      });
-    }
+    const user = await findOrCreateUser(address);
 
     // Create JWT token
     const token = jwt.sign(

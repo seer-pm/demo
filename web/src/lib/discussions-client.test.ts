@@ -1,5 +1,7 @@
-import { createDiscussionsClient } from "@seer-pm/discussions";
+import { createDiscussionsClient, userFromAddress } from "@seer-pm/discussions";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -89,6 +91,88 @@ describe("createDiscussionsClient", () => {
       chain_id: 100,
       body: "hello",
       parent_id: null,
+    });
+  });
+
+  it("adds host profile links", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        data: [
+          {
+            id: "comment-1",
+            author: ADDRESS,
+            authorDetails: { address: ADDRESS, username: "seer-user" },
+            body: "hello",
+            parentId: null,
+            createdAt: 1,
+            likeCount: 0,
+            likedByMe: false,
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createDiscussionsClient({
+      marketId: "0xABC",
+      chainId: 100,
+      getAccessToken: () => "",
+      getProfileHref: ({ username }) => `/portfolio/@${username}`,
+    });
+
+    const comments = await client.listComments();
+
+    expect(comments[0].authorDetails.profileHref).toBe("/portfolio/@seer-user");
+  });
+
+  it("links authors without a username to their address portfolio", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          data: [
+            {
+              id: "comment-2",
+              author: ADDRESS,
+              authorDetails: { address: ADDRESS },
+              body: "hello",
+              parentId: null,
+              createdAt: 1,
+              likeCount: 0,
+            },
+          ],
+        }),
+      ),
+    );
+
+    const client = createDiscussionsClient({
+      marketId: "0xABC",
+      chainId: 100,
+      getAccessToken: () => "",
+      getProfileHref: ({ address, username }) => (username ? `/portfolio/@${username}` : `/portfolio/${address}`),
+    });
+
+    const comments = await client.listComments();
+
+    expect(comments[0].authorDetails.username).toBeUndefined();
+    expect(comments[0].authorDetails.profileHref).toBe(`/portfolio/${ADDRESS}`);
+  });
+});
+
+describe("userFromAddress", () => {
+  it("builds an identity for a wallet that never chose a username", () => {
+    // Posting must not require a username, so the key is omitted rather than set to a placeholder.
+    expect(userFromAddress(ADDRESS.toUpperCase())).toEqual({
+      address: ADDRESS,
+      profileHref: null,
+    });
+  });
+
+  it("keeps a username and profile route when the host supplies them", () => {
+    expect(userFromAddress(ADDRESS, "alice", "/portfolio/@alice")).toEqual({
+      address: ADDRESS,
+      username: "alice",
+      profileHref: "/portfolio/@alice",
     });
   });
 });

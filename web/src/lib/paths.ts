@@ -29,7 +29,8 @@ function getAddress(address: Address) {
 export const paths = {
   market: marketPath,
   verifyMarket: (id: Address | string, chainId: number) => `/markets/${chainId}/${id.toString()}/verify`,
-  profile: () => "/profile/",
+  profile: () => "/profile",
+  portfolioUsername: (username: string) => `/portfolio/@${username}`,
   collection: (collectionId: string) => `/collections/${collectionId}`,
   tradeCollateral: () => "/trade-collateral",
   klerosDispute: (disputeId: bigint, chainId: SupportedChain) =>

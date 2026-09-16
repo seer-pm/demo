@@ -40,6 +40,7 @@ type Period = "1d" | "1w" | "1m" | "all";
 export type PnlLeaderboardRow = {
   rank: number;
   address: string;
+  username?: string;
   /** Always USD (collateral converted at materialization time). */
   pnl: number;
   /** Gross swap volume in USD. */
@@ -73,21 +74,23 @@ export type PnlLeaderboardRow = {
   mergedWallets?: string[];
 };
 
-type AddressSearch = { kind: "none" } | { kind: "fragment"; hex: string };
-
 const LOAD_PAGE_SIZE = 1000;
+
+/**
+ * A username is at least 3 characters (`users_username_format` in web/supabase/sql/users_username.sql),
+ * so a shorter fragment can only ever be a substring, and matching one means scanning every row.
+ */
+const MIN_USERNAME_SEARCH_LENGTH = 3;
+
+/** Upper bound on wallets a username search resolves, mirroring `USERNAME_ADDRESS_CAP` in get-token-transactions. */
+const USERNAME_SEARCH_CAP = 500;
 
 /** Accepted truthy spellings of `?breakdown`, matching how `debug` is parsed in get-portfolio-pl. */
 const BREAKDOWN_VALUES = new Set(["1", "true"]);
 
-/** Lowercase hex address fragment for ilike search. */
-function parseAddressSearch(raw: string | null): AddressSearch | { kind: "invalid" } {
-  if (raw == null) return { kind: "none" };
-  const trimmed = raw.trim().toLowerCase();
-  if (!trimmed) return { kind: "none" };
-  const hex = trimmed.startsWith("0x") ? trimmed.slice(2) : trimmed;
-  if (!/^[0-9a-f]+$/.test(hex)) return { kind: "invalid" };
-  return { kind: "fragment", hex };
+/** Normalizes a username or address search while allowing an optional @ prefix. */
+function normalizeSearch(raw: string | null): string {
+  return (raw ?? "").trim().toLowerCase().replace(/^@/, "");
 }
 
 function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>) {
@@ -368,11 +371,22 @@ function paginateRows(args: {
   limit: number;
   offset: number;
   search: string;
+  /** Wallets whose username matches `search`. */
+  usernameAddresses: Set<string>;
   chainId?: number | "all";
   breakdown?: boolean;
 }): { total: number; rows: PnlLeaderboardRow[] } {
   const ranked = args.rows.map((row, index) => ({ row, rank: index + 1 }));
-  const filtered = args.search ? ranked.filter(({ row }) => matchesAddressSearch(row, args.search)) : ranked;
+  const searchHex = args.search.replace(/^0x/, "");
+  const isHexSearch = /^[0-9a-f]+$/.test(searchHex);
+  const filtered = args.search
+    ? ranked.filter(
+        ({ row }) =>
+          (isHexSearch && matchesAddressSearch(row, searchHex)) ||
+          row.members.some((member) => args.usernameAddresses.has(member)) ||
+          args.usernameAddresses.has(row.address),
+      )
+    : ranked;
 
   return {
     total: filtered.length,
@@ -393,6 +407,54 @@ function appFilterErrorMessage(): string {
   return `app must be one of: all, ${apps}`;
 }
 
+/** Adds Seer usernames to leaderboard rows without requiring a profile for every ranked wallet. */
+async function addUsernames(rows: PnlLeaderboardRow[]): Promise<PnlLeaderboardRow[]> {
+  if (rows.length === 0) return rows;
+
+  const addresses = [...new Set(rows.map((row) => row.address.toLowerCase()))];
+  const { data, error } = await supabase.from("users").select("id, username").in("id", addresses);
+  if (error) {
+    console.error("Unable to load leaderboard usernames:", error);
+    return rows;
+  }
+
+  const usernames = new Map((data ?? []).map((user) => [user.id.toLowerCase(), user.username]));
+  return rows.map((row) => {
+    const username = usernames.get(row.address.toLowerCase());
+    return username ? { ...row, username } : row;
+  });
+}
+
+/**
+ * Wallets whose username contains `search`. Usernames are `[a-z0-9_-]`, so any other input cannot match.
+ *
+ * A leading-wildcard `ilike` cannot use an index, so both ends are bounded: a fragment shorter than
+ * `MIN_USERNAME_SEARCH_LENGTH` is refused, and the match stops at `USERNAME_SEARCH_CAP` wallets. The
+ * address filter in `paginateRows` is independent of this, so a short fragment still searches by address.
+ * Username matches only widen an address search, so a lookup failure degrades to address-only results.
+ */
+async function findUsernameAddresses(search: string): Promise<Set<string>> {
+  const addresses = new Set<string>();
+  if (search.length < MIN_USERNAME_SEARCH_LENGTH) return addresses;
+  if (!/^[a-z0-9_-]+$/.test(search)) return addresses;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("id")
+    .ilike("username", `%${search.replace(/_/g, "\\_")}%`)
+    .order("id", { ascending: true })
+    .limit(USERNAME_SEARCH_CAP);
+  if (error) {
+    console.error("Unable to search leaderboard usernames:", error);
+    return addresses;
+  }
+
+  for (const user of data ?? []) {
+    addresses.add(user.id.toLowerCase());
+  }
+  return addresses;
+}
+
 export default async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
@@ -405,11 +467,7 @@ export default async (req: Request) => {
     const chainIdParam = (url.searchParams.get("chainId") ?? String(DEFAULT_CHAIN)).toLowerCase();
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50) || 50, 1), 200);
     const offset = Math.max(Number(url.searchParams.get("offset") ?? 0) || 0, 0);
-    const searchParsed = parseAddressSearch(url.searchParams.get("search"));
-    if (searchParsed.kind === "invalid") {
-      return jsonResponse({ error: "search must be a hex address fragment" }, 400);
-    }
-    const search = searchParsed.kind === "fragment" ? searchParsed.hex : "";
+    const search = normalizeSearch(url.searchParams.get("search"));
 
     if (!isSeerAppFilterId(appParam)) {
       return jsonResponse({ error: appFilterErrorMessage() }, 400);
@@ -487,6 +545,7 @@ export default async (req: Request) => {
       limit,
       offset,
       search,
+      usernameAddresses: search ? await findUsernameAddresses(search) : new Set(),
       chainId: isAllChains ? "all" : chainId,
       breakdown: BREAKDOWN_VALUES.has(url.searchParams.get("breakdown") ?? ""),
     });
@@ -503,7 +562,7 @@ export default async (req: Request) => {
         total: page.total,
         limit,
         offset,
-        rows: page.rows,
+        rows: await addUsernames(page.rows),
       },
       200,
       { "Cache-Control": "public, max-age=120" },

@@ -1,11 +1,13 @@
 import { Alert } from "@/components/Alert";
+import { DisplayName } from "@/components/DisplayName";
 import { Link } from "@/components/Link";
 import { TokenTransactionsResponse, useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
-import { displayBalance, isTwoStringsEqual, shortenAddress } from "@/lib/utils";
+import { displayBalance, isTwoStringsEqual } from "@/lib/utils";
 import { useComputedPoolAddresses } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
+import { useMemo } from "react";
 
 /** Display cap per outcome; full holder lists come from the API. */
 const TOP_HOLDERS_COUNT = 10;
@@ -34,7 +36,7 @@ function filterTopHolders(
 export default function TopHolders({ market }: TopHoldersProps) {
   const { data, isLoading, error } = useMarketHolders(market);
   const { data: poolAddresses = [] } = useComputedPoolAddresses(market);
-
+  const topHolders = useMemo(() => filterTopHolders(data?.topHolders ?? {}, poolAddresses), [data, poolAddresses]);
   if (isLoading) {
     return <div className="shimmer-container w-full h-[50px]"></div>;
   }
@@ -46,8 +48,6 @@ export default function TopHolders({ market }: TopHoldersProps) {
   if (!data || !data.topHolders || Object.keys(data.topHolders).length === 0) {
     return <Alert type="warning">No holders data available.</Alert>;
   }
-
-  const topHolders = filterTopHolders(data.topHolders, poolAddresses);
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
@@ -93,7 +93,7 @@ export default function TopHolders({ market }: TopHoldersProps) {
                             <td className="text-left">
                               <span className="text-sm text-base-content/90 flex space-x-2 items-center">
                                 <Link to={`/portfolio/${holder.address}`} className="hover:text-purple-primary">
-                                  {shortenAddress(holder.address)}
+                                  <DisplayName address={holder.address} username={holder.username} />
                                 </Link>
 
                                 <a

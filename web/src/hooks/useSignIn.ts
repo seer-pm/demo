@@ -13,6 +13,7 @@ export const useSignIn = (onSuccess?: (data: SignInResult) => unknown) => {
       setAccessToken(data.token);
 
       queryClient.invalidateQueries({ queryKey: ["useFavorites"] });
+      queryClient.invalidateQueries({ queryKey: ["publicUser"] });
       onSuccess?.(data);
     },
   });

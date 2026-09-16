@@ -5,13 +5,16 @@ import { Address } from "viem";
 interface Holder {
   address: Address;
   balance: string;
+  /** Seer username for this wallet; absent when it has not chosen one. */
+  username?: string;
 }
 
 export interface TokenTransactionsResponse {
   /** All holders per outcome token (unsliced); UI applies a top-N display cap. */
   topHolders: { [tokenId: string]: Holder[] };
   recentTransactions: Array<TokenTransfer>;
-  recentActivity: TransactionData[];
+  /** Rows carry the trader's Seer username when they have one; absent otherwise. */
+  recentActivity: Array<TransactionData & { username?: string }>;
   totalTokens: number;
   totalTransactions: number;
   tokenIds: string[];

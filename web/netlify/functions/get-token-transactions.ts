@@ -12,6 +12,30 @@ import { getTokenHolders } from "./utils/token-transactions";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
+/** Upper bound on wallets resolved per response; comfortably covers what the holder and activity tables render. */
+const USERNAME_ADDRESS_CAP = 200;
+
+/**
+ * Seer usernames for the given wallets, keyed by lowercase address.
+ *
+ * Wallets without one are omitted: usernames are optional, and the UI falls back to an ENS name or
+ * a generated nickname. A lookup failure degrades the label rather than failing the whole response.
+ */
+async function getUsernames(addresses: string[]): Promise<Record<string, string>> {
+  const normalized = [...new Set(addresses.map((address) => address.toLowerCase()))].slice(0, USERNAME_ADDRESS_CAP);
+  if (normalized.length === 0) return {};
+
+  const { data, error } = await supabase.from("users").select("id, username").in("id", normalized);
+  if (error) {
+    console.error("get-token-transactions: usernames", error);
+    return {};
+  }
+
+  return Object.fromEntries(
+    (data ?? []).flatMap((row) => (row.username ? [[row.id.toLowerCase(), row.username] as const] : [])),
+  );
+}
+
 /** Primary-collateral legs for the given tx hashes (list length bounded by `distinctTxCap` in the caller). */
 async function listPrimaryCollateralTransfersForTxHashesAll(
   chainId: number,
@@ -221,12 +245,29 @@ export default async (req: Request) => {
       }
     }
 
+    const usernames = await getUsernames([
+      ...Object.values(topHolders).flatMap((holders) => holders.map((holder) => String(holder.address))),
+      ...recentActivity.flatMap((row) => (row.trader ? [String(row.trader)] : [])),
+    ]);
+    const holdersWithUsernames = Object.fromEntries(
+      Object.entries(topHolders).map(([tokenId, holders]) => [
+        tokenId,
+        holders.map((holder) => ({ ...holder, username: usernames[String(holder.address).toLowerCase()] })),
+      ]),
+    );
+    const activityWithUsernames = recentActivity.map((row) => ({
+      ...row,
+      username: row.trader ? usernames[String(row.trader).toLowerCase()] : undefined,
+    }));
+
     return new Response(
       JSON.stringify(
         {
-          topHolders,
+          topHolders: holdersWithUsernames,
+          // Deliberately not enriched: a transfer has a `from` and a `to`, so there is no single
+          // wallet to attribute a username to, and nothing renders this list today.
           recentTransactions,
-          recentActivity,
+          recentActivity: activityWithUsernames,
           totalTokens: effectiveTokenIds.length,
           totalTransactions: recentTransactions.length,
           tokenIds: effectiveTokenIds.map((id) => id.toLowerCase()),
