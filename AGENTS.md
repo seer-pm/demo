@@ -67,3 +67,40 @@ injected from the linked site. Notes:
 - Functions import `@seer-pm/sdk` through the package `exports` map, i.e. through `dist/`. Build it
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
+
+## Comments justify the current code, not its history
+
+A comment that recounts the previous implementation, or the bug being fixed, costs the next reader
+space without telling them anything they can act on, because they never saw the old version. Write the
+constraint that makes the present code correct, in the present tense. That is the part that stays
+true as the file changes, and the part that stops someone from undoing the decision.
+
+Rules:
+
+- Do not name a past state: no "the previous limit of 30 rejected…", no "it used to match every
+  URL", no "a fixed near-white fill stayed light in dark mode".
+- State the standing reason instead.
+  ✗ `// The previous limit of 30 rejected ordinary corporate addresses.`
+  ✓ `// RFC 5321 caps an email path at 254 characters. A lower ceiling turns ordinary long`
+  `// corporate addresses into a "badly formatted" error, which points the user at the wrong problem.`
+- Conditional phrasing about a **different** choice is fine, because it justifies the code as
+  written: "a match here would put the portfolio page on unknown paths that belong to the 404 page".
+- Applies to inline comments, JSDoc blocks and CSS comments alike.
+- The before/after belongs in the commit message and the PR description, where a reader is asking
+  what changed. A comment answers why the code is the way it is.
+
+## Write prose without em dashes
+
+An em dash (—) reads as machine-written, and it is usually standing in for punctuation that carries
+more meaning. Use a colon when the second half explains the first, a full stop when it is a separate
+thought, and parentheses or commas for an aside.
+
+Rules:
+
+- Do not use `—` in user-facing copy, code comments, JSDoc, or Markdown in this repo.
+- Pick the punctuation that does the work:
+  ✗ `It is optional — without one you appear under your ENS name.`
+  ✓ `It is optional. Without one you appear under your ENS name.`
+  ✗ `Rendered only when there are any — a handful of users — so the header keeps its height.`
+  ✓ `Rendered only when there are any (a handful of users), so the header keeps its height.`
+- Hyphens in compound words (`mark-to-market`) and minus signs are unrelated and stay as they are.
