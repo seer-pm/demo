@@ -11,7 +11,12 @@ type PublicUser = {
   address: string;
   /** Null when the wallet has not chosen one; the UI then falls back to ENS or a generated name. */
   username: string | null;
+  /** The OAuth-verified X handle, lowercase and without `@`, or null when none is linked. */
+  xAccount: string | null;
 };
+
+type UserRow = { id: string; username: string | null; x_account: string | null };
+const USER_COLUMNS = "id, username, x_account";
 
 /** Creates a JSON response with the function's standard CORS headers. */
 function json(body: unknown, status = 200) {
@@ -19,13 +24,13 @@ function json(body: unknown, status = 200) {
 }
 
 /** Converts a database profile to its public representation. */
-function publicUser(row: { id: string; username: string | null }): PublicUser {
-  return { address: row.id.toLowerCase(), username: row.username ?? null };
+function publicUser(row: UserRow): PublicUser {
+  return { address: row.id.toLowerCase(), username: row.username ?? null, xAccount: row.x_account ?? null };
 }
 
 /** Finds a user by their normalized username. */
-async function findByUsername(username: string): Promise<{ id: string; username: string | null } | null> {
-  const { data, error } = await supabase.from("users").select("id, username").eq("username", username).maybeSingle();
+async function findByUsername(username: string): Promise<UserRow | null> {
+  const { data, error } = await supabase.from("users").select(USER_COLUMNS).eq("username", username).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -53,13 +58,15 @@ export default async (req: Request) => {
         if (!isAddress(addressParam)) return json({ error: "Invalid address" }, 400);
         const { data, error } = await supabase
           .from("users")
-          .select("id, username")
+          .select(USER_COLUMNS)
           .eq("id", addressParam.toLowerCase())
           .maybeSingle();
         if (error) throw error;
         // A row with no username carries nothing a caller could not already infer from the address,
         // so an absent row and a username-less row are reported identically rather than as a 404.
-        return json({ user: data ? publicUser(data) : { address: addressParam.toLowerCase(), username: null } });
+        return json({
+          user: data ? publicUser(data) : { address: addressParam.toLowerCase(), username: null, xAccount: null },
+        });
       }
 
       return json({ error: "Provide username or address" }, 400);
@@ -80,7 +87,7 @@ export default async (req: Request) => {
         .from("users")
         .update({ username })
         .eq("id", viewer)
-        .select("id, username")
+        .select(USER_COLUMNS)
         .single();
 
       if (error?.code === "23505") return json({ error: "Username is already taken" }, 409);

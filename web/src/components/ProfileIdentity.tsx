@@ -1,5 +1,6 @@
 import { CopyButton } from "@/components/CopyButton";
 import { EnsBadge } from "@/components/EnsBadge";
+import { XBadge } from "@/components/XBadge";
 import { Union } from "@/lib/icons";
 import { shortenAddress } from "@/lib/utils";
 import { EnsIcon, useDisplayName } from "@seer-pm/discussions";
@@ -8,7 +9,7 @@ import type { ReactNode } from "react";
 import type { Address } from "viem";
 
 /**
- * A wallet's identity block: avatar, resolved display name, literal address, and ENS badge.
+ * A wallet's identity block: avatar, resolved display name, literal address, and ENS and X badges.
  *
  * Shared by the portfolio header and the account page so the same person cannot render in two
  * visual languages depending on which route you arrived from.
@@ -30,6 +31,7 @@ import type { Address } from "viem";
 export function ProfileIdentity({
   address,
   username,
+  xAccount,
   isSelf,
   isLoading,
   nameAs = "p",
@@ -38,6 +40,8 @@ export function ProfileIdentity({
 }: {
   address: Address;
   username?: string | null;
+  /** OAuth-verified X handle, shown as a badge next to the address. */
+  xAccount?: string | null;
   isSelf?: boolean;
   /** Whether the caller's username lookup is still in flight. */
   isLoading?: boolean;
@@ -82,6 +86,7 @@ export function ProfileIdentity({
             {shortenAddress(address)}
           </span>
           {source === "username" && ensName ? <EnsBadge name={ensName} /> : null}
+          {xAccount ? <XBadge handle={xAccount} /> : null}
         </div>
         {children}
       </div>

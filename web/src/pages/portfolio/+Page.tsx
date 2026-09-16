@@ -343,7 +343,14 @@ function PortfolioPage() {
       <div className="mt-8 space-y-4">
         {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
         <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
-          <ProfileIdentity address={account} username={username} isSelf={isSelf} isLoading={isLoading} nameAs="h1">
+          <ProfileIdentity
+            address={account}
+            username={username}
+            xAccount={publicUser?.xAccount}
+            isSelf={isSelf}
+            isLoading={isLoading}
+            nameAs="h1"
+          >
             {/* The one place a user without a username meets the idea, on the page that shows the
                 generated nickname standing in for one. */}
             {isSelf && !username ? (

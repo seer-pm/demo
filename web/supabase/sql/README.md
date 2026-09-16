@@ -26,6 +26,7 @@ multi-statement scripts in one, so run those statements individually.
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Also carries the trader-score sufficient statistics (`scored_market_count`, `winning_market_count`, `gross_profit_usd`, `gross_loss_usd`, `best_market_pnl_usd`, `scored_capital_usd`); the score itself is derived at read time, never stored. Those six columns hold an *owner's* statistics: for a wallet trading through a TradeExecutor, they are gathered over the combined book and written on the owner's row, and the executor's row carries zeros (its other columns stay its own). Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `users_username.sql` | Adds the optional unique wallet-linked username column and validation constraints. |
+| `users_x_account.sql` | Adds the OAuth-verified X account columns (`x_user_id` unique, `x_account` handle) and their constraints. |
 
 Analytics matview RPC `refresh_market_outcome_tokens` lives in
 [`dashboard/supabase/sql/analytics_rpcs.sql`](../../dashboard/supabase/sql/analytics_rpcs.sql)
@@ -73,6 +74,16 @@ The two orderings are both safe, which is why this no longer needs staging:
 
 - **SQL first:** the column exists and is null for everyone; the app reads null and falls back.
 - **Deploy first:** `users` `PATCH` fails until the column exists, and nothing else touches it.
+
+## Apply for X accounts
+
+Run `users_x_account.sql` in the Supabase SQL editor, **then** deploy. Unlike usernames, this ordering
+matters: `users` `GET` selects `x_account`, so a deploy before the SQL breaks every profile lookup.
+
+The functions also need `X_CLIENT_ID`, `X_CLIENT_SECRET` and `X_REDIRECT_URI` in the Netlify
+environment. The redirect URI must match a callback URL registered on the X app exactly
+(`https://app.seer.pm/.netlify/functions/x-callback` in production), so deploy previews cannot finish
+the flow.
 
 App code no longer calls the old transfer-replay RPCs
 (`list_distinct_user_transfer_tokens`, `list_user_token_transfers_in_window`,

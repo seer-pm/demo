@@ -226,6 +226,126 @@ function EmailSection({ accessToken }: { accessToken: string }) {
   );
 }
 
+const X_RESULT_MESSAGES: Record<string, { type: "success" | "error"; text: string }> = {
+  linked: { type: "success", text: "Your X account is verified and shown on your profile." },
+  taken: {
+    type: "error",
+    text: "That X account is already linked to another wallet. Disconnect it there first, then try again.",
+  },
+  cancelled: { type: "error", text: "X verification was cancelled." },
+  error: { type: "error", text: "We couldn't verify your X account. Please try again." },
+};
+
+/** Links the signed-in wallet to an X account through X's OAuth, or removes the link. */
+function XAccountSection({ accessToken, address }: { accessToken: string; address: Address }) {
+  const { data: user, isLoading } = usePublicUser({ address });
+  const xAccount = user?.xAccount ?? null;
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  // `x-callback` reports its outcome in the query string. It is read once and removed so a reload or a
+  // shared link does not repeat a stale message.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get("x");
+    if (!result) return;
+    setMessage(X_RESULT_MESSAGES[result] ?? X_RESULT_MESSAGES.error);
+    url.searchParams.delete("x");
+    window.history.replaceState(window.history.state, "", url.toString());
+  }, []);
+
+  const connect = async () => {
+    setPending(true);
+    setMessage(null);
+    try {
+      const data = (await fetchAuth(accessToken, "/.netlify/functions/x-account", "POST")) as { url: string };
+      window.location.assign(data.url);
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Unable to start X verification" });
+      setPending(false);
+    }
+  };
+
+  const disconnect = async () => {
+    setPending(true);
+    setMessage(null);
+    try {
+      await fetchAuth(accessToken, "/.netlify/functions/x-account", "DELETE");
+      await queryClient.invalidateQueries({ queryKey: ["publicUser"] });
+      setConfirmingDisconnect(false);
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Unable to disconnect X account" });
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <section className={SECTION} aria-labelledby="x-account-heading">
+      <h2 id="x-account-heading" className="text-[18px] font-semibold">
+        X account
+      </h2>
+      <p className="text-[14px] text-black-primary mt-1 mb-4">
+        Verify an X account you own to show it on your profile. Seer only reads your X username and does not post
+        anything.
+      </p>
+
+      <div className="space-y-4 max-w-sm">
+        {isLoading && !user ? (
+          <div className="shimmer-container h-12 w-full" aria-hidden />
+        ) : xAccount ? (
+          <>
+            <p className="text-[14px]">
+              Verified as{" "}
+              <a
+                href={`https://x.com/${encodeURIComponent(xAccount)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-purple-primary hover:underline font-medium"
+              >
+                @{xAccount}
+              </a>
+            </p>
+            {confirmingDisconnect ? (
+              <Alert type="warning" title={`Disconnect @${xAccount}?`}>
+                <p className="mt-1">Your profile will stop showing this X account. You can verify it again later.</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Button text="Disconnect" isLoading={pending} onClick={() => void disconnect()} />
+                  <Button
+                    text="Cancel"
+                    variant="secondary"
+                    disabled={pending}
+                    onClick={() => setConfirmingDisconnect(false)}
+                  />
+                </div>
+              </Alert>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <Button text="Reconnect" variant="secondary" isLoading={pending} onClick={() => void connect()} />
+                <Button
+                  text="Disconnect"
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={() => setConfirmingDisconnect(true)}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <Button text="Connect X" isLoading={pending} onClick={() => void connect()} />
+        )}
+
+        {message && (
+          <Alert type={message.type}>
+            <p>{message.text}</p>
+          </Alert>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function AccountPage() {
   const { address, chainId, isConnected } = useAccount();
   const accessToken = useGlobalState((state) => state.accessToken);
@@ -249,7 +369,12 @@ export default function AccountPage() {
         ) : !signedIn ? (
           <>
             <div className="p-6 sm:p-8">
-              <ProfileIdentity address={address} username={user?.username} isLoading={isUserLoading} />
+              <ProfileIdentity
+                address={address}
+                username={user?.username}
+                xAccount={user?.xAccount}
+                isLoading={isUserLoading}
+              />
             </div>
             <div className={SECTION}>
               <p className="text-[14px] text-black-primary mb-4">
@@ -265,7 +390,12 @@ export default function AccountPage() {
         ) : (
           <>
             <div className="p-6 sm:p-8">
-              <ProfileIdentity address={address} username={user?.username} isLoading={isUserLoading}>
+              <ProfileIdentity
+                address={address}
+                username={user?.username}
+                xAccount={user?.xAccount}
+                isLoading={isUserLoading}
+              >
                 <Link
                   to={paths.portfolio(address, user?.username)}
                   className="text-[14px] text-purple-primary hover:underline"
@@ -276,6 +406,7 @@ export default function AccountPage() {
             </div>
             <UsernameSection accessToken={accessToken} address={address} />
             <EmailSection accessToken={accessToken} />
+            <XAccountSection accessToken={accessToken} address={address} />
           </>
         )}
       </div>

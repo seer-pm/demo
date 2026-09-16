@@ -5,6 +5,8 @@ export type PublicUser = {
   address: Address;
   /** Null when the wallet has not chosen one; callers fall back to ENS or a generated name. */
   username: string | null;
+  /** The OAuth-verified X handle, lowercase and without `@`, or null when none is linked. */
+  xAccount: string | null;
 };
 
 type UserLookup = { address: Address } | { username: string };

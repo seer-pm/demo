@@ -817,6 +817,8 @@ export type Database = {
           last_login_at: string | null;
           username: string | null;
           verification_token: string | null;
+          x_account: string | null;
+          x_user_id: string | null;
         };
         Insert: {
           email?: string;
@@ -825,6 +827,8 @@ export type Database = {
           last_login_at?: string | null;
           username?: string | null;
           verification_token?: string | null;
+          x_account?: string | null;
+          x_user_id?: string | null;
         };
         Update: {
           email?: string;
@@ -833,6 +837,8 @@ export type Database = {
           last_login_at?: string | null;
           username?: string | null;
           verification_token?: string | null;
+          x_account?: string | null;
+          x_user_id?: string | null;
         };
         Relationships: [];
       };

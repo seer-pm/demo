@@ -358,11 +358,15 @@ export const DiscordIcon = () => (
   </svg>
 );
 
-export const TwitterIcon = () => (
-  <svg width={17} height={16} viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const TwitterIcon = ({
+  width = 17,
+  height = 16,
+  fill = "white",
+}: { width?: number; height?: number; fill?: string }) => (
+  <svg width={width} height={height} viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
       d="M12.9212 2.00011H15.1274L10.3087 7.50636L15.9774 15.0001H11.5399L8.06182 10.4564L4.08682 15.0001H1.87744L7.03057 9.10949L1.59619 2.00011H6.14619L9.28682 6.15324L12.9212 2.00011ZM12.1462 13.6814H13.3681L5.48057 3.25011H4.16807L12.1462 13.6814Z"
-      fill="white"
+      fill={fill}
     />
   </svg>
 );
