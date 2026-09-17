@@ -539,7 +539,7 @@ function AdminCreditsPage() {
               <th>Created (UTC)</th>
               <th>Name</th>
               <th>Range</th>
-              <th>Claimed (UTC)</th>
+              <th>Claimed</th>
               <th>Delivered</th>
               <th>
                 <span className="inline-flex items-center gap-1">
