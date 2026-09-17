@@ -26,7 +26,9 @@ const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || FALLBACK_MAINNET_RPC;
 const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || FALLBACK_OPTIMISM_RPC;
 const BASE_RPC = process.env.PRIVATE_RPC_BASE || FALLBACK_BASE_RPC;
 
-export const APP_URL = process.env.API_HOST || process.env.URL || "https://app.seer.pm";
+// DEPLOY_PRIME_URL is the branch/preview URL (and the main URL in production); URL is always the
+// production URL, so on its own it would point previews at prod.
+export const APP_URL = process.env.API_HOST || process.env.DEPLOY_PRIME_URL || process.env.URL || "https://app.seer.pm";
 
 initApiHost(APP_URL);
 
