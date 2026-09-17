@@ -170,7 +170,7 @@ function errorMessage(error: unknown) {
 async function recordError(card: CreditCardRow, error: unknown) {
   await supabase
     .from("credit_cards")
-    .update({ error: errorMessage(error) })
+    .update({ error: errorMessage(error), updated_at: new Date().toISOString() })
     .eq("id", card.id);
 }
 

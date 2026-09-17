@@ -1,6 +1,10 @@
 import type { AdminCreditCard } from "@/hooks/admin/useAdminCreditCampaigns";
 import { downloadCsv } from "@/lib/utils";
 
+function csvField(value: string) {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
 function fileSlug(name: string) {
   return (
     name
@@ -33,7 +37,7 @@ export async function downloadCardsQrZip(campaignName: string, cards: AdminCredi
     const filename = `${card.serial}.svg`;
     const svg = await QRCode.toString(card.url, { type: "svg", errorCorrectionLevel: "M", margin: 2 });
     files[filename] = strToU8(svg);
-    csvRows.push(`${card.serial},${card.url},${filename}`);
+    csvRows.push([card.serial, card.url, filename].map(csvField).join(","));
   }
   files["cards.csv"] = strToU8(csvRows.join("\n"));
 

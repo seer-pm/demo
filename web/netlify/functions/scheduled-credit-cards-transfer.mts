@@ -13,7 +13,8 @@ export default async () => {
     .select("*")
     .or("status.in.(pending,sent),drip_status.in.(pending,sent)")
     .lt("claimed_at", new Date(startedAt - CLAIM_GRACE_MS).toISOString())
-    .order("claimed_at", { ascending: true })
+    // Every attempt bumps `updated_at`, so cards that keep failing rotate to the back instead of starving the rest.
+    .order("updated_at", { ascending: true })
     .limit(25);
   if (error) {
     console.error("scheduled-credit-cards-transfer: query failed", error);

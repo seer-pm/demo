@@ -163,17 +163,30 @@ export function useRetryCreditCards() {
   return useMutation({
     mutationKey: ["useRetryCreditCards"],
     mutationFn: async (cardIds: string[]) => {
+      let queued = 0;
+      const errors: string[] = [];
+      // One card failing must not leave the rest of the batch unsent.
       for (const cardId of cardIds) {
-        await fetchAuth(accessToken, ADMIN_CREDIT_CAMPAIGNS_URL, "POST", { action: "retry", cardId });
+        try {
+          await fetchAuth(accessToken, ADMIN_CREDIT_CAMPAIGNS_URL, "POST", { action: "retry", cardId });
+          queued++;
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+      return { queued, failed: errors.length, firstError: errors[0] ?? null };
+    },
+    onError: (error) => toastError({ title: error.message }),
+    onSuccess: ({ queued, failed, firstError }) => {
+      if (failed === 0) {
+        toastSuccess({ title: `${queued} cards queued for retry`, subtitle: "They are resent within a minute" });
+      } else {
+        toastError({
+          title: `${queued} cards queued for retry, ${failed} failed`,
+          subtitle: firstError ?? undefined,
+        });
       }
     },
-    onError: (error) => {
-      toastError({ title: error.message });
-      invalidateCampaigns();
-    },
-    onSuccess: (_, cardIds) => {
-      toastSuccess({ title: `${cardIds.length} cards queued for retry`, subtitle: "They are resent within a minute" });
-      invalidateCampaigns();
-    },
+    onSettled: () => invalidateCampaigns(),
   });
 }

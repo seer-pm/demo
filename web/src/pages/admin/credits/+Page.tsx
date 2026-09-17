@@ -147,7 +147,7 @@ function hasIssue(card: AdminCreditCard) {
 }
 
 function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCampaign; onClose: () => void }) {
-  const { data: cards = [], isLoading } = useAdminCreditCampaignCards(campaign.id);
+  const { data: cards = [], isLoading, isError, error } = useAdminCreditCampaignCards(campaign.id);
   const retryCard = useRetryCreditCard();
   const retryCards = useRetryCreditCards();
   const [onlyIssues, setOnlyIssues] = useState(false);
@@ -173,6 +173,11 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
         {campaign.claimed_count} of {campaign.card_count} cards claimed · ${formatAmount(campaign.claimed_usd)} of $
         {formatAmount(campaign.total_usd)} · {formatAmount(campaign.confirmed_credits)} credits delivered
       </p>
+      {isError && (
+        <Alert type="error" title="Could not load cards">
+          {error.message}
+        </Alert>
+      )}
       {failed.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-error-light dark:bg-base-200 p-3">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -209,7 +214,7 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 && (
+            {!isError && visible.length === 0 && (
               <tr>
                 <td colSpan={8} className="text-center text-base-content/60 py-8">
                   No cards claimed yet.
@@ -368,7 +373,12 @@ function AdminCreditsPage() {
   const accessToken = useGlobalState((state) => state.accessToken);
   const signIn = useSignIn();
   const { data: isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { data, isLoading: isCampaignsLoading } = useAdminCreditCampaigns(isAdmin === true);
+  const {
+    data,
+    isLoading: isCampaignsLoading,
+    isError: isCampaignsError,
+    error: campaignsError,
+  } = useAdminCreditCampaigns(isAdmin === true);
   const setActive = useSetCreditCampaignActive();
 
   const { Modal: FormModal, openModal: openFormModal, closeModal: closeFormModal } = useModal("credit-campaign-form");
@@ -515,6 +525,11 @@ function AdminCreditsPage() {
         <Button text="New campaign" type="button" onClick={() => openForm(emptyCreditCampaignForm)} />
       </div>
 
+      {isCampaignsError && (
+        <Alert type="error" title="Could not load campaigns">
+          {campaignsError.message}
+        </Alert>
+      )}
       {data?.distributor && <DistributorPanel distributor={data.distributor} />}
 
       <div className="card shadow-sm border border-separator-100 overflow-x-auto">
@@ -553,7 +568,7 @@ function AdminCreditsPage() {
                 </td>
               </tr>
             )}
-            {!isCampaignsLoading && campaigns.length === 0 && (
+            {!isCampaignsLoading && !isCampaignsError && campaigns.length === 0 && (
               <tr>
                 <td colSpan={8} className="text-center text-base-content/60 py-8">
                   No campaigns yet.

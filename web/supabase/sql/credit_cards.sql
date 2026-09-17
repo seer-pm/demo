@@ -60,15 +60,51 @@ alter table public.credit_cards enable row level security;
 
 -- Atomic claim: only one caller can move a card out of `unclaimed`, and only while its campaign is active.
 -- Returns the claimed row, or nothing when the card was already claimed or the campaign is inactive.
+--
+-- Claims are serialized by an advisory lock, so the distributor's capacity is checked against every obligation
+-- recorded before this one: two concurrent claims can never both fit in the same balance. `p_balance_wei` is the
+-- distributor's on-chain balance, read at `p_balance_read_at`. A card confirmed after that read may already be
+-- counted in the balance, so it is still counted as owed (erring towards refusing). Raises
+-- `credit_cards_insufficient_balance` when the claim does not fit, leaving the card unclaimed.
+drop function if exists public.claim_credit_card(text, text, text, text);
 create or replace function public.claim_credit_card(
   p_code text,
   p_address text,
   p_credits_wei text,
-  p_drip_wei text
+  p_drip_wei text,
+  p_balance_wei text,
+  p_balance_read_at timestamptz
 )
 returns setof public.credit_cards
-language sql
+language plpgsql
 as $$
+declare
+  v_owed numeric;
+begin
+  perform pg_advisory_xact_lock(hashtext('public.claim_credit_card'));
+
+  if not exists (
+    select 1
+    from public.credit_cards c
+    join public.credit_campaigns k on k.id = c.campaign_id
+    where c.code = p_code
+      and c.status = 'unclaimed'
+      and k.active
+  ) then
+    return;
+  end if;
+
+  select coalesce(sum(credits_wei::numeric), 0)
+  into v_owed
+  from public.credit_cards
+  where status in ('pending', 'sent', 'failed')
+     or (status = 'confirmed' and updated_at >= p_balance_read_at);
+
+  if p_balance_wei::numeric < v_owed + p_credits_wei::numeric then
+    raise exception 'credit_cards_insufficient_balance';
+  end if;
+
+  return query
   update public.credit_cards c
   set status = 'pending',
       claimed_by = lower(p_address),
@@ -83,6 +119,7 @@ as $$
     and k.id = c.campaign_id
     and k.active
   returning c.*;
+end;
 $$;
 
 -- Per-campaign aggregates for the admin page.
@@ -131,7 +168,8 @@ as $$
   order by k.created_at desc;
 $$;
 
--- Credits the distributor still owes for claimed cards whose transfer has not confirmed yet.
+-- Credits the distributor still owes for claimed cards whose transfer has not confirmed yet. A failed transfer
+-- is still owed: an admin can retry it.
 create or replace function public.credit_cards_in_flight_wei()
 returns text
 language sql
@@ -139,12 +177,12 @@ stable
 as $$
   select coalesce(sum(credits_wei::numeric), 0)::text
   from public.credit_cards
-  where status in ('pending', 'sent');
+  where status in ('pending', 'sent', 'failed');
 $$;
 
-revoke all on function public.claim_credit_card(text, text, text, text) from public, anon, authenticated;
+revoke all on function public.claim_credit_card(text, text, text, text, text, timestamptz) from public, anon, authenticated;
 revoke all on function public.credit_campaigns_overview() from public, anon, authenticated;
 revoke all on function public.credit_cards_in_flight_wei() from public, anon, authenticated;
-grant execute on function public.claim_credit_card(text, text, text, text) to service_role;
+grant execute on function public.claim_credit_card(text, text, text, text, text, timestamptz) to service_role;
 grant execute on function public.credit_campaigns_overview() to service_role;
 grant execute on function public.credit_cards_in_flight_wei() to service_role;

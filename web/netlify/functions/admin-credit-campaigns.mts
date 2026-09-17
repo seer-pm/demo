@@ -61,7 +61,14 @@ async function getDistributorStatus(unclaimedActiveUsd: number) {
       error: null,
     };
   } catch (error) {
-    return { address: null, credits: null, xdai: null, owedCredits: null, error: String(error) };
+    console.error("admin-credit-campaigns: distributor status failed", error);
+    return {
+      address: null,
+      credits: null,
+      xdai: null,
+      owedCredits: null,
+      error: "Could not read the distributor wallet. Check the function logs.",
+    };
   }
 }
 
@@ -256,6 +263,6 @@ export default async (req: Request) => {
     return json({ error: "Method not allowed" }, 405);
   } catch (error) {
     console.error("admin-credit-campaigns error:", error);
-    return json({ error: error instanceof Error ? error.message : "Internal server error" }, 500);
+    return json({ error: "Internal server error" }, 500);
   }
 };

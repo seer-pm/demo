@@ -7,7 +7,6 @@ import {
   deliverClaimedCard,
   getCreditsBalance,
   getDistributorAccount,
-  getInFlightCreditsWei,
   getXdaiBalance,
   serializeClaimedCard,
   supabase,
@@ -63,16 +62,29 @@ export default async (req: Request) => {
     }
 
     const creditsWei = await usdToCreditsWei(lookup.amount_usd);
-    const [distributorBalance, inFlightWei, recipientXdai] = await Promise.all([
+    // Taken before the balance read: the claim counts cards confirmed since then as still owed.
+    const balanceReadAt = new Date().toISOString();
+    const [distributorBalance, recipientXdai] = await Promise.all([
       getCreditsBalance(getDistributorAccount().address),
-      getInFlightCreditsWei(),
       getXdaiBalance(address),
     ]);
-    // Refuse before claiming, so the card stays usable once the distributor is topped up.
-    if (distributorBalance < inFlightWei + creditsWei) {
+
+    // The claim checks the balance against every recorded obligation under a lock, so concurrent claims
+    // cannot both fit in the same credits.
+    const { data: claimed, error: claimError } = await supabase
+      .rpc("claim_credit_card", {
+        p_code: code,
+        p_address: address,
+        p_credits_wei: creditsWei.toString(),
+        p_drip_wei: recipientXdai < GAS_DRIP_THRESHOLD_WEI ? GAS_DRIP_WEI.toString() : null,
+        p_balance_wei: distributorBalance.toString(),
+        p_balance_read_at: balanceReadAt,
+      })
+      .maybeSingle<CreditCardRow>();
+    if (claimError?.message === "credit_cards_insufficient_balance") {
+      // Refused before claiming, so the card stays usable once the distributor is topped up.
       console.error("claim-credit-card: distributor balance too low", {
         distributorBalance: distributorBalance.toString(),
-        inFlightWei: inFlightWei.toString(),
         creditsWei: creditsWei.toString(),
       });
       return json(
@@ -80,15 +92,6 @@ export default async (req: Request) => {
         503,
       );
     }
-
-    const { data: claimed, error: claimError } = await supabase
-      .rpc("claim_credit_card", {
-        p_code: code,
-        p_address: address,
-        p_credits_wei: creditsWei.toString(),
-        p_drip_wei: recipientXdai < GAS_DRIP_THRESHOLD_WEI ? GAS_DRIP_WEI.toString() : null,
-      })
-      .maybeSingle<CreditCardRow>();
     if (claimError) {
       throw claimError;
     }
