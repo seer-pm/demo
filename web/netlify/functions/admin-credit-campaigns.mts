@@ -89,7 +89,7 @@ async function listCampaigns() {
   };
 }
 
-async function listCampaignCards(campaignId: string) {
+async function listCampaignCards(campaignId: string, origin: string) {
   const cards: CreditCardRow[] = [];
   // PostgREST caps responses at 1000 rows.
   for (let from = 0; ; from += PAGE_SIZE) {
@@ -111,7 +111,7 @@ async function listCampaignCards(campaignId: string) {
   return cards.map((card) => ({
     id: card.id,
     serial: card.serial,
-    url: claimUrl(card.code),
+    url: claimUrl(origin, card.code),
     amount_usd: card.amount_usd,
     status: card.status,
     claimed_by: card.claimed_by,
@@ -225,9 +225,10 @@ export default async (req: Request) => {
 
   try {
     if (req.method === "GET") {
-      const campaignId = new URL(req.url).searchParams.get("campaignId");
+      const { origin, searchParams } = new URL(req.url);
+      const campaignId = searchParams.get("campaignId");
       if (campaignId) {
-        return json({ data: await listCampaignCards(campaignId) }, 200);
+        return json({ data: await listCampaignCards(campaignId, origin) }, 200);
       }
       return json({ data: await listCampaigns() }, 200);
     }

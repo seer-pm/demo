@@ -21,7 +21,7 @@ import {
   readContract,
   sendRawTransaction,
 } from "viem/actions";
-import { APP_URL, getPublicClientByChainId, getWalletClientForNetwork, gnosis } from "./config";
+import { getPublicClientByChainId, getWalletClientForNetwork, gnosis } from "./config";
 import { convertToSDAI } from "./sdai";
 
 export const CREDIT_CARDS_CHAIN_ID = gnosis.id;
@@ -61,8 +61,9 @@ export type CreditCardRow = {
   updated_at: string;
 };
 
-export function claimUrl(code: string) {
-  return `${APP_URL.replace(/\/$/, "")}/claim/${code}`;
+/** `origin` is the host the admin exported from, so previews and branch deploys get their own links. */
+export function claimUrl(origin: string, code: string) {
+  return `${origin}/claim/${code}`;
 }
 
 /** Cards always pay out SEER_CREDITS, whatever credits profile the frontend runs with. */
