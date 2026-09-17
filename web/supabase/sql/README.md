@@ -19,6 +19,7 @@ multi-statement scripts in one, so run those statements individually.
 | File | What it does |
 | --- | --- |
 | `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
+| `credit_cards.sql` | Seer credit cards: `credit_campaigns` + `credit_cards` (RLS on, no policies: service_role only), the atomic `claim_credit_card` RPC, and the `credit_campaigns_overview` / `credit_cards_in_flight_wei` aggregates for `/admin/credits`. Apply before deploying the `*credit-card*` / `admin-credit-campaigns` functions. |
 | `dex_pool_hour_prices.sql` | Table + indexes + `dex_pool_hour_prices_nearest_before_for_pairs`. Hour candles written by `dex-pool-prices-background`; read by portfolio history and the airdrop calculation. Captured from the live project — the objects predate the file. Ingest writes require `SUPABASE_API_KEY` = **service_role**. |
 | `AIRDROP_RESEED.md` | Runbook for replacing the contents of `airdrops` after the calculation fixes in `fix/airdrop-calculation`. Not SQL to apply — a sequence to follow, including the ordering constraint around the daily scheduled function. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |

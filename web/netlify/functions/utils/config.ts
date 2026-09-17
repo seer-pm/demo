@@ -26,7 +26,9 @@ const MAINNET_RPC = process.env.PRIVATE_RPC_MAINNET || FALLBACK_MAINNET_RPC;
 const OPTIMISM_RPC = process.env.PRIVATE_RPC_OPTIMISM || FALLBACK_OPTIMISM_RPC;
 const BASE_RPC = process.env.PRIVATE_RPC_BASE || FALLBACK_BASE_RPC;
 
-initApiHost(process.env.API_HOST || process.env.URL || "https://app.seer.pm");
+export const APP_URL = process.env.API_HOST || process.env.URL || "https://app.seer.pm";
+
+initApiHost(APP_URL);
 
 configurePublicRpcUrls({
   [gnosis.id]: GNOSIS_RPC,
