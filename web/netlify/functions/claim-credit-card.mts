@@ -23,7 +23,7 @@ function json(body: unknown, status: number) {
 type CardLookupRow = {
   status: CreditCardRow["status"];
   amount_usd: number;
-  credit_campaigns: { active: boolean } | { active: boolean }[] | null;
+  credit_campaigns: { active: boolean; name: string } | { active: boolean; name: string }[] | null;
 };
 
 export default async (req: Request) => {
@@ -45,7 +45,7 @@ export default async (req: Request) => {
 
     const { data: lookup, error: lookupError } = await supabase
       .from("credit_cards")
-      .select("status, amount_usd, credit_campaigns!inner(active)")
+      .select("status, amount_usd, credit_campaigns!inner(active, name)")
       .eq("code", code)
       .maybeSingle<CardLookupRow>();
     if (lookupError) {
@@ -105,7 +105,7 @@ export default async (req: Request) => {
       console.error("claim-credit-card: delivery deferred", error);
     }
 
-    return json({ state: "claimed", data: serializeClaimedCard(card) }, 200);
+    return json({ state: "claimed", data: { ...serializeClaimedCard(card), campaignName: campaign.name } }, 200);
   } catch (error) {
     console.error("claim-credit-card error:", error);
     return json({ error: "Internal server error" }, 500);

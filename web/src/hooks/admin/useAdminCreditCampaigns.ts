@@ -155,3 +155,25 @@ export function useRetryCreditCard() {
     },
   });
 }
+
+/** Queues several failed cards at once. Retrying only clears reverted legs, so it can never pay a card twice. */
+export function useRetryCreditCards() {
+  const accessToken = useGlobalState((state) => state.accessToken);
+
+  return useMutation({
+    mutationKey: ["useRetryCreditCards"],
+    mutationFn: async (cardIds: string[]) => {
+      for (const cardId of cardIds) {
+        await fetchAuth(accessToken, ADMIN_CREDIT_CAMPAIGNS_URL, "POST", { action: "retry", cardId });
+      }
+    },
+    onError: (error) => {
+      toastError({ title: error.message });
+      invalidateCampaigns();
+    },
+    onSuccess: (_, cardIds) => {
+      toastSuccess({ title: `${cardIds.length} cards queued for retry`, subtitle: "They are resent within a minute" });
+      invalidateCampaigns();
+    },
+  });
+}

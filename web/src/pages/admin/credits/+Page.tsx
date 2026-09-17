@@ -13,9 +13,11 @@ import {
   useAdminCreditCampaignCards,
   useAdminCreditCampaigns,
   useRetryCreditCard,
+  useRetryCreditCards,
   useSetCreditCampaignActive,
 } from "@/hooks/admin/useAdminCreditCampaigns";
 import { useIsAdmin } from "@/hooks/admin/useAdminMarketEvents";
+import { useConvertToShares } from "@/hooks/trade/useShareAssetRatio";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { useModal } from "@/hooks/useModal";
@@ -27,6 +29,7 @@ import { toastError } from "@/lib/toastify";
 import { isAccessTokenExpired, shortenAddress } from "@/lib/utils";
 import { formatInTimeZone } from "date-fns-tz";
 import { useState } from "react";
+import { formatEther, parseEther } from "viem";
 import { gnosis } from "viem/chains";
 import { useAccount } from "wagmi";
 
@@ -39,6 +42,11 @@ function formatAmount(value: string | number | null, maximumFractionDigits = 2) 
   return Number(value).toLocaleString("en-US", { maximumFractionDigits });
 }
 
+/** Modal titles are rendered as HTML, and campaign names are free text. */
+function escapeHtml(text: string) {
+  return text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+}
+
 function TxLink({ hash, label }: { hash: string | null; label: string }) {
   if (!hash) return <>{label}</>;
   return (
@@ -46,7 +54,7 @@ function TxLink({ hash, label }: { hash: string | null; label: string }) {
       href={`${explorerUrl}/tx/${hash}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-purple-primary hover:underline"
+      className="text-purple-primary dark:text-purple-secondary hover:underline"
     >
       {label}
     </a>
@@ -74,7 +82,7 @@ function DistributorPanel({ distributor }: { distributor: CreditsDistributor }) 
           href={`${explorerUrl}/address/${distributor.address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono text-sm text-purple-primary hover:underline break-all"
+          className="font-mono text-sm text-purple-primary dark:text-purple-secondary hover:underline break-all"
         >
           {distributor.address}
         </a>
@@ -120,23 +128,33 @@ function IssuesLegend() {
       </p>
       <p>
         <strong>Failed</strong>: the credits or the xDAI drip transaction reverted. These are not retried automatically:
-        open Claims, check the error (hover the status) and press Retry.
+        open Claims, read the error under the status and press Retry. Retrying a reverted transfer cannot pay twice.
       </p>
     </div>
   );
 }
 
-function statusLabel(card: AdminCreditCard) {
-  if (card.status === "failed") return "Failed";
-  if (card.status === "confirmed") return "Delivered";
-  if (card.status === "sent") return "Sent";
-  return "Pending";
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  sent: "Sent",
+  confirmed: "Delivered",
+  failed: "Failed",
+  skipped: "Skipped",
+};
+
+function hasIssue(card: AdminCreditCard) {
+  return card.status === "failed" || card.drip_status === "failed";
 }
 
 function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCampaign; onClose: () => void }) {
   const { data: cards = [], isLoading } = useAdminCreditCampaignCards(campaign.id);
   const retryCard = useRetryCreditCard();
+  const retryCards = useRetryCreditCards();
+  const [onlyIssues, setOnlyIssues] = useState(false);
   const claimed = cards.filter((card) => card.status !== "unclaimed");
+  const failed = claimed.filter(hasIssue);
+  const visible = onlyIssues && failed.length > 0 ? failed : claimed;
+  const retrying = retryCard.isPending || retryCards.isPending;
 
   if (isLoading) {
     return (
@@ -155,12 +173,33 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
         {campaign.claimed_count} of {campaign.card_count} cards claimed · ${formatAmount(campaign.claimed_usd)} of $
         {formatAmount(campaign.total_usd)} · {formatAmount(campaign.confirmed_credits)} credits delivered
       </p>
+      {failed.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-error-light dark:bg-base-200 p-3">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={onlyIssues}
+              onChange={(e) => setOnlyIssues(e.target.checked)}
+            />
+            Only show the {failed.length} failed {failed.length === 1 ? "card" : "cards"}
+          </label>
+          <Button
+            text={`Retry ${failed.length} failed`}
+            type="button"
+            size="small"
+            isLoading={retryCards.isPending}
+            disabled={retrying}
+            onClick={() => retryCards.mutate(failed.map((card) => card.id))}
+          />
+        </div>
+      )}
       <div className="overflow-x-auto max-h-[60vh]">
         <table className="simple-table w-full">
           <thead>
             <tr>
               <th>Serial</th>
-              <th>Claimed</th>
+              <th>Claimed (UTC)</th>
               <th>Wallet</th>
               <th>USD</th>
               <th>Credits</th>
@@ -170,14 +209,14 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
             </tr>
           </thead>
           <tbody>
-            {claimed.length === 0 && (
+            {visible.length === 0 && (
               <tr>
                 <td colSpan={8} className="text-center text-base-content/60 py-8">
                   No cards claimed yet.
                 </td>
               </tr>
             )}
-            {claimed.map((card) => (
+            {visible.map((card) => (
               <tr key={card.id}>
                 <td className="whitespace-nowrap font-mono text-sm">{card.serial}</td>
                 <td className="whitespace-nowrap">
@@ -189,7 +228,7 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
                       href={`${explorerUrl}/address/${card.claimed_by}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-primary hover:underline"
+                      className="text-purple-primary dark:text-purple-secondary hover:underline"
                     >
                       {shortenAddress(card.claimed_by)}
                     </a>
@@ -197,21 +236,34 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
                 </td>
                 <td>${card.amount_usd}</td>
                 <td>{formatAmount(card.credits)}</td>
-                <td className="whitespace-nowrap" title={card.error ?? undefined}>
-                  <TxLink hash={card.tx_hash} label={statusLabel(card)} />
+                <td className="align-top">
+                  <span className="whitespace-nowrap">
+                    <TxLink hash={card.tx_hash} label={STATUS_LABELS[card.status] ?? card.status} />
+                  </span>
+                  {card.error && (
+                    <details className="mt-1 max-w-[260px] text-[12px] text-error-primary">
+                      <summary className="cursor-pointer">Error</summary>
+                      <p className="mt-1 break-words whitespace-pre-wrap">{card.error}</p>
+                    </details>
+                  )}
                 </td>
                 <td className="whitespace-nowrap">
-                  {card.drip_status === "none" ? "—" : <TxLink hash={card.drip_tx_hash} label={card.drip_status} />}
+                  {card.drip_status === "none" ? (
+                    "—"
+                  ) : (
+                    <TxLink hash={card.drip_tx_hash} label={STATUS_LABELS[card.drip_status] ?? card.drip_status} />
+                  )}
                 </td>
                 <td>
-                  {(card.status === "failed" || card.drip_status === "failed") && (
+                  {hasIssue(card) && (
                     <button
                       type="button"
-                      className="text-purple-primary hover:underline disabled:opacity-50"
-                      disabled={retryCard.isPending}
+                      className="text-purple-primary dark:text-purple-secondary hover:underline disabled:opacity-50"
+                      disabled={retrying}
+                      aria-label={`Retry card ${card.serial}`}
                       onClick={() => retryCard.mutate(card.id)}
                     >
-                      Retry
+                      {retryCard.isPending && retryCard.variables === card.id ? "Retrying…" : "Retry"}
                     </button>
                   )}
                 </td>
@@ -222,6 +274,89 @@ function CampaignCardsContent({ campaign, onClose }: { campaign: AdminCreditCamp
       </div>
       <div className="flex justify-end">
         <Button text="Close" type="button" variant="secondary" onClick={onClose} />
+      </div>
+    </div>
+  );
+}
+
+type PendingConfirm =
+  | { kind: "active"; campaign: AdminCreditCampaign; active: boolean }
+  | { kind: "export"; campaign: AdminCreditCampaign; format: "csv" | "zip" };
+
+function ConfirmActiveContent({
+  campaign,
+  active,
+  distributor,
+  onConfirm,
+  onClose,
+}: {
+  campaign: AdminCreditCampaign;
+  active: boolean;
+  distributor?: CreditsDistributor;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const unclaimedCards = campaign.card_count - campaign.claimed_count;
+  const { data: unclaimedCreditsWei } = useConvertToShares(
+    active && campaign.unclaimed_usd > 0 ? parseEther(String(campaign.unclaimed_usd)) : 0n,
+    gnosis.id,
+  );
+  const balance = distributor?.credits != null ? Number(distributor.credits) : null;
+  const owedAfter =
+    distributor?.owedCredits != null && unclaimedCreditsWei !== undefined
+      ? Number(distributor.owedCredits) + Number(formatEther(unclaimedCreditsWei))
+      : null;
+
+  return (
+    <div className="space-y-4">
+      {active ? (
+        <>
+          <p>
+            <strong>{unclaimedCards}</strong> unclaimed cards become claimable right away, worth up to{" "}
+            <strong>${formatAmount(campaign.unclaimed_usd)}</strong>. Only activate once the cards are handed out.
+          </p>
+          {balance !== null && owedAfter !== null && (
+            <Alert type={balance >= owedAfter ? "success" : "warning"} title="Distributor coverage">
+              {balance >= owedAfter
+                ? `The distributor holds ${formatAmount(balance)} credits and would owe ${formatAmount(owedAfter)} after activating.`
+                : `The distributor holds ${formatAmount(balance)} credits but would owe ${formatAmount(owedAfter)}. Claims past the balance are refused until you top it up with ${formatAmount(owedAfter - balance)} credits.`}
+            </Alert>
+          )}
+        </>
+      ) : (
+        <p>
+          The <strong>{unclaimedCards}</strong> unclaimed cards stop working right away: anyone scanning one sees
+          &ldquo;This card is not active yet&rdquo;. Cards already claimed keep delivering.
+        </p>
+      )}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button text="Cancel" type="button" variant="secondary" onClick={onClose} />
+        <Button text={active ? "Activate" : "Deactivate"} type="button" onClick={onConfirm} />
+      </div>
+    </div>
+  );
+}
+
+function ConfirmExportContent({
+  campaign,
+  format,
+  onConfirm,
+  onClose,
+}: {
+  campaign: AdminCreditCampaign;
+  format: "csv" | "zip";
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Alert type="warning" title="This file can claim every card">
+        It holds the claim link of all {campaign.card_count} cards. Anyone who gets it can claim every unclaimed card,
+        so send it only to the printer and delete your local copy afterwards.
+      </Alert>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button text="Cancel" type="button" variant="secondary" onClick={onClose} />
+        <Button text={format === "csv" ? "Download CSV" : "Download QR ZIP"} type="button" onClick={onConfirm} />
       </div>
     </div>
   );
@@ -242,13 +377,26 @@ function AdminCreditsPage() {
     openModal: openCardsModal,
     closeModal: closeCardsModal,
   } = useModal("credit-campaign-cards");
+  const {
+    Modal: ConfirmModal,
+    openModal: openConfirmModal,
+    closeModal: closeConfirmModal,
+  } = useModal("credit-campaign-confirm");
 
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [formTitle, setFormTitle] = useState("New campaign");
   const [formInitial, setFormInitial] = useState<CreditCampaignPayload>(emptyCreditCampaignForm);
   const [formKey, setFormKey] = useState(0);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
 
-  const openForm = (initial: CreditCampaignPayload) => {
+  const askConfirm = (confirm: PendingConfirm) => {
+    setPendingConfirm(confirm);
+    openConfirmModal();
+  };
+
+  const openForm = (initial: CreditCampaignPayload, title = "New campaign") => {
+    setFormTitle(title);
     setFormInitial(initial);
     setFormKey((key) => key + 1);
     openFormModal();
@@ -317,13 +465,49 @@ function AdminCreditsPage() {
     <div className="container-fluid py-12 space-y-6">
       <FormModal
         className="max-w-[560px]"
-        title="New campaign"
+        title={formTitle}
         content={<CreditCampaignFormContent key={formKey} initial={formInitial} onClose={closeFormModal} />}
       />
       <CardsModal
         className="max-w-[1000px]"
-        title={selectedCampaign?.name ?? "Campaign"}
+        title={selectedCampaign ? escapeHtml(selectedCampaign.name) : "Campaign"}
         content={selectedCampaign && <CampaignCardsContent campaign={selectedCampaign} onClose={closeCardsModal} />}
+      />
+      <ConfirmModal
+        className="max-w-[520px]"
+        title={
+          pendingConfirm
+            ? escapeHtml(
+                pendingConfirm.kind === "export"
+                  ? `Export ${pendingConfirm.campaign.name}?`
+                  : `${pendingConfirm.active ? "Activate" : "Deactivate"} ${pendingConfirm.campaign.name}?`,
+              )
+            : ""
+        }
+        content={
+          pendingConfirm?.kind === "active" ? (
+            <ConfirmActiveContent
+              campaign={pendingConfirm.campaign}
+              active={pendingConfirm.active}
+              distributor={data?.distributor}
+              onClose={closeConfirmModal}
+              onConfirm={() => {
+                setActive.mutate({ id: pendingConfirm.campaign.id, active: pendingConfirm.active });
+                closeConfirmModal();
+              }}
+            />
+          ) : pendingConfirm?.kind === "export" ? (
+            <ConfirmExportContent
+              campaign={pendingConfirm.campaign}
+              format={pendingConfirm.format}
+              onClose={closeConfirmModal}
+              onConfirm={() => {
+                exportCampaign(pendingConfirm.campaign, pendingConfirm.format);
+                closeConfirmModal();
+              }}
+            />
+          ) : null
+        }
       />
 
       <div className="flex items-center justify-between gap-4">
@@ -337,10 +521,10 @@ function AdminCreditsPage() {
         <table className="simple-table w-full">
           <thead>
             <tr>
-              <th>Created</th>
+              <th>Created (UTC)</th>
               <th>Name</th>
               <th>Range</th>
-              <th>Claimed</th>
+              <th>Claimed (UTC)</th>
               <th>Delivered</th>
               <th>
                 <span className="inline-flex items-center gap-1">
@@ -402,45 +586,49 @@ function AdminCreditsPage() {
                 </td>
                 <td>
                   <Toggle
+                    aria-label={`Active: ${campaign.name}`}
                     checked={campaign.active}
-                    disabled={setActive.isPending}
-                    onChange={(e) => setActive.mutate({ id: campaign.id, active: e.target.checked })}
+                    disabled={setActive.isPending && setActive.variables?.id === campaign.id}
+                    onChange={(e) => askConfirm({ kind: "active", campaign, active: e.target.checked })}
                   />
                 </td>
                 <td className="whitespace-nowrap space-x-3">
                   <button
                     type="button"
-                    className="text-purple-primary hover:underline"
+                    className="text-purple-primary dark:text-purple-secondary hover:underline"
                     onClick={() => openCards(campaign)}
                   >
                     Claims
                   </button>
                   <button
                     type="button"
-                    className="text-purple-primary hover:underline disabled:opacity-50"
+                    className="text-purple-primary dark:text-purple-secondary hover:underline disabled:opacity-50"
                     disabled={exporting !== null}
-                    onClick={() => exportCampaign(campaign, "csv")}
+                    onClick={() => askConfirm({ kind: "export", campaign, format: "csv" })}
                   >
                     {exporting === `${campaign.id}-csv` ? "Exporting…" : "CSV"}
                   </button>
                   <button
                     type="button"
-                    className="text-purple-primary hover:underline disabled:opacity-50"
+                    className="text-purple-primary dark:text-purple-secondary hover:underline disabled:opacity-50"
                     disabled={exporting !== null}
-                    onClick={() => exportCampaign(campaign, "zip")}
+                    onClick={() => askConfirm({ kind: "export", campaign, format: "zip" })}
                   >
                     {exporting === `${campaign.id}-zip` ? "Exporting…" : "QR ZIP"}
                   </button>
                   <button
                     type="button"
-                    className="text-purple-primary hover:underline"
+                    className="text-purple-primary dark:text-purple-secondary hover:underline"
                     onClick={() =>
-                      openForm({
-                        name: `${campaign.name} (copy)`,
-                        cardCount: campaign.card_count,
-                        minUsd: campaign.min_usd,
-                        maxUsd: campaign.max_usd,
-                      })
+                      openForm(
+                        {
+                          name: `${campaign.name} (copy)`,
+                          cardCount: campaign.card_count,
+                          minUsd: campaign.min_usd,
+                          maxUsd: campaign.max_usd,
+                        },
+                        "Duplicate campaign",
+                      )
                     }
                   >
                     Duplicate

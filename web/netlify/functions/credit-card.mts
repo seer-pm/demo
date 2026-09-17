@@ -7,13 +7,15 @@ function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
+type CampaignSummary = { active: boolean; name: string; min_usd: number; max_usd: number };
+
 type CardWithCampaign = CreditCardRow & {
-  credit_campaigns: { active: boolean } | { active: boolean }[] | null;
+  credit_campaigns: CampaignSummary | CampaignSummary[] | null;
 };
 
 /**
- * Public status of a card, keyed by its secret code. Before the claim it only says whether the card can be
- * claimed; the amount stays hidden until then. After the claim it reports delivery, settling any tx that
+ * Public status of a card, keyed by its secret code. Before the claim it says whether the card can be claimed,
+ * plus its serial and campaign range; the amount stays hidden until then. After the claim it reports delivery, settling any tx that
  * already has a receipt so the claim page does not wait for the next sweep.
  */
 export default async (req: Request) => {
@@ -32,7 +34,7 @@ export default async (req: Request) => {
 
     const { data: row, error } = await supabase
       .from("credit_cards")
-      .select("*, credit_campaigns!inner(active)")
+      .select("*, credit_campaigns!inner(active, name, min_usd, max_usd)")
       .eq("code", code)
       .maybeSingle<CardWithCampaign>();
     if (error) {
@@ -43,9 +45,16 @@ export default async (req: Request) => {
     }
 
     const { credit_campaigns: campaigns, ...card } = row;
+    const campaign = Array.isArray(campaigns) ? campaigns[0] : campaigns;
+    const campaignInfo = { serial: card.serial, campaignName: campaign?.name ?? null };
     if (card.status === "unclaimed") {
-      const campaign = Array.isArray(campaigns) ? campaigns[0] : campaigns;
-      return json({ state: campaign?.active ? "valid" : "inactive" }, 200);
+      return json(
+        {
+          state: campaign?.active ? "valid" : "inactive",
+          card: { ...campaignInfo, minUsd: campaign?.min_usd ?? null, maxUsd: campaign?.max_usd ?? null },
+        },
+        200,
+      );
     }
 
     let current: CreditCardRow = card;
@@ -57,7 +66,7 @@ export default async (req: Request) => {
       }
     }
 
-    return json({ state: "claimed", data: serializeClaimedCard(current) }, 200);
+    return json({ state: "claimed", data: { ...serializeClaimedCard(current), ...campaignInfo } }, 200);
   } catch (error) {
     console.error("credit-card error:", error);
     return json({ error: "Internal server error" }, 500);
