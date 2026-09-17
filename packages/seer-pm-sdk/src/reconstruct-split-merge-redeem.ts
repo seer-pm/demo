@@ -11,7 +11,26 @@ export type ReconstructSplitMergeRedeemOptions = {
   identifySwaps?: boolean;
   /** Overrides CREATE2-derived pools (tests / non-standard factory). */
   poolAddresses?: Address[];
+  /**
+   * `(transaction, pool)` pairs the DEX reports a liquidity mint or burn for, from
+   * `liquidityPoolTxKey`.
+   *
+   * A transfer between a wallet and a pool is a trade unless the wallet was moving liquidity, and
+   * the transfers look identical either way: opening a position sends outcome tokens to the pool
+   * exactly as selling does, except that the wallet keeps them through the position. The collateral
+   * leg would settle it, but the Seer indexer only records primary collateral moving with one of its
+   * own routers, so an AMM trade's cash side is not in `tokens_transfers` at all.
+   *
+   * Left undefined when no DEX data is available, and then every pool leg is read as a trade, which
+   * is the labelling this reconstruction gives on its own.
+   */
+  liquidityPoolTxKeys?: ReadonlySet<string>;
 };
+
+/** Key for `liquidityPoolTxKeys`, lowercased so a checksummed pool and a raw log hash both match. */
+export function liquidityPoolTxKey(transactionHash: string, pool: string): string {
+  return `${transactionHash.toLowerCase()}:${pool.toLowerCase()}`;
+}
 
 /** Unique wallet on router↔user legs for this tx (same address on all such legs). */
 function inferTradeCounterparty(
@@ -64,6 +83,7 @@ export function reconstructSplitMergeRedeemFromTransfers(
 ): TransactionData[] {
   const chainId = market.chainId as SupportedChain;
   const identifySwaps = options?.identifySwaps === true;
+  const liquidityPoolTxKeys = options?.liquidityPoolTxKeys;
 
   const routers = getRouterAddresses(chainId);
   if (routers.length === 0) {
@@ -208,8 +228,26 @@ export function reconstructSplitMergeRedeemFromTransfers(
         continue;
       }
 
-      const legType: "bought" | "sold" = poolHas(row.from) ? "bought" : "sold";
-      const trader = poolHas(row.from) ? row.to : row.from;
+      const fromIsPool = poolHas(row.from);
+      // Neither side a pool is not a trade at all: a wallet to wallet move, or a wrap leg against the
+      // zero address. Both sides a pool is an intermediate hop, already counted on each of them.
+      if (fromIsPool === poolHas(row.to)) {
+        continue;
+      }
+
+      const trader = fromIsPool ? row.to : row.from;
+      if (isAddressEqual(trader, zeroAddress)) {
+        continue;
+      }
+
+      const isLiquidity = liquidityPoolTxKeys?.has(liquidityPoolTxKey(txHash, fromIsPool ? row.from : row.to)) === true;
+      const legType: "bought" | "sold" | "lp" | "lp-burn" = isLiquidity
+        ? fromIsPool
+          ? "lp-burn"
+          : "lp"
+        : fromIsPool
+          ? "bought"
+          : "sold";
 
       events.push({
         marketName: market.marketName,

@@ -223,4 +223,16 @@ describe("fetchLiquidityEventsForBatch", () => {
     const events = await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request);
     expect(events).toEqual([]);
   });
+
+  it("bounds the crawl when a minimum timestamp is given", async () => {
+    const { request, queries } = fakeSubgraph([[]]);
+    await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request, undefined, 1_700_000_000.4);
+    expect(queries[0]).toContain('timestamp_gte: "1700000000"');
+  });
+
+  it("omits the timestamp filter when the caller wants the whole history", async () => {
+    const { request, queries } = fakeSubgraph([[]]);
+    await fetchLiquidityEventsForBatch("mints", "http://subgraph", PAIRS, request);
+    expect(queries[0]).not.toContain("timestamp_gte");
+  });
 });

@@ -36,6 +36,10 @@ function activityTypeLabel(type: TransactionData["type"]): string {
       return "Bought";
     case "sold":
       return "Sold";
+    case "lp":
+      return "Added liquidity";
+    case "lp-burn":
+      return "Removed liquidity";
     default:
       return type;
   }

@@ -117,6 +117,7 @@ export async function fetchLiquidityEventsForBatch(
   tokenPairs: Token0Token1[],
   request: SubgraphRequest = subgraphRequest,
   origins?: Address[],
+  minTimestamp?: number,
 ): Promise<LiquidityEvent[]> {
   const orFilter = tokenPairs
     .map((tokenPair) => `{token0: "${tokenPair.token0}", token1: "${tokenPair.token1}"}`)
@@ -126,6 +127,9 @@ export async function fetchLiquidityEventsForBatch(
   const originFilter = origins?.length
     ? `,{origin_in: [${origins.map((origin) => `"${origin.toLowerCase()}"`).join(",")}]}`
     : "";
+  // A caller that only needs to recognise recent events pays for a window instead of all of history;
+  // one that folds a position out of its whole event stream leaves this off and still gets it.
+  const timestampFilter = minTimestamp === undefined ? "" : `,{timestamp_gte: "${Math.floor(minTimestamp)}"}`;
   const allEvents: LiquidityEvent[] = [];
   let lastId: string | undefined;
   while (true) {
@@ -133,7 +137,7 @@ export async function fetchLiquidityEventsForBatch(
           ${entity}(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where:
             {
               and: [
-                { or: [${orFilter}] }${originFilter}${lastId ? `,{id_gt: "${lastId}"}` : ""}
+                { or: [${orFilter}] }${originFilter}${timestampFilter}${lastId ? `,{id_gt: "${lastId}"}` : ""}
               ]
             }) {
             id
@@ -173,13 +177,16 @@ async function fetchLiquidityEvents(
   chainId: SupportedChain,
   tokenPairs: Token0Token1[],
   origins?: Address[],
+  minTimestamp?: number,
 ): Promise<LiquidityEvent[]> {
   const url = getLiquiditySubgraphUrl(chainId);
   const type = entity === "mints" ? "mint" : "burn";
   const limit = pLimit(SUBGRAPH_CONCURRENCY);
   const batches = chunkArray(tokenPairs, PAIR_BATCH_SIZE);
   const results = await Promise.all(
-    batches.map((batch) => limit(() => fetchLiquidityEventsForBatch(entity, url, batch, subgraphRequest, origins))),
+    batches.map((batch) =>
+      limit(() => fetchLiquidityEventsForBatch(entity, url, batch, subgraphRequest, origins, minTimestamp)),
+    ),
   );
   return results.flat().map((event) => ({ ...event, type }));
 }
@@ -192,6 +199,7 @@ export async function getAllLiquidityEvents(
     collateralToken: Address;
   }[],
   origins?: Address[],
+  minTimestamp?: number,
 ) {
   // Canonicalize (token0/token1) and dedupe: each outcome token has a single pool with its
   // collateral, but conditional markets can repeat collaterals, so drop duplicate pools.
@@ -206,8 +214,8 @@ export async function getAllLiquidityEvents(
     sortedTokenPairs.push(pair);
   }
   const [mints, burns] = await Promise.all([
-    fetchLiquidityEvents("mints", chainId, sortedTokenPairs, origins),
-    fetchLiquidityEvents("burns", chainId, sortedTokenPairs, origins),
+    fetchLiquidityEvents("mints", chainId, sortedTokenPairs, origins, minTimestamp),
+    fetchLiquidityEvents("burns", chainId, sortedTokenPairs, origins, minTimestamp),
   ]);
   return mints.concat(burns);
 }

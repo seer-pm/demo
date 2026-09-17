@@ -1,9 +1,10 @@
 import type { Market, SupportedChain, TokenTransfer, TransactionData } from "@seer-pm/sdk";
-import { reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
+import { getComputedPoolAddressesForMarket, reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
 import { createClient } from "@supabase/supabase-js";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import { tokensTransfersRowToTransfer } from "./utils/airdropCalculation/getAllTransfers";
+import { fetchMarketLiquidityPoolTxKeys } from "./utils/marketLiquidityEvents";
 import { getMarketLiquidityHoldersCached, mergeTokenHolders } from "./utils/marketLiquidityHolders";
 import { getMarketByChainAndId } from "./utils/markets";
 import { parseCollateralProfileQueryParam } from "./utils/resolveCollateralParam";
@@ -232,12 +233,33 @@ export default async (req: Request) => {
 
     let recentActivity: TransactionData[] = [];
     if (market && mergedWithPrimary) {
+      // The LP crawl asks the DEX subgraph which pools exist, so it covers fee tiers and factories
+      // the CREATE2 derivation inside the SDK cannot. That derivation stays the fallback, for a
+      // market whose crawl failed and for the chains whose subgraph has no pool data at all.
+      const poolAddresses = liquidity?.poolAddresses?.length
+        ? (liquidity.poolAddresses as Address[])
+        : getComputedPoolAddressesForMarket(market);
+      // Only as far back as the rows being classified. A market's whole event history is a crawl of
+      // its own, and every transaction outside this window is one no row can be keyed against.
+      const windowStart = mergedWithPrimary.reduce(
+        (earliest, transfer) => Math.min(earliest, Number(transfer.timestamp)),
+        Number.POSITIVE_INFINITY,
+      );
+      // A subgraph failure costs the trade / liquidity distinction, not the feed: without the keys
+      // every pool leg reads as a trade, which is the labelling this endpoint served before.
+      const liquidityPoolTxKeys = Number.isFinite(windowStart)
+        ? await fetchMarketLiquidityPoolTxKeys(market, windowStart).catch((e) => {
+            console.error("get-token-transactions: liquidity events", e);
+            return undefined;
+          })
+        : undefined;
+
       try {
         recentActivity = reconstructSplitMergeRedeemFromTransfers(
           mergedWithPrimary,
           market,
           collateralResolved.primaryCollateral,
-          { identifySwaps: true },
+          { identifySwaps: true, poolAddresses, liquidityPoolTxKeys },
         );
       } catch (e) {
         console.error("get-token-transactions: recentActivity", e);

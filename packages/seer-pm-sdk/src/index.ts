@@ -352,6 +352,7 @@ export type {
 } from "./portfolio-types";
 export {
   reconstructSplitMergeRedeemFromTransfers,
+  liquidityPoolTxKey,
   type ReconstructSplitMergeRedeemOptions,
 } from "./reconstruct-split-merge-redeem";
 export { getMappings, type MarketDataMapping } from "./get-mappings";
