@@ -6478,6 +6478,7 @@ __metadata:
     "@tanstack/react-virtual": "npm:^3.11.1"
     "@types/jsonwebtoken": "npm:^9.0.7"
     "@types/lodash.debounce": "npm:^4.0.9"
+    "@types/qrcode": "npm:^1.5.5"
     "@types/react": "npm:^18.2.22"
     "@types/react-dom": "npm:^18.2.7"
     "@types/slug": "npm:^5.0.9"
@@ -6498,6 +6499,7 @@ __metadata:
     echarts-for-react: "npm:^3.0.2"
     ethers: "npm:^5.7.2"
     express: "npm:^4.21.1"
+    fflate: "npm:^0.8.2"
     graphql-combine-query: "https://github.com/xyzseer/graphql-combine-query#ab552af27b3badb975f7dcad88b140bdb017a6fe"
     isomorphic-fetch: "npm:^3.0.0"
     jsonwebtoken: "npm:^9.0.2"
@@ -6510,6 +6512,7 @@ __metadata:
     p-limit: "npm:^6.1.0"
     postcss: "npm:^8.4.33"
     postmark: "npm:^4.0.5"
+    qrcode: "npm:^1.5.4"
     react: "npm:^18.2.0"
     react-cosmos: "npm:^6.1.0"
     react-cosmos-plugin-vite: "npm:^6.1.0"
@@ -7737,6 +7740,15 @@ __metadata:
   version: 15.7.15
   resolution: "@types/prop-types@npm:15.7.15"
   checksum: 10c0/b59aad1ad19bf1733cf524fd4e618196c6c7690f48ee70a327eb450a42aab8e8a063fbe59ca0a5701aebe2d92d582292c0fb845ea57474f6a15f6994b0e260b2
+  languageName: node
+  linkType: hard
+
+"@types/qrcode@npm:^1.5.5":
+  version: 1.5.6
+  resolution: "@types/qrcode@npm:1.5.6"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/84844ca63e5f32bc47d44dda0f8a6f7cdcc7ce44e7b24f10f19d50796f31d12c058f702a8f7d352c9e82a023a9abc36fa1ad01ddf0a209dd8ed4562ea76481fc
   languageName: node
   linkType: hard
 
@@ -12891,6 +12903,13 @@ __metadata:
     node-domexception: "npm:^1.0.0"
     web-streams-polyfill: "npm:^3.0.3"
   checksum: 10c0/60054bf47bfa10fb0ba6cb7742acec2f37c1f56344f79a70bb8b1c48d77675927c720ff3191fa546410a0442c998d27ab05e9144c32d530d8a52fbe68f843b69
+  languageName: node
+  linkType: hard
+
+"fflate@npm:^0.8.2":
+  version: 0.8.3
+  resolution: "fflate@npm:0.8.3"
+  checksum: 10c0/eab181ca37f5348ae76d4b6f840e0026e30220e33153289ac942222d8b9638237d486507dbcc09878d724095bd354993a2ee48bbee99c8f2c6440d4448719aa7
   languageName: node
   linkType: hard
 

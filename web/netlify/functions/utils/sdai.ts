@@ -23,6 +23,25 @@ const SDAI_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "assets",
+        type: "uint256",
+      },
+    ],
+    name: "convertToShares",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 export async function convertFromSDAI(chainId: SupportedChain, amount: bigint) {
@@ -31,6 +50,16 @@ export async function convertFromSDAI(chainId: SupportedChain, amount: bigint) {
     address: getDefaultCollateralProfile(chainId).primary.address,
     abi: SDAI_ABI,
     functionName: "convertToAssets",
+    args: [amount],
+  });
+}
+
+export async function convertToSDAI(chainId: SupportedChain, amount: bigint) {
+  const publicClient = getPublicClientByChainId(chainId);
+  return readContract(publicClient, {
+    address: getDefaultCollateralProfile(chainId).primary.address,
+    abi: SDAI_ABI,
+    functionName: "convertToShares",
     args: [amount],
   });
 }
