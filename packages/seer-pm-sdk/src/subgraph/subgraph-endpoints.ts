@@ -28,13 +28,17 @@ export const SUBGRAPHS = {
     [CHAIN_IDS.mainnet]: "https://indexer.hyperindex.xyz/1a2f51c/v1/graphql",
     [CHAIN_IDS.sepolia]: `https://gateway-arbitrum.network.thegraph.com/api/${api}/subgraphs/id/EzUnTuz6RNJ5xD2LJXJb4VNpUZKLVRsF5bY8G4XazrE4`,
   },
+  // `latest` rather than a pinned version: Goldsky resolves the tag, so cutting a redeployed
+  // subgraph over is `goldsky subgraph tag create <name>/<version> --tag latest` and rolling back is
+  // the same command aimed at the old one. A new version can then finish indexing and be audited by
+  // its pinned version while this keeps serving the one in production.
   algebra: {
     [CHAIN_IDS.gnosis]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/3.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra/latest/gn",
   },
   algebrafarming: {
     [CHAIN_IDS.gnosis]:
-      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/2.0.0/gn",
+      "https://api.goldsky.com/api/public/project_cmair7jgkzena01x58241cqow/subgraphs/swapr-algebra-farming/latest/gn",
   },
   uniswap: {
     [CHAIN_IDS.mainnet]: `https://gateway.thegraph.com/api/${api}/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV`,

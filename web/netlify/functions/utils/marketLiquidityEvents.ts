@@ -14,12 +14,11 @@ import { getAllLiquidityEvents } from "./airdropCalculation/getLiquidityBalances
  * of its own routers, so an AMM trade's cash side never reaches `tokens_transfers`.
  *
  * Mints and burns rather than the swaps, even though swaps are the larger and simpler set to ask
- * for. A subgraph of this family gives an event the id `<txHash>#<pool.txCount>`, so two pools that
- * share a `txCount` within one transaction write the same id and one silently overwrites the other.
- * A route across a market's outcome pools does exactly that: one such transaction on Gnosis emits 17
- * `Swap` logs on chain and leaves 11 `Swap` entities behind. Asking which transactions were *not*
- * trades therefore fails safe, because a dropped event leaves a liquidity move reading as the trade
- * it already reads as, where a dropped swap would have turned a real trade into a deposit.
+ * for. Asking which transactions were *not* trades fails safe: a liquidity event this misses leaves
+ * a deposit reading as the trade it already reads as, where a swap it missed would have turned a
+ * real trade into a deposit. That margin is worth having, because the v3 subgraphs behind Optimism,
+ * Base and mainnet key an event on `<txHash>#<pool.txCount>` and so lose one whenever two pools of a
+ * transaction sit at the same count, which a route across a market's outcome pools does routinely.
  *
  * Keyed per pool, not per transaction, so a deposit is not relabelled by a trade on another of the
  * market's pools in the same transaction.
