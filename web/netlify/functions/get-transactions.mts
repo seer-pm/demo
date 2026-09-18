@@ -367,12 +367,12 @@ export default async (req: Request) => {
     // — but freshness must be judged over the whole set, or a wallet that only trades through its
     // executor never invalidates its own cache.
     const identity = await resolvePortfolioIdentity(account);
-    // `:v4` marks the untruncated market scan. Blobs written before it were built from a market set
-    // capped at 50 transfer pages, so a busy wallet may be missing its most recent markets and every
-    // swap in them, and freshness is a timestamp comparison: without this they read as fresh and
-    // serve the truncated view for a further TTL. `:v3` did the same for the widened CTF ownership,
-    // `:v2` for the executor-merged payload format.
-    const cacheKey = `${account.toLowerCase()}:v4`;
+    // `:v5` marks history read from a subgraph that no longer drops events on a colliding id. A
+    // blob written before it is missing about a third of its multi-pool swaps, and freshness here is
+    // a timestamp comparison over an append-only history: without the bump those blobs read as fresh
+    // and serve the short view for a further TTL. `:v4` did the same for the untruncated market
+    // scan, `:v3` for the widened CTF ownership, `:v2` for the executor-merged payload format.
+    const cacheKey = `${account.toLowerCase()}:v5`;
     const cached = await readJsonBlob<TransactionsCachePayload>(PORTFOLIO_TRANSACTIONS_STORE, cacheKey);
     let lastActivityTs: number | undefined;
     try {
