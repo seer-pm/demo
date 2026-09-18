@@ -9,8 +9,9 @@ import type { PortfolioPosition } from "@seer-pm/sdk";
  * already prices the row on the total, so every aggregate over the same rows has to agree with it or
  * the value card contradicts the positions tab it sits above.
  *
- * `lpTokenBalance` is absent on rows built without an LP source (the whole P/L path, and blobs
- * written before it existed), where it reads as zero and this is the balance it always was.
+ * The P/L path fills it too, at both ends of every window (`portfolioPlLiquidity.ts`). It is absent
+ * on rows built without an LP source, and on blobs written before it existed, where it reads as zero
+ * and this is the balance it always was.
  */
 export function positionTotalBalance(position: PortfolioPosition): number {
   return position.tokenBalance + (position.lpTokenBalance ?? 0);

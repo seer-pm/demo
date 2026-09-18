@@ -171,3 +171,18 @@ describe("refreshMarketMtm", () => {
     expect(out.find((u) => u.period === "all")!.pnl).toBeCloseTo(9, 10);
   });
 });
+
+describe("refreshMarketMtm with LP value", () => {
+  it("adds the primary side of LP positions on top of the outcome holdings", () => {
+    const updates = refreshMarketMtm({
+      rows: [row()],
+      currentValueEndMtm: new Map([[key(), 0]]),
+      holdings: new Map([[WALLET, new Map([[YES, 10]])]]),
+      pricesByToken: { [YES]: 0.5 },
+      extraValueByWallet: new Map([[WALLET, 3]]),
+      collateralPriceUsd: 1,
+    });
+    expect(updates).toHaveLength(1);
+    expect(updates[0].valueEndMtm).toBeCloseTo(8, 9);
+  });
+});

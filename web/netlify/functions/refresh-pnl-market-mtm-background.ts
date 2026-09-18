@@ -1,13 +1,16 @@
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import type { SupportedChain } from "@seer-pm/sdk";
+import type { SupportedChain, Token } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE, getCollateralProfileByName } from "@seer-pm/sdk";
 import { getRedeemedPrice } from "@seer-pm/sdk/market";
+import type { Market } from "@seer-pm/sdk/market-types";
 import { createClient } from "@supabase/supabase-js";
-import type { Address } from "viem";
+import { type Address, formatUnits } from "viem";
 import { requireBackgroundSecret } from "./utils/backgroundAuth";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { fetchHoldersOfTokens } from "./utils/marketHoldings";
+import { getMarketsLiquidityLegs } from "./utils/marketLiquidityHolders";
 import {
+  type HoldingsByWallet,
   type MtmRefreshRow,
   effectivePricesByToken,
   outcomePriceTokensForChain,
@@ -17,7 +20,9 @@ import { loadMarketsWithAncestors, pricedMarketsRootFirst } from "./utils/market
 import { searchAllMarkets } from "./utils/markets";
 import { getCurrentOutcomePrices } from "./utils/onchainOutcomePrices";
 import { settledPayoutRatios } from "./utils/outcomePrices";
+import { liquidityHoldingsByOwner, primaryValueByMarket, sumValues } from "./utils/portfolioPlLiquidity";
 import type { Database } from "./utils/supabase";
+import { getTokenDecimals } from "./utils/tokenDecimals";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
@@ -137,6 +142,10 @@ export default async (req: Request) => {
       });
       const pricesByToken = effectivePricesByToken({ tokens, redeemedByToken, currentByToken });
       const holdings = await fetchHoldersOfTokens(supportedChain, tokens);
+      // LP positions are the wallet pass's `value_end_mtm` too (`portfolioPlLiquidity.ts`): their
+      // outcome side joins the holdings, their primary side is added as value. Leaving them out
+      // would undo it on every sweep, which is issue #494 again.
+      const lpValueByWallet = await addLiquidityHoldings(market, tokens, holdings, profile.primary);
 
       const { data: rows, error: rowsError } = await supabase
         .from("pnl_market_leaderboard")
@@ -173,6 +182,7 @@ export default async (req: Request) => {
         currentValueEndMtm: current,
         holdings,
         pricesByToken,
+        extraValueByWallet: lpValueByWallet,
         collateralPriceUsd,
         // A hundredth of a collateral unit: below that the write is not worth the churn.
         epsilon: 0.01,
@@ -245,6 +255,34 @@ export default async (req: Request) => {
   console.log("refresh-pnl-market-mtm: finished", JSON.stringify({ elapsedMs: Date.now() - startedAt, results }));
   return new Response(JSON.stringify({ results }), { headers: { "Content-Type": "application/json" } });
 };
+
+/**
+ * Folds what each wallet holds through LP positions in `market`'s pools into `holdings` (outcome
+ * side, human units) and returns the primary side per wallet, in primary units.
+ */
+async function addLiquidityHoldings(
+  market: Market,
+  tokens: Address[],
+  holdings: HoldingsByWallet,
+  primary: Token,
+): Promise<Map<string, number>> {
+  const { legs } = await getMarketsLiquidityLegs([market]);
+  const outcomeTokenToMarket = new Map(tokens.map((token) => [token.toLowerCase(), market.id.toLowerCase()]));
+  const decimals = getTokenDecimals(market.chainId as SupportedChain, tokens);
+  const primaryByWallet = new Map<string, number>();
+
+  for (const [owner, lp] of liquidityHoldingsByOwner(legs, outcomeTokenToMarket, primary.address)) {
+    const walletHoldings = holdings.get(owner) ?? new Map<string, number>();
+    for (const [token, raw] of lp.outcomeRawByToken) {
+      const amount = Number(formatUnits(raw, decimals[token] ?? 18));
+      walletHoldings.set(token, (walletHoldings.get(token) ?? 0) + amount);
+    }
+    if (walletHoldings.size > 0) holdings.set(owner, walletHoldings);
+    const primaryValue = sumValues(primaryValueByMarket(lp, primary.decimals));
+    if (primaryValue > 0) primaryByWallet.set(owner, primaryValue);
+  }
+  return primaryByWallet;
+}
 
 /** One cursor row per chain, alongside the wallet pass's `id='default'` row. */
 const scanCursorId = (chainId: number) => `mtm-scan:${chainId}`;

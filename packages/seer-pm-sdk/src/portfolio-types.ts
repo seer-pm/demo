@@ -134,4 +134,10 @@ export interface TransactionData {
   token1Symbol?: string;
   amount0?: string;
   amount1?: string;
+  /** LP rows only: the pool and tick range the liquidity went into or came out of. */
+  poolId?: string;
+  tickLower?: number;
+  tickUpper?: number;
+  /** LP rows only: raw liquidity `L` minted or burned, as a string. */
+  liquidity?: string;
 }

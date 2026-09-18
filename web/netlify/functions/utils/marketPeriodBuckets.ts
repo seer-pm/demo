@@ -16,7 +16,10 @@ import {
 /** One market's contribution to a wallet's P/L in one period window. */
 export type MarketPeriodBucket = {
   marketId: string;
-  /** Outcome-token mark-to-market at each end of the window. */
+  /**
+   * Outcome-token mark-to-market at each end of the window, LP positions included: their outcome
+   * side at the token price, their primary side at 1 (see `portfolioPlLiquidity.ts`).
+   */
   valueStartMtm: number;
   valueEndMtm: number;
   /** Cumulative primary collateral from the router, at each end of the window. */
@@ -61,6 +64,9 @@ export type MarketPeriodBucket = {
 export function buildMarketPeriodBuckets(args: {
   positions: PortfolioPosition[];
   positionsAtStartByPeriod: Record<PortfolioPlPeriod, PortfolioPosition[]>;
+  /** Primary collateral held through LP positions, per market, now and at each window start. */
+  lpPrimaryEndByMarket: Map<string, number>;
+  lpPrimaryStartByPeriod: Record<PortfolioPlPeriod, Map<string, number>>;
   historyPrices: Record<PortfolioPlPeriod, Record<string, number | undefined>>;
   swapFlow: ReturnType<typeof computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents> | null;
   /** Raw swaps, needed to walk the capital balance over time rather than only its window total. */
@@ -74,6 +80,8 @@ export function buildMarketPeriodBuckets(args: {
   const {
     positions,
     positionsAtStartByPeriod,
+    lpPrimaryEndByMarket,
+    lpPrimaryStartByPeriod,
     historyPrices,
     swapFlow,
     swaps,
@@ -87,7 +95,7 @@ export function buildMarketPeriodBuckets(args: {
   const decimals = primaryCollateral.decimals;
   const human = (weiValue: bigint) => Number(formatUnits(weiValue, decimals));
 
-  const mtmEndByMarket = groupPortfolioValueCurrentByMarket(positions);
+  const mtmEndByMarket = addByMarket(groupPortfolioValueCurrentByMarket(positions), lpPrimaryEndByMarket);
 
   // Sample the router cumulative at every window start and at the window end, from one sweep.
   const sampleTimes = [...PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]), endTime];
@@ -111,10 +119,9 @@ export function buildMarketPeriodBuckets(args: {
   for (const period of PORTFOLIO_PL_PERIODS) {
     const startTime = startTimeByPeriod[period];
 
-    const mtmStartByMarket = groupPortfolioValueAtReferenceByMarket(
-      positionsAtStartByPeriod[period],
-      historyPrices[period],
-      startTime,
+    const mtmStartByMarket = addByMarket(
+      groupPortfolioValueAtReferenceByMarket(positionsAtStartByPeriod[period], historyPrices[period], startTime),
+      lpPrimaryStartByPeriod[period],
     );
     const peakCapitalByMarket = peakCapitalDeployedByMarket({
       swaps,
@@ -234,5 +241,13 @@ export function mergeMarketPeriodBuckets(
     out[period] = [...byMarket.values()];
   }
 
+  return out;
+}
+
+function addByMarket(base: Map<string, number>, extra: Map<string, number>): Map<string, number> {
+  const out = new Map(base);
+  for (const [marketId, value] of extra) {
+    out.set(marketId, (out.get(marketId) ?? 0) + value);
+  }
   return out;
 }

@@ -4,9 +4,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, zeroAddress } from "viem";
 import { buildPortfolioPositionsFromBalances, outcomePriceInputsForPositions } from "./buildPortfolioPositions";
 import { getPublicClientByChainId } from "./config";
+import { supportsLiquidityAttribution } from "./dexLiquidityPositions";
 import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
 import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
 import { getMappingsCached } from "./mappingsCache";
+import {
+  type LpTokenHolding,
+  legsFromLiquidityEvents,
+  preloadWalletLiquidityLegs,
+  tokensFromLiquidityLegs,
+} from "./marketLiquidityHolders";
 import { type MarketPeriodBucket, buildMarketPeriodBuckets } from "./marketPeriodBuckets";
 import { getMarketsMappings, searchAllMarkets } from "./markets";
 import {
@@ -14,7 +21,15 @@ import {
   computeNetPrimaryCollateralSwapFlowForPeriodsFromEvents,
 } from "./netPrimaryCollateralSwapFlow";
 import { settledPayoutRatios } from "./outcomePrices";
-import { sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
+import {
+  type PlLiquidityLeg,
+  liquidityHoldingsAt,
+  liquidityLegsAt,
+  poolSqrtPricesAt,
+  primaryValueByMarket,
+  sumValues,
+} from "./portfolioPlLiquidity";
+import { positionTotalBalance, sumPortfolioValueAtReference, sumPortfolioValueCurrent } from "./portfolioValuation";
 import {
   type ConditionalEventRow,
   PORTFOLIO_PL_PERIODS,
@@ -100,7 +115,7 @@ function positionRowValueAtReference(
   if (p.marketFinalizeTs < referenceTimeSeconds) {
     tokenPrice = p.redeemedPrice || tokenPrice;
   }
-  return tokenPrice * p.tokenBalance;
+  return tokenPrice * positionTotalBalance(p);
 }
 
 /**
@@ -137,55 +152,107 @@ function searchGenericMarkets(
   return searchAllMarkets({ ...args, type: "Generic" });
 }
 
+type MarketsAndPositions = {
+  markets: Market[];
+  positions: PortfolioPosition[];
+  /** The wallet's LP positions now, for rolling back to each window start. */
+  lpLegs: PlLiquidityLeg[];
+  /** Outcome token -> market id, over `markets`: what an LP side has to be to count. */
+  outcomeTokenToMarket: Map<string, string>;
+  /** Primary collateral sitting in the wallet's LP positions now, per market, in primary units. */
+  lpPrimaryEndByMarket: Map<string, number>;
+};
+
 async function getMarketsAndPositions(
   chainId: SupportedChain,
+  account: Address,
   marketIds: Address[] | undefined,
   collateralProfile: string,
+  primaryCollateral: Token,
   holdings: Map<string, bigint>,
   historicalMarketIds: Address[],
-): Promise<{ markets: Market[]; positions: PortfolioPosition[] } | null> {
+): Promise<MarketsAndPositions | null> {
+  // Owner-keyed where the subgraph has a `Position` entity, so it needs no market list and its
+  // tokens can seed the lookup below. Not caught: valuing a wallet without its LP is the bug this
+  // exists to fix, so an outage fails the compute rather than silently reintroducing it.
+  const preloadedLegs = await preloadWalletLiquidityLegs(chainId, [account]);
+
+  let markets: Market[] = [];
+  let relevantTokens: Address[];
   if (marketIds?.length) {
-    const { markets } = await searchGenericMarkets({
+    const { markets: scoped } = await searchGenericMarkets({
       chainIds: [chainId],
       marketIds: marketIds.map((id) => id.toLowerCase()),
       collateralProfile,
     });
-    if (markets.length === 0) return null;
-    const relevantTokens = [
+    if (scoped.length === 0) return null;
+    markets = scoped;
+    relevantTokens = [
       ...new Set(markets.flatMap((m) => (m.wrappedTokens ?? []).map((w) => String(w).toLowerCase()))),
     ] as Address[];
-    const positions = await buildPortfolioPositionsFromBalances(chainId, markets, relevantTokens, holdings);
-    return { markets, positions };
-  }
-
-  const distinctTokens = [...holdings.keys()] as Address[];
-  let markets: Market[] = [];
-  if (distinctTokens.length > 0) {
-    const { markets: loaded } = await searchGenericMarkets({
-      chainIds: [chainId],
-      tokens: distinctTokens,
-      collateralProfile,
-    });
-    markets = loaded;
-  }
-
-  // Holdings can be empty after full exit; still load markets touched by historical transfers
-  // so swap/LP cashflow is not zeroed by an empty market list.
-  if (historicalMarketIds.length > 0) {
-    const have = new Set(markets.map((m) => m.id.toLowerCase()));
-    const missing = historicalMarketIds.filter((id) => !have.has(id.toLowerCase()));
-    if (missing.length > 0) {
-      const { markets: hist } = await searchGenericMarkets({
+  } else {
+    // Liquidity-only outcome tokens join the lookup: a wallet whose whole position sits in a pool
+    // may have no balance row for it.
+    const distinctTokens = [
+      ...new Set([...holdings.keys(), ...tokensFromLiquidityLegs(preloadedLegs ?? [])]),
+    ] as Address[];
+    if (distinctTokens.length > 0) {
+      const { markets: loaded } = await searchGenericMarkets({
         chainIds: [chainId],
-        marketIds: missing.map((id) => id.toLowerCase()),
+        tokens: distinctTokens,
         collateralProfile,
       });
-      markets = [...markets, ...hist];
+      markets = loaded;
+    }
+
+    // Holdings can be empty after full exit; still load markets touched by historical transfers
+    // so swap/LP cashflow is not zeroed by an empty market list.
+    if (historicalMarketIds.length > 0) {
+      const have = new Set(markets.map((m) => m.id.toLowerCase()));
+      const missing = historicalMarketIds.filter((id) => !have.has(id.toLowerCase()));
+      if (missing.length > 0) {
+        const { markets: hist } = await searchGenericMarkets({
+          chainIds: [chainId],
+          marketIds: missing.map((id) => id.toLowerCase()),
+          collateralProfile,
+        });
+        markets = [...markets, ...hist];
+      }
+    }
+    relevantTokens = distinctTokens;
+  }
+
+  const outcomeTokenToMarket = new Map<string, string>();
+  for (const market of markets) {
+    for (const token of market.wrappedTokens ?? []) {
+      outcomeTokenToMarket.set(String(token).toLowerCase(), market.id.toLowerCase());
     }
   }
 
-  const positions = await buildPortfolioPositionsFromBalances(chainId, markets, distinctTokens, holdings);
-  return { markets, positions };
+  // Chains without the `Position` entity net the wallet's own mint/burn events instead.
+  const legs =
+    preloadedLegs ??
+    (supportsLiquidityAttribution(chainId) && markets.length > 0
+      ? await legsFromLiquidityEvents(chainId, markets, [account])
+      : []);
+  const lpNow = liquidityHoldingsAt(
+    legs,
+    new Map(legs.map((leg) => [leg.poolId, leg.sqrtPrice])),
+    outcomeTokenToMarket,
+    primaryCollateral.address,
+  );
+  const lpBalances = new Map<string, LpTokenHolding>(
+    [...lpNow.outcomeRawByToken].map(([token, amount]) => [token, { amount, legs: [] }]),
+  );
+
+  const positions = await buildPortfolioPositionsFromBalances(chainId, markets, relevantTokens, holdings, lpBalances);
+  return {
+    markets,
+    positions,
+    lpLegs: legs,
+    outcomeTokenToMarket,
+    lpPrimaryEndByMarket: primaryValueByMarket(lpNow, primaryCollateral.decimals),
+  };
 }
 
 async function computePositionsAtStartByPeriod(
@@ -193,6 +260,7 @@ async function computePositionsAtStartByPeriod(
   account: Address,
   chainId: SupportedChain,
   startTimeByPeriod: Record<PortfolioPlPeriod, number>,
+  lpOutcomeByPeriod: Record<PortfolioPlPeriod, Map<string, bigint>>,
 ): Promise<Record<PortfolioPlPeriod, PortfolioPosition[]>> {
   const empty: Record<PortfolioPlPeriod, PortfolioPosition[]> = { "1d": [], "1w": [], "1m": [], all: [] };
   if (positionsNow.length === 0) return empty;
@@ -204,7 +272,7 @@ async function computePositionsAtStartByPeriod(
   const out = {} as Record<PortfolioPlPeriod, PortfolioPosition[]>;
   for (const p of PORTFOLIO_PL_PERIODS) {
     const bal = balancesByStart.get(startTimeByPeriod[p]) ?? new Map();
-    out[p] = positionsWithBalances(positionsNow, bal, chainId);
+    out[p] = positionsWithBalances(positionsNow, bal, chainId, lpOutcomeByPeriod[p]);
   }
   return out;
 }
@@ -375,6 +443,14 @@ export type PortfolioPlComputed = {
  * - Start balances are **EOD snapshots** from `TokenBalanceDaily` at each period’s
  *   `startTime` (`fetchTokenBalancesAtEods`) — not “current minus transfers over the window”.
  *
+ * LP positions (both ends, issue #494)
+ * - Valued on top of balances, or adding liquidity reads as the deposit vanishing. Now: the
+ *   wallet's live positions (owner-keyed `Position`, staked ones via farming; mint/burn netting by
+ *   origin where the subgraph has no `Position`). At each start: those positions with the wallet's
+ *   in-window mints/burns rolled back, priced at the pool candle for that moment.
+ * - The outcome side goes onto the row (`lpTokenBalance`); the primary side is valued at 1 per
+ *   market, which is what `lpCollateralNetOut` pays for. See `portfolioPlLiquidity.ts`.
+ *
  * P/L formula
  * - `deltaV = valueEnd − valueStart`.
  * - `tradingCollateralNetOut`: net **primary collateral** spent on outcome swaps in
@@ -382,7 +458,8 @@ export type PortfolioPlComputed = {
  *   typical net cost of buying outcomes. Deliberately primary-only: on a conditional market both
  *   legs of a swap are positions inside the valued set, so `deltaV` already nets them.
  * - `lpCollateralNetOut`: net primary deposited into outcome/collateral LP pools
- *   (mint − burn) in the window. Positive = capital locked in LP.
+ *   (mint − burn) in the window. Positive = capital locked in LP. Offset by the primary side of
+ *   the LP positions, which `value*` includes, so a deposit or withdrawal alone nets to zero.
  * - `volume`: each swap's market-collateral leg valued in primary (primary on flat markets;
  *   parent outcome × 1/N on conditional ones).
  * - `marketCount`: distinct markets with a market-collateral swap leg in the window.
@@ -456,18 +533,22 @@ export async function computePortfolioPlAllPeriods(
         fetchMarketIdsFromAccountTransfers(account, chainId, endTime),
       );
   const marketsAndPositions = await timed(timings, "marketsAndPositions", () =>
-    getMarketsAndPositions(chainId, scopedMarketIds, collateralProfile, holdings, historicalMarketIds),
+    getMarketsAndPositions(
+      chainId,
+      account,
+      scopedMarketIds,
+      collateralProfile,
+      primaryCollateral,
+      holdings,
+      historicalMarketIds,
+    ),
   );
   if (!marketsAndPositions) {
     return null;
   }
 
-  const { markets, positions } = marketsAndPositions;
+  const { markets, positions, lpLegs, outcomeTokenToMarket, lpPrimaryEndByMarket } = marketsAndPositions;
   const startTimes = PORTFOLIO_PL_PERIODS.map((p) => startTimeByPeriod[p]);
-
-  const positionsAtStartByPeriod = await timed(timings, "eodBalances", () =>
-    computePositionsAtStartByPeriod(positions, account, chainId, startTimeByPeriod),
-  );
 
   // Chained through the parents, exactly like the current prices in `buildPortfolioPositionsCore`:
   // `valueStart` and `valueEnd` have to agree on what a conditional is quoted against, or the
@@ -550,6 +631,31 @@ export async function computePortfolioPlAllPeriods(
     }
   }
 
+  // LP positions at each window start: today's legs with the wallet's in-window mints and burns
+  // rolled back, priced at the pool's candle for that moment. The outcome side goes onto the start
+  // rows (`lpTokenBalance`), the primary side is valued per market — see `portfolioPlLiquidity.ts`.
+  const lpOutcomeStartByPeriod = {} as Record<PortfolioPlPeriod, Map<string, bigint>>;
+  const lpPrimaryStartByPeriod = {} as Record<PortfolioPlPeriod, Map<string, number>>;
+  const lpEvents = dexEvents ? [...dexEvents.mints, ...dexEvents.burns] : [];
+  await timed(timings, "lpAtStart", () =>
+    Promise.all(
+      PORTFOLIO_PL_PERIODS.map(async (p) => {
+        const legsAtStart = liquidityLegsAt(lpLegs, lpEvents, startTimeByPeriod[p], endTime);
+        const sqrtPrices =
+          legsAtStart.length > 0
+            ? await poolSqrtPricesAt(supabase, chainId, legsAtStart, startTimeByPeriod[p])
+            : new Map<string, bigint>();
+        const atStart = liquidityHoldingsAt(legsAtStart, sqrtPrices, outcomeTokenToMarket, primaryCollateral.address);
+        lpOutcomeStartByPeriod[p] = atStart.outcomeRawByToken;
+        lpPrimaryStartByPeriod[p] = primaryValueByMarket(atStart, primaryCollateral.decimals);
+      }),
+    ),
+  );
+
+  const positionsAtStartByPeriod = await timed(timings, "eodBalances", () =>
+    computePositionsAtStartByPeriod(positions, account, chainId, startTimeByPeriod, lpOutcomeStartByPeriod),
+  );
+
   const wantsMarketBreakdown = args.withMarketBreakdown === true;
   const wantsScopedEvents = (isMarketScoped || wantsMarketBreakdown) && markets.length > 0;
 
@@ -604,7 +710,8 @@ export async function computePortfolioPlAllPeriods(
       );
 
   const tokensEndOnly = sumPortfolioValueCurrent(positions);
-  const valueEndGlobal = tokensEndOnly + collateral.valueEnd;
+  const lpPrimaryEnd = sumValues(lpPrimaryEndByMarket);
+  const valueEndGlobal = tokensEndOnly + lpPrimaryEnd + collateral.valueEnd;
 
   const byPeriod = {} as Record<PortfolioPlPeriod, PortfolioPlPeriodSnapshot>;
 
@@ -624,8 +731,11 @@ export async function computePortfolioPlAllPeriods(
           valueEnd: collateral.valueEnd,
         };
 
-    const valueEnd = isMarketScoped ? sumPortfolioValueCurrent(positions) : valueEndGlobal;
-    const valueStart = sumPortfolioValueAtReference(positionsAtStart, hp, startTime) + collateralValues.valueStart;
+    const valueEnd = isMarketScoped ? tokensEndOnly + lpPrimaryEnd : valueEndGlobal;
+    const valueStart =
+      sumPortfolioValueAtReference(positionsAtStart, hp, startTime) +
+      sumValues(lpPrimaryStartByPeriod[p]) +
+      collateralValues.valueStart;
 
     const deltaV = valueEnd - valueStart;
     const routerPrimaryCollateralNetInWindow = isMarketScoped
@@ -686,6 +796,7 @@ export async function computePortfolioPlAllPeriods(
         };
 
     const tokensStartOnly = sumPortfolioValueAtReference(positionsAtStart, hp, st);
+    const lpPrimaryStart = sumValues(lpPrimaryStartByPeriod[debugPeriod]);
 
     let swapFlowDebug:
       | { primary: unknown; netOut: number; buys: number; volume: number; rowCount: number; rows: unknown[] }
@@ -730,7 +841,7 @@ export async function computePortfolioPlAllPeriods(
 
     const positionRows = positions.map((pos, i) => {
       const atStart = positionsAtStart[i];
-      const vEnd = pos.tokenPrice * pos.tokenBalance;
+      const vEnd = pos.tokenPrice * positionTotalBalance(pos);
       const vStart = positionRowValueAtReference(atStart, hp, st);
       let priceStartUsed = hp[pos.tokenId.toLowerCase()] ?? atStart.tokenPrice;
       if (atStart.marketFinalizeTs < st) {
@@ -741,6 +852,8 @@ export async function computePortfolioPlAllPeriods(
         marketName: pos.marketName.slice(0, 80),
         endBalance: pos.tokenBalance,
         startBalance: atStart.tokenBalance,
+        endLpBalance: pos.lpTokenBalance ?? 0,
+        startLpBalance: atStart.lpTokenBalance ?? 0,
         priceEnd: pos.tokenPrice,
         priceStartUsed,
         valueEnd: vEnd,
@@ -759,6 +872,8 @@ export async function computePortfolioPlAllPeriods(
         tokensMTMEnd: tokensEndOnly,
         collateralCumulativeEnd: collateralValues.valueEnd,
         tokensMTMStart: tokensStartOnly,
+        lpPrimaryEnd,
+        lpPrimaryStart,
         collateralCumulativeStart: collateralValues.valueStart,
         deltaTokensMTM: tokensEndOnly - tokensStartOnly,
         deltaCollateralCumulative: collateralValues.valueEnd - collateralValues.valueStart,
@@ -782,6 +897,8 @@ export async function computePortfolioPlAllPeriods(
     ? buildMarketPeriodBuckets({
         positions,
         positionsAtStartByPeriod,
+        lpPrimaryEndByMarket,
+        lpPrimaryStartByPeriod,
         historyPrices,
         swapFlow,
         swaps: dexEvents?.swaps ?? [],

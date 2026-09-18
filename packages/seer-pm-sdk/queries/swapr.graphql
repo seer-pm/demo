@@ -339,6 +339,12 @@ query GetAccountDexEvents(
   ) {
     id
     owner
+    amount
+    tickLower
+    tickUpper
+    pool {
+      id
+    }
     amount0
     amount1
     token0 {
@@ -366,6 +372,12 @@ query GetAccountDexEvents(
   ) {
     id
     owner
+    amount
+    tickLower
+    tickUpper
+    pool {
+      id
+    }
     amount0
     amount1
     token0 {

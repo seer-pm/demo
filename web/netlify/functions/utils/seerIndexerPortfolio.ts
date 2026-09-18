@@ -985,21 +985,32 @@ export function routerPrimaryNetFromConditionalEvents(
   };
 }
 
-/** Apply balance map onto current positions (same token metadata). */
+/**
+ * Apply balance map onto current positions (same token metadata).
+ *
+ * The LP half is replaced as well, never carried over: today's `lpTokenBalance` says nothing about
+ * what the wallet held in pools at another moment, and copying it into a window start would cancel
+ * the very deposit or withdrawal the window is supposed to see. Absent `lpBalanceByToken`, it is 0.
+ */
 export function positionsWithBalances(
   positionsNow: PortfolioPosition[],
   balanceByToken: Map<string, bigint>,
   chainId: SupportedChain,
+  lpBalanceByToken: Map<string, bigint> = new Map(),
 ): PortfolioPosition[] {
   const tokenIds = positionsNow.map((p) => p.tokenId.toLowerCase() as Address);
   const decimalsByToken = getTokenDecimals(chainId, tokenIds);
   return positionsNow.map((pos) => {
     const startWei = balanceByToken.get(pos.tokenId.toLowerCase()) ?? 0n;
+    const lpWei = lpBalanceByToken.get(pos.tokenId.toLowerCase()) ?? 0n;
     const decimals = decimalsByToken[pos.tokenId.toLowerCase()] ?? 18;
     return {
       ...pos,
       tokenBalance: Number(formatUnits(startWei, decimals)),
       rawBalance: startWei.toString(),
+      lpTokenBalance: Number(formatUnits(lpWei, decimals)),
+      rawLpBalance: lpWei.toString(),
+      lpLegs: undefined,
     };
   });
 }

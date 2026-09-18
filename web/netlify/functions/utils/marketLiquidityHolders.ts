@@ -73,7 +73,7 @@ export async function preloadWalletLiquidityLegs(
  *   liquidity it never owned. Deliberately not worked around: the TradeExecutor never adds
  *   liquidity, and no Safe provides it today either.
  */
-async function legsFromLiquidityEvents(
+export async function legsFromLiquidityEvents(
   chainId: SupportedChain,
   markets: Market[],
   origins?: Address[],
@@ -210,25 +210,35 @@ export function getMarketLiquidityHoldersCached(market: Market): Promise<MarketL
   return promise;
 }
 
-/** Derives current outcome-token holdings represented by supported LP positions. */
-export async function getLiquidityHolders(markets: Market[]): Promise<MarketLiquidityHolders> {
-  if (markets.length === 0) return { holders: {}, poolAddresses: [] };
+/**
+ * Every live LP position in the pools of `markets` (all from one chain), whoever owns it, plus the
+ * pool addresses themselves. Empty where the chain has no supported position source.
+ */
+export async function getMarketsLiquidityLegs(
+  markets: Market[],
+): Promise<{ legs: LiquidityLeg[]; poolAddresses: string[] }> {
+  if (markets.length === 0) return { legs: [], poolAddresses: [] };
   const chainId = markets[0].chainId as SupportedChain;
   // Bunni and chains without a supported user-position source are intentionally not attributed.
-  if (!supportsLiquidityAttribution(chainId)) return { holders: {}, poolAddresses: [] };
+  if (!supportsLiquidityAttribution(chainId)) return { legs: [], poolAddresses: [] };
 
-  let legs: LiquidityLeg[];
-  let poolAddresses: string[];
   if (supportsPositionEntity(chainId)) {
     // Pools are needed regardless: `mergeTokenHolders` uses them to keep pool reserves out of the
     // direct holders, and those reserves are exactly what the legs below re-credit to the LPs.
     const pools = await fetchPools(chainId, markets.flatMap(getMarketPoolsPairs));
-    poolAddresses = pools.map((pool) => pool.id.toLowerCase());
-    legs = await fetchPoolLiquidityLegs(chainId, poolAddresses);
-  } else {
-    legs = await legsFromLiquidityEvents(chainId, markets);
-    poolAddresses = [...new Set(legs.map((leg) => leg.poolId))];
+    const poolAddresses = pools.map((pool) => pool.id.toLowerCase());
+    return { legs: await fetchPoolLiquidityLegs(chainId, poolAddresses), poolAddresses };
   }
+  const legs = await legsFromLiquidityEvents(chainId, markets);
+  return { legs, poolAddresses: [...new Set(legs.map((leg) => leg.poolId))] };
+}
+
+/** Derives current outcome-token holdings represented by supported LP positions. */
+export async function getLiquidityHolders(markets: Market[]): Promise<MarketLiquidityHolders> {
+  if (markets.length === 0 || !supportsLiquidityAttribution(markets[0].chainId as SupportedChain)) {
+    return { holders: {}, poolAddresses: [] };
+  }
+  const { legs, poolAddresses } = await getMarketsLiquidityLegs(markets);
 
   const byOwner = liquidityBalancesFromLegs(legs, outcomeTokenSet(markets));
   const byToken = new Map<string, Map<string, bigint>>();

@@ -113,6 +113,8 @@ function buildAll() {
   const byMarketPeriod = buildMarketPeriodBuckets({
     positions,
     positionsAtStartByPeriod: perPeriod(positionsAtStart),
+    lpPrimaryEndByMarket: new Map(),
+    lpPrimaryStartByPeriod: perPeriod(new Map<string, number>()),
     historyPrices: perPeriod({} as Record<string, number | undefined>),
     swapFlow,
     swaps,
@@ -206,6 +208,8 @@ describe("buildMarketPeriodBuckets", () => {
     const byMarketPeriod = buildMarketPeriodBuckets({
       positions,
       positionsAtStartByPeriod: perPeriod(positionsAtStart),
+      lpPrimaryEndByMarket: new Map(),
+      lpPrimaryStartByPeriod: perPeriod(new Map<string, number>()),
       historyPrices: perPeriod({} as Record<string, number | undefined>),
       swapFlow,
       swaps: recycledSwaps,
@@ -252,6 +256,8 @@ describe("mergeMarketPeriodBuckets over a TradeExecutor sweep", () => {
     return buildMarketPeriodBuckets({
       positions: args.positions,
       positionsAtStartByPeriod: perPeriod([]),
+      lpPrimaryEndByMarket: new Map(),
+      lpPrimaryStartByPeriod: perPeriod(new Map<string, number>()),
       historyPrices: perPeriod({} as Record<string, number | undefined>),
       swapFlow,
       swaps: args.swaps,

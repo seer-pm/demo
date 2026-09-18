@@ -170,16 +170,23 @@ export function refreshMarketMtm(args: {
   currentValueEndMtm: Map<string, number>;
   holdings: HoldingsByWallet;
   pricesByToken: Record<string, number>;
+  /**
+   * Value per wallet that is not an outcome-token balance — the primary collateral sitting in its
+   * LP positions for this market. Added to the mark-to-market as is.
+   */
+  extraValueByWallet?: Map<string, number>;
   collateralPriceUsd: number;
   epsilon?: number;
 }): MtmRefreshUpdate[] {
   const { rows, currentValueEndMtm, holdings, pricesByToken, collateralPriceUsd } = args;
+  const extraValueByWallet = args.extraValueByWallet ?? new Map<string, number>();
   const epsilon = args.epsilon ?? 1e-9;
   const out: MtmRefreshUpdate[] = [];
 
   for (const row of rows) {
     const walletHoldings = holdings.get(row.address.toLowerCase()) ?? new Map<string, number>();
-    const valueEndMtm = markToMarket(walletHoldings, pricesByToken);
+    const valueEndMtm =
+      markToMarket(walletHoldings, pricesByToken) + (extraValueByWallet.get(row.address.toLowerCase()) ?? 0);
     const key = `${row.address.toLowerCase()}|${row.marketId.toLowerCase()}|${row.period}`;
     const previous = currentValueEndMtm.get(key) ?? 0;
     if (Math.abs(valueEndMtm - previous) <= epsilon) continue;

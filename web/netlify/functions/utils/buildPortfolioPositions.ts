@@ -279,14 +279,22 @@ export async function repricePortfolioPositions(positions: PortfolioPosition[]):
 
 /**
  * Positions from indexer balances: intersection of market wrappedTokens with `relevantTokens` ∪ holdings keys.
+ *
+ * `lpBalances` adds what the wallet holds of each token through AMM positions (`lpTokenBalance`),
+ * and its tokens join the row set: an outcome held only through a pool is still a position.
  */
 export async function buildPortfolioPositionsFromBalances(
   chainId: SupportedChain,
   markets: Market[],
   relevantTokens: Address[],
   holdings: Map<string, bigint>,
+  lpBalances: Map<string, LpTokenHolding> = new Map(),
 ): Promise<PortfolioPosition[]> {
-  const relevant = new Set<string>([...relevantTokens.map((t) => t.toLowerCase()), ...holdings.keys()]);
+  const relevant = new Set<string>([
+    ...relevantTokens.map((t) => t.toLowerCase()),
+    ...holdings.keys(),
+    ...lpBalances.keys(),
+  ]);
   const allTokenIds = [
     ...new Set(
       markets
@@ -296,7 +304,7 @@ export async function buildPortfolioPositionsFromBalances(
   ] as Address[];
   const balances = allTokenIds.map((t) => holdings.get(t.toLowerCase()) ?? 0n);
 
-  return buildPortfolioPositionsCore(chainId, allTokenIds, balances, markets, true);
+  return buildPortfolioPositionsCore(chainId, allTokenIds, balances, markets, true, markets, lpBalances);
 }
 
 /**

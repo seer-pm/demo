@@ -362,7 +362,7 @@ Current portfolio value and ~24h mark-to-market change (outcome positions only; 
 
 ## get-portfolio-pl
 
-Period P/L for an account (outcome MTM + router collateral legs − swap/LP cashflow). **Generic markets only** — Futarchy is excluded so non-primary notional (PNK/GNO, …) is not mixed into the profile’s primary units. `get-portfolio` still lists Futarchy positions.
+Period P/L for an account (outcome MTM, including what the account holds in LP positions, + router collateral legs − swap/LP cashflow). Adding or removing liquidity on its own does not move P/L; price moves and fees compounded into the position do. Fees accrued but not collected are not counted. **Generic markets only** — Futarchy is excluded so non-primary notional (PNK/GNO, …) is not mixed into the profile’s primary units. `get-portfolio` still lists Futarchy positions.
 
 - **Global** (no `marketId` / `marketIds`): reads materialized rows from Supabase `pnl_leaderboard` (`app_id = all`). No live compute; miss → zeros. Values are **USD** (`pnl` = `pnl_usd`; other fields converted with `collateral_price_usd`). `chainId=all` sums USD across chains. Response includes `unit: "USD"`.
 - **Market-scoped** (`marketId` or `marketIds`): computes live via `computePortfolioPlAllPeriods` in native collateral units. Futarchy ids → 404. `chainId=all` is not allowed.
