@@ -230,9 +230,14 @@ async function getTransactions(
  * back for the owner (as `origin`) and for the executor (as `recipient`) — the same swap, twice.
  * `eventId` is the source row id and settles it exactly; the composite is the fallback for rows
  * that carry none, and is deliberately over-specified rather than under.
+ *
+ * `eventId` needs the type beside it because it is unique per subgraph table, not across them:
+ * `Swap`, `Mint` and `Burn` each mint ids of the form `<txHash>#<counter>` from one namespace, so a
+ * swap and a mint in the same transaction can carry the same id and would otherwise collapse into
+ * one row.
  */
 function transactionKey(tx: TransactionData): string {
-  if (tx.eventId) return `${tx.chainId}:${tx.eventId}`;
+  if (tx.eventId) return `${tx.chainId}:${tx.type}:${tx.eventId}`;
   return [
     tx.chainId,
     tx.type,
