@@ -94,7 +94,8 @@ begin
   if coalesce(array_length(p_addresses, 1), 0) = 0 then
     raise exception 'replace_poh_humans: refusing to replace the verified set with an empty one';
   end if;
-  delete from public.poh_humans;
+  -- WHERE true: Supabase runs pg-safeupdate for API roles, which rejects an unqualified DELETE.
+  delete from public.poh_humans where true;
   insert into public.poh_humans (address)
   select distinct lower(a) from unnest(p_addresses) a where a is not null;
   get diagnostics v_rows = row_count;

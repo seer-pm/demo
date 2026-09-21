@@ -287,7 +287,8 @@ BEGIN
 
   IF p_period = 'all' THEN
     -- Only 'all' covers every day; get_poh_potential reads these.
-    DELETE FROM public.airdrop_poh_day_totals;
+    -- WHERE true: Supabase runs pg-safeupdate for API roles, which rejects an unqualified DELETE.
+    DELETE FROM public.airdrop_poh_day_totals WHERE true;
     INSERT INTO public.airdrop_poh_day_totals ("timestamp", poh_total)
     SELECT t.ts, t.poh_total FROM _poh_tot t;
   END IF;
