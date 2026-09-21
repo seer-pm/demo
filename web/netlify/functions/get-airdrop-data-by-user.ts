@@ -136,6 +136,24 @@ async function getSnapshotDays(): Promise<number> {
   return countSnapshotDays(Number(data.last_timestamp));
 }
 
+/**
+ * The wallet's PoH estimate, from the nightly recompute in `airdrop_leaderboard` rather than from
+ * `airdrops.share_of_holding_poh`, which is frozen and legacy (see supabase/sql/poh_links.sql).
+ * 'all' is the to-date sum; '1d' is the latest snapshot's share, which drives the 30-day projection.
+ * No row simply means no PoH share. That includes every wallet whose share goes to a linked profile.
+ */
+async function getPohShares(address: string): Promise<{ toDate: number; latest: number }> {
+  const { data, error } = await supabase
+    .from("airdrop_leaderboard")
+    .select("period,sum_share_of_holding_poh")
+    .eq("address", address)
+    .in("period", ["all", "1d"]);
+  if (error) throw error;
+  const byPeriod = (period: string) =>
+    Number(data?.find((row) => row.period === period)?.sum_share_of_holding_poh) || 0;
+  return { toDate: byPeriod("all"), latest: byPeriod("1d") };
+}
+
 async function getSerLppBalances(address: string) {
   const { data, error } = await supabase.from("ser_lpp_balances").select("chain_id,balance").eq("address", address);
   if (error) throw error;
@@ -157,16 +175,25 @@ export default async (req: Request) => {
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
 
   try {
-    const [totals, serLppBalances, snapshotDays] = await Promise.all([
+    const [storedTotals, pohShares, serLppBalances, snapshotDays] = await Promise.all([
       getTotals(address, weekStart),
+      withRetry(() => getPohShares(address), "airdropLeaderboard.poh"),
       withRetry(() => getSerLppBalances(address), "serLppBalances.byUser"),
       withRetry(() => getSnapshotDays(), "airdropState.snapshotDays"),
     ]);
 
-    // Derived from the two pool allocations rather than `totalAllocation`, which is the sum of the
-    // stored `seer_tokens_count`. The two agree today, but only the pool allocations are recomputed
-    // from the raw shares with the current constants — reading the stored column would silently
-    // measure old rows against a new POOL_SHARE_FACTOR if that ever changed.
+    // Holdings come from the stored daily rows; PoH from the recompute. The stored PoH figures in
+    // storedTotals are the frozen legacy ones and must not leak into the response.
+    const pohUserAllocation = pohSeerFromShare(pohShares.toDate);
+    const totals: AirdropTotals = {
+      ...storedTotals,
+      pohUserAllocation,
+      totalAllocation: storedTotals.outcomeTokenHoldingAllocation + pohUserAllocation,
+      monthlyEstimatePoH: projectedSeerFromShare(pohShares.latest, 30),
+    };
+
+    // Derived from the two pool allocations, both recomputed from raw shares with the current
+    // constants, so old rows are never measured against a different POOL_SHARE_FACTOR.
     const pctOfAirdrop = computePctOfAirdrop(
       totals.outcomeTokenHoldingAllocation + totals.pohUserAllocation,
       snapshotDays,

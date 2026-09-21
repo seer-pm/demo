@@ -18,7 +18,13 @@ export { POOL_SHARE_FACTOR, SEER_PER_DAY };
 export const DUST_HOLDING = 1e-9;
 
 export type UserHoldings = {
-  [address: string]: { directHolding: number; indirectHolding: number; chainIds: Set<number> };
+  [address: string]: {
+    directHolding: number;
+    indirectHolding: number;
+    chainIds: Set<number>;
+    /** Direct + indirect per chain. Only persisted for multi-chain holders; see `AirdropRecord.holdingByChain`. */
+    holdingByChain: Map<number, number>;
+  };
 };
 
 /**
@@ -52,11 +58,23 @@ export type ChainUsers = {
 export function foldChainUsersIntoAccumulator(acc: PerTsAccumulator, users: ChainUsers) {
   for (const [holderAddress, holderData] of Object.entries(users)) {
     if (!acc.userHoldingsAcrossChains[holderAddress]) {
-      acc.userHoldingsAcrossChains[holderAddress] = { directHolding: 0, indirectHolding: 0, chainIds: new Set() };
+      acc.userHoldingsAcrossChains[holderAddress] = {
+        directHolding: 0,
+        indirectHolding: 0,
+        chainIds: new Set(),
+        holdingByChain: new Map(),
+      };
     }
-    acc.userHoldingsAcrossChains[holderAddress].directHolding += holderData.directHolding ?? 0;
-    acc.userHoldingsAcrossChains[holderAddress].indirectHolding += holderData.indirectHolding ?? 0;
-    acc.userHoldingsAcrossChains[holderAddress].chainIds.add(holderData.chainId);
+    const holder = acc.userHoldingsAcrossChains[holderAddress];
+    const direct = holderData.directHolding ?? 0;
+    const indirect = holderData.indirectHolding ?? 0;
+    holder.directHolding += direct;
+    holder.indirectHolding += indirect;
+    holder.chainIds.add(holderData.chainId);
+    holder.holdingByChain.set(
+      holderData.chainId,
+      (holder.holdingByChain.get(holderData.chainId) ?? 0) + direct + indirect,
+    );
   }
 }
 
@@ -71,6 +89,12 @@ export type AirdropRecord = {
   shareOfHoldingPoh: number;
   seerTokens: number;
   chainIds: number[];
+  /**
+   * Per-chain split of `totalHolding`, set only when the holding spans more than one chain (a
+   * single-chain row already says where it is). Persisted to `airdrop_chain_holdings` so a PoH link
+   * made on one chain can apply to that chain's holdings only; see supabase/sql/poh_links.sql.
+   */
+  holdingByChain?: { chainId: number; holding: number }[];
 };
 
 /** Turns a fully-folded per-timestamp accumulator into the final per-user airdrop records. */
@@ -119,6 +143,11 @@ export function finalizeDistribution(
       shareOfHoldingPoh,
       seerTokens: SEER_PER_DAY * (shareOfHolding * POOL_SHARE_FACTOR + shareOfHoldingPoh * POOL_SHARE_FACTOR),
       chainIds: Array.from(holderData.chainIds),
+      ...(holderData.holdingByChain.size > 1
+        ? {
+            holdingByChain: Array.from(holderData.holdingByChain, ([chainId, holding]) => ({ chainId, holding })),
+          }
+        : {}),
     });
   }
   return finalData;

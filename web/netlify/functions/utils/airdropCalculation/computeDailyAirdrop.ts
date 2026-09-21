@@ -454,6 +454,43 @@ export function buildChainUsers({
   return users;
 }
 
+/**
+ * Per-chain split for multi-chain holders, which the PoH recompute needs to apply a link made on one
+ * chain to that chain only (supabase/sql/poh_links.sql). Written BEFORE the day's insert so the day
+ * is never visible without it; an upsert, so a retried day overwrites. Rows of a day whose insert
+ * then fails join nothing and are ignored.
+ *
+ * Deliberately NON-fatal: the airdrop rows are the irreplaceable output, and all a missing split
+ * costs is per-chain link overrides for that day (the recompute falls back to the wallet's most
+ * recent link for its whole holding). A failure is logged, never thrown, including the table not
+ * existing yet because poh_links.sql has not been applied.
+ */
+async function insertChainHoldings(timestamp: number, finalData: ReturnType<typeof finalizeDistribution>) {
+  const chainHoldings = finalData.flatMap((data) =>
+    (data.holdingByChain ?? []).map(({ chainId, holding }) => ({
+      timestamp: new Date(timestamp * 1000).toISOString(),
+      address: data.address,
+      chain_id: chainId,
+      holding,
+    })),
+  );
+  try {
+    for (let i = 0; i < chainHoldings.length; i += 1000) {
+      const { error } = await supabase
+        .from("airdrop_chain_holdings")
+        .upsert(chainHoldings.slice(i, i + 1000), { onConflict: "timestamp,address,chain_id" });
+      if (error) {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error(
+      `airdrop_chain_holdings write failed for timestamp ${timestamp} (${chainHoldings.length} rows); per-chain PoH link overrides will not apply to this day`,
+      (error as Error)?.message ?? error,
+    );
+  }
+}
+
 /** Persists a computed day via the `insert_airdrop_safely` RPC (inserts records + advances `airdrop_state`). */
 export async function insertAirdropRecords(timestamp: number, finalData: ReturnType<typeof finalizeDistribution>) {
   const rpcPayload = {
@@ -470,6 +507,8 @@ export async function insertAirdropRecords(timestamp: number, finalData: ReturnT
       chain_ids: data.chainIds,
     })) as unknown as Json,
   };
+
+  await insertChainHoldings(timestamp, finalData);
 
   const { error } = await supabase.rpc("insert_airdrop_safely", rpcPayload);
   if (error) {

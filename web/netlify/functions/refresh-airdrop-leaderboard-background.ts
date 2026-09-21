@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { POOL_SHARE_FACTOR, SEER_PER_DAY } from "./utils/airdropAllocation";
+import { getAllCurrentPohHumans } from "./utils/airdropCalculation/getPOHVerifiedUsers";
 import { requireBackgroundSecret } from "./utils/backgroundAuth";
 import type { Database } from "./utils/supabase";
 
@@ -14,10 +16,13 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
 const PERIODS = ["1d", "1w", "1m", "all"] as const;
 
 /**
- * Rebuilds `airdrop_leaderboard` from `airdrops`, one period per RPC call. The 'all' pass also
- * folds in `ser_lpp_balances` (see the SER-LPP section of supabase/sql/airdrop_leaderboard.sql),
- * which ser-lpp-calculation-background rewrites every 12h — so a wallet's SER-LPP figure on the
- * board trails its on-chain balance by up to that plus this job's own interval.
+ * Rebuilds `airdrop_leaderboard` from `airdrops`, one period per RPC call. Every call also
+ * recomputes the PoH pool for its window from the current links and verified set: the PoH
+ * column is an estimate that follows `poh_links` / `poh_humans`, not the frozen daily value.
+ * The 'all' pass also folds in `ser_lpp_balances` (see the SER-LPP section of
+ * supabase/sql/airdrop_leaderboard.sql), which ser-lpp-calculation-background rewrites every
+ * 12h — so a wallet's SER-LPP figure on the board trails its on-chain balance by up to that
+ * plus this job's own interval.
  *
  * Deliberately a separate job from `airdrop-calculation-background` rather than a tail call
  * inside it:
@@ -37,12 +42,16 @@ const PERIODS = ["1d", "1w", "1m", "all"] as const;
  */
 async function refreshAllPeriods(): Promise<void> {
   const failures: string[] = [];
+  const poolSeerPerDay = SEER_PER_DAY * POOL_SHARE_FACTOR;
 
   for (const period of PERIODS) {
     const startedAt = Date.now();
     // Not wrapped in withRetry: each call rewrites a whole period, and blindly retrying a write
     // that may have partly applied is worse than leaving the board a day stale.
-    const { data, error } = await supabase.rpc("refresh_airdrop_leaderboard", { p_period: period });
+    const { data, error } = await supabase.rpc("refresh_airdrop_leaderboard", {
+      p_period: period,
+      p_pool_seer_per_day: poolSeerPerDay,
+    });
 
     if (error) {
       // Keep going: a later period failing must not discard the ones already rebuilt.
@@ -58,6 +67,24 @@ async function refreshAllPeriods(): Promise<void> {
   }
 }
 
+/**
+ * Replaces `poh_humans` with who is registered on PoH right now. The refresh recomputes the whole
+ * PoH pool against this set (see supabase/sql/poh_links.sql), so it must run first.
+ *
+ * A failure here aborts the run, leaving yesterday's board in place, rather than rebuilding against
+ * a set that is stale or partial. `replace_poh_humans` also refuses an empty list, which is what a
+ * subgraph that fails without an error would produce.
+ */
+async function refreshPohHumans(): Promise<void> {
+  const startedAt = Date.now();
+  const humans = await getAllCurrentPohHumans();
+  const { data, error } = await supabase.rpc("replace_poh_humans", { p_addresses: humans });
+  if (error) {
+    throw new Error(`replace_poh_humans failed: ${error.message}`);
+  }
+  console.log(`replace_poh_humans: ${data ?? 0} addresses in ${Date.now() - startedAt}ms`);
+}
+
 export default async (req: Request) => {
   const unauthorized = requireBackgroundSecret(req);
   if (unauthorized) {
@@ -68,5 +95,6 @@ export default async (req: Request) => {
     return;
   }
 
+  await refreshPohHumans();
   await refreshAllPeriods();
 };

@@ -173,6 +173,11 @@ function AirdropLeaderboardPage() {
               other half of the airdrop. Its percentage is the wallet's share of that half, so the three percentages
               together are the wallet's share of the whole.
             </p>
+            <p>
+              <strong>Proof of Humanity</strong> is recalculated every night, for every past day, from the profiles
+              verified today and the wallets linked to them. The final amount is set on the Proof of Humanity snapshot
+              day, and can change until then as people link their profiles or let their verification expire.
+            </p>
             <p>These are estimates and are not claimable.</p>
           </div>
           <QuestionIcon fill="#9747FF" />
@@ -398,7 +403,7 @@ function AirdropLeaderboardPage() {
                         {row.isPoh ? (
                           <span
                             className="ml-2 text-xs text-purple-primary dark:text-purple-secondary"
-                            title="Proof of Humanity verified"
+                            title="Verified on Proof of Humanity today"
                           >
                             ✓
                           </span>

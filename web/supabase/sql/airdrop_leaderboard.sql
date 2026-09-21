@@ -18,12 +18,22 @@
 -- get_airdrop_summary_by_user does, so SEER_PER_DAY and the 0.25 factor stay defined only in
 -- TypeScript (netlify/functions/utils/airdropAllocation.ts) and cannot drift.
 --
--- seer_tokens = sum(seer_tokens_count) is stored anyway because it is the number the portfolio
--- Airdrop tab already shows, so a user can cross-check the board against their own page. It is
--- redundant with the two share sums — computeDailyAirdrop.ts:221 defines
---     seerTokens = SEER_PER_DAY * (shareOfHolding * 0.25 + shareOfHoldingPoh * 0.25)
--- so total == holdings + PoH up to float addition ordering (~1e-15 relative), invisible at any
--- precision either the board or the portfolio tab renders.
+-- seer_tokens = p_pool_seer_per_day * (sum_share_of_holding + sum_share_of_holding_poh), with the
+-- factor passed in by the TypeScript caller. It is not sum(airdrops.seer_tokens_count): that
+-- column bakes in the frozen daily PoH share, which is legacy (next section).
+--
+-- THE PoH COLUMN IS RECOMPUTED, NOT SUMMED
+-- ----------------------------------------
+-- sum_share_of_holding_poh does NOT come from airdrops.share_of_holding_poh. Every refresh
+-- recomputes the whole PoH distribution for the window from the stored daily holdings
+-- (airdrops.total_holding, plus airdrop_chain_holdings where a per-chain split exists), the CURRENT
+-- links (poh_links) and the CURRENT verified set (poh_humans). A link, a new verification or an
+-- expiry therefore applies to every past day on the next refresh. It is an estimate until the
+-- announced PoH snapshot day, when the same computation is final. Tables and link resolution are
+-- documented in poh_links.sql, which must be applied first.
+--
+-- A PoH profile that holds nothing itself but receives linked holdings gets its own row, with
+-- day_count 0. is_poh means "verified now", not "verified on some day of the window".
 --
 -- Sorting on the raw sums is equivalent to sorting on the SEER amounts: the conversion is
 -- multiplication by SEER_PER_DAY * 0.25, a strictly positive constant, so it preserves order
@@ -82,7 +92,7 @@
 CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
   address                   text             NOT NULL,
   period                    text             NOT NULL CHECK (period IN ('1d', '1w', '1m', 'all')),
-  -- sum(seer_tokens_count) over the window. Already a SEER amount. Airdrop only: no SER-LPP.
+  -- Holdings + recomputed PoH over the window, as SEER (factor passed by the caller). Airdrop only: no SER-LPP.
   seer_tokens               numeric          NOT NULL DEFAULT 0,
   -- Current SER LP-program balance across chains, same unit as seer_tokens. 'all' rows only.
   ser_lpp                   numeric          NOT NULL DEFAULT 0,
@@ -92,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
   -- Raw share sums; multiplied by SEER_PER_DAY * 0.25 in TypeScript.
   sum_share_of_holding      double precision NOT NULL DEFAULT 0,
   sum_share_of_holding_poh  double precision NOT NULL DEFAULT 0,
-  -- PoH-verified on at least one day of the window (bool_or).
+  -- In poh_humans now: counted if today were the PoH snapshot day.
   is_poh                    boolean          NOT NULL DEFAULT false,
   -- Snapshot days the address actually appears in. Lower than the window span when the wallet
   -- held nothing on some days — computeDailyAirdrop skips zero-holding addresses.
@@ -126,7 +136,7 @@ DROP INDEX IF EXISTS public.airdrop_leaderboard_period_seer_idx;
 ALTER TABLE public.airdrop_leaderboard SET (autovacuum_vacuum_scale_factor = 0.05);
 
 COMMENT ON TABLE public.airdrop_leaderboard IS
-  'Materialized airdrop leaderboard (address x period) for /leaderboard/airdrop. seer_tokens = sum(seer_tokens_count), airdrop only; ser_lpp = current SER LP-program balance, ''all'' rows only (it is a running balance and cannot be windowed); total_seer = the two added, and what the board ranks on. The share sums are RAW (multiply by SEER_PER_DAY * 0.25 in TypeScript). Windows are the last N distinct snapshot days, not calendar days. Cross-chain: airdrops.chain_ids is an array, so there is no chain dimension. Rebuilt daily by refresh-airdrop-leaderboard-background.';
+  'Materialized airdrop leaderboard (address x period) for /leaderboard/airdrop. seer_tokens = holdings + recomputed PoH share sums times the caller-supplied SEER-per-day pool factor, airdrop only; the PoH sum is recomputed every refresh from current poh_links / poh_humans (an estimate until the PoH snapshot day); ser_lpp = current SER LP-program balance, ''all'' rows only (it is a running balance and cannot be windowed); total_seer = the two added, and what the board ranks on. The share sums are RAW (multiply by SEER_PER_DAY * 0.25 in TypeScript). Windows are the last N distinct snapshot days, not calendar days. Cross-chain: airdrops.chain_ids is an array, so there is no chain dimension. Rebuilt daily by refresh-airdrop-leaderboard-background.';
 
 -- Refresh writes require SUPABASE_API_KEY = service_role. anon/authenticated are SELECT-only,
 -- same reasoning as pnl_leaderboard.sql: an anon-key write can return 200 with 0 rows under
@@ -162,7 +172,14 @@ GRANT SELECT ON public.airdrop_leaderboard TO anon, authenticated;
 -- readers keep seeing the previous rows on their MVCC snapshot until commit — the table is never
 -- observed empty and no reader blocks. Do NOT switch to TRUNCATE: it takes ACCESS EXCLUSIVE and
 -- would block every reader for the whole refresh.
-CREATE OR REPLACE FUNCTION public.refresh_airdrop_leaderboard(p_period text)
+-- Signature changed (p_pool_seer_per_day added), so the old one must go or PostgREST sees two
+-- overloads and a stale caller keeps hitting the frozen-PoH version.
+DROP FUNCTION IF EXISTS public.refresh_airdrop_leaderboard(text);
+
+-- p_pool_seer_per_day = SEER_PER_DAY * POOL_SHARE_FACTOR, passed by the TypeScript caller so the
+-- constants stay defined only there (see RAW SUMS above). It turns the two share sums into
+-- seer_tokens, now that the stored seer_tokens_count bakes in the frozen, legacy PoH share.
+CREATE OR REPLACE FUNCTION public.refresh_airdrop_leaderboard(p_period text, p_pool_seer_per_day double precision)
 RETURNS integer
 LANGUAGE plpgsql
 VOLATILE
@@ -177,6 +194,9 @@ DECLARE
 BEGIN
   IF p_period NOT IN ('1d', '1w', '1m', 'all') THEN
     RAISE EXCEPTION 'refresh_airdrop_leaderboard: period must be one of 1d, 1w, 1m, all (got %)', p_period;
+  END IF;
+  IF NOT (p_pool_seer_per_day > 0) THEN
+    RAISE EXCEPTION 'refresh_airdrop_leaderboard: p_pool_seer_per_day must be > 0 (got %)', p_pool_seer_per_day;
   END IF;
 
   v_days := CASE p_period
@@ -201,36 +221,108 @@ BEGIN
       DELETE FROM public.airdrop_leaderboard WHERE period = p_period;
       RETURN 0;
     END IF;
+  ELSE
+    -- 'all': an open lower bound. A concrete value rather than `v_since IS NULL OR ...`, which
+    -- would defeat the timestamp index for the windowed periods. plpgsql plans these statements
+    -- with the actual value, so the windows get a range scan and 'all' the full scan it needs.
+    v_since := '-infinity';
   END IF;
 
+  -- ---- PoH recompute (see poh_links.sql) -----------------------------------------------------
+  -- _poh_day: per (day, verified identity), the holdings that resolve to it. Only verified
+  -- identities survive, which keeps this small next to `airdrops` itself.
+  DROP TABLE IF EXISTS _poh_day;
+  CREATE TEMP TABLE _poh_day ON COMMIT DROP AS
+  WITH default_link AS (
+    -- A wallet's most recent link, whatever chain it was made on: the one other chains follow.
+    SELECT DISTINCT ON (l.address) l.address, l.poh_address
+    FROM public.poh_links l
+    ORDER BY l.address, l.created_at DESC, l.chain_id
+  ),
+  parts AS (
+    -- Days with a per-chain split (multi-chain holders, from deploy on): one part per chain, so a
+    -- link made on that chain can override the default. The join drops orphans of a day whose
+    -- airdrops insert failed.
+    SELECT c."timestamp" AS ts, c.address, c.chain_id, c.holding AS h
+    FROM public.airdrop_chain_holdings c
+    JOIN public.airdrops a ON a."timestamp" = c."timestamp" AND a.address = c.address
+    WHERE c."timestamp" >= v_since
+    UNION ALL
+    -- Everything else: the whole cross-chain holding, resolved through the default link.
+    SELECT a."timestamp", a.address, NULL::integer, a.total_holding::double precision
+    FROM public.airdrops a
+    WHERE a."timestamp" >= v_since
+      AND NOT EXISTS (
+        SELECT 1 FROM public.airdrop_chain_holdings c
+        WHERE c."timestamp" = a."timestamp" AND c.address = a.address
+      )
+  ),
+  resolved AS (
+    SELECT p.ts,
+           -- A verified wallet is its own identity: it cannot link away.
+           CASE WHEN self.address IS NOT NULL THEN p.address
+                ELSE coalesce(cl.poh_address, dl.poh_address, p.address)
+           END AS identity,
+           p.h
+    FROM parts p
+    LEFT JOIN public.poh_humans self ON self.address = p.address
+    LEFT JOIN public.poh_links cl ON cl.address = p.address AND cl.chain_id = p.chain_id
+    LEFT JOIN default_link dl ON dl.address = p.address
+  )
+  -- Summed BEFORE the sqrt: two wallets linked to one profile earn sqrt(a + b), not
+  -- sqrt(a) + sqrt(b). That is the pool's sybil resistance, and the same invariant the
+  -- distribution.ts fold docblock describes. Dust threshold = DUST_HOLDING, on the identity total.
+  SELECT r.ts, r.identity, sum(r.h) AS h
+  FROM resolved r
+  JOIN public.poh_humans hu ON hu.address = r.identity
+  GROUP BY r.ts, r.identity
+  HAVING sum(r.h) > 1e-9;
+
+  -- Per-day denominator over exactly the identities in the numerators, so each day sums to 1.
+  DROP TABLE IF EXISTS _poh_tot;
+  CREATE TEMP TABLE _poh_tot ON COMMIT DROP AS
+  SELECT d.ts, sum(sqrt(d.h)) AS poh_total
+  FROM _poh_day d
+  GROUP BY d.ts;
+
+  IF p_period = 'all' THEN
+    -- Only 'all' covers every day; get_poh_potential reads these.
+    -- WHERE true: Supabase runs pg-safeupdate for API roles, which rejects an unqualified DELETE.
+    DELETE FROM public.airdrop_poh_day_totals WHERE true;
+    INSERT INTO public.airdrop_poh_day_totals ("timestamp", poh_total)
+    SELECT t.ts, t.poh_total FROM _poh_tot t;
+  END IF;
+
+  -- ---- Board rows -----------------------------------------------------------------------------
   DELETE FROM public.airdrop_leaderboard WHERE period = p_period;
 
-  -- The two branches are deliberately not folded into `WHERE v_since IS NULL OR ...`: that
-  -- predicate defeats the index for the windowed periods.
-  IF v_since IS NULL THEN
-    -- 'all' is the only period that carries ser_lpp: the balance has no history to window.
-    -- FULL JOIN, not LEFT: a wallet with liquidity and no `airdrops` rows still has an
-    -- allocation and belongs on the board, with day_count 0.
-    INSERT INTO public.airdrop_leaderboard (
-      address, period, seer_tokens, ser_lpp, sum_share_of_holding, sum_share_of_holding_poh,
-      is_poh, day_count, updated_at
-    )
-    WITH air AS (
-      SELECT a.address,
-             coalesce(sum(a.seer_tokens_count::numeric), 0)          AS seer_tokens,
-             coalesce(sum(a.share_of_holding::double precision), 0)  AS share_holding,
-             coalesce(sum(a.share_of_holding_poh::double precision), 0) AS share_poh,
-             bool_or(a.is_poh)                                        AS is_poh,
-             count(*)::integer                                        AS day_count
-      FROM public.airdrops a
-      GROUP BY a.address
-    ),
-    lpp AS (
-      -- One row per (address, chain_id) upstream, so this sums Gnosis + Mainnet. lower() because
-      -- the board joins on `airdrops.address`, which is always lowercase.
-      SELECT lower(s.address) AS address,
-             coalesce(sum(s.balance::numeric), 0) AS ser_lpp
-      FROM public.ser_lpp_balances s
+  INSERT INTO public.airdrop_leaderboard (
+    address, period, seer_tokens, ser_lpp, sum_share_of_holding, sum_share_of_holding_poh,
+    is_poh, day_count, updated_at
+  )
+  WITH air AS (
+    SELECT a.address,
+           coalesce(sum(a.share_of_holding::double precision), 0) AS share_holding,
+           count(*)::integer                                       AS day_count
+    FROM public.airdrops a
+    WHERE a."timestamp" >= v_since
+    GROUP BY a.address
+  ),
+  poh AS (
+    SELECT d.identity AS address,
+           sum(sqrt(d.h) / t.poh_total) AS share_poh
+    FROM _poh_day d
+    JOIN _poh_tot t ON t.ts = d.ts
+    GROUP BY d.identity
+  ),
+  lpp AS (
+    -- 'all' only: a running balance cannot be attributed to a window (see SER-LPP above). One row
+    -- per (address, chain_id) upstream, so this sums Gnosis + Mainnet. lower() because the board
+    -- joins on `airdrops.address`, which is always lowercase.
+    SELECT lower(s.address) AS address,
+           coalesce(sum(s.balance::numeric), 0) AS ser_lpp
+    FROM public.ser_lpp_balances s
+    WHERE p_period = 'all'
       -- The treasury and two custody contracts hold the LP token without providing liquidity, so
       -- their balances are not an allocation and would otherwise take the top of the board.
       --
@@ -239,46 +331,39 @@ BEGIN
       -- holder it finds, and the per-wallet portfolio path reads it unfiltered. This is the board's
       -- own view of that data, so this is where "not a participant" belongs.
       --
-      -- It also cannot move any further out. The RPC below assigns rank with row_number() over the
+      -- It also cannot move any further out. The read RPC assigns rank with row_number() over the
       -- whole period partition and pages on it, so an endpoint- or React-side filter would punch
       -- holes in the ranks, short the page and leave total_count counting rows nobody can see.
-      WHERE lower(s.address) NOT IN (
+      AND lower(s.address) NOT IN (
         '0xcad3f887275c3b8409140ea61ebb0b9751eda287',  -- seer.eth
         '0x88ad09518695c6c3712ac10a214be5109a655671',
         '0x607bbfd4cebd869aad04331f8a2ad0c3c396674b'
       )
-      GROUP BY lower(s.address)
-      HAVING coalesce(sum(s.balance::numeric), 0) > 0
-    )
-    SELECT coalesce(air.address, lpp.address),
-           p_period,
-           coalesce(air.seer_tokens, 0),
-           coalesce(lpp.ser_lpp, 0),
-           coalesce(air.share_holding, 0),
-           coalesce(air.share_poh, 0),
-           coalesce(air.is_poh, false),
-           coalesce(air.day_count, 0),
-           now()
+    GROUP BY lower(s.address)
+    HAVING coalesce(sum(s.balance::numeric), 0) > 0
+  ),
+  -- FULL JOINs: a PoH profile that holds nothing itself but receives linked holdings is a row, and
+  -- so is a wallet that only ever provided liquidity. Both show day_count 0.
+  merged AS (
+    SELECT coalesce(air.address, poh.address) AS address,
+           coalesce(air.share_holding, 0)     AS share_holding,
+           coalesce(poh.share_poh, 0)         AS share_poh,
+           coalesce(air.day_count, 0)         AS day_count
     FROM air
-    FULL JOIN lpp ON lpp.address = air.address;
-  ELSE
-    INSERT INTO public.airdrop_leaderboard (
-      address, period, seer_tokens, sum_share_of_holding, sum_share_of_holding_poh,
-      is_poh, day_count, updated_at
-    )
-    -- ser_lpp is left at its DEFAULT 0 here: a running balance cannot be attributed to a window.
-    SELECT a.address,
-           p_period,
-           coalesce(sum(a.seer_tokens_count::numeric), 0),
-           coalesce(sum(a.share_of_holding::double precision), 0),
-           coalesce(sum(a.share_of_holding_poh::double precision), 0),
-           bool_or(a.is_poh),
-           count(*)::integer,
-           now()
-    FROM public.airdrops a
-    WHERE a."timestamp" >= v_since
-    GROUP BY a.address;
-  END IF;
+    FULL JOIN poh ON poh.address = air.address
+  )
+  SELECT coalesce(m.address, lpp.address),
+         p_period,
+         (p_pool_seer_per_day * (coalesce(m.share_holding, 0) + coalesce(m.share_poh, 0)))::numeric,
+         coalesce(lpp.ser_lpp, 0),
+         coalesce(m.share_holding, 0),
+         coalesce(m.share_poh, 0),
+         -- Verified NOW, i.e. counted if today were the PoH snapshot day.
+         EXISTS (SELECT 1 FROM public.poh_humans h WHERE h.address = coalesce(m.address, lpp.address)),
+         coalesce(m.day_count, 0),
+         now()
+  FROM merged m
+  FULL JOIN lpp ON lpp.address = m.address;
 
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   RAISE NOTICE 'refresh_airdrop_leaderboard(%): % rows, since=%', p_period, v_rows, v_since;
@@ -289,8 +374,8 @@ $$;
 -- Postgres grants EXECUTE to PUBLIC by default on new functions. Without this revoke, anon could
 -- POST to the RPC and burn a full-table aggregate per request — the table grants stop the write
 -- but not the CPU.
-REVOKE EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text) FROM public;
-GRANT EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text) TO service_role;
+REVOKE EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text, double precision) FROM public;
+GRANT EXECUTE ON FUNCTION public.refresh_airdrop_leaderboard(text, double precision) TO service_role;
 
 
 -- ---------------------------------------------------------------------------------------------
@@ -429,9 +514,7 @@ GRANT EXECUTE ON FUNCTION public.get_airdrop_leaderboard_page(text, text, text, 
 -- PostgREST caches the schema; without this the RPCs 404 (PGRST202) until the next reload.
 notify pgrst, 'reload schema';
 
--- Build the board now, so a hand-apply does not leave it empty until the next nightly refresh.
--- Cheap periods first; 'all' is the one that might need a longer statement_timeout.
-SELECT public.refresh_airdrop_leaderboard('1d');
-SELECT public.refresh_airdrop_leaderboard('1w');
-SELECT public.refresh_airdrop_leaderboard('1m');
-SELECT public.refresh_airdrop_leaderboard('all');
+-- No refresh here any more. The PoH column needs poh_humans, which only
+-- refresh-airdrop-leaderboard-background fills (from the PoH subgraphs); refreshing from SQL
+-- against an empty poh_humans would publish a board with no PoH at all. After applying, trigger
+-- that function once (see the "Apply for PoH links" section of README.md).

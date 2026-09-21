@@ -728,6 +728,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      poh_links: {
+        Row: {
+          address: string;
+          chain_id: number;
+          poh_address: string;
+          created_at: string;
+        };
+        Insert: {
+          address: string;
+          chain_id: number;
+          poh_address: string;
+          created_at?: string;
+        };
+        Update: {
+          address?: string;
+          chain_id?: number;
+          poh_address?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      airdrop_chain_holdings: {
+        Row: {
+          timestamp: string;
+          address: string;
+          chain_id: number;
+          holding: number;
+        };
+        Insert: {
+          timestamp: string;
+          address: string;
+          chain_id: number;
+          holding: number;
+        };
+        Update: {
+          timestamp?: string;
+          address?: string;
+          chain_id?: number;
+          holding?: number;
+        };
+        Relationships: [];
+      };
       ser_lpp_balances: {
         Row: {
           address: string;
@@ -1025,8 +1067,19 @@ export type Database = {
         };
       };
       refresh_airdrop_leaderboard: {
-        Args: { p_period: string };
+        Args: { p_period: string; p_pool_seer_per_day: number };
         Returns: number;
+      };
+      replace_poh_humans: {
+        Args: { p_addresses: string[] };
+        Returns: number;
+      };
+      get_poh_potential: {
+        Args: { p_address: string };
+        Returns: {
+          to_date: number;
+          latest: number;
+        }[];
       };
       refresh_market_outcome_tokens: {
         Args: never;
