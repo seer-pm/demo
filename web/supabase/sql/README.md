@@ -18,8 +18,10 @@ multi-statement scripts in one, so run those statements individually.
 
 | File | What it does |
 | --- | --- |
-| `airdrops_indexes.sql` | Covering index on `airdrops (address, timestamp)`. Fixes the statement timeout on the portfolio Airdrop tab. |
+| `airdrops_indexes.sql` | Indexes on `airdrops`: covering `(address, timestamp)` for the per-user read path, narrow `(timestamp)` for the leaderboard refresh. Fixes the statement timeout on the portfolio Airdrop tab. |
 | `credit_cards.sql` | Seer credit cards: `credit_campaigns` + `credit_cards` (RLS on, no policies: service_role only), the atomic `claim_credit_card` RPC, and the `credit_campaigns_overview` / `credit_cards_in_flight_wei` aggregates for `/admin/credits`. Apply before deploying the `*credit-card*` / `admin-credit-campaigns` functions. |
+| `poh_links.sql` | PoH linking (`poh_links`), the current verified set (`poh_humans`, via `replace_poh_humans`), the per-chain holdings split (`airdrop_chain_holdings`), per-day PoH denominators (`airdrop_poh_day_totals`) and `get_poh_potential`. All service_role only. Must be applied before `airdrop_leaderboard.sql`. |
+| `airdrop_leaderboard.sql` | Table + index + `refresh_airdrop_leaderboard(period, pool_seer_per_day)` (writer, one period per call; recomputes the PoH pool over all history) and `get_airdrop_leaderboard_page(...)` (reader, assigns global ranks). Materializes SEER airdrop totals per wallet per period (`1d/1w/1m/all`) for the public `/leaderboard/airdrop` board; rebuilt nightly by `refresh-airdrop-leaderboard-background`. Refresh writes require `SUPABASE_API_KEY` = **service_role**. |
 | `dex_pool_hour_prices.sql` | Table + indexes + `dex_pool_hour_prices_nearest_before_for_pairs`. Hour candles written by `dex-pool-prices-background`; read by portfolio history and the airdrop calculation. Captured from the live project — the objects predate the file. Ingest writes require `SUPABASE_API_KEY` = **service_role**. |
 | `AIRDROP_RESEED.md` | Runbook for replacing the contents of `airdrops` after the calculation fixes in `fix/airdrop-calculation`. Not SQL to apply — a sequence to follow, including the ordering constraint around the daily scheduled function. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
@@ -33,6 +35,25 @@ Analytics matview RPC `refresh_market_outcome_tokens` lives in
 [`dashboard/supabase/sql/analytics_rpcs.sql`](../../dashboard/supabase/sql/analytics_rpcs.sql)
 (same DB). `scheduled-markets-import` calls it when new market ids are upserted. Apply that
 function in the SQL editor before relying on the auto-refresh.
+
+## Apply for PoH links
+
+Order matters: the new refresh reads tables that `poh_links.sql` creates, and the PoH column is
+empty until `poh_humans` has been filled from the subgraphs.
+
+1. `poh_links.sql`.
+2. `airdrop_leaderboard.sql`: drops the one-argument `refresh_airdrop_leaderboard(text)`, so deploy
+   the functions that call the two-argument form at the same time.
+3. Trigger `refresh-airdrop-leaderboard-background` once. It fills `poh_humans`, then rebuilds all
+   four periods and `airdrop_poh_day_totals`.
+
+Check that the PoH shares still sum to 1 per day. The 'all' board's PoH column summed over every
+wallet must equal the number of days that had at least one verified holder:
+
+```sql
+select (select sum(sum_share_of_holding_poh) from public.airdrop_leaderboard where period = 'all') as poh_share_sum,
+       (select count(*) from public.airdrop_poh_day_totals) as poh_days;
+```
 
 ## Apply for PnL leaderboard / portfolio fixes
 
@@ -92,6 +113,111 @@ App code no longer calls the old transfer-replay RPCs
 (`dex_pool_hour_prices_latest_for_tokens`, `dex_pool_hour_prices_latest_for_pairs`) — current prices
 are read from the pools on-chain, and hour candles are only used for history.
 Those live functions can be left in place or dropped manually in production later.
+
+## Apply for the airdrop leaderboard
+
+New in this change. Run in the Supabase SQL editor (in order):
+
+1. Confirm the column type the refresh compares against, and how big the source is:
+
+```sql
+select data_type from information_schema.columns
+where table_name = 'airdrops' and column_name = 'timestamp';
+
+select count(*) as rows, count(distinct address) as addrs,
+       count(distinct "timestamp") as snapshot_days
+from public.airdrops;
+```
+
+   `refresh_airdrop_leaderboard` declares its cutoff variable with
+   `public.airdrops."timestamp"%TYPE`, so it is correct for either `timestamp` or `timestamptz`
+   with nothing to adjust. The check is to know what you are applying to.
+
+2. The new `create index concurrently ... airdrops_timestamp_idx` at the end of
+   `airdrops_indexes.sql` — **as its own statement** (the editor wraps multi-statement scripts in
+   a transaction, and `concurrently` fails there with 25001), then the `analyze`.
+
+3. `airdrop_leaderboard.sql`. It ends by building all four periods. The `'all'` pass is a
+   full-table aggregate and is the one that might need a longer `statement_timeout`; the SQL
+   editor has a longer budget than the API gateway, so **do the first `'all'` build here** even if
+   the nightly job later struggles with it. Note that
+   `alter function ... set statement_timeout` does *not* reliably extend the timer — raise it at
+   the role level if needed:
+
+```sql
+select rolname, rolconfig from pg_roles
+where rolname in ('anon','authenticated','service_role','authenticator','postgres');
+```
+
+4. Check the windows are what you expect. `max_days` must be exactly 1 / 7 / 30 for `1d` / `1w` /
+   `1m`; anything else means the cutoff logic is wrong. `all` must have at least as many rows as
+   any other period:
+
+```sql
+select period, count(*) as rows, max(day_count) as max_days, max(updated_at)
+from public.airdrop_leaderboard group by period order by period;
+```
+
+   Then cross-check one wallet: its `period='all'` `seer_tokens` must equal `totalAllocation` from
+   `get-airdrop-data-by-user` for the same address.
+
+5. If PostgREST answers `PGRST202`, the `notify pgrst, 'reload schema'` did not land — re-run it.
+
+## Apply for SER-LPP in the board total
+
+Adding the SER-LPP column and ranking on the combined total needs `airdrop_leaderboard.sql`
+re-applied — the whole file, one paste, in the SQL editor. It is idempotent: the table is created
+`IF NOT EXISTS` and the two new columns go on with `alter table ... add column if not exists`.
+
+Two things in it are not just `create or replace`:
+
+- `get_airdrop_leaderboard_page` gained two output columns, and Postgres will not let
+  `CREATE OR REPLACE` change a function's return type, so the file drops it first. The drop names
+  the exact signature `(text, text, text, text, integer, integer)`. If production somehow holds a
+  different overload the drop is a no-op and the create then fails with *cannot change return type
+  of existing function* — list what is actually there before blaming the script:
+
+```sql
+select oid::regprocedure from pg_proc where proname = 'get_airdrop_leaderboard_page';
+```
+
+- `airdrop_leaderboard_period_seer_idx` is dropped in favour of
+  `airdrop_leaderboard_period_total_idx`, since the default view now orders on `total_seer`.
+
+If you applied this file once already and are picking up the `'lpp'` sort key added afterwards,
+re-apply it: `get_airdrop_leaderboard_page` gained a `when 'lpp' then 'ser_lpp'` branch, and
+without it the board answers `sort must be one of seer, holdings, poh, lpp, days` — as a 500 —
+the moment someone clicks the SER-LPP header. The rebuild at the end is not needed for that
+change alone, only the function; re-running the whole file is still the simplest way to get it.
+
+The file ends by rebuilding all four periods, and only the `'all'` pass reads `ser_lpp_balances`,
+so **the rebuild is what puts SER-LPP on the board** — until it runs, every row reads 0. If the
+editor times out on `'all'`, the other three are already committed; finish with:
+
+```sql
+select public.refresh_airdrop_leaderboard('all');
+```
+
+Then check the new columns, and that `'all'` is the only period carrying a balance:
+
+```sql
+select period,
+       count(*)                            as rows,
+       count(*) filter (where ser_lpp > 0) as with_lpp,
+       sum(ser_lpp)                        as lpp_total,
+       max(total_seer - seer_tokens)       as max_lpp
+from public.airdrop_leaderboard group by period order by period;
+```
+
+`with_lpp` must be 0 on `1d` / `1w` / `1m`. On `'all'` it should match
+
+```sql
+select count(distinct lower(address)) from public.ser_lpp_balances where balance > 0;
+```
+
+minus any holder that is somehow absent from the board — there should be none, the refresh full
+joins. Expect the `'all'` row count to grow by however many LP-only wallets have no `airdrops`
+history; they land with `day_count = 0`.
 
 ## Not yet captured
 

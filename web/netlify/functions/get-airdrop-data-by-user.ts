@@ -1,12 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
 import { gnosis, mainnet } from "viem/chains";
+import { holdingsSeerFromShare, pohSeerFromShare, projectedSeerFromShare } from "./utils/airdropAllocation";
+import { computePctOfAirdrop, countSnapshotDays } from "./utils/airdropCalculation/constants";
 import { Database } from "./utils/supabase";
 import { withRetry } from "./utils/withRetry";
 
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
-
-const SEER_PER_DAY = 200000000 / 30;
 
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -28,8 +28,8 @@ interface AirdropTotals {
 
 /**
  * Aggregate the user's whole airdrop history in Postgres and return a single row.
- * The RPC returns raw sums rather than SEER amounts so that SEER_PER_DAY and the 0.25
- * factor stay defined only here and the two implementations can't drift.
+ * The RPC returns raw sums rather than SEER amounts so that SEER_PER_DAY and the pool
+ * factor stay defined only in utils/airdropAllocation.ts and the implementations can't drift.
  */
 async function getTotalsFromRpc(address: string, weekStart: Date): Promise<AirdropTotals> {
   const { data, error } = await supabase
@@ -38,12 +38,12 @@ async function getTotalsFromRpc(address: string, weekStart: Date): Promise<Airdr
   if (error) throw error;
 
   return {
-    outcomeTokenHoldingAllocation: SEER_PER_DAY * data.sum_share_of_holding * 0.25,
-    pohUserAllocation: SEER_PER_DAY * data.sum_share_of_holding_poh * 0.25,
+    outcomeTokenHoldingAllocation: holdingsSeerFromShare(data.sum_share_of_holding),
+    pohUserAllocation: pohSeerFromShare(data.sum_share_of_holding_poh),
     totalAllocation: data.total_seer_tokens,
     currentWeekAllocation: data.current_week_seer_tokens,
-    monthlyEstimate: SEER_PER_DAY * 30 * data.last_share_of_holding * 0.25,
-    monthlyEstimatePoH: SEER_PER_DAY * 30 * data.last_share_of_holding_poh * 0.25,
+    monthlyEstimate: projectedSeerFromShare(data.last_share_of_holding, 30),
+    monthlyEstimatePoH: projectedSeerFromShare(data.last_share_of_holding_poh, 30),
   };
 }
 
@@ -83,8 +83,8 @@ async function getTotalsFromRows(address: string, weekStart: Date): Promise<Aird
   let totalAllocation = 0;
   let currentWeekAllocation = 0;
   for (const row of rows) {
-    outcomeTokenHoldingAllocation += SEER_PER_DAY * row.share_of_holding * 0.25;
-    pohUserAllocation += SEER_PER_DAY * row.share_of_holding_poh * 0.25;
+    outcomeTokenHoldingAllocation += holdingsSeerFromShare(row.share_of_holding);
+    pohUserAllocation += pohSeerFromShare(row.share_of_holding_poh);
     totalAllocation += row.seer_tokens_count;
     if (new Date(row.timestamp) >= weekStart) {
       currentWeekAllocation += row.seer_tokens_count;
@@ -99,8 +99,8 @@ async function getTotalsFromRows(address: string, weekStart: Date): Promise<Aird
     pohUserAllocation,
     totalAllocation,
     currentWeekAllocation,
-    monthlyEstimate: SEER_PER_DAY * 30 * share_of_holding * 0.25,
-    monthlyEstimatePoH: SEER_PER_DAY * 30 * share_of_holding_poh * 0.25,
+    monthlyEstimate: projectedSeerFromShare(share_of_holding, 30),
+    monthlyEstimatePoH: projectedSeerFromShare(share_of_holding_poh, 30),
   };
 }
 
@@ -115,6 +115,43 @@ async function getTotals(address: string, weekStart: Date): Promise<AirdropTotal
     console.log("get_airdrop_summary_by_user not found, falling back to row scan");
     return await withRetry(() => getTotalsFromRows(address, weekStart), "airdrops.byUser");
   }
+}
+
+/**
+ * `airdrop_state.last_timestamp` — the newest snapshot, and so the end of the emission window the
+ * percentage is measured over. A missing state row means nothing has been computed yet.
+ */
+async function getSnapshotDays(): Promise<number> {
+  const { data, error } = await supabase
+    .from("airdrop_state")
+    .select("last_timestamp")
+    .eq("id", "latest_day")
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+  if (!data?.last_timestamp) {
+    return 0;
+  }
+  return countSnapshotDays(Number(data.last_timestamp));
+}
+
+/**
+ * The wallet's PoH estimate, from the nightly recompute in `airdrop_leaderboard` rather than from
+ * `airdrops.share_of_holding_poh`, which is frozen and legacy (see supabase/sql/poh_links.sql).
+ * 'all' is the to-date sum; '1d' is the latest snapshot's share, which drives the 30-day projection.
+ * No row simply means no PoH share. That includes every wallet whose share goes to a linked profile.
+ */
+async function getPohShares(address: string): Promise<{ toDate: number; latest: number }> {
+  const { data, error } = await supabase
+    .from("airdrop_leaderboard")
+    .select("period,sum_share_of_holding_poh")
+    .eq("address", address)
+    .in("period", ["all", "1d"]);
+  if (error) throw error;
+  const byPeriod = (period: string) =>
+    Number(data?.find((row) => row.period === period)?.sum_share_of_holding_poh) || 0;
+  return { toDate: byPeriod("all"), latest: byPeriod("1d") };
 }
 
 async function getSerLppBalances(address: string) {
@@ -138,14 +175,34 @@ export default async (req: Request) => {
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
 
   try {
-    const [totals, serLppBalances] = await Promise.all([
+    const [storedTotals, pohShares, serLppBalances, snapshotDays] = await Promise.all([
       getTotals(address, weekStart),
+      withRetry(() => getPohShares(address), "airdropLeaderboard.poh"),
       withRetry(() => getSerLppBalances(address), "serLppBalances.byUser"),
+      withRetry(() => getSnapshotDays(), "airdropState.snapshotDays"),
     ]);
+
+    // Holdings come from the stored daily rows; PoH from the recompute. The stored PoH figures in
+    // storedTotals are the frozen legacy ones and must not leak into the response.
+    const pohUserAllocation = pohSeerFromShare(pohShares.toDate);
+    const totals: AirdropTotals = {
+      ...storedTotals,
+      pohUserAllocation,
+      totalAllocation: storedTotals.outcomeTokenHoldingAllocation + pohUserAllocation,
+      monthlyEstimatePoH: projectedSeerFromShare(pohShares.latest, 30),
+    };
+
+    // Derived from the two pool allocations, both recomputed from raw shares with the current
+    // constants, so old rows are never measured against a different POOL_SHARE_FACTOR.
+    const pctOfAirdrop = computePctOfAirdrop(
+      totals.outcomeTokenHoldingAllocation + totals.pohUserAllocation,
+      snapshotDays,
+    );
 
     return json(
       {
         ...totals,
+        pctOfAirdrop,
         serLppMainnet: serLppBalances.find((x) => x.chain_id === mainnet.id)?.balance ?? 0,
         serLppGnosis: serLppBalances.find((x) => x.chain_id === gnosis.id)?.balance ?? 0,
       },

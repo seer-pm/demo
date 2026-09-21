@@ -91,6 +91,8 @@ export default async (req: Request) => {
       {
         sub: address.toLowerCase(),
         iat: Math.floor(Date.now() / 1000),
+        // The chain the signature was verified on: contract wallets are only proven per chain.
+        chainId: siweMessage.chainId,
         iss: "Seer",
       },
       process.env.JWT_SECRET!,

@@ -74,6 +74,23 @@ describe("finalizeDistribution", () => {
     expect(records[0].chainIds.sort()).toEqual([10, 100]);
   });
 
+  it("records the per-chain split for multi-chain holders only", () => {
+    // Persisted to airdrop_chain_holdings so a PoH link made on one chain applies to that chain's
+    // holdings only; a single-chain row already says where its holding is.
+    const records = distribute([
+      chainUsers(100, { a: 50, b: 5 }),
+      { a: { directHolding: 20, indirectHolding: 5, chainId: 10 } },
+    ]);
+    const a = records.find((r) => r.address === "a")!;
+    const b = records.find((r) => r.address === "b")!;
+    expect(a.holdingByChain?.sort((x, y) => x.chainId - y.chainId)).toEqual([
+      { chainId: 10, holding: 25 },
+      { chainId: 100, holding: 50 },
+    ]);
+    expect(sum(a.holdingByChain!.map((c) => c.holding))).toBe(a.totalHolding);
+    expect(b.holdingByChain).toBeUndefined();
+  });
+
   it("excludes dust from the payout AND from both denominators", () => {
     // The old toLocaleString test dropped sub-0.0005 holders from the payout while still counting
     // them in the denominators, so the shares no longer summed to 1.

@@ -33,6 +33,44 @@ export type Database = {
   };
   public: {
     Tables: {
+      airdrop_leaderboard: {
+        Row: {
+          address: string;
+          period: string;
+          seer_tokens: number;
+          ser_lpp: number;
+          /** GENERATED ALWAYS AS (seer_tokens + ser_lpp) STORED — never written directly. */
+          total_seer: number;
+          sum_share_of_holding: number;
+          sum_share_of_holding_poh: number;
+          is_poh: boolean;
+          day_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          address: string;
+          period: string;
+          seer_tokens?: number;
+          ser_lpp?: number;
+          sum_share_of_holding?: number;
+          sum_share_of_holding_poh?: number;
+          is_poh?: boolean;
+          day_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string;
+          period?: string;
+          seer_tokens?: number;
+          ser_lpp?: number;
+          sum_share_of_holding?: number;
+          sum_share_of_holding_poh?: number;
+          is_poh?: boolean;
+          day_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       airdrop_state: {
         Row: {
           id: string;
@@ -749,6 +787,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      poh_links: {
+        Row: {
+          address: string;
+          chain_id: number;
+          poh_address: string;
+          created_at: string;
+        };
+        Insert: {
+          address: string;
+          chain_id: number;
+          poh_address: string;
+          created_at?: string;
+        };
+        Update: {
+          address?: string;
+          chain_id?: number;
+          poh_address?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      airdrop_chain_holdings: {
+        Row: {
+          timestamp: string;
+          address: string;
+          chain_id: number;
+          holding: number;
+        };
+        Insert: {
+          timestamp: string;
+          address: string;
+          chain_id: number;
+          holding: number;
+        };
+        Update: {
+          timestamp?: string;
+          address?: string;
+          chain_id?: number;
+          holding?: number;
+        };
+        Relationships: [];
+      };
       ser_lpp_balances: {
         Row: {
           address: string;
@@ -970,6 +1050,31 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      get_airdrop_leaderboard_page: {
+        Args: {
+          p_period: string;
+          p_sort?: string;
+          p_dir?: string;
+          p_search?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          rank: number;
+          address: string;
+          seer_tokens: number;
+          ser_lpp: number;
+          total_seer: number;
+          sum_share_of_holding: number;
+          sum_share_of_holding_poh: number;
+          is_poh: boolean;
+          day_count: number;
+          updated_at: string;
+          total_count: number;
+          board_count: number;
+          board_ser_lpp: number;
+        }[];
+      };
       get_airdrop_summary_by_user: {
         Args: { p_address: string; p_week_start?: string };
         Returns: {
@@ -1028,6 +1133,21 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      refresh_airdrop_leaderboard: {
+        Args: { p_period: string; p_pool_seer_per_day: number };
+        Returns: number;
+      };
+      replace_poh_humans: {
+        Args: { p_addresses: string[] };
+        Returns: number;
+      };
+      get_poh_potential: {
+        Args: { p_address: string };
+        Returns: {
+          to_date: number;
+          latest: number;
+        }[];
       };
       refresh_market_outcome_tokens: {
         Args: never;

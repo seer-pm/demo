@@ -40,3 +40,38 @@ analyze public.airdrops;
 -- A Seq Scan here means the index wasn't used: check that every stored address is lowercase,
 -- since the application always queries with a lowercased address. If some rows are stored
 -- mixed-case, index lower(address) instead of address.
+
+-- Timestamp-leading index for the leaderboard refresh.
+--
+-- refresh_airdrop_leaderboard() (web/supabase/sql/airdrop_leaderboard.sql) scans by snapshot
+-- window rather than by wallet:
+--
+--   where "timestamp" >= $1 group by address
+--
+-- The index above leads with `address`, so it cannot serve that.
+--
+-- Deliberately NARROW rather than covering. A whole day is inserted in one call
+-- (insert_airdrop_safely), so a day's rows are physically clustered in the heap and the fetches
+-- behind this index are near-sequential; an INCLUDE of the four aggregated columns would roughly
+-- quadruple the index for a marginal win on a once-a-day job. Measure before adding one.
+--
+-- This does not help the 'all' period, which has no cutoff and seq-scans by design.
+--
+-- NOTE: create index concurrently cannot run inside a transaction block. Run it as a
+-- standalone statement (the Supabase SQL editor wraps multi-statement scripts), otherwise
+-- it fails with 25001.
+
+create index concurrently if not exists airdrops_timestamp_idx
+  on public.airdrops ("timestamp");
+
+analyze public.airdrops;
+
+-- Verify — want an Index Scan using airdrops_timestamp_idx for the windowed periods, and a
+-- Seq Scan + HashAggregate only for 'all':
+--
+--   explain (analyze, buffers)
+--   select address, sum(seer_tokens_count), count(*)
+--   from public.airdrops
+--   where "timestamp" >= (select min(t.ts) from (
+--           select distinct "timestamp" ts from public.airdrops order by 1 desc limit 7) t)
+--   group by address;

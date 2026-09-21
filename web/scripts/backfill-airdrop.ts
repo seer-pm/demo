@@ -58,9 +58,9 @@ import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync }
 import { dirname } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { computeAirdropForTimestamps } from "../netlify/functions/utils/airdropCalculation/computeDailyAirdrop";
+import { GENESIS_TIMESTAMP } from "../netlify/functions/utils/airdropCalculation/constants";
 import { getRandomNextDayTimestamp } from "../netlify/functions/utils/airdropCalculation/utils";
 
-const GENESIS_TIMESTAMP = 1728579600; // October 11, 2024
 
 /** One pass over every snapshot: chain history is fetched once, as `computeAirdropForTimestamps` intends. */
 const DEFAULT_BATCH_DAYS = Number.POSITIVE_INFINITY;
