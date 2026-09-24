@@ -1,0 +1,144 @@
+---
+title: "Coming from Omen"
+description: "Port an Omen trading agent to Seer: what changes, the market types, and the porting effort."
+---
+
+**Audience:** teams that already run AI agents trading on [Omen](https://omen.eth.limo) and want those same agents to trade on [Seer](https://app.seer.pm).
+**Goal:** explain what changes between the two, with links to the contract code, and describe each Seer market type, so a team can estimate the porting effort.
+
+Code links are pinned to commits so the line numbers stay valid:
+
+- Seer contracts: [`seer-pm/demo/contracts/src`](https://github.com/seer-pm/demo/tree/main/contracts/src), pinned at `209c674`.
+- Omen contracts:
+  - [`gnosis/conditional-tokens-market-makers`](https://github.com/gnosis/conditional-tokens-market-makers) (the FPMM)
+  - [`gnosis/conditional-tokens-contracts`](https://github.com/gnosis/conditional-tokens-contracts)
+  - [`RealityETH/reality-eth-monorepo`](https://github.com/RealityETH/reality-eth-monorepo)
+  - The [Omen oracle adapter](https://gnosis.blockscout.com/address/0xAB16D643bA051C11962DA645f74632d3130c81E2?tab=contract), verified source on Blockscout.
+
+---
+
+## 1. TL;DR
+
+- **Same foundations.** Both run on Gnosis Conditional Tokens (CTF) plus Reality.eth. On Gnosis Chain they even share the same CTF contract. The oracle flow, bonds, arbitration and the CTF split/merge/redeem concepts all carry over.
+- **No market maker contract.** Omen markets are FPMM contracts: you call `buy` and `sell` on the market. Seer markets instead mint one **ERC20 per outcome**, and those tokens trade on **external AMM pools** (Swapr/Algebra and Uniswap). Your trade execution, price reading and bet sizing therefore have to be rewritten.
+- **Invalid is a real token, and it wins alone.** On Omen an invalid answer pays every outcome equally. On Seer only the `SER-INVALID` token pays; every other outcome goes to 0.
+- **More market types.** Seer adds multi-categorical, scalar, multi-scalar and conditional markets. Each has its own payout rule, so an agent that only outputs `p_yes` isn't enough.
+- **Multi-chain.** Seer is deployed on Gnosis, Ethereum, Optimism and Base. Omen was deployed on Ethereum mainnet and Gnosis Chain (xDai). Supporting Gnosis first is fine.
+
+## 2. Concept mapping
+
+| Concept | Omen | Seer |
+|---|---|---|
+| **Market** | One [`FixedProductMarketMaker`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FixedProductMarketMaker.sol#L20) per market. It is the AMM and also the LP token. | A [`Market`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/Market.sol) clone that only stores metadata. It has no trading logic. |
+| **Factory** | [`FPMMDeterministicFactory.create2FixedProductMarketMaker`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FPMMDeterministicFactory.sol#L113) | [`MarketFactory`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L140-L227). It has one `create*` function per market type. |
+| **Outcome tokens** | CTF ERC1155 positions, held by the FPMM and by users | CTF ERC1155 positions **wrapped as ERC20s** through Wrapped1155Factory ([`deployERC20Positions`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L412-L440)). The last token is always [`SER-INVALID`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L430). |
+| **Where trades happen** | The FPMM itself: [`buy`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FixedProductMarketMaker.sol#L304) and [`sell`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FixedProductMarketMaker.sol#L321) | Outcome/collateral pools on Swapr (Algebra) on Gnosis, or Uniswap V3/V4 on other chains. The [Lens quoter](https://www.npmjs.com/package/@seer-pm/lens) or `@seer-pm/sdk` picks a route ([trading guide](/developers/guides/trading)). |
+| **Fees** | FPMM [`fee`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FixedProductMarketMaker.sol#L55), set per market and paid to LPs (usually 2%) | No protocol fee. You pay the pool fee of whichever AMM you trade on. |
+| **Liquidity** | One pool per market (`addFunding` / `removeFunding`) | One pool per outcome token, on the DEX itself. Liquidity can be very uneven across outcomes. Anyone who wants to provide liquidity does it directly on the DEX. |
+| **Oracle** | Reality.eth v2.1 plus the Omen [`RealitioProxy.resolve`](https://gnosis.blockscout.com/address/0xAB16D643bA051C11962DA645f74632d3130c81E2?tab=contract). It handles single-select templates (0 and 2) and a nuanced-binary template. | Reality.eth v3.0 plus [`RealityProxy.resolve`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol#L41-L67). It handles templates [1, 2 and 3](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L63-L67). Anyone can trigger it with [`Market.resolve()`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/Market.sol#L167). |
+| **Invalid answer** | Every outcome pays `1/n` ([`getSingleSelectPayouts`](https://gnosis.blockscout.com/address/0xAB16D643bA051C11962DA645f74632d3130c81E2?tab=contract)) | Only `SER-INVALID` pays ([categorical](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol#L81-L83)) |
+| **Collateral** | Any ERC20, chosen per market (wxDAI, sDAI, GNO…) | One collateral per factory: sDAI on Gnosis and Ethereum, sUSDS on Base and Optimism. For **conditional** markets, the collateral is the parent market's outcome token. |
+| **Split, merge, redeem** | Call CTF directly: [`splitPosition`](https://github.com/gnosis/conditional-tokens-contracts/blob/eeefca66eb46c800a9aaab88db2064a99026fde5/contracts/ConditionalTokens.sol#L105), [`mergePositions`](https://github.com/gnosis/conditional-tokens-contracts/blob/eeefca66eb46c800a9aaab88db2064a99026fde5/contracts/ConditionalTokens.sol#L165), [`redeemPositions`](https://github.com/gnosis/conditional-tokens-contracts/blob/eeefca66eb46c800a9aaab88db2064a99026fde5/contracts/ConditionalTokens.sol#L218) | Go through the Seer routers, which also wrap and unwrap the ERC20s. [`Router`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/Router.sol#L37) is generic. [`GnosisRouter`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/GnosisRouter.sol#L31-L53) converts xDAI↔sDAI and [`MainnetRouter`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MainnetRouter.sol#L31-L53) converts DAI↔sDAI. [`ConditionalRouter`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/ConditionalRouter.sol#L23) handles child markets. |
+| **Market data** | [Omen subgraph](https://github.com/protofire/omen-subgraph/blob/f92bbfb6fa31ed9cd5985c416a26a2f640837d8b/schema.graphql#L70) (`fixedProductMarketMakers`, `fpmmTrades`) and the CTF subgraph | The [Seer HTTP API](/developers/api) (`markets-search`, `get-market`, `get-portfolio`, …), plus the on-chain [`MarketView.getMarket`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketView.sol#L107) |
+| **Chains** | Ethereum mainnet and Gnosis Chain (xDai) ([omen-exchange README](https://github.com/protofire/omen-exchange)) | Gnosis, Ethereum, Optimism, Base ([addresses](/developers/contracts/deployed-contracts)) |
+
+## 3. The agent loop, step by step
+
+| Step | What the agent does on Omen | What the agent does on Seer |
+|---|---|---|
+| **1. Discover markets** | Query `fixedProductMarketMakers` on the Omen subgraph and filter on open, liquidity > 0, binary. | Use `markets-search` from the [Seer API](/developers/api) to list and filter markets by type, status and liquidity. Use `get-market` for a single market, with its outcome odds, liquidity and parent or child markets. On-chain, `MarketView.getMarket` returns the core market data in one call ([`MarketInfo`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketView.sol#L82-L105)). |
+| **2. Read prices and probabilities** | FPMM balances give `p_i ∝ ∏_{j≠i} balance_j`. `calcBuyAmount` gives exact quotes. | Each outcome token has its own pool price in collateral. `SER-INVALID` usually has no liquidity, so its value is implied: `1 − Σ (prices of the other outcomes)`. This works because a full set of outcome tokens always redeems for exactly 1 collateral. For exact amounts, quote the pool through Lens or the Swapr quoter. |
+| **3. Buy** | Call [`FPMM.buy(investment, outcomeIndex, minTokens)`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FixedProductMarketMaker.sol#L304). | Swap collateral for the outcome ERC20 on the AMM, after approving the DEX router. Alternative: `splitPosition` to mint the full set, then sell the outcomes you don't want. |
+| **4. Sell** | Call [`FPMM.sell(returnAmount, outcomeIndex, maxTokens)`](https://github.com/gnosis/conditional-tokens-market-makers/blob/6814c0247c745680bb13298d4f0dd7f5b574d0db/contracts/FixedProductMarketMaker.sol#L321). | Swap the outcome ERC20 back to collateral. Alternative: buy the complementary outcomes, then `mergePositions`. |
+| **5. Size bets** | Use closed-form FPMM math with a known fee and a single pool. | Omen closed-form sizing doesn't transfer. Price impact comes from each outcome's own concentrated-liquidity pool, so size bets from quotes. Some outcomes may have little or no liquidity. |
+| **6. Track positions** | CTF subgraph user positions and `fpmmParticipations`. | Read the ERC20 `balanceOf` of each wrapped outcome token, or use the API's `get-portfolio` and `get-transactions`. |
+| **7. Resolution** | Once Reality finalizes, someone calls `RealitioProxy.resolve(...)`. | Once Reality finalizes, anyone calls `Market.resolve()`. `RealityProxy` computes **type-specific** payouts (see §4). |
+| **8. Redeem** | `CTF.redeemPositions(...)`, then unwrap the collateral. | [`GnosisRouter.redeemToBase`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/GnosisRouter.sol#L53) pays out xDAI, or use `Router.redeemPositions` for other collaterals. Either way you approve the router for each outcome token first. For child markets, [`ConditionalRouter.redeemConditionalToCollateral`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/ConditionalRouter.sol#L23) redeems all the way to base collateral, provided the parent is a root market. |
+
+## 4. Seer market types
+
+Seer supports the six market types below. Omen only has the first one, and even that one resolves differently on Seer (the Invalid rule above).
+
+**How payouts work.** Payouts are computed in [`RealityProxy.sol`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol). CTF then normalizes each payout vector by its sum, so a winning token redeems for `payout_i / Σ payouts` units of collateral.
+
+| Type | How it's created | Outcome tokens | How it pays out |
+|---|---|---|---|
+| **Binary**, i.e. categorical Yes/No. The closest to Omen. | [`createCategoricalMarket`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L140), with outcomes `[Yes, No]` and Reality template 2 | `Yes`, `No`, `SER-INVALID` | The winning outcome gets 1. An invalid answer pays **only** Invalid ([L73-89](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol#L73-L89)). |
+| **Categorical** | Same function as binary, with N outcomes | N outcomes plus Invalid | Exactly one winner, same rule as binary |
+| **Multi-categorical** | [`createMultiCategoricalMarket`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L162), Reality template 3 (multi-select) | N outcomes plus Invalid | The answer is a bitmask, so **several outcomes can win**. Each winner gets `1/k`, where k is the number of winners. All zeros, or an invalid answer, pays Invalid ([L95-121](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol#L95-L121)). |
+| **Scalar** | [`createScalarMarket`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L184), Reality template 1 (uint), with `lowerBound` and `upperBound` | `DOWN`, `UP`, `SER-INVALID` | **Partial payouts:** inside the range, DOWN redeems for `(high−x)/(high−low)` and UP for `(x−low)/(high−low)`. Outside it, one side gets everything (`[1,0]` / `[0,1]`). ([L128-150](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol#L128-L150)) |
+| **Multi-scalar** | [`createMultiScalarMarket`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L208). It asks **one Reality question per outcome** ([L213-219](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L213-L219)). | N outcomes plus Invalid | Each outcome's payout is its raw numeric answer, so token i redeems for `x_i / Σ x_j`. Invalid pays only if every answer is 0 or invalid ([L157-190](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/RealityProxy.sol#L157-L190)). |
+| **Conditional** (child). It can be of any type above. | Any `create*` function with `parentMarket` and `parentOutcome` set ([`CreateMarketParams`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketFactory.sol#L35-L50)) | Same as the base type, but the collateral is the parent's outcome token | Same as the base type. If the parent resolves to a different outcome, the whole branch is worth 0. |
+
+Futarchy markets ([`FutarchyFactory`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/FutarchyFactory.sol)) are not covered in this guide.
+
+**Suggested rollout order,** from least to most new work compared with Omen:
+1. Binary and categorical
+2. Conditional
+3. Scalar
+4. Multi-categorical
+5. Multi-scalar
+
+## 5. Work items for the porting team
+
+The sizes (S/M/L) are rough and assume the team already has a working Omen agent.
+
+| # | Item | Size | Notes |
+|---|---|---|---|
+| 1 | **Trade execution through AMM swaps** instead of FPMM `buy` and `sell` | M | Approvals, slippage, routing (Swapr or Uniswap), gas. |
+| 2 | **Pricing and quotes** from pools; normalizing probabilities across outcomes | M | Handle pools that don't exist or are too thin, and derive the implied Invalid price (1 minus the other prices). |
+| 3 | **Market discovery** through the Seer API | S | Filter by market type, status, liquidity and parent market. |
+| 4 | **Bet sizing** without closed-form FPMM math | M | Size bets from pool quotes, or use fixed-size bets. |
+| 5 | **Forecast outputs for each market type** (prompts and output schemas) | M–L | Categorical distributions, independent multi-select probabilities, numeric forecasts for scalar and multi-scalar, conditional framing. This is the largest change on the "AI" side. |
+| 6 | **Position tracking** through ERC20 balances or the API | S | |
+| 7 | **Resolve and redeem** through the Seer routers, including child markets | S–M | Call `Market.resolve()` if nobody has yet, then `redeemToBase` or `ConditionalRouter`. |
+| 8 | **Collateral handling:** sDAI (xDAI↔sDAI through `GnosisRouter`), plus parent-token minting for child markets | S | |
+| 9 | **Reopened Reality questions** ("answered too soon") | S | Seer resolves with [`resultForOnceSettled`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/interaction/reality/RealityETH-3.0.sol#L618), which follows the reopened question. [`MarketView.getQuestionId`](https://github.com/seer-pm/demo/blob/209c67439d95a93de66d3c5dd165444ee2508e10/contracts/src/MarketView.sol#L342) returns the current question id. |
+| 10 | *Optional:* **other chains** (Ethereum, Optimism, Base) | M | Different collateral and routers (`MainnetRouter` / `Router`), plus Uniswap pools. |
+
+## 6. Pitfalls when coming from Omen
+
+- **Holding Yes and No is not a hedge against Invalid.** Only `SER-INVALID` pays on an invalid answer. Invalid results are rare but do happen. For example, Romania's [2024 presidential election](https://en.wikipedia.org/wiki/2024_Romanian_presidential_election) was annulled after the first round and [rerun in May 2025](https://en.wikipedia.org/wiki/2025_Romanian_presidential_election) with a different set of candidates. The [Seer market on the run-off](https://app.seer.pm/markets/100/winner-of-the-run-off-in-the-2024-romanian-presidential-election) (Georgescu vs Lasconi) resolved to Invalid: both candidate tokens paid 0 and only `SER-INVALID` paid out.
+- **Multi-categorical outcomes aren't mutually exclusive.** A token can win and still redeem for less than 1, because the payout is shared among all `k` winners.
+- **Scalar and multi-scalar payouts are fractions, not 0 or 1.** Bet-sizing formulas that assume a 0-or-1 payout don't apply.
+- **Each outcome is a separate pool,** so one outcome can be liquid while another has no pool at all. Check every token you plan to trade.
+- **Prices across outcomes can drift apart.** Split and merge arbitrage keeps the full set near 1 collateral, but only loosely, so the implied Invalid price can be noisy or even negative.
+- **Conditional markets need the parent's outcome token as collateral.** A child market's price is a conditional probability, not a joint one.
+
+## 7. Prior art
+
+[`prediction-market-agent-tooling`](https://github.com/gnosis/prediction-market-agent-tooling) runs a single agent pipeline on both Omen and Seer (Gnosis only). It is a useful reference for:
+
+- The Omen trading functions: [`omen_buy_outcome_tx_no_retry`](https://github.com/gnosis/prediction-market-agent-tooling/blob/817117d9e5b9ebe62ed1bf5ed090c67e49dab77f/prediction_market_agent_tooling/markets/omen/omen.py#L722) and [`omen_sell_outcome_tx`](https://github.com/gnosis/prediction-market-agent-tooling/blob/817117d9e5b9ebe62ed1bf5ed090c67e49dab77f/prediction_market_agent_tooling/markets/omen/omen.py#L796).
+- Their Seer counterpart, which swaps on Swapr pools: [`SwapPoolHandler.buy_or_sell_outcome_token`](https://github.com/gnosis/prediction-market-agent-tooling/blob/817117d9e5b9ebe62ed1bf5ed090c67e49dab77f/prediction_market_agent_tooling/markets/seer/swap_pool_handler.py#L49).
+- Reading pool prices: [`PriceManager`](https://github.com/gnosis/prediction-market-agent-tooling/blob/817117d9e5b9ebe62ed1bf5ed090c67e49dab77f/prediction_market_agent_tooling/markets/seer/price_manager.py#L38).
+- Minting parent tokens for conditional markets: [`mint_full_set`](https://github.com/gnosis/prediction-market-agent-tooling/blob/817117d9e5b9ebe62ed1bf5ed090c67e49dab77f/prediction_market_agent_tooling/tools/tokens/auto_deposit.py#L199).
+
+Its Seer support covers binary, categorical, scalar and conditional markets for trading. Its resolution handling is categorical-only and doesn't cover Invalid, multi-categorical or multi-scalar.
+
+## 8. References
+
+- **Seer contracts:** https://github.com/seer-pm/demo/tree/main/contracts/src. Addresses per chain are at /developers/contracts/deployed-contracts.
+- **Seer developer docs:**
+  - [Create a market](/developers/guides/create-a-market)
+  - [Trading](/developers/guides/trading)
+  - [Split, merge and redeem](/developers/guides/split-merge-and-redeem)
+  - [Conditional markets](/developers/guides/conditional-markets)
+  - [HTTP API](/developers/api)
+- **Omen:**
+  - FPMM: https://github.com/gnosis/conditional-tokens-market-makers
+  - Conditional Tokens: https://github.com/gnosis/conditional-tokens-contracts
+  - Reality.eth: https://github.com/RealityETH/reality-eth-monorepo
+  - Omen subgraph: https://github.com/protofire/omen-subgraph
+  - Frontend: https://github.com/protofire/omen-exchange
+- **Gnosis Chain addresses:**
+
+  | Contract | Omen | Seer |
+  |---|---|---|
+  | Factory | FPMMDeterministicFactory `0x9083A2B699c0a4AD06F63580BDE2635d26a3eeF0` | MarketFactory `0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1` |
+  | Oracle adapter | `0xAB16D643bA051C11962DA645f74632d3130c81E2` | RealityProxy `0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C` |
+  | Router | None | GnosisRouter `0xeC9048b59b3467415b1a38F63416407eA0c70fB8` |
+  | Market reader | None | MarketView `0x95493F3e3F151eD9ee9338a4Fc1f49c00890F59C` |
+  | Conditional Tokens | `0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce` | The same contract as Omen |
+  | Reality.eth | v2.1 `0x79e32aE03fb27B07C89c0c568F80287C01ca2E57` | v3.0 `0xE78996A233895bE74a66F451f1019cA9734205cc` |
+  | Collateral | Chosen per market | sDAI `0xaf204776c7245bF4147c2612BF6e5972Ee483701` |
