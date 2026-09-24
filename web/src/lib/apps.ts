@@ -118,7 +118,7 @@ export const SEER_APPS: Record<SeerAppId, SeerApp> = {
   },
   futarchy: {
     id: "futarchy",
-    label: "Futarchy.fi",
+    label: "Futarchy",
     logoKey: "futarchy",
     markets: [],
   },

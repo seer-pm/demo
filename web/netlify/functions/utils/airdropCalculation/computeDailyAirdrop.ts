@@ -485,8 +485,7 @@ async function insertChainHoldings(timestamp: number, finalData: ReturnType<type
     }
   } catch (error) {
     console.error(
-      `airdrop_chain_holdings write failed for timestamp ${timestamp} (${chainHoldings.length} rows); ` +
-        "per-chain PoH link overrides will not apply to this day",
+      `airdrop_chain_holdings write failed for timestamp ${timestamp} (${chainHoldings.length} rows); per-chain PoH link overrides will not apply to this day`,
       (error as Error)?.message ?? error,
     );
   }

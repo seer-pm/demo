@@ -281,7 +281,7 @@ export default function Header() {
             title: "App",
             icon: <DownArrow />,
             children: [
-              appLink("futarchy", "futarchy", "Futarchy.fi", isMobile),
+              appLink("futarchy", "futarchy", "Futarchy", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
               appLink("foresight", "foresight", "Foresight", isMobile),
               appLink("opportunity-markets", "opportunity-markets", "Opportunity Markets", isMobile),
