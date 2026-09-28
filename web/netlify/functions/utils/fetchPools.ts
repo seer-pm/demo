@@ -1,10 +1,10 @@
-import { type Address, erc20Abi, formatUnits, zeroAddress } from "viem";
+import { type Address, erc20Abi, formatUnits } from "viem";
 import { multicall } from "viem/actions";
 import { chainIds, getPublicClientByChainId, gnosis } from "./config.ts";
 
 import { isTwoStringsEqual } from "@/lib/utils.ts";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getMarketPoolsPairs, getTokensPairKey } from "@seer-pm/sdk/market-pools";
+import { getMarketAllPoolsPairs, getTokensPairKey } from "@seer-pm/sdk/market-pools";
 import type { Token0Token1 } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { OrderDirection, Pool_OrderBy } from "@seer-pm/sdk/subgraph/swapr";
@@ -28,6 +28,12 @@ export interface Pool extends SubgraphPool {
   balance0: number;
   balance1: number;
   isToken0Collateral: boolean;
+  /**
+   * The non-outcome side of a Generic market's pool: the market collateral (the parent outcome token
+   * on a child market) or the chain's main collateral. Unused on Futarchy pools, where both sides are
+   * outcome tokens.
+   */
+  counterparty: Address;
   chainId: SupportedChain;
   outcomesCountWithoutInvalid: number;
   market: Market;
@@ -203,14 +209,11 @@ export function midsFromSubgraphPools(chainId: SupportedChain, pools: SubgraphPo
 }
 
 export async function getAllMarketPools(markets: Market[]) {
+  // Every pair that is fetched below must map back to its market, or the pool is dropped.
   const tokenPairToMarketMapping = markets.reduce(
     (acc, curr) => {
-      for (const token of curr.wrappedTokens) {
-        for (const collateral of [curr.collateralToken, curr.collateralToken1, curr.collateralToken2]) {
-          if (!isTwoStringsEqual(collateral, zeroAddress)) {
-            acc[collateral > token ? `${token}-${collateral}` : `${collateral}-${token}`] = curr;
-          }
-        }
+      for (const { token0, token1 } of getMarketAllPoolsPairs(curr)) {
+        acc[getTokensPairKey(token0, token1)] = curr;
       }
       return acc;
     },
@@ -219,7 +222,7 @@ export async function getAllMarketPools(markets: Market[]) {
   const settled = await Promise.allSettled(
     chainIds.map(async (chainId) => {
       const marketsByChain = markets.filter((market) => market.chainId === chainId);
-      const tokenPairsByChain = marketsByChain.flatMap((market) => getMarketPoolsPairs(market));
+      const tokenPairsByChain = marketsByChain.flatMap((market) => getMarketAllPoolsPairs(market));
       const poolsByChain = await fetchPools(chainId, tokenPairsByChain);
       const tokenPoolList = poolsByChain.reduce(
         (acc, curr) => {
@@ -248,6 +251,9 @@ export async function getAllMarketPools(markets: Market[]) {
         if (!market) return;
 
         const { token0Price, token1Price } = getSubgraphPoolTokenPrices(chainId, pool);
+        // A Generic outcome may pool against the market collateral or the chain's main collateral, so
+        // the collateral side is whichever token is not one of the market's outcomes.
+        const isToken0Collateral = !market.wrappedTokens.some((token) => isTwoStringsEqual(token, pool.token0.id));
 
         return {
           ...pool,
@@ -256,9 +262,8 @@ export async function getAllMarketPools(markets: Market[]) {
           market,
           balance0: poolTokenBalanceMapping[`${pool.token0.id}-${pool.id}`],
           balance1: poolTokenBalanceMapping[`${pool.token1.id}-${pool.id}`],
-          // For generic markets, isToken0Collateral indicates whether token0 is the market's collateral token.
-          // For futarchy markets, this flag is unused since they have two collateral tokens.
-          isToken0Collateral: isTwoStringsEqual(pool.token0.id, market.collateralToken),
+          isToken0Collateral,
+          counterparty: (isToken0Collateral ? pool.token0.id : pool.token1.id) as Address,
           chainId: Number(chainId),
           outcomesCountWithoutInvalid: market.wrappedTokens.length - 1,
         };

@@ -1,9 +1,8 @@
-import { getToken0Token1, tickToPrice } from "@seer-pm/sdk";
 import { normalizeOdds } from "@seer-pm/sdk/market-odds";
 import { createClient } from "@supabase/supabase-js";
 import { formatUnits, zeroAddress } from "viem";
 import { chainIds, gnosis } from "./utils/config";
-import { Pool, getAllMarketPools } from "./utils/fetchPools";
+import { getAllMarketPools } from "./utils/fetchPools";
 import { getMarketsIncentive } from "./utils/getMarketsIncentives";
 import { getMarketsLiquidity } from "./utils/getMarketsLiquidity";
 import { searchMarkets } from "./utils/markets";
@@ -74,46 +73,12 @@ export default async () => {
     }
     // update odds for each market
     console.log("fetching odds...");
-    const getLiquidity = (pool: Pool) => Number(pool.liquidity);
-    function getPoolKey(token0: string, token1: string) {
-      const [a, b] = [token0.toLowerCase(), token1.toLowerCase()].sort();
-      return `${a}-${b}`;
-    }
-    function buildPoolMap(pools: Pool[]): Map<string, Pool> {
-      const poolMap = new Map<string, Pool>();
-
-      for (const pool of pools) {
-        const key = getPoolKey(pool.token0.id, pool.token1.id);
-
-        const existing = poolMap.get(key);
-
-        if (!existing || getLiquidity(pool) > getLiquidity(existing)) {
-          poolMap.set(key, pool);
-        }
-      }
-
-      return poolMap;
-    }
-    const poolMap = buildPoolMap(pools);
     const results = markets.map((market) => {
       const hasLiquidity = (liquidityToMarketMapping[market.id].totalLiquidity || 0) > 0;
       if (!hasLiquidity || market.type === "Futarchy") {
         return Array(market.wrappedTokens.length).fill(Number.NaN);
       }
-      const prices = market.wrappedTokens.map((wrappedAddress) => {
-        const { token0, token1 } = getToken0Token1(wrappedAddress, market.collateralToken);
-        const pool = poolMap.get(getPoolKey(token0, token1));
-        if (!pool) {
-          return Number.NaN;
-        }
-        if (pool.tick === null || pool.tick === undefined) {
-          return Number.NaN;
-        }
-        const [price0, price1] = tickToPrice(Number(pool.tick));
-        return wrappedAddress.toLowerCase() === token0.toLowerCase() ? Number(price0) : Number(price1);
-      });
-
-      return normalizeOdds(prices);
+      return normalizeOdds(liquidityToMarketMapping[market.id].outcomePrices);
     });
     const { error: errorOdds } = await supabase.from("markets").upsert(
       markets.map((market, index) => ({

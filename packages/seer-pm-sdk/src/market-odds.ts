@@ -1,6 +1,8 @@
-import type { Address } from "viem";
+import { type Address, zeroAddress } from "viem";
+import { getDefaultCollateralProfile } from "./collateral";
 import { getMarketUnit } from "./market";
 import type { Market } from "./market-types";
+import { isTwoStringsEqual } from "./quote-utils";
 import { displayScalarBound } from "./reality";
 import { getTokenPrice } from "./token-price";
 import type { Token } from "./tokens";
@@ -41,21 +43,42 @@ export function normalizeOdds(prices: number[]): number[] {
   return formatOdds(filteredPrices);
 }
 
+function asCollateral(address: Address, chainId: number): Token {
+  return { address, chainId, decimals: 18, symbol: "" };
+}
+
+/**
+ * Odds from the pool prices in the market collateral. On a child market that collateral is the parent
+ * outcome token; an outcome with no pool against it is priced from its main-collateral pool instead,
+ * as an absolute price rather than one conditional on the parent outcome. That needs no price for the
+ * parent token, which the "Other" of a chained market never has. The parent pool keeps precedence, the
+ * same rule the backend applies.
+ */
 export async function getMarketOdds(market: Market, hasLiquidity: boolean): Promise<number[]> {
   if (!hasLiquidity || market.type === "Futarchy") {
     return Array(market.wrappedTokens.length).fill(Number.NaN);
   }
 
-  const collateralToken: Token = {
-    address: market.collateralToken as Address,
-    chainId: market.chainId,
-    decimals: 18,
-    symbol: "",
-  };
+  const collateralToken = asCollateral(market.collateralToken as Address, market.chainId);
 
   const prices = await Promise.all(
     market.wrappedTokens.map((wrappedAddress) => getTokenPrice(wrappedAddress, collateralToken, market.chainId)),
   );
+
+  const mainCollateral = getDefaultCollateralProfile(market.chainId).primary;
+  // The swap quoter behind `getTokenPrice` reports a missing route as 0, not NaN.
+  const unpriced = prices.map((price, i) => (Number.isNaN(price) || price === 0 ? i : -1)).filter((i) => i >= 0);
+  if (
+    unpriced.length > 0 &&
+    market.parentMarket.id !== zeroAddress &&
+    !isTwoStringsEqual(mainCollateral.address, market.collateralToken)
+  ) {
+    await Promise.all(
+      unpriced.map(async (i) => {
+        prices[i] = await getTokenPrice(market.wrappedTokens[i], mainCollateral, market.chainId);
+      }),
+    );
+  }
 
   return normalizeOdds(prices);
 }

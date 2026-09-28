@@ -1,4 +1,5 @@
-import type { Address } from "viem";
+import { type Address, zeroAddress } from "viem";
+import { getDefaultCollateralProfile } from "./collateral";
 import type { Market } from "./market-types";
 
 export function getCollateralByIndex(market: Market, index: number): Address {
@@ -45,6 +46,43 @@ export function getMarketPoolsPairs(market: Market): Token0Token1[] {
     pools.add(getLiquidityPair(market, index));
   });
   return [...pools];
+}
+
+/**
+ * Every pool pair an outcome can trade in, the market collateral pair first.
+ *
+ * A child market's collateral is the parent's outcome token, so a child outcome may also hold a pool
+ * against the chain's main collateral (sDAI, sUSDS): that pool prices it in absolute terms and needs
+ * no parent pool to be worth anything. The order is a precedence: liquidity is summed over every pair,
+ * but a price (odds, open interest) comes from the first pair that has a pool, because that is the pair
+ * the swap widget quotes through and the one every existing market already uses.
+ */
+export function getOutcomePoolPairs(market: Market, outcomeIndex: number): Token0Token1[] {
+  const pairs = [getLiquidityPair(market, outcomeIndex)];
+  if (market.type !== "Generic" || market.parentMarket.id === zeroAddress) {
+    return pairs;
+  }
+  const mainCollateral = getDefaultCollateralProfile(market.chainId).primary.address;
+  if (mainCollateral.toLowerCase() === market.collateralToken.toLowerCase()) {
+    return pairs;
+  }
+  pairs.push(getToken0Token1(market.wrappedTokens[outcomeIndex], mainCollateral));
+  return pairs;
+}
+
+/**
+ * Every pool pair of the market, deduplicated. Not aligned with the outcome index, unlike
+ * `getMarketPoolsPairs`: use it where the pairs are a set (which pools to fetch), not a per-outcome list.
+ */
+export function getMarketAllPoolsPairs(market: Market): Token0Token1[] {
+  const byKey = new Map<string, Token0Token1>();
+  const tokens = market.type === "Generic" ? market.wrappedTokens : market.wrappedTokens.slice(0, 2);
+  tokens.forEach((_, index) => {
+    for (const pair of getOutcomePoolPairs(market, index)) {
+      byKey.set(getTokensPairKey(pair.token0, pair.token1), pair);
+    }
+  });
+  return [...byKey.values()];
 }
 
 export function getLiquidityPairForToken(market: Market, outcomeIndex: number): Address {

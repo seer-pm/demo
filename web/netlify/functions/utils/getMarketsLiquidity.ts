@@ -1,6 +1,8 @@
 import { base, optimism } from "@/lib/chains.ts";
+import { isTwoStringsEqual } from "@/lib/utils.ts";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getDefaultCollateralProfile } from "@seer-pm/sdk/collateral";
+import { tickToPrice } from "@seer-pm/sdk/liquidity-utils";
 import { getCollateralByIndex, getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, zeroAddress } from "viem";
@@ -84,89 +86,184 @@ type TokenLiquidityMapping = Record<
   }
 >;
 
+/**
+ * One pool of a Generic outcome. `main` pools quote the outcome in the chain's main collateral and
+ * price it on their own; `parent` pools quote it in the parent outcome token, so their price only
+ * means something once that token has a main-collateral price of its own.
+ */
+type OutcomePoolCandidate = {
+  pool: Pool;
+  outcomeToken: Address;
+  counterparty: Address;
+  kind: "main" | "parent";
+  balanceOutcome: number;
+  balanceCounterparty: number;
+  /** Counterparty per outcome token, from the pool's spot price. */
+  mid: number;
+  tokenBalanceInfo: TokenLiquidityBalanceInfo;
+};
+
 type GenericTokenLiquidityMapping = Record<
   Address,
   {
     liquidity: number;
     tokenBalanceInfo: TokenLiquidityBalanceInfo;
     tokenPriceInMainCollateral: number;
+    /**
+     * Price the odds are made of, from the tick of the pool that priced the token: in the market
+     * collateral when that is the parent pool, in the main collateral when only a main pool exists.
+     * The second is absolute rather than conditional on the parent outcome, by decision: it needs no
+     * price for the parent token, which the "Other" of a chained market never has. NaN when unknown.
+     */
+    tokenPriceForOdds: number;
   }
 >;
 
+function isChildMarket(market: Market): boolean {
+  return market.parentMarket.id !== zeroAddress;
+}
+
+/** Outcome token per counterparty, from the pool's tick. NaN when the subgraph has no tick yet. */
+function tickPrice(pool: Pool, outcomeToken: Address): number {
+  if (pool.tick === null || pool.tick === undefined) {
+    return Number.NaN;
+  }
+  const [price0, price1] = tickToPrice(Number(pool.tick));
+  return isTwoStringsEqual(pool.token0.id, outcomeToken) ? Number(price0) : Number(price1);
+}
+
+/**
+ * Candidates per outcome token, in price precedence: the market collateral pair first, then the main
+ * collateral pair. Several pools of the same pair (fee tiers) keep only the one holding the most
+ * collateral, as one pool per pair is what the rest of the pipeline assumes.
+ */
+function groupOutcomePoolCandidates(genericTokenPools: Pool[]): Map<Address, OutcomePoolCandidate[]> {
+  const byPair = new Map<string, OutcomePoolCandidate>();
+  for (const pool of genericTokenPools) {
+    const outcomeToken = (pool.isToken0Collateral ? pool.token1.id : pool.token0.id).toLowerCase() as Address;
+    const counterparty = pool.counterparty.toLowerCase() as Address;
+    const [balanceOutcome, balanceCounterparty] = pool.isToken0Collateral
+      ? [pool.balance1, pool.balance0]
+      : [pool.balance0, pool.balance1];
+    const candidate: OutcomePoolCandidate = {
+      pool,
+      outcomeToken,
+      counterparty,
+      kind:
+        isChildMarket(pool.market) && isTwoStringsEqual(counterparty, pool.market.collateralToken) ? "parent" : "main",
+      balanceOutcome,
+      balanceCounterparty,
+      mid: pool.isToken0Collateral ? Number(pool.token0Price) : Number(pool.token1Price),
+      tokenBalanceInfo: {
+        token0: { symbol: pool.token0.symbol, balance: pool.balance0 },
+        token1: { symbol: pool.token1.symbol, balance: pool.balance1 },
+      },
+    };
+    const key = `${outcomeToken}-${counterparty}`;
+    const existing = byPair.get(key);
+    if (!existing || candidate.balanceCounterparty > existing.balanceCounterparty) {
+      byPair.set(key, candidate);
+    }
+  }
+
+  const byToken = new Map<Address, OutcomePoolCandidate[]>();
+  for (const candidate of byPair.values()) {
+    const candidates = byToken.get(candidate.outcomeToken) ?? [];
+    candidates.push(candidate);
+    byToken.set(candidate.outcomeToken, candidates);
+  }
+  for (const candidates of byToken.values()) {
+    candidates.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "parent" ? -1 : 1));
+  }
+  return byToken;
+}
+
+type ResolvedPrice = { price: number; source: OutcomePoolCandidate };
+
+/**
+ * Main-collateral price of every outcome token that has one.
+ *
+ * A token takes the price of its first candidate as soon as that candidate can be priced, which for a
+ * parent pool means once the parent token itself is priced: a grandchild resolves one pass after its
+ * parent. Only when no pass can price a token through its parent pool does its main pool step in, and
+ * that may in turn unlock the tokens hanging from it, so the passes restart after every such fallback.
+ *
+ * A parent token without any pool stays unpriced, and so do the outcomes hanging from it: their odds
+ * and open interest read as unknown until someone pools it.
+ */
+function resolveMainCollateralPrices(byToken: Map<Address, OutcomePoolCandidate[]>): Map<Address, ResolvedPrice> {
+  const resolved = new Map<Address, ResolvedPrice>();
+  const priceOf = (candidate: OutcomePoolCandidate): number | undefined => {
+    if (candidate.kind === "main") {
+      return candidate.mid;
+    }
+    const parent = resolved.get(candidate.counterparty);
+    return parent === undefined ? undefined : candidate.mid * parent.price;
+  };
+
+  while (true) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [token, candidates] of byToken) {
+        if (resolved.has(token)) continue;
+        const price = priceOf(candidates[0]);
+        if (price !== undefined) {
+          resolved.set(token, { price, source: candidates[0] });
+          changed = true;
+        }
+      }
+    }
+    let fellBack = false;
+    for (const [token, candidates] of byToken) {
+      if (resolved.has(token)) continue;
+      const main = candidates.find((candidate) => candidate.kind === "main");
+      if (main) {
+        resolved.set(token, { price: main.mid, source: main });
+        fellBack = true;
+        break;
+      }
+    }
+    if (!fellBack) {
+      return resolved;
+    }
+  }
+}
+
+/**
+ * Liquidity and prices of every Generic outcome token, top-level and conditional alike. Liquidity is
+ * the sum over the token's pools, each valued in USD through its own counterparty, so a child outcome
+ * with a main-collateral pool counts even when its parent has none.
+ */
 function getGenericTokenToLiquidityMapping(
   genericTokenPools: Pool[],
   mainCollateralPriceByChainMapping: MainCollateralPriceByChain,
 ): GenericTokenLiquidityMapping {
-  const res = genericTokenPools.reduce((acc, curr) => {
-    const tokenPriceInMainCollateral = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
-    const [balanceToken, balanceCollateral] = curr.isToken0Collateral
-      ? [curr.balance1, curr.balance0]
-      : [curr.balance0, curr.balance1];
-    const liquidity =
-      (tokenPriceInMainCollateral * balanceToken + balanceCollateral) *
-      (mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(curr.chainId).primary.address]?.[curr.chainId] ||
-        0);
-    const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
-    // if multiple pool, only use one with the highest collateral
-    if (acc[key]) {
-      const isCurrCollateralBalanceHigher =
-        (curr.isToken0Collateral && curr.balance0 > acc[key].tokenBalanceInfo.token0.balance) ||
-        (!curr.isToken0Collateral && curr.balance1 > acc[key].tokenBalanceInfo.token1.balance);
-      if (!isCurrCollateralBalanceHigher) {
-        return acc;
-      }
-    }
-    acc[key] = {
-      liquidity,
-      tokenPriceInMainCollateral,
-      tokenBalanceInfo: {
-        token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
-        token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
-      },
-    };
-    return acc;
-  }, {} as GenericTokenLiquidityMapping);
+  const byToken = groupOutcomePoolCandidates(genericTokenPools);
+  const resolved = resolveMainCollateralPrices(byToken);
+  const mainUsd = (chainId: SupportedChain) =>
+    mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(chainId).primary.address]?.[chainId] || 0;
 
+  const res: GenericTokenLiquidityMapping = {};
+  for (const [token, candidates] of byToken) {
+    const liquidity = candidates.reduce((total, candidate) => {
+      const counterpartyInMain = candidate.kind === "main" ? 1 : (resolved.get(candidate.counterparty)?.price ?? 0);
+      const inCounterparty = candidate.mid * candidate.balanceOutcome + candidate.balanceCounterparty;
+      return total + inCounterparty * counterpartyInMain * mainUsd(candidate.pool.chainId);
+    }, 0);
+
+    const priced = resolved.get(token);
+    // Unpriced tokens still report the balances of their first pool, so the header can list them.
+    const source = priced?.source ?? candidates[0];
+
+    res[token] = {
+      liquidity,
+      tokenPriceInMainCollateral: priced?.price ?? 0,
+      tokenPriceForOdds: tickPrice(source.pool, token),
+      tokenBalanceInfo: source.tokenBalanceInfo,
+    };
+  }
   return res;
-}
-
-function getConditionalTokenToLiquidityMapping(
-  conditionalTokenPools: Pool[],
-  genericTokenToLiquidityMapping: GenericTokenLiquidityMapping,
-  mainCollateralPriceByChainMapping: MainCollateralPriceByChain,
-): TokenLiquidityMapping {
-  return conditionalTokenPools.reduce((acc, curr) => {
-    const relativeTokenPrice = curr.isToken0Collateral ? Number(curr.token0Price) : Number(curr.token1Price);
-    const collateralPriceInMainCollateral =
-      genericTokenToLiquidityMapping[(curr.isToken0Collateral ? curr.token0.id : curr.token1.id) as Address]
-        ?.tokenPriceInMainCollateral || 0;
-    const [balanceToken, balanceCollateral] = curr.isToken0Collateral
-      ? [curr.balance1, curr.balance0]
-      : [curr.balance0, curr.balance1];
-    const liquidity =
-      (relativeTokenPrice * balanceToken + balanceCollateral) *
-      collateralPriceInMainCollateral *
-      (mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(curr.chainId).primary.address]?.[curr.chainId] ||
-        0);
-    const key = (curr.isToken0Collateral ? curr.token1.id : curr.token0.id) as Address;
-    // if multiple pool, only use one with the highest collateral
-    if (acc[key]) {
-      const isCurrCollateralBalanceHigher =
-        (curr.isToken0Collateral && curr.balance0 > acc[key].tokenBalanceInfo.token0.balance) ||
-        (!curr.isToken0Collateral && curr.balance1 > acc[key].tokenBalanceInfo.token1.balance);
-      if (!isCurrCollateralBalanceHigher) {
-        return acc;
-      }
-    }
-    acc[key] = {
-      liquidity,
-      tokenBalanceInfo: {
-        token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
-        token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
-      },
-    };
-    return acc;
-  }, {} as TokenLiquidityMapping);
 }
 
 function getFutarchyTokenToLiquidityMapping(
@@ -205,58 +302,21 @@ export type LiquidityToMarketMapping = Record<
     totalLiquidity: number;
     collateralPriceInUSD: number;
     poolBalance: Array<TokenLiquidityBalanceInfo | null>;
+    /** Per outcome, the price its odds are made of (NaN when unknown). Empty on Futarchy markets. */
+    outcomePrices: number[];
   }
 >;
 
 export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): Promise<LiquidityToMarketMapping> {
-  const marketGroups = markets.reduce(
-    (acc, market) => {
-      if (market.type === "Generic") {
-        market.parentMarket.id === zeroAddress ? acc.genericMarkets.push(market) : acc.conditionalMarkets.push(market);
-      } else if (market.type === "Futarchy") {
-        acc.futarchyMarkets.push(market);
-      }
-      return acc;
-    },
-    { genericMarkets: [], conditionalMarkets: [], futarchyMarkets: [] } as {
-      genericMarkets: Market[];
-      conditionalMarkets: Market[];
-      futarchyMarkets: Market[];
-    },
-  );
+  const futarchyMarkets = markets.filter((market) => market.type === "Futarchy");
+  const genericTokenPools = allPools.filter((pool) => pool.market.type === "Generic");
+  const futarchyTokenPools = allPools.filter((pool) => pool.market.type === "Futarchy");
 
-  const { genericTokenPools, conditionalTokenPools, futarchyTokenPools } = allPools.reduce(
-    (acc, curr) => {
-      const { market } = curr;
-      if (market.type === "Generic") {
-        market.parentMarket.id === zeroAddress
-          ? acc.genericTokenPools.push(curr)
-          : acc.conditionalTokenPools.push(curr);
-      } else if (market.type === "Futarchy") {
-        acc.futarchyTokenPools.push(curr);
-      }
-      return acc;
-    },
-    {
-      genericTokenPools: [],
-      conditionalTokenPools: [],
-      futarchyTokenPools: [],
-    } as {
-      genericTokenPools: Pool[];
-      conditionalTokenPools: Pool[];
-      futarchyTokenPools: Pool[];
-    },
-  );
   const mainCollateralPriceByChainMapping = await getMainCollateralPriceByChainMapping();
 
-  const futarchyCollateralsByChainMapping = await getFutarchyCollateralsByChainMapping(marketGroups.futarchyMarkets);
+  const futarchyCollateralsByChainMapping = await getFutarchyCollateralsByChainMapping(futarchyMarkets);
   const genericTokenToLiquidityMapping = getGenericTokenToLiquidityMapping(
     genericTokenPools,
-    mainCollateralPriceByChainMapping,
-  );
-  const conditionalTokenToLiquidityMapping = getConditionalTokenToLiquidityMapping(
-    conditionalTokenPools,
-    genericTokenToLiquidityMapping,
     mainCollateralPriceByChainMapping,
   );
   const futarchyTokenToLiquidityMapping = getFutarchyTokenToLiquidityMapping(
@@ -266,7 +326,6 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
 
   const tokenToLiquidityMapping: TokenLiquidityMapping = {
     ...genericTokenToLiquidityMapping,
-    ...conditionalTokenToLiquidityMapping,
     ...futarchyTokenToLiquidityMapping,
   };
 
@@ -291,13 +350,13 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
           market.chainId
         ] || 0;
 
-      if (market.parentMarket.id === zeroAddress) {
+      if (!isChildMarket(market)) {
         // generic market collateral = main collateral
         collateralPriceInUSD = mainCollateralPrice;
       } else {
         // conditional market collateral =
         // parent outcome token price * main collateral price
-        const parentOutcomeToken = market.collateralToken as Address;
+        const parentOutcomeToken = market.collateralToken.toLowerCase() as Address;
 
         const parentOutcomePriceInMainCollateral =
           genericTokenToLiquidityMapping[parentOutcomeToken]?.tokenPriceInMainCollateral || 0;
@@ -313,6 +372,7 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
         totalLiquidity: 0,
         collateralPriceInUSD: 0,
         poolBalance: [],
+        outcomePrices: [],
       };
     }
 
@@ -331,6 +391,13 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
 
       return tokenToLiquidityMapping[outcomeToken]?.tokenBalanceInfo || null;
     });
+
+    if (market.type === "Generic") {
+      acc[market.id].outcomePrices = market.wrappedTokens.map(
+        (outcomeToken) =>
+          genericTokenToLiquidityMapping[outcomeToken.toLowerCase() as Address]?.tokenPriceForOdds ?? Number.NaN,
+      );
+    }
 
     return acc;
   }, {} as LiquidityToMarketMapping);
