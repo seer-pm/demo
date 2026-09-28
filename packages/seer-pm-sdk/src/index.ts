@@ -68,7 +68,9 @@ export {
   getCollateralByIndex,
   getLiquidityPair,
   getLiquidityPairForToken,
+  getMarketAllPoolsPairs,
   getMarketPoolsPairs,
+  getOutcomePoolPairs,
   getToken0Token1,
   getTokensPairKey,
 } from "./market-pools";

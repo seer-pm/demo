@@ -1,4 +1,4 @@
-import { type Market as BaseMarket, getMarketPoolsPairs, sqrtPriceX96ToPrice } from "@seer-pm/sdk";
+import { type Market as BaseMarket, getOutcomePoolPairs, sqrtPriceX96ToPrice } from "@seer-pm/sdk";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "@seer-pm/sdk";
 import { POOL_FACTORY_ADDRESSES, computePoolAddress } from "@seer-pm/sdk";
 import {
@@ -371,8 +371,17 @@ export const useMarketPools = (market: Market) => {
     queryKey: ["useMarketPools", market.id],
     retry: false,
     queryFn: async () => {
+      // One list per outcome, holding every pool the outcome trades in (see `getOutcomePoolPairs`).
+      const tokens = market.type === "Generic" ? market.wrappedTokens : market.wrappedTokens.slice(0, 2);
       return await Promise.all(
-        getMarketPoolsPairs(market).map((poolPair) => getPools(market.chainId, config).fetch(poolPair)),
+        tokens.map(async (_, outcomeIndex) => {
+          const pools = await Promise.all(
+            getOutcomePoolPairs(market, outcomeIndex).map((poolPair) =>
+              getPools(market.chainId, config).fetch(poolPair),
+            ),
+          );
+          return pools.flat();
+        }),
       );
     },
   });
