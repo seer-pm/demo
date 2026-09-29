@@ -30,6 +30,7 @@ multi-statement scripts in one, so run those statements individually.
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `users_username.sql` | Adds the optional unique wallet-linked username column and validation constraints. |
 | `users_x_account.sql` | Adds the OAuth-verified X account columns (`x_user_id` unique, `x_account` handle) and their constraints. |
+| `markets_volume.sql` | Adds `markets.volume_usd` (cash) and `markets.volume_notional_usd` (notional): lifetime DEX swap volume in USD, written by `batch-odds-background` next to `liquidity`. Also the runbook for recreating the `markets_search` view so the columns show up in `markets-search`. See "Apply for market volume". |
 
 Analytics matview RPC `refresh_market_outcome_tokens` lives in
 [`dashboard/supabase/sql/analytics_rpcs.sql`](../../dashboard/supabase/sql/analytics_rpcs.sql)
@@ -239,3 +240,23 @@ Dump one with:
 ```sql
 select pg_get_functiondef(oid) from pg_proc where proname = 'get_direct_holdings_at';
 ```
+
+## Apply for market volume
+
+Order matters: the columns must exist before the code that writes them deploys, and the backfill
+needs both.
+
+1. `markets_volume.sql`: the two `alter table` columns, then recreate the `markets_search` view as
+   the file's comments describe (dump the live definition, add the two columns, restore the grants).
+   `get-market` reads the `markets` table and works as soon as the columns exist; `markets-search`
+   reads the view and only returns the fields once it is recreated. A view that is not yet recreated
+   makes `markets-search` fail on the unknown columns, so do both before deploying.
+2. Deploy. `batch-odds-background` starts filling active markets on its 5-minute rotation.
+3. Backfill closed markets, one chain per run, from `web/`:
+
+   ```bash
+   npx tsx --env-file=.env.local scripts/backfill-market-volume.ts --chain 100 --dry-run
+   npx tsx --env-file=.env.local scripts/backfill-market-volume.ts --chain 100
+   ```
+
+   Repeat for 1, 10 and 8453. Needs a service_role `SUPABASE_API_KEY`.

@@ -231,6 +231,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   );
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
+  const volumeUSD = formatBigNumbers(market.volumeUSD);
   const incentive = formatBigNumbers(market.incentive);
 
   const [showMarketInfo, setShowMarketInfo] = useState(
@@ -428,7 +429,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                     : "0.00"}
               </span>
               <USDIcon />
-              {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01) && (
+              {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0) && (
                 <Popover
                   label="Open interest and liquidity breakdown"
                   trigger={<QuestionIcon fill="#9747FF" />}
@@ -442,12 +443,23 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                           : getActivePrimaryCollateral(market.chainId).symbol}{" "}
                         ({displayNumber(market.openInterestUSD, undefined, true)} $)
                       </p>
+                      <p className="text-purple-primary">Volume:</p>
+                      <p className="mx-1">
+                        {displayNumber(market.volumeUSD, undefined, true)} $ traded, notional{" "}
+                        {displayNumber(market.volumeNotionalUSD, undefined, true)} $
+                      </p>
                       <p className="text-purple-primary">Liquidity:</p>
                       <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
                     </div>
                   }
                 />
               )}
+            </div>
+            <div className="!flex items-center tooltip">
+              <p className="tooltiptext @[510px]:hidden">Volume</p>
+              <span className="text-base-content/70 @[510px]:inline-block hidden">Volume:</span>
+              <span className="ml-1">{volumeUSD}</span>
+              <USDIcon />
               {market.parentMarket.id.toLowerCase() === zeroAddress.toLowerCase() && (
                 <MarketPnL account={address} chainId={market.chainId} marketId={market.id} />
               )}

@@ -5,7 +5,15 @@ import { describe, expect, it, vi } from "vitest";
 import type { Pool } from "./fetchPools";
 import { getMarketsLiquidity } from "./getMarketsLiquidity";
 
-vi.mock("./common.ts", () => ({ getDexScreenerPriceUSD: async () => 1.2 }));
+// Every collateral quotes at 1.2, except the second futarchy collateral (0.5) and the unquoted one (0),
+// so the futarchy tests can tell which leg was valued with which price.
+vi.mock("./common.ts", () => ({
+  getDexScreenerPriceUSD: async (address: string) => {
+    if (address.toLowerCase() === "0x5555000000000000000000000000000000000002") return 0.5;
+    if (address.toLowerCase() === "0x5555000000000000000000000000000000000003") return 0;
+    return 1.2;
+  },
+}));
 vi.mock("./fetchSUSDSPriceFromContract.ts", () => ({ fetchSUSDSPriceFromContract: async () => 1.1 }));
 
 const GNOSIS = 100;
@@ -37,13 +45,36 @@ const ROOT = market("0xroot", [ROOT_YES, ROOT_OTHER], zeroAddress, SDAI);
 const CHILD = market("0xchild", [CHILD_A, CHILD_OTHER], ROOT.id as Address, ROOT_OTHER);
 const GRANDCHILD = market("0xgrandchild", [GRANDCHILD_X], CHILD.id as Address, CHILD_OTHER);
 
-/** A pool where one `outcome` costs `price` units of `counterparty`. */
+// Futarchy: wrappedTokens[0] and [1] redeem to collateralToken1, [2] and [3] to collateralToken2.
+const FUT_YES_1 = "0x4444000000000000000000000000000000000001" as Address;
+const FUT_NO_1 = "0x4444000000000000000000000000000000000002" as Address;
+const FUT_YES_2 = "0x4444000000000000000000000000000000000003" as Address;
+const FUT_NO_2 = "0x4444000000000000000000000000000000000004" as Address;
+const FUT_COLLATERAL_1 = "0x5555000000000000000000000000000000000001" as Address;
+const FUT_COLLATERAL_2 = "0x5555000000000000000000000000000000000002" as Address;
+const FUT_COLLATERAL_UNQUOTED = "0x5555000000000000000000000000000000000003" as Address;
+
+function futarchyMarket(id: string, collateralToken2: Address): Market {
+  return {
+    ...market(id, [FUT_YES_1, FUT_NO_1, FUT_YES_2, FUT_NO_2], zeroAddress, zeroAddress),
+    type: "Futarchy",
+    collateralToken1: FUT_COLLATERAL_1,
+    collateralToken2,
+  } as unknown as Market;
+}
+
+const FUTARCHY = futarchyMarket("0xfutarchy", FUT_COLLATERAL_2);
+
+type Legs = { outcome: number; counterparty: number };
+
+/** A pool where one `outcome` costs `price` units of `counterparty`, with optional lifetime swap volume per side. */
 function pool(
   m: Market,
   outcome: Address,
   counterparty: Address,
   price: number,
-  balances: { outcome: number; counterparty: number },
+  balances: Legs,
+  volumes: Legs = { outcome: 0, counterparty: 0 },
 ): Pool {
   const { token0, token1 } = getToken0Token1(outcome, counterparty);
   const outcomeIsToken0 = token0 === outcome.toLowerCase();
@@ -57,8 +88,8 @@ function pool(
     token1: { id: token1, symbol: outcomeIsToken0 ? "COL" : "OUT", decimals: "18" },
     token0Price: String(token0Price),
     token1Price: String(token1Price),
-    volumeToken0: "0",
-    volumeToken1: "0",
+    volumeToken0: String(outcomeIsToken0 ? volumes.outcome : volumes.counterparty),
+    volumeToken1: String(outcomeIsToken0 ? volumes.counterparty : volumes.outcome),
     liquidity: "1",
     tick: String(tick),
     balance0: outcomeIsToken0 ? balances.outcome : balances.counterparty,
@@ -169,5 +200,91 @@ describe("getMarketsLiquidity on child markets", () => {
     expect(result[ROOT.id].outcomePrices[0]).toBeCloseTo(0.6, 3);
     expect(result[ROOT.id].outcomePrices[1]).toBeCloseTo(0.4, 3);
     expect(result[ROOT.id].collateralPriceInUSD).toBe(SDAI_USD);
+  });
+});
+
+describe("getMarketsLiquidity volume", () => {
+  it("splits a top-level pool into the collateral leg (cash) and the outcome leg (notional)", async () => {
+    const pools = [
+      pool(ROOT, ROOT_YES, SDAI, 0.6, { outcome: 100, counterparty: 60 }, { outcome: 200, counterparty: 90 }),
+      pool(ROOT, ROOT_OTHER, SDAI, 0.4, { outcome: 100, counterparty: 40 }, { outcome: 10, counterparty: 4 }),
+    ];
+    const result = await getMarketsLiquidity([ROOT], pools);
+
+    expect(result[ROOT.id].volumeUSD).toBeCloseTo((90 + 4) * SDAI_USD, 6);
+    expect(result[ROOT.id].volumeNotionalUSD).toBeCloseTo((200 + 10) * SDAI_USD, 6);
+  });
+
+  it("values a child pool against the parent token at that token's price", async () => {
+    const pools = [
+      ...rootPools,
+      pool(CHILD, CHILD_A, ROOT_OTHER, 0.25, { outcome: 40, counterparty: 10 }, { outcome: 40, counterparty: 10 }),
+    ];
+    const result = await getMarketsLiquidity([ROOT, CHILD], pools);
+
+    // Parent tokens are worth 0.4 sDAI, and so is the most a child share can pay.
+    expect(result[CHILD.id].volumeUSD).toBeCloseTo(10 * 0.4 * SDAI_USD, 6);
+    expect(result[CHILD.id].volumeNotionalUSD).toBeCloseTo(40 * 0.4 * SDAI_USD, 6);
+    // The child's pool is the child's volume, not the parent's.
+    expect(result[ROOT.id].volumeUSD).toBe(0);
+  });
+
+  it("values a child pool against the main collateral with a share worth one sDAI", async () => {
+    const pools = [
+      ...rootPools,
+      pool(CHILD, CHILD_A, SDAI, 0.1, { outcome: 50, counterparty: 5 }, { outcome: 50, counterparty: 5 }),
+    ];
+    const result = await getMarketsLiquidity([ROOT, CHILD], pools);
+
+    expect(result[CHILD.id].volumeUSD).toBeCloseTo(5 * SDAI_USD, 6);
+    expect(result[CHILD.id].volumeNotionalUSD).toBeCloseTo(50 * SDAI_USD, 6);
+  });
+
+  it("adds up every fee tier of a pair while only the deepest one prices it", async () => {
+    const deep = pool(ROOT, ROOT_YES, SDAI, 0.6, { outcome: 100, counterparty: 60 }, { outcome: 100, counterparty: 60 });
+    const shallow = {
+      ...pool(ROOT, ROOT_YES, SDAI, 0.5, { outcome: 2, counterparty: 1 }, { outcome: 30, counterparty: 15 }),
+      id: "shallow",
+    };
+    const result = await getMarketsLiquidity([ROOT], [deep, shallow, rootPools[1]]);
+
+    expect(result[ROOT.id].volumeUSD).toBeCloseTo((60 + 15) * SDAI_USD, 6);
+    expect(result[ROOT.id].volumeNotionalUSD).toBeCloseTo((100 + 30) * SDAI_USD, 6);
+    expect(result[ROOT.id].outcomePrices[0]).toBeCloseTo(0.6, 3);
+  });
+
+  it("drops the volume of a pool whose parent token has no price", async () => {
+    const pools = [
+      pool(CHILD, CHILD_A, ROOT_OTHER, 0.25, { outcome: 40, counterparty: 10 }, { outcome: 40, counterparty: 10 }),
+      pool(CHILD, CHILD_OTHER, SDAI, 0.1, { outcome: 50, counterparty: 5 }, { outcome: 50, counterparty: 5 }),
+    ];
+    const result = await getMarketsLiquidity([CHILD], pools);
+
+    // Only the sDAI pool counts.
+    expect(result[CHILD.id].volumeUSD).toBeCloseTo(5 * SDAI_USD, 6);
+    expect(result[CHILD.id].volumeNotionalUSD).toBeCloseTo(50 * SDAI_USD, 6);
+  });
+
+  it("counts a futarchy trade once, as the average of both legs at their own collateral price", async () => {
+    // token0 is YES_1 (collateral 1 at 1.2), token1 is YES_2 (collateral 2 at 0.5).
+    const pools = [
+      pool(FUTARCHY, FUT_YES_1, FUT_YES_2, 1, { outcome: 10, counterparty: 10 }, { outcome: 100, counterparty: 50 }),
+    ];
+    const result = await getMarketsLiquidity([FUTARCHY], pools);
+
+    const expected = (100 * 1.2) / 2 + (50 * 0.5) / 2;
+    expect(result[FUTARCHY.id].volumeUSD).toBeCloseTo(expected, 6);
+    expect(result[FUTARCHY.id].volumeNotionalUSD).toBeCloseTo(expected, 6);
+  });
+
+  it("uses the priced leg alone when the other futarchy collateral has no quote", async () => {
+    const unquoted = futarchyMarket("0xfutarchy-unquoted", FUT_COLLATERAL_UNQUOTED);
+    const pools = [
+      pool(unquoted, FUT_YES_1, FUT_YES_2, 1, { outcome: 10, counterparty: 10 }, { outcome: 100, counterparty: 50 }),
+    ];
+    const result = await getMarketsLiquidity([unquoted], pools);
+
+    expect(result[unquoted.id].volumeUSD).toBeCloseTo(100 * 1.2, 6);
+    expect(result[unquoted.id].volumeNotionalUSD).toBeCloseTo(100 * 1.2, 6);
   });
 });

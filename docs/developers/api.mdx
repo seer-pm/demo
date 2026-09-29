@@ -37,6 +37,10 @@ type SerializedMarket = {
   factory?: `0x${string}`;
   outcomesSupply: string;
   liquidityUSD: number;
+  maxLiquidity: number;
+  openInterestUSD: number;
+  volumeUSD: number;
+  volumeNotionalUSD: number;
   incentive: number;
   hasLiquidity: boolean;
   categories: string[];
@@ -92,6 +96,23 @@ type SerializedMarket = {
 };
 ```
 
+### Volume
+
+`volumeUSD` and `volumeNotionalUSD` are the market's lifetime swap volume over its DEX pools
+(Swapr on Gnosis, Uniswap v3 elsewhere), in USD:
+
+- **`volumeUSD` (cash)** is the collateral that changed hands.
+- **`volumeNotionalUSD` (notional)** is the outcome shares that changed hands, each valued at one
+  unit of its pool's counterparty, which is the most a share can pay out. Buying 100 YES at 0.10
+  adds 10 to `volumeUSD` and 100 to `volumeNotionalUSD`.
+
+Both are recomputed every few minutes from the pools' token volumes at current prices, so a
+conditional market's figures move with its parent token's price. Only swaps count: split, merge and
+redeem, and trades matched outside a pool, are not included. Futarchy markets count each trade once,
+as the average of both legs, and report the same value in both fields. Pools whose counterparty has
+no price (a conditional market whose parent token is not pooled) contribute nothing, as they do to
+`liquidityUSD`. Markets finalized more than two days ago are no longer refreshed.
+
 ### Errors
 
 - **400** – `Missing request body` or `Missing required parameters: chainId and (id or url)`.
@@ -128,7 +149,7 @@ All optional. Defaults in the handler: `limit=1000`, `page=1`, chains = all supp
 | `minLiquidity` | number | Minimum liquidity. |
 | `creator` | string (Address) | Creator address. |
 | `participant` | string (Address) | Participant address. |
-| `orderBy` | Market_OrderBy | Sort field (subgraph). |
+| `orderBy` | `"openingTs"` \| `"outcomesSupply"` \| `"liquidityUSD"` \| `"volumeUSD"` \| `"creationDate"` \| `"oddsRunTimestamp"` | Sort field. `outcomesSupply` sorts by open interest in USD. Omitted: verification status, then liquidity. |
 | `orderDirection` | `"asc"` \| `"desc"` | Sort direction. |
 | `marketIds` | string[] | Explicit list of market IDs. |
 | `limit` | number | Results per page (default 1000). |

@@ -4,7 +4,13 @@ import type { Market, MarketStatus, SerializedMarket, VerificationStatus } from 
 import { deserializeMarket } from "./market-types";
 import { getApiHost } from "./subgraph/app-subgraph";
 
-export type MarketsOrderBy = "openingTs" | "outcomesSupply" | "liquidityUSD" | "creationDate" | "oddsRunTimestamp";
+export type MarketsOrderBy =
+  | "openingTs"
+  | "outcomesSupply"
+  | "liquidityUSD"
+  | "volumeUSD"
+  | "creationDate"
+  | "oddsRunTimestamp";
 
 export type FetchMarketParams = {
   chainsList?: Array<string | "all">;
