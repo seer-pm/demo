@@ -2,9 +2,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
-import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSignIn } from "@/hooks/useSignIn";
-import { paths } from "@/lib/paths";
 import { getAppUrl, isAccessTokenExpired } from "@/lib/utils";
 import { Discussion, type DiscussionButtonProps, createDiscussionsClient, userFromAddress } from "@seer-pm/discussions";
 import type { Market } from "@seer-pm/sdk";
@@ -47,8 +45,6 @@ function Comments({ market }: { market: Market }) {
   const isSignedIn = useIsConnectedAndSignedIn();
   const signIn = useSignIn();
   const { open } = useWeb3Modal();
-  // Decorative only: a username upgrades the author label, and its absence or failure is not an error.
-  const { data: currentUser } = usePublicUser(isSignedIn && address ? { address } : null);
 
   const client = useMemo(
     () =>
@@ -56,7 +52,6 @@ function Comments({ market }: { market: Market }) {
         baseUrl: getAppUrl(),
         marketId: market.id,
         chainId: market.chainId,
-        getProfileHref: ({ address, username }) => paths.portfolio(address, username),
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;
@@ -65,10 +60,7 @@ function Comments({ market }: { market: Market }) {
     [market.id, market.chainId],
   );
 
-  const user =
-    isSignedIn && address
-      ? userFromAddress(address, currentUser?.username, paths.portfolio(address, currentUser?.username))
-      : null;
+  const user = isSignedIn && address ? userFromAddress(address) : null;
 
   const requestConnect = async () => {
     if (isSignedIn && address) return;

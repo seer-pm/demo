@@ -17,7 +17,6 @@ const client = createDiscussionsClient({
   marketId: market.id,
   chainId: market.chainId,
   getAccessToken: () => accessToken,
-  getProfileHref: (user) => (user.username ? `/portfolio/@${user.username}` : `/portfolio/${user.address}`),
 });
 
 function DiscussionButton({
@@ -38,7 +37,7 @@ function DiscussionButton({
 
 <Discussion
   client={client}
-  user={address ? userFromAddress(address, username) : null}
+  user={isSignedIn && address ? userFromAddress(address) : null}
   onRequestConnect={signIn}
   components={{ Button: DiscussionButton }}
 />
@@ -48,7 +47,9 @@ Pass your design-system button via `components.Button`. If omitted, CTAs fall ba
 
 Set `baseUrl` to the Seer deployment hosting the discussion API functions. Comments come back with each author's current outcome-token positions (`comment.positions`), and the package renders a position badge automatically. To replace its presentation, pass `components.UserPositionBadge`; the override receives both `user` and `positions`.
 
-Author labels resolve in this order: the `DiscussionUser.username` the host supplied, then a verified mainnet ENS primary name, then a nickname generated deterministically from the address. Usernames are optional, so an author without one still renders and can still post. Only a username is prefixed with `@`, since it is the only label a host `@`-route can resolve; when a username wins, any ENS name is shown alongside as a secondary badge. Wrap the tree in a `WagmiProvider` whose config includes mainnet so reverse lookups succeed.
+The Seer client automatically loads the signed-in wallet's username and builds profile links using `baseUrl`. Pass `userFromAddress(address, username, profileHref)` to override either value; a supplied username skips lookup. Use `getProfileHref` to customize routes for all authors. Lookup failures keep the wallet usable.
+
+Labels resolve in this order: Seer username, verified mainnet ENS primary name, then a generated nickname. Usernames use an `@` prefix, with any ENS name shown as a secondary badge. Wrap the tree in a `QueryClientProvider` and a `WagmiProvider` whose config includes mainnet. Username lookups use a one-minute `staleTime` and the app's React Query retry and refetch settings.
 
 ## Styling (Tailwind)
 

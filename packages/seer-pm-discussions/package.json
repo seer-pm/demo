@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/discussions",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Market discussion UI for Seer",
   "license": "MIT",
   "author": "Seer",
@@ -42,12 +42,14 @@
     "unique-names-generator": "4.7.1"
   },
   "peerDependencies": {
+    "@tanstack/react-query": ">=5.0.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
     "viem": ">=2.0.0",
     "wagmi": ">=2.0.0"
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.17.19",
     "@types/react": "^18.2.22",
     "@types/react-dom": "^18.2.7",
     "tsup": "^8.0.2",

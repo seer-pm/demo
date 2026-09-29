@@ -15,6 +15,59 @@ afterEach(() => {
 });
 
 describe("createDiscussionsClient", () => {
+  it("loads a username from the configured public API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ user: { username: "alice" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createDiscussionsClient({
+      baseUrl: "https://seer.example/",
+      marketId: "0xABC",
+      chainId: 100,
+      getAccessToken: () => "private-token",
+    });
+
+    await expect(client.getUsername!(ADDRESS.toUpperCase())).resolves.toBe("alice");
+    expect(fetchMock).toHaveBeenCalledWith(`https://seer.example/.netlify/functions/users?address=${ADDRESS}`);
+  });
+
+  it("preserves an explicit profile URL over the route callback", () => {
+    const client = createDiscussionsClient({
+      marketId: "0xABC",
+      chainId: 100,
+      getAccessToken: () => "",
+      getProfileHref: () => "/default-profile",
+    });
+    const user = userFromAddress(ADDRESS, "host-name", "/host-profile");
+
+    expect(client.getProfileHref!(user)).toBe("/host-profile");
+  });
+
+  it.each([jsonResponse({ user: { username: null } }), new Response(null, { status: 404 })])(
+    "returns null for a missing username",
+    async (response) => {
+      const fetchMock = vi.fn().mockResolvedValue(response);
+      vi.stubGlobal("fetch", fetchMock);
+      const client = createDiscussionsClient({
+        marketId: "0xABC",
+        chainId: 100,
+        getAccessToken: () => "",
+      });
+      await expect(client.getUsername!(ADDRESS)).resolves.toBeNull();
+    },
+  );
+
+  it.each([new Error("Network unavailable"), new Response("unavailable", { status: 503 })])(
+    "reports lookup failures so React Query can retry them",
+    async (failure) => {
+      const fetchMock = vi.fn();
+      if (failure instanceof Error) fetchMock.mockRejectedValueOnce(failure);
+      else fetchMock.mockResolvedValueOnce(failure);
+      vi.stubGlobal("fetch", fetchMock);
+      const client = createDiscussionsClient({ marketId: "0xABC", chainId: 100, getAccessToken: () => "" });
+
+      await expect(client.getUsername!(ADDRESS)).rejects.toThrow();
+    },
+  );
+
   it("loads comments with author positions from the Seer comments endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -36,7 +89,7 @@ describe("createDiscussionsClient", () => {
           {
             id: "c2",
             author: "0xccdd",
-            authorDetails: { address: "0xccdd" },
+            authorDetails: { address: "0xccdd", username: "seer-user" },
             body: "no positions field",
             parentId: null,
             createdAt: 2,
@@ -64,6 +117,9 @@ describe("createDiscussionsClient", () => {
       { tokenId: "0x0003", outcome: "No", balance: 2_000_000_000_000_000_000n },
     ]);
     expect(comments[1].positions).toEqual([]);
+    expect(comments[0].authorDetails.profileHref).toBe("https://app.seer.pm/portfolio/0xaabb");
+    expect(comments[1].authorDetails.profileHref).toBe("https://app.seer.pm/portfolio/@seer-user");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns the viewer's positions when creating a comment", async () => {
@@ -149,7 +205,6 @@ describe("createDiscussionsClient", () => {
       marketId: "0xABC",
       chainId: 100,
       getAccessToken: () => "",
-      getProfileHref: ({ address, username }) => (username ? `/portfolio/@${username}` : `/portfolio/${address}`),
     });
 
     const comments = await client.listComments();
