@@ -23,6 +23,15 @@ export type MarketOffChainFields = {
   outcomesSupply: bigint;
   liquidityUSD: number;
   openInterestUSD: number;
+  /**
+   * Lifetime swap volume over the market's DEX pools, in USD at current prices. `volumeUSD` is the
+   * cash side: the collateral that changed hands. `volumeNotionalUSD` is the outcome side: the shares
+   * that changed hands, each valued at one unit of its pool's counterparty, which is the most a share
+   * can pay out. Buying 100 YES at 0.10 adds 10 to the first and 100 to the second. Split, merge,
+   * redeem and trades matched outside a pool are not included.
+   */
+  volumeUSD: number;
+  volumeNotionalUSD: number;
   maxLiquidity: number;
   incentive: number;
   hasLiquidity: boolean;

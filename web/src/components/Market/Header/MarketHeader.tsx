@@ -231,6 +231,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   );
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
+  const volumeUSD = formatBigNumbers(market.volumeUSD);
   const incentive = formatBigNumbers(market.incentive);
 
   const [showMarketInfo, setShowMarketInfo] = useState(
@@ -442,6 +443,11 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                           : getActivePrimaryCollateral(market.chainId).symbol}{" "}
                         ({displayNumber(market.openInterestUSD, undefined, true)} $)
                       </p>
+                      <p className="text-purple-primary">Volume:</p>
+                      <p className="mx-1">
+                        {displayNumber(market.volumeUSD, undefined, true)} $ traded, notional{" "}
+                        {displayNumber(market.volumeNotionalUSD, undefined, true)} $ (shares at their full payout)
+                      </p>
                       <p className="text-purple-primary">Liquidity:</p>
                       <PoolTokensInfo market={market} marketStatus={marketStatus} type={type} />
                     </div>
@@ -451,6 +457,12 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               {market.parentMarket.id.toLowerCase() === zeroAddress.toLowerCase() && (
                 <MarketPnL account={address} chainId={market.chainId} marketId={market.id} />
               )}
+            </div>
+            <div className="!flex items-center tooltip">
+              <p className="tooltiptext @[510px]:hidden">Volume</p>
+              <span className="text-base-content/70 @[510px]:inline-block hidden">Volume:</span>
+              <span className="ml-1">{volumeUSD}</span>
+              <USDIcon />
             </div>
           </div>
           <div className="flex items-center gap-2">

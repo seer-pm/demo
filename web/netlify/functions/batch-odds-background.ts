@@ -55,6 +55,10 @@ export default async () => {
     // update liquidity for each market
     console.log("fetching liquidity...");
     const liquidityToMarketMapping = await getMarketsLiquidity(markets, pools);
+    // getAllMarketPools drops a chain whose fetch failed, and the markets of that chain then read as
+    // having no pools. Volume is a lifetime figure, so a run that saw no pools keeps the stored value
+    // instead of writing a zero.
+    const marketsWithPools = new Set(pools.map((pool) => `${pool.chainId}-${pool.market.id}`));
     const { error: errorLiquidity } = await supabase.from("markets").upsert(
       markets.map((market) => ({
         id: market.id,
@@ -66,6 +70,10 @@ export default async () => {
         open_interest_usd:
           Number(formatUnits(market.outcomesSupply, 18)) *
           (liquidityToMarketMapping[market.id]?.collateralPriceInUSD ?? 0),
+        ...(marketsWithPools.has(`${market.chainId}-${market.id}`) && {
+          volume_usd: liquidityToMarketMapping[market.id]?.volumeUSD ?? 0,
+          volume_notional_usd: liquidityToMarketMapping[market.id]?.volumeNotionalUSD ?? 0,
+        }),
       })),
     );
     if (errorLiquidity) {

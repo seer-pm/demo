@@ -360,6 +360,8 @@ export type Database = {
           updated_at: string | null;
           url: string | null;
           verification: Json | null;
+          volume_notional_usd: number | null;
+          volume_usd: number | null;
         };
         Insert: {
           categories?: string[] | null;
@@ -385,6 +387,8 @@ export type Database = {
           updated_at?: string | null;
           url?: string | null;
           verification?: Json | null;
+          volume_notional_usd?: number | null;
+          volume_usd?: number | null;
         };
         Update: {
           categories?: string[] | null;
@@ -410,6 +414,8 @@ export type Database = {
           updated_at?: string | null;
           url?: string | null;
           verification?: Json | null;
+          volume_notional_usd?: number | null;
+          volume_usd?: number | null;
         };
         Relationships: [];
       };
@@ -994,6 +1000,8 @@ export type Database = {
           url: string | null;
           verification: Json | null;
           verification_priority: number | null;
+          volume_notional_usd: number | null;
+          volume_usd: number | null;
         };
         Relationships: [];
       };
@@ -1126,6 +1134,8 @@ export type Database = {
           updated_at: string | null;
           url: string | null;
           verification: Json | null;
+          volume_notional_usd: number | null;
+          volume_usd: number | null;
         }[];
         SetofOptions: {
           from: "*";

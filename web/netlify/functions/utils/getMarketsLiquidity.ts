@@ -78,9 +78,21 @@ type TokenLiquidityBalanceInfo = {
   token1: { symbol: string; balance: number };
 };
 
+/**
+ * Lifetime swap volume of an outcome token, in USD. `volumeUSD` is the cash side: the counterparty
+ * handed over in the swaps. `volumeNotionalUSD` is the outcome side, each share valued at one unit
+ * of the pool's counterparty, which is the most it can pay out.
+ */
+type TokenVolume = {
+  volumeUSD: number;
+  volumeNotionalUSD: number;
+};
+
+const ZERO_VOLUME: TokenVolume = { volumeUSD: 0, volumeNotionalUSD: 0 };
+
 type TokenLiquidityMapping = Record<
   Address,
-  {
+  TokenVolume & {
     liquidity: number;
     tokenBalanceInfo: TokenLiquidityBalanceInfo;
   }
@@ -105,7 +117,7 @@ type OutcomePoolCandidate = {
 
 type GenericTokenLiquidityMapping = Record<
   Address,
-  {
+  TokenVolume & {
     liquidity: number;
     tokenBalanceInfo: TokenLiquidityBalanceInfo;
     tokenPriceInMainCollateral: number;
@@ -137,29 +149,33 @@ function tickPrice(pool: Pool, outcomeToken: Address): number {
  * collateral pair. Several pools of the same pair (fee tiers) keep only the one holding the most
  * collateral, as one pool per pair is what the rest of the pipeline assumes.
  */
+function toOutcomePoolCandidate(pool: Pool): OutcomePoolCandidate {
+  const outcomeToken = (pool.isToken0Collateral ? pool.token1.id : pool.token0.id).toLowerCase() as Address;
+  const counterparty = pool.counterparty.toLowerCase() as Address;
+  const [balanceOutcome, balanceCounterparty] = pool.isToken0Collateral
+    ? [pool.balance1, pool.balance0]
+    : [pool.balance0, pool.balance1];
+  return {
+    pool,
+    outcomeToken,
+    counterparty,
+    kind:
+      isChildMarket(pool.market) && isTwoStringsEqual(counterparty, pool.market.collateralToken) ? "parent" : "main",
+    balanceOutcome,
+    balanceCounterparty,
+    mid: pool.isToken0Collateral ? Number(pool.token0Price) : Number(pool.token1Price),
+    tokenBalanceInfo: {
+      token0: { symbol: pool.token0.symbol, balance: pool.balance0 },
+      token1: { symbol: pool.token1.symbol, balance: pool.balance1 },
+    },
+  };
+}
+
 function groupOutcomePoolCandidates(genericTokenPools: Pool[]): Map<Address, OutcomePoolCandidate[]> {
   const byPair = new Map<string, OutcomePoolCandidate>();
   for (const pool of genericTokenPools) {
-    const outcomeToken = (pool.isToken0Collateral ? pool.token1.id : pool.token0.id).toLowerCase() as Address;
-    const counterparty = pool.counterparty.toLowerCase() as Address;
-    const [balanceOutcome, balanceCounterparty] = pool.isToken0Collateral
-      ? [pool.balance1, pool.balance0]
-      : [pool.balance0, pool.balance1];
-    const candidate: OutcomePoolCandidate = {
-      pool,
-      outcomeToken,
-      counterparty,
-      kind:
-        isChildMarket(pool.market) && isTwoStringsEqual(counterparty, pool.market.collateralToken) ? "parent" : "main",
-      balanceOutcome,
-      balanceCounterparty,
-      mid: pool.isToken0Collateral ? Number(pool.token0Price) : Number(pool.token1Price),
-      tokenBalanceInfo: {
-        token0: { symbol: pool.token0.symbol, balance: pool.balance0 },
-        token1: { symbol: pool.token1.symbol, balance: pool.balance1 },
-      },
-    };
-    const key = `${outcomeToken}-${counterparty}`;
+    const candidate = toOutcomePoolCandidate(pool);
+    const key = `${candidate.outcomeToken}-${candidate.counterparty}`;
     const existing = byPair.get(key);
     if (!existing || candidate.balanceCounterparty > existing.balanceCounterparty) {
       byPair.set(key, candidate);
@@ -231,9 +247,56 @@ function resolveMainCollateralPrices(byToken: Map<Address, OutcomePoolCandidate[
 }
 
 /**
- * Liquidity and prices of every Generic outcome token, top-level and conditional alike. Liquidity is
- * the sum over the token's pools, each valued in USD through its own counterparty, so a child outcome
- * with a main-collateral pool counts even when its parent has none.
+ * Main-collateral value of one unit of the candidate's counterparty: 1 for a main pool, the parent
+ * token's price for a parent pool, undefined while that token has no price.
+ */
+function counterpartyInMain(
+  candidate: OutcomePoolCandidate,
+  resolved: Map<Address, ResolvedPrice>,
+): number | undefined {
+  return candidate.kind === "main" ? 1 : resolved.get(candidate.counterparty)?.price;
+}
+
+/** Lifetime swap volume of a pool, in token units, split into its outcome and counterparty sides. */
+function poolVolumeLegs(pool: Pool): { outcome: number; counterparty: number } {
+  const volume0 = Number(pool.volumeToken0) || 0;
+  const volume1 = Number(pool.volumeToken1) || 0;
+  return pool.isToken0Collateral
+    ? { outcome: volume1, counterparty: volume0 }
+    : { outcome: volume0, counterparty: volume1 };
+}
+
+/**
+ * Swap volume per Generic outcome token, in USD, through the same counterparty multiplier as the
+ * liquidity. Every pool counts, so several fee tiers of one pair add up even though only the deepest
+ * one sets the price. A pool whose counterparty has no main-collateral price adds nothing: the same
+ * market already reads zero liquidity and no odds for that reason, and one is only an upper bound on
+ * what the parent token is worth.
+ */
+function getGenericTokenVolumes(
+  genericTokenPools: Pool[],
+  resolved: Map<Address, ResolvedPrice>,
+  mainUsd: (chainId: SupportedChain) => number,
+): Record<Address, TokenVolume> {
+  const res: Record<Address, TokenVolume> = {};
+  for (const pool of genericTokenPools) {
+    const candidate = toOutcomePoolCandidate(pool);
+    const inMain = counterpartyInMain(candidate, resolved);
+    if (inMain === undefined) continue;
+    const multiplier = inMain * mainUsd(pool.chainId);
+    const legs = poolVolumeLegs(pool);
+    const entry = res[candidate.outcomeToken] ?? { ...ZERO_VOLUME };
+    entry.volumeUSD += legs.counterparty * multiplier;
+    entry.volumeNotionalUSD += legs.outcome * multiplier;
+    res[candidate.outcomeToken] = entry;
+  }
+  return res;
+}
+
+/**
+ * Liquidity, volume and prices of every Generic outcome token, top-level and conditional alike.
+ * Liquidity is the sum over the token's pools, each valued in USD through its own counterparty, so a
+ * child outcome with a main-collateral pool counts even when its parent has none.
  */
 function getGenericTokenToLiquidityMapping(
   genericTokenPools: Pool[],
@@ -243,13 +306,13 @@ function getGenericTokenToLiquidityMapping(
   const resolved = resolveMainCollateralPrices(byToken);
   const mainUsd = (chainId: SupportedChain) =>
     mainCollateralPriceByChainMapping?.[getDefaultCollateralProfile(chainId).primary.address]?.[chainId] || 0;
+  const volumes = getGenericTokenVolumes(genericTokenPools, resolved, mainUsd);
 
   const res: GenericTokenLiquidityMapping = {};
   for (const [token, candidates] of byToken) {
     const liquidity = candidates.reduce((total, candidate) => {
-      const counterpartyInMain = candidate.kind === "main" ? 1 : (resolved.get(candidate.counterparty)?.price ?? 0);
       const inCounterparty = candidate.mid * candidate.balanceOutcome + candidate.balanceCounterparty;
-      return total + inCounterparty * counterpartyInMain * mainUsd(candidate.pool.chainId);
+      return total + inCounterparty * (counterpartyInMain(candidate, resolved) ?? 0) * mainUsd(candidate.pool.chainId);
     }, 0);
 
     const priced = resolved.get(token);
@@ -258,6 +321,7 @@ function getGenericTokenToLiquidityMapping(
 
     res[token] = {
       liquidity,
+      ...(volumes[token] ?? ZERO_VOLUME),
       tokenPriceInMainCollateral: priced?.price ?? 0,
       tokenPriceForOdds: tickPrice(source.pool, token),
       tokenBalanceInfo: source.tokenBalanceInfo,
@@ -277,16 +341,34 @@ function getFutarchyTokenToLiquidityMapping(
       curr.market.wrappedTokens[0] === curr.token0.id || curr.market.wrappedTokens[2] === curr.token0.id
         ? [curr.market.collateralToken1, curr.market.collateralToken2]
         : [curr.market.collateralToken2, curr.market.collateralToken1];
+    const prices = futarchyCollateralsByChainMapping[curr.chainId.toString()];
+    // Each leg is worth its own conditional collateral: wrappedTokens[0] and [1] redeem to
+    // collateralToken1, [2] and [3] to collateralToken2 (see getCollateralByIndex).
+    const legUsd = (token: string, volume: string) => {
+      const index = curr.market.wrappedTokens.findIndex((wrapped) => isTwoStringsEqual(wrapped, token));
+      return (Number(volume) || 0) * (prices[getCollateralByIndex(curr.market, index)] ?? 0);
+    };
+    const leg0 = legUsd(curr.token0.id, curr.volumeToken0);
+    const leg1 = legUsd(curr.token1.id, curr.volumeToken1);
+    // Both legs of a swap are worth the same when it executes, so a trade counts once: half on each
+    // side, or the priced leg alone when the other collateral has no quote. Both sides being outcome
+    // tokens, there is no cash/notional split and the two figures are equal.
+    const [volume0, volume1] = leg0 > 0 && leg1 > 0 ? [leg0 / 2, leg1 / 2] : [leg0, leg1];
+
     // count 50% of liquidity for both sides
     acc[curr.token0.id as Address] = {
-      liquidity: (curr.balance0 / 2) * futarchyCollateralsByChainMapping[curr.chainId.toString()][collaterals[0]],
+      liquidity: (curr.balance0 / 2) * prices[collaterals[0]],
+      volumeUSD: volume0,
+      volumeNotionalUSD: volume0,
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
         token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
       },
     };
     acc[curr.token1.id as Address] = {
-      liquidity: (curr.balance1 / 2) * futarchyCollateralsByChainMapping[curr.chainId.toString()][collaterals[1]],
+      liquidity: (curr.balance1 / 2) * prices[collaterals[1]],
+      volumeUSD: volume1,
+      volumeNotionalUSD: volume1,
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
         token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
@@ -300,6 +382,13 @@ export type LiquidityToMarketMapping = Record<
   `0x${string}`,
   {
     totalLiquidity: number;
+    /**
+     * Lifetime swap volume over the market's pools, in USD at today's prices: cash is the collateral
+     * that changed hands, notional is the shares that did, each valued at one unit of its pool's
+     * counterparty. Zero for a market whose pools have no priced counterparty.
+     */
+    volumeUSD: number;
+    volumeNotionalUSD: number;
     collateralPriceInUSD: number;
     poolBalance: Array<TokenLiquidityBalanceInfo | null>;
     /** Per outcome, the price its odds are made of (NaN when unknown). Empty on Futarchy markets. */
@@ -331,6 +420,8 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
 
   const liquidityToMarketMapping: LiquidityToMarketMapping = markets.reduce((acc, market) => {
     let totalLiquidity = 0;
+    let volumeUSD = 0;
+    let volumeNotionalUSD = 0;
 
     const tokenBalanceInfo: (TokenLiquidityBalanceInfo | null)[] = [];
 
@@ -338,6 +429,8 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
       const data = tokenToLiquidityMapping[outcomeToken.toLowerCase() as `0x${string}`];
 
       totalLiquidity += data?.liquidity ?? 0;
+      volumeUSD += data?.volumeUSD ?? 0;
+      volumeNotionalUSD += data?.volumeNotionalUSD ?? 0;
 
       tokenBalanceInfo.push(data?.tokenBalanceInfo || null);
     }
@@ -370,6 +463,8 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
     if (!acc[market.id]) {
       acc[market.id] = {
         totalLiquidity: 0,
+        volumeUSD: 0,
+        volumeNotionalUSD: 0,
         collateralPriceInUSD: 0,
         poolBalance: [],
         outcomePrices: [],
@@ -377,6 +472,8 @@ export async function getMarketsLiquidity(markets: Market[], allPools: Pool[]): 
     }
 
     acc[market.id].totalLiquidity = totalLiquidity;
+    acc[market.id].volumeUSD = volumeUSD;
+    acc[market.id].volumeNotionalUSD = volumeNotionalUSD;
 
     acc[market.id].collateralPriceInUSD = collateralPriceInUSD;
 

@@ -12,7 +12,7 @@ import {
   SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
-import { formatBigNumbers, isUndefined } from "@/lib/utils";
+import { displayNumber, formatBigNumbers, isUndefined } from "@/lib/utils";
 import { useMarket, useMarketOdds } from "@seer-pm/react";
 import {
   INVALID_RESULT_OUTCOME_TEXT,
@@ -265,10 +265,15 @@ export function SlideCard({ market }: { market: Market }) {
           <div className="flex items-center gap-2">
             {market.liquidityUSD > 0 ? (
               <Popover
-                label="Liquidity breakdown"
+                label="Volume and liquidity breakdown"
                 trigger={<span className="text-[12px]">${liquidityUSD}</span>}
                 content={
                   <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                    <p className="text-purple-primary">Volume:</p>
+                    <p className="mx-1">
+                      {displayNumber(market.volumeUSD, undefined, true)} $ traded, notional{" "}
+                      {displayNumber(market.volumeNotionalUSD, undefined, true)} $
+                    </p>
                     <p className="text-purple-primary">Liquidity:</p>
                     <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
                   </div>

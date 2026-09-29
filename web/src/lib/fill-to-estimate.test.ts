@@ -51,6 +51,8 @@ const createMinimalMarket = (overrides: Partial<Market> = {}): Market => ({
   outcomesSupply: 0n,
   liquidityUSD: 0,
   openInterestUSD: 0,
+  volumeUSD: 0,
+  volumeNotionalUSD: 0,
   maxLiquidity: 0,
   incentive: 0,
   hasLiquidity: true,

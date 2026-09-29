@@ -35,6 +35,13 @@ npm install @seer-pm/sdk @wagmi/core graphql-request graphql-tag viem wagmi
 ```ts
 import type { Market } from "@seer-pm/sdk";
 import { fetchAmmQuote } from "@seer-pm/sdk";
+import { fetchMarket, fetchMarkets } from "@seer-pm/sdk/markets-fetch";
+
+const { markets } = await fetchMarkets({ chainsList: ["100"], orderBy: "volumeUSD", orderDirection: "desc" });
+const market = await fetchMarket(100, markets[0].id);
+market.liquidityUSD; // pooled liquidity, USD
+market.volumeUSD; // lifetime swap volume, collateral leg (cash), USD
+market.volumeNotionalUSD; // lifetime swap volume, shares valued at one collateral unit each (notional), USD
 ```
 
 AMM quotes go through **Lens smart quoter**; swaps run on the chosen DEX router (`fetchAmmQuote` / `AmmTrade`).

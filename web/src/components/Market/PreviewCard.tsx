@@ -517,6 +517,11 @@ export function PreviewCard({ market }: { market: Market }) {
                       : getActivePrimaryCollateral(market.chainId).symbol}{" "}
                     ({displayNumber(market.openInterestUSD, undefined, true)} $)
                   </p>
+                  <p className="text-purple-primary">Volume:</p>
+                  <p className="mx-1">
+                    {displayNumber(market.volumeUSD, undefined, true)} $ traded, notional{" "}
+                    {displayNumber(market.volumeNotionalUSD, undefined, true)} $
+                  </p>
                   <p className="text-purple-primary">Liquidity:</p>
                   <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
                 </div>

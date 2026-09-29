@@ -15,7 +15,7 @@ import type { Database, Json } from "./supabase";
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 export const MARKET_DB_FIELDS =
-  "id,chain_id,url,subgraph_data,categories,liquidity,max_liquidity,incentive,odds,pool_balance,verification,images,open_interest_usd";
+  "id,chain_id,url,subgraph_data,categories,liquidity,max_liquidity,incentive,odds,pool_balance,verification,images,open_interest_usd,volume_usd,volume_notional_usd";
 
 export type LegacySubgraphMarket = {
   __typename?: "Market";
@@ -193,6 +193,8 @@ type DbMarket = {
   verification?: Json;
   images?: Json;
   open_interest_usd: number | null;
+  volume_usd?: number | null;
+  volume_notional_usd?: number | null;
 };
 
 type PoolBalance = Array<{
@@ -217,6 +219,8 @@ export function mapGraphMarket(
     url: string;
     images: VerificationImages | undefined;
     openInterestUSD: number;
+    volumeUSD: number;
+    volumeNotionalUSD: number;
   },
 ): Market {
   return {
@@ -288,6 +292,8 @@ export function mapGraphMarketFromDbResult(subgraphMarket: LegacySubgraphMarket,
     url: extraData?.url || "",
     images: (extraData?.images as VerificationImages) || undefined,
     openInterestUSD: extraData?.open_interest_usd ?? 0,
+    volumeUSD: extraData?.volume_usd ?? 0,
+    volumeNotionalUSD: extraData?.volume_notional_usd ?? 0,
   });
 }
 
@@ -345,6 +351,10 @@ function sortMarkets(orderBy: MarketsOrderBy | undefined, orderDirection: "asc" 
 
   if (orderBy === "liquidityUSD") {
     return [{ column: "liquidity", ascending: orderDirection === "asc" }];
+  }
+
+  if (orderBy === "volumeUSD") {
+    return [{ column: "volume_usd", ascending: orderDirection === "asc" }];
   }
 
   if (orderBy === "creationDate") {
