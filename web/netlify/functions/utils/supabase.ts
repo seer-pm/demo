@@ -360,8 +360,8 @@ export type Database = {
           updated_at: string | null;
           url: string | null;
           verification: Json | null;
-          volume_notional_usd: number | null;
-          volume_usd: number | null;
+          volume_notional_usd: number;
+          volume_usd: number;
         };
         Insert: {
           categories?: string[] | null;
@@ -387,8 +387,8 @@ export type Database = {
           updated_at?: string | null;
           url?: string | null;
           verification?: Json | null;
-          volume_notional_usd?: number | null;
-          volume_usd?: number | null;
+          volume_notional_usd?: number;
+          volume_usd?: number;
         };
         Update: {
           categories?: string[] | null;
@@ -414,8 +414,8 @@ export type Database = {
           updated_at?: string | null;
           url?: string | null;
           verification?: Json | null;
-          volume_notional_usd?: number | null;
-          volume_usd?: number | null;
+          volume_notional_usd?: number;
+          volume_usd?: number;
         };
         Relationships: [];
       };
@@ -1134,8 +1134,8 @@ export type Database = {
           updated_at: string | null;
           url: string | null;
           verification: Json | null;
-          volume_notional_usd: number | null;
-          volume_usd: number | null;
+          volume_notional_usd: number;
+          volume_usd: number;
         }[];
         SetofOptions: {
           from: "*";

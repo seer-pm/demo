@@ -355,11 +355,15 @@ function getFutarchyTokenToLiquidityMapping(
     // tokens, there is no cash/notional split and the two figures are equal.
     const [volume0, volume1] = leg0 > 0 && leg1 > 0 ? [leg0 / 2, leg1 / 2] : [leg0, leg1];
 
+    // Volume is lifetime and adds up over every pool of the pair, fee tiers included, like the
+    // Generic path. Liquidity and balances are a snapshot and stay those of the last pool seen.
+    const prior0 = acc[curr.token0.id as Address] ?? ZERO_VOLUME;
+    const prior1 = acc[curr.token1.id as Address] ?? ZERO_VOLUME;
     // count 50% of liquidity for both sides
     acc[curr.token0.id as Address] = {
       liquidity: (curr.balance0 / 2) * prices[collaterals[0]],
-      volumeUSD: volume0,
-      volumeNotionalUSD: volume0,
+      volumeUSD: prior0.volumeUSD + volume0,
+      volumeNotionalUSD: prior0.volumeNotionalUSD + volume0,
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
         token1: { symbol: curr.token1.symbol, balance: curr.balance1 },
@@ -367,8 +371,8 @@ function getFutarchyTokenToLiquidityMapping(
     };
     acc[curr.token1.id as Address] = {
       liquidity: (curr.balance1 / 2) * prices[collaterals[1]],
-      volumeUSD: volume1,
-      volumeNotionalUSD: volume1,
+      volumeUSD: prior1.volumeUSD + volume1,
+      volumeNotionalUSD: prior1.volumeNotionalUSD + volume1,
       tokenBalanceInfo: {
         token0: { symbol: curr.token0.symbol, balance: curr.balance0 },
         token1: { symbol: curr.token1.symbol, balance: curr.balance1 },

@@ -429,7 +429,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                     : "0.00"}
               </span>
               <USDIcon />
-              {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01) && (
+              {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0) && (
                 <Popover
                   label="Open interest and liquidity breakdown"
                   trigger={<QuestionIcon fill="#9747FF" />}

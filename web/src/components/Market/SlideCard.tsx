@@ -263,7 +263,7 @@ export function SlideCard({ market }: { market: Market }) {
             <SeerLogo fill="#511778" width="100%" height="100%" />
           </div>
           <div className="flex items-center gap-2">
-            {market.liquidityUSD > 0 ? (
+            {market.liquidityUSD > 0 || market.volumeUSD > 0 ? (
               <Popover
                 label="Volume and liquidity breakdown"
                 trigger={<span className="text-[12px]">${liquidityUSD}</span>}

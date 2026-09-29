@@ -494,7 +494,7 @@ export function PreviewCard({ market }: { market: Market }) {
       <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
         <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
         <div className="flex items-center gap-2">
-          {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 ? (
+          {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0 ? (
             <Popover
               label="Open interest and liquidity breakdown"
               trigger={
