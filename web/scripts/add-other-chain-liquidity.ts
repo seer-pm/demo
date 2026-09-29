@@ -25,6 +25,8 @@
  *     PRIVATE_KEY=0x... npx tsx scripts/add-other-chain-liquidity.ts --from-state tmp/<file>.json --amount 5 --min-price 0.004 --max-price 0.2 --execute
  *   Resume an interrupted run (keeps its S, range and outcome list):
  *     PRIVATE_KEY=0x... npx tsx scripts/add-other-chain-liquidity.ts --resume tmp/add-other-chain-liquidity.<ts>.json --execute
+ *   Retry the outcomes a run skipped (for example after their pool was emptied):
+ *     PRIVATE_KEY=0x... npx tsx scripts/add-other-chain-liquidity.ts --resume tmp/<file>.json --retry-skipped --execute
  *
  * Options:
  *   --markets <a,b,c>       Market ids from the root to the leaf. Or:
@@ -35,11 +37,16 @@
  *   --initial-price <sDAI>  Price for pools the script creates. Default 1/N, so the prices add up to 1.
  *   --slippage <pct>        Tolerance for the minted amounts. Default 1.
  *   --priority-fee <gwei>   maxPriorityFeePerGas. Default 1.
+ *   --retry-skipped         With --resume: consider the outcomes that run skipped again.
  * Env: PRIVATE_KEY (only with --execute), RPC_URL (default: a public Gnosis RPC).
  *
- * A pool that already exists is used at its current price. If that price is at or above the upper end
- * of the range the position would hold only sDAI, so that outcome is skipped and its tokens stay in
- * the wallet. The Invalid tokens of every market (S each) also stay in the wallet.
+ * A pool that already exists and holds liquidity is used at its current price: that price is some LP's
+ * position. If it is at or above the upper end of the range the position would hold only sDAI, so that
+ * outcome is skipped and its tokens stay in the wallet. An existing pool with no liquidity is nobody's
+ * price (anyone can initialize a pool from the UI at any price), so it is moved to the initial price
+ * before minting: a seed position of 0.01 sDAI worth over the range, then a swap through the Swapr
+ * router with the initial price as its limit. The seed is the only extra cost per such pool. The
+ * Invalid tokens of every market (S each) also stay in the wallet.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -73,10 +80,18 @@ const SDAI: Address = "0xaf204776c7245bF4147c2612BF6e5972Ee483701";
 // not on the pool deployer used for CREATE2 addresses.
 const POSITION_MANAGER: Address = "0x91fd594c46d8b01e62dbdebed2401dde01817834";
 const ALGEBRA_FACTORY: Address = "0xA0864cCA6E114013AB0e27cbd5B6f4c8947da766";
+const SWAPR_ROUTER: Address = "0xfFB643E73f280B97809A8b41f7232AB401a04ee1";
+// Liquidity seeded in an empty pool before moving its price. The router's swap callback rejects a swap
+// that only crosses regions without liquidity, so a price limit alone cannot move an empty pool.
+const SEED = parseEther("0.01");
 // Algebra v1 pools start with this spacing. Only used to preview ticks of pools that do not exist yet.
 const DEFAULT_TICK_SPACING = 60;
 const PRIORITY_FEE_GWEI = "1";
 const GAS_BUFFER_PERCENT = 120n;
+// An Algebra pool writes an oracle timepoint on its first interaction in a block. An estimate taken in a
+// block where a previous tx already wrote it leaves that write out, and it costs more than the percent
+// buffer covers on a mint (about 85k gas on a 400k estimate).
+const GAS_BUFFER_FIXED = 100_000n;
 // EIP-7825 per-transaction gas cap. Splitting an 80-slot market estimates close to it, and estimates run
 // well above the gas actually used, so the buffered limit is clamped to the cap instead of failing.
 const TX_GAS_CAP = 16_777_216n;
@@ -92,10 +107,15 @@ const positionManagerAbi = parseAbi([
   "function mint(MintParams params) payable returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)",
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
 ]);
+const swapRouterAbi = parseAbi([
+  "struct ExactInputSingleParams { address tokenIn; address tokenOut; address recipient; uint256 deadline; uint256 amountIn; uint256 amountOutMinimum; uint160 limitSqrtPrice; }",
+  "function exactInputSingle(ExactInputSingleParams params) payable returns (uint256 amountOut)",
+]);
 const factoryAbi = parseAbi(["function poolByPair(address, address) view returns (address)"]);
 const poolAbi = parseAbi([
   "function globalState() view returns (uint160 price, int24 tick, uint16 fee, uint16 timepointIndex, uint8 communityFeeToken0, uint8 communityFeeToken1, bool unlocked)",
   "function tickSpacing() view returns (int24)",
+  "function liquidity() view returns (uint128)",
 ]);
 
 type Outcome = {
@@ -105,6 +125,8 @@ type Outcome = {
   token: Address;
   tokenId?: string;
   mintTx?: Hex;
+  seedTx?: Hex;
+  repriceTx?: Hex;
   skipped?: string;
 };
 
@@ -126,7 +148,7 @@ type State = {
   pendingTx?: { label: string; hash: Hex };
 };
 
-type PoolState = { pool: Address; sqrtPriceX96: bigint; tickSpacing: number };
+type PoolState = { pool: Address; sqrtPriceX96: bigint; tickSpacing: number; liquidity: bigint };
 
 type Position = {
   outcomeIsToken0: boolean;
@@ -149,6 +171,7 @@ const { values: args } = parseArgs({
     slippage: { type: "string", default: "1" },
     "priority-fee": { type: "string", default: PRIORITY_FEE_GWEI },
     resume: { type: "string" },
+    "retry-skipped": { type: "boolean", default: false },
     execute: { type: "boolean", default: false },
   },
 });
@@ -176,6 +199,25 @@ function outcomeSqrtPriceX96(priceWad: bigint, outcomeIsToken0: boolean): bigint
   const WAD = 10n ** 18n;
   return outcomeIsToken0 ? sqrtBigInt((priceWad * Q96 * Q96) / WAD) : sqrtBigInt((WAD * Q96 * Q96) / priceWad);
 }
+
+/** Price of the outcome in sDAI at a pool's sqrtPriceX96, as a number for display. */
+function outcomePrice(sqrtPriceX96: bigint, outcomeIsToken0: boolean): number {
+  const token1PerToken0 = Number((sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / Q96 / Q96) / 1e18;
+  return outcomeIsToken0 ? token1PerToken0 : 1 / token1PerToken0;
+}
+
+const outcomeIsToken0 = (outcome: Outcome) => outcome.token.toLowerCase() < SDAI.toLowerCase();
+
+/** The sqrtPriceX96 a pool the script creates starts at, and an empty pool is moved to. */
+const targetSqrtPrice = (state: State, outcome: Outcome) =>
+  outcomeSqrtPriceX96(BigInt(state.initialPrice), outcomeIsToken0(outcome));
+
+/**
+ * An empty pool's price is nobody's position, so it is moved to the initial price before minting. A pool
+ * this run seeded counts as empty: its only liquidity is the seed, which exists to be swapped through.
+ */
+const needsReprice = (state: State, outcome: Outcome, pool: PoolState) =>
+  (pool.liquidity === 0n || !!outcome.seedTx) && pool.sqrtPriceX96 !== targetSqrtPrice(state, outcome);
 
 /**
  * Ticks of the sDAI range in pool orientation, rounded outwards to the spacing. With the outcome as
@@ -239,15 +281,17 @@ async function readPools(outcomes: Outcome[]): Promise<(PoolState | undefined)[]
     contracts: existing.flatMap((pool) => [
       { address: pool, abi: poolAbi, functionName: "globalState" } as const,
       { address: pool, abi: poolAbi, functionName: "tickSpacing" } as const,
+      { address: pool, abi: poolAbi, functionName: "liquidity" } as const,
     ]),
   });
   const byPool = new Map(
     existing.map((pool, i) => {
-      const [globalState, tickSpacing] = [reads[2 * i], reads[2 * i + 1]] as [
+      const [globalState, tickSpacing, liquidity] = [reads[3 * i], reads[3 * i + 1], reads[3 * i + 2]] as [
         readonly [bigint, ...unknown[]],
         number,
+        bigint,
       ];
-      return [pool, { pool, sqrtPriceX96: globalState[0], tickSpacing }];
+      return [pool, { pool, sqrtPriceX96: globalState[0], tickSpacing, liquidity }];
     }),
   );
   return pools.map((pool) => byPool.get(pool));
@@ -351,13 +395,12 @@ async function newState(): Promise<State> {
   };
 }
 
-/** Pool state to plan with: the live pool, or the one the script would create. */
+/** Pool state to plan with: the live pool, or the one the script would create or move to. */
 function plannedPool(state: State, outcome: Outcome, pool: PoolState | undefined) {
-  if (pool) return pool;
-  const outcomeIsToken0 = outcome.token.toLowerCase() < SDAI.toLowerCase();
+  if (pool && !needsReprice(state, outcome, pool)) return pool;
   return {
-    sqrtPriceX96: outcomeSqrtPriceX96(BigInt(state.initialPrice), outcomeIsToken0),
-    tickSpacing: DEFAULT_TICK_SPACING,
+    sqrtPriceX96: targetSqrtPrice(state, outcome),
+    tickSpacing: pool?.tickSpacing ?? DEFAULT_TICK_SPACING,
   };
 }
 
@@ -376,16 +419,26 @@ function computeSets(state: State, pools: (PoolState | undefined)[]): bigint {
 
 function printPlan(state: State, pools: (PoolState | undefined)[], sets: bigint) {
   const rows = state.outcomes.map((outcome, i) => {
-    const pool = plannedPool(state, outcome, pools[i]);
+    const live = pools[i];
+    const pool = plannedPool(state, outcome, live);
     const position = positionFor(state, outcome, pool, sets);
+    const status = () => {
+      if (outcome.tokenId) return `minted #${outcome.tokenId}`;
+      if (outcome.skipped) return outcome.skipped;
+      if (live && needsReprice(state, outcome, live)) {
+        const price = outcomePrice(live.sqrtPriceX96, outcomeIsToken0(outcome));
+        return `empty pool at ${price.toPrecision(4)} sDAI, reprice to ${formatEther(BigInt(state.initialPrice))}`;
+      }
+      return position ? "" : "price above range";
+    };
     return {
       market: `M${outcome.market + 1}`,
       outcome: outcome.name.slice(0, 32),
-      pool: pools[i] ? pools[i]!.pool : "new",
+      pool: live ? live.pool : "new",
       ticks: position ? `${position.tickLower}..${position.tickUpper}` : "-",
       outcomeTokens: position ? Number(formatEther(position.outcomeAmount)).toFixed(4) : "-",
       sDAI: position ? Number(formatEther(position.sdaiAmount)).toFixed(6) : "-",
-      status: outcome.tokenId ? `minted #${outcome.tokenId}` : (outcome.skipped ?? (position ? "" : "price above range")),
+      status: status(),
     };
   });
   console.table(rows);
@@ -414,6 +467,14 @@ function saveState(file: string, state: State) {
 async function main() {
   const stateFile = args.resume ?? path.join(OUT_DIR, `add-other-chain-liquidity.${Date.now()}.json`);
   const state: State = args.resume ? JSON.parse(fs.readFileSync(args.resume, "utf8")) : await newState();
+  if (args["retry-skipped"]) {
+    if (!args.resume) {
+      throw new Error("--retry-skipped only applies to a --resume run");
+    }
+    for (const outcome of state.outcomes) {
+      outcome.skipped = undefined;
+    }
+  }
 
   const privateKey = process.env.PRIVATE_KEY as Hex | undefined;
   const account = privateKey ? privateKeyToAccount(privateKey) : undefined;
@@ -466,7 +527,7 @@ async function main() {
     if (gas > TX_GAS_CAP) {
       throw new Error(`${to} call needs ${gas} gas, over the per-tx cap`);
     }
-    const buffered = (gas * GAS_BUFFER_PERCENT) / 100n;
+    const buffered = (gas * GAS_BUFFER_PERCENT) / 100n + GAS_BUFFER_FIXED;
     return buffered > TX_GAS_CAP ? TX_GAS_CAP : buffered;
   };
 
@@ -594,15 +655,109 @@ async function main() {
       })),
   );
 
+  const deadline = () => BigInt(Math.floor(Date.now() / 1000) + 3600);
+  const mintData = (position: Position, minimum: (amount: bigint) => bigint) => {
+    const [amount0, amount1] = position.outcomeIsToken0
+      ? [position.outcomeAmount, position.sdaiAmount]
+      : [position.sdaiAmount, position.outcomeAmount];
+    return encodeFunctionData({
+      abi: positionManagerAbi,
+      functionName: "mint",
+      args: [
+        {
+          token0: position.token0,
+          token1: position.token1,
+          tickLower: position.tickLower,
+          tickUpper: position.tickUpper,
+          amount0Desired: amount0,
+          amount1Desired: amount1,
+          amount0Min: minimum(amount0),
+          amount1Min: minimum(amount1),
+          recipient: account.address,
+          deadline: deadline(),
+        },
+      ],
+    });
+  };
+
+  /**
+   * Moves an empty pool to the initial price: a seed position over the range, then a swap that stops at
+   * that price. Each sub-step is decided from the live pool, so a resumed run skips what is already done.
+   */
+  const reprice = async (outcome: Outcome, pool: PoolState, label: string) => {
+    const target = targetSqrtPrice(state, outcome);
+    if (pool.liquidity === 0n && state.pendingTx?.label !== `reprice ${label}`) {
+      // At or above the range the seed holds only sDAI; elsewhere `positionFor` sizes the sDAI side.
+      const { token0, token1 } = getToken0Token1(outcome.token, SDAI);
+      const seed: Position = positionFor(state, outcome, pool, SEED) ?? {
+        outcomeIsToken0: outcomeIsToken0(outcome),
+        token0,
+        token1,
+        ...rangeTicks(state, outcomeIsToken0(outcome), pool.tickSpacing),
+        outcomeAmount: 0n,
+        sdaiAmount: SEED,
+      };
+      const receipt = await sendOnce(POSITION_MANAGER, mintData(seed, () => 0n), `seed ${label}`);
+      outcome.seedTx = receipt.transactionHash;
+      saveState(stateFile, state);
+    }
+    // Selling token1 raises the pool price, selling token0 lowers it.
+    const sellToken1 = target > pool.sqrtPriceX96;
+    const { token0, token1 } = getToken0Token1(outcome.token, SDAI);
+    const [tokenIn, tokenOut] = sellToken1 ? [token1, token0] : [token0, token1];
+    // The pool takes only what crossing the seed needs: at most SEED / sqrt(min * max) of the outcome
+    // (the sDAI side needs at most SEED). The pool fee fits in the margin.
+    const amountIn = (2n * SEED * 10n ** 18n) / sqrtBigInt(BigInt(state.minPrice) * BigInt(state.maxPrice));
+    const allowance = await publicClient.readContract({
+      address: tokenIn,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [account.address, SWAPR_ROUTER],
+    });
+    if (allowance < amountIn) {
+      await sendPipelined([
+        {
+          to: tokenIn,
+          data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [SWAPR_ROUTER, maxUint256] }),
+          label: `approve ${outcome.name} pool input for the router`,
+        },
+      ]);
+    }
+    // The limit fixes the final price, and the seed is the only liquidity, so no output minimum applies.
+    const data = encodeFunctionData({
+      abi: swapRouterAbi,
+      functionName: "exactInputSingle",
+      args: [
+        {
+          tokenIn,
+          tokenOut,
+          recipient: account.address,
+          deadline: deadline(),
+          amountIn,
+          amountOutMinimum: 0n,
+          limitSqrtPrice: target,
+        },
+      ],
+    });
+    const receipt = await sendOnce(SWAPR_ROUTER, data, `reprice ${label}`);
+    outcome.repriceTx = receipt.transactionHash;
+    saveState(stateFile, state);
+  };
+
   // 5. Mints, one at a time and each re-read at the pool's current price.
   const slippage = (amount: bigint) => (amount * BigInt(10_000 - state.slippageBps)) / 10_000n;
   for (let i = 0; i < state.outcomes.length; i++) {
     const outcome = state.outcomes[i];
     if (outcome.tokenId || outcome.skipped) continue;
-    const label = `mint ${outcome.name} (M${outcome.market + 1} #${outcome.index})`;
+    const shortLabel = `${outcome.name} (M${outcome.market + 1} #${outcome.index})`;
+    const label = `mint ${shortLabel}`;
     let data: Hex = "0x";
     if (state.pendingTx?.label !== label) {
-      const [pool] = await readPools([outcome]);
+      let [pool] = await readPools([outcome]);
+      if (pool && needsReprice(state, outcome, pool)) {
+        await reprice(outcome, pool, shortLabel);
+        [pool] = await readPools([outcome]);
+      }
       const position = pool && positionFor(state, outcome, pool, sets);
       if (!position) {
         outcome.skipped = pool ? "price above range" : "no pool";
@@ -610,27 +765,7 @@ async function main() {
         console.log(`${label}: skipped, ${outcome.skipped}`);
         continue;
       }
-      const [amount0, amount1] = position.outcomeIsToken0
-        ? [position.outcomeAmount, position.sdaiAmount]
-        : [position.sdaiAmount, position.outcomeAmount];
-      data = encodeFunctionData({
-        abi: positionManagerAbi,
-        functionName: "mint",
-        args: [
-          {
-            token0: position.token0,
-            token1: position.token1,
-            tickLower: position.tickLower,
-            tickUpper: position.tickUpper,
-            amount0Desired: amount0,
-            amount1Desired: amount1,
-            amount0Min: slippage(amount0),
-            amount1Min: slippage(amount1),
-            recipient: account.address,
-            deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
-          },
-        ],
-      });
+      data = mintData(position, slippage);
     }
     const receipt = await sendOnce(POSITION_MANAGER, data, label);
     const [minted] = parseEventLogs({ abi: positionManagerAbi, eventName: "Transfer", logs: receipt.logs }).filter(
