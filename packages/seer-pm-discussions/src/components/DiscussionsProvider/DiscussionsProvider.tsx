@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { DiscussionsContext } from "../../contexts/DiscussionsContext";
 import type { DiscussionComponents, DiscussionUser, DiscussionsClient } from "../../types";
@@ -12,6 +13,7 @@ type DiscussionsProviderProps = {
   components?: DiscussionComponents;
 };
 
+/** Provides discussion state and resolves missing usernames through the app's query cache. */
 export default function DiscussionsProvider({
   children,
   client,
@@ -26,6 +28,24 @@ export default function DiscussionsProvider({
     setUser(userProp ?? null);
   }, [userProp]);
 
+  // A host-supplied username is authoritative, so the lookup only runs when the host gave an address
+  // alone. The key shares the app's `publicUser` prefix so a username change on the profile page
+  // invalidates this entry too.
+  const lookupEnabled = Boolean(user && !user.username);
+  const { data: lookedUp } = useQuery({
+    queryKey: ["publicUser", "seer-discussions-username", client.baseUrl, user?.address.toLowerCase()],
+    queryFn: () => client.getUsername(user!.address),
+    enabled: lookupEnabled,
+    staleTime: 60_000,
+  });
+
+  // The query keeps returning cached data while disabled, so read it only when the lookup applies.
+  const username = user?.username ?? (lookupEnabled ? (lookedUp ?? undefined) : undefined);
+  const identity: DiscussionUser | null = user ? { ...user, ...(username ? { username } : {}) } : null;
+  const resolvedUser = identity
+    ? { ...identity, profileHref: identity.profileHref ?? client.getProfileHref(identity) }
+    : null;
+
   const components = useMemo(
     () => ({
       Button: componentsProp?.Button ?? DefaultButton,
@@ -38,7 +58,7 @@ export default function DiscussionsProvider({
   return (
     <DiscussionsContext.Provider
       value={{
-        user,
+        user: resolvedUser,
         setUser,
         connecting,
         setConnecting,

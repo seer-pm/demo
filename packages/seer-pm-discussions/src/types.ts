@@ -2,9 +2,9 @@ import type { ComponentType, ReactNode } from "react";
 
 export type DiscussionUser = {
   address: string;
-  /** Seer username resolved by the host API; absent when the wallet has no Seer profile row. */
+  /** Optional Seer username. The Seer client resolves it when the host supplies only an address. */
   username?: string;
-  /** Host-owned route to this user's profile. */
+  /** Profile URL. The Seer client supplies its deployment's portfolio route unless explicitly overridden. */
   profileHref?: string | null;
 };
 
@@ -66,6 +66,12 @@ export type CreateCommentInput = {
 
 export type DiscussionsClient = {
   marketId: string;
+  /** Origin of the discussion API. Usernames are cached per deployment, so it also scopes that cache. */
+  baseUrl: string;
+  /** Public username lookup. A wallet without one resolves to null; failed requests throw so React Query can retry. */
+  getUsername: (address: string) => Promise<string | null>;
+  /** Builds a profile URL for a user, whether or not their username is known. */
+  getProfileHref: (user: DiscussionUser) => string;
   listComments: () => Promise<Comment[]>;
   createComment: (input: CreateCommentInput) => Promise<{ id: string; positions: DiscussionPosition[] }>;
   editComment: (id: string, body: string) => Promise<void>;

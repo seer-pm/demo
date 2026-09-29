@@ -2,7 +2,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Button from "@/components/Form/Button";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
-import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSignIn } from "@/hooks/useSignIn";
 import { paths } from "@/lib/paths";
 import { getAppUrl, isAccessTokenExpired } from "@/lib/utils";
@@ -41,14 +40,13 @@ function DiscussionButton({
   );
 }
 
+/** Connects market discussions to the app's wallet and Seer sign-in. */
 function Comments({ market }: { market: Market }) {
   const { address, chainId } = useAccount();
   const isConnected = useIsAccountConnected();
   const isSignedIn = useIsConnectedAndSignedIn();
   const signIn = useSignIn();
   const { open } = useWeb3Modal();
-  // Decorative only: a username upgrades the author label, and its absence or failure is not an error.
-  const { data: currentUser } = usePublicUser(isSignedIn && address ? { address } : null);
 
   const client = useMemo(
     () =>
@@ -56,6 +54,8 @@ function Comments({ market }: { market: Market }) {
         baseUrl: getAppUrl(),
         marketId: market.id,
         chainId: market.chainId,
+        // The package default builds an absolute URL on `baseUrl`. Vike only intercepts relative
+        // links for client-side navigation, so an absolute profile link would reload the page.
         getProfileHref: ({ address, username }) => paths.portfolio(address, username),
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
@@ -65,10 +65,7 @@ function Comments({ market }: { market: Market }) {
     [market.id, market.chainId],
   );
 
-  const user =
-    isSignedIn && address
-      ? userFromAddress(address, currentUser?.username, paths.portfolio(address, currentUser?.username))
-      : null;
+  const user = isSignedIn && address ? userFromAddress(address) : null;
 
   const requestConnect = async () => {
     if (isSignedIn && address) return;

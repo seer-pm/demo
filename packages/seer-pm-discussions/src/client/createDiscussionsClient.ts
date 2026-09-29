@@ -9,7 +9,7 @@ export type CreateDiscussionsClientOptions = {
   chainId: number;
   /** Returns current Seer JWT, or empty string if signed out */
   getAccessToken: () => string;
-  /** Optional host-owned profile route builder. */
+  /** Optional override for profile links, which default to the Seer deployment's portfolio routes. */
   getProfileHref?: (user: DiscussionUser) => string;
 };
 
@@ -49,18 +49,26 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
   const marketId = options.marketId.toLowerCase();
   const chainId = options.chainId;
 
-  /** Adds the host application's profile route to a server comment. */
-  const withProfileHref = (comment: Comment): Comment => ({
-    ...comment,
-    authorDetails: {
-      ...comment.authorDetails,
-      profileHref: options.getProfileHref?.(comment.authorDetails) ?? null,
-    },
-  });
+  /** Uses an explicit profile URL, then the host's route override, then the Seer portfolio route. */
+  const getProfileHref = (user: DiscussionUser): string =>
+    user.profileHref ??
+    options.getProfileHref?.(user) ??
+    `${base}/portfolio/${user.username ? `@${encodeURIComponent(user.username)}` : user.address.toLowerCase()}`;
 
   return {
     marketId,
+    baseUrl: base,
+    getProfileHref,
 
+    /** Loads a public username. The endpoint answers a wallet without a profile row with a null username. */
+    async getUsername(address) {
+      const res = await fetch(`${base}/.netlify/functions/users?address=${encodeURIComponent(address.toLowerCase())}`);
+      if (!res.ok) throw new Error(await readError(res));
+      const json = (await res.json()) as { user?: { username?: string | null } };
+      return json.user?.username || null;
+    },
+
+    /** Loads comments with author profile links and current outcome-token positions. */
     async listComments() {
       const token = options.getAccessToken();
       const res = await fetch(`${endpoint}?market_id=${encodeURIComponent(marketId)}&chain_id=${chainId}`, {
@@ -70,9 +78,11 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
         throw new Error(await readError(res));
       }
       const json = (await res.json()) as { data?: ApiComment[] };
-      return (json.data ?? []).map((comment) =>
-        withProfileHref({ ...comment, positions: parsePositions(comment.positions) }),
-      );
+      return (json.data ?? []).map((comment) => ({
+        ...comment,
+        authorDetails: { ...comment.authorDetails, profileHref: getProfileHref(comment.authorDetails) },
+        positions: parsePositions(comment.positions),
+      }));
     },
 
     async createComment(input: CreateCommentInput) {
@@ -136,8 +146,8 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
 /**
  * Builds the discussion identity supplied by a signed-in host application.
  *
- * `username` is optional: a wallet that never chose one still posts and renders, falling back to
- * its ENS name or a generated nickname.
+ * The Seer client loads an omitted username automatically. A host-supplied username takes precedence.
+ * A wallet without one still posts and renders, falling back to its ENS name or a generated nickname.
  */
 export function userFromAddress(
   address: string,

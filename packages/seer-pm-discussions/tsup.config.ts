@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { defineConfig } from "tsup";
 
 const external = [
+  "@tanstack/react-query",
   "react",
   "react-dom",
   "react/jsx-runtime",
