@@ -39,6 +39,7 @@ function DiscussionButton({
   );
 }
 
+/** Connects market discussions to the app's wallet and Seer sign-in. */
 function Comments({ market }: { market: Market }) {
   const { address, chainId } = useAccount();
   const isConnected = useIsAccountConnected();

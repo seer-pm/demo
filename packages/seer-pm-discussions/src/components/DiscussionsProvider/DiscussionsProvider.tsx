@@ -13,6 +13,7 @@ type DiscussionsProviderProps = {
   components?: DiscussionComponents;
 };
 
+/** Provides discussion state and resolves missing usernames through the app's query cache. */
 export default function DiscussionsProvider({
   children,
   client,
@@ -20,6 +21,10 @@ export default function DiscussionsProvider({
   onRequestConnect,
   components: componentsProp,
 }: DiscussionsProviderProps) {
+  if (client.getUsername && client.baseUrl === undefined) {
+    throw new Error("Clients with getUsername must supply a baseUrl cache scope.");
+  }
+
   const [user, setUser] = useState<DiscussionUser | null>(userProp);
   const [connecting, setConnecting] = useState(false);
 
@@ -28,12 +33,12 @@ export default function DiscussionsProvider({
   }, [userProp]);
 
   const { data: username } = useQuery({
-    queryKey: ["seer-discussions-username", client.baseUrl ?? client.marketId, user?.address.toLowerCase()],
+    queryKey: ["publicUser", "seer-discussions-username", client.baseUrl, user?.address.toLowerCase()],
     queryFn: () => client.getUsername!(user!.address),
     enabled: Boolean(user && !user.username && client.getUsername),
     staleTime: 60_000,
   });
-  const identity = user ? { ...user, ...(username && !user.username ? { username } : {}) } : null;
+  const identity = user ? { ...user, ...(client.getUsername && username && !user.username ? { username } : {}) } : null;
   const resolvedUser = identity
     ? { ...identity, profileHref: identity.profileHref ?? client.getProfileHref?.(identity) ?? null }
     : null;

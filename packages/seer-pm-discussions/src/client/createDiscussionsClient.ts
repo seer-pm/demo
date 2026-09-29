@@ -69,6 +69,7 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
       return json.user?.username || null;
     },
 
+    /** Loads comments with author profile links and current outcome-token positions. */
     async listComments() {
       const token = options.getAccessToken();
       const res = await fetch(`${endpoint}?market_id=${encodeURIComponent(marketId)}&chain_id=${chainId}`, {

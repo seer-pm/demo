@@ -146,6 +146,14 @@ describe("discussion user resolution", () => {
     await expectUser(userFromAddress(FIRST, "second-api"));
   });
 
+  it("rejects an unscoped custom username lookup", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const getUsername = vi.fn();
+    const client: DiscussionsClient = { ...clientWith(getUsername), baseUrl: undefined };
+    await expect(render(client, userFromAddress(FIRST))).rejects.toThrow("baseUrl cache scope");
+    expect(getUsername).not.toHaveBeenCalled();
+  });
+
   it.each([undefined, "/host-profile"])(
     "uses a supplied username with optional href override %s",
     async (profileHref) => {
@@ -180,6 +188,18 @@ describe("discussion user resolution", () => {
     expect(getUsername).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["alice", null])("refreshes username (%s) through the app's publicUser invalidation", async (username) => {
+    const getUsername = vi.fn().mockResolvedValueOnce(username).mockResolvedValueOnce("updated");
+    await render(clientWith(getUsername), userFromAddress(FIRST));
+    await expectUser(userFromAddress(FIRST, username));
+    await vi.waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["publicUser"] });
+    });
+    await expectUser(userFromAddress(FIRST, "updated"));
+    expect(getUsername).toHaveBeenCalledTimes(2);
+  });
+
   it("inherits retries from the app's QueryClient without blocking the wallet", async () => {
     queryClient.setDefaultOptions({ queries: { retry: 1, retryDelay: 0, gcTime: Infinity } });
     const getUsername = vi.fn().mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValueOnce("alice");
@@ -209,8 +229,9 @@ describe("discussion user resolution", () => {
     expect(context.user).toEqual(userFromAddress(FIRST));
   });
 
-  it("uses a supplied identity with clients that do not implement username lookup", async () => {
-    const user = userFromAddress(FIRST, "alice");
+  it.each([undefined, "alice"])("uses supplied identity (%s) when the client has no username lookup", async (username) => {
+    queryClient.setQueryData(["publicUser", "seer-discussions-username", "https://seer.example", FIRST], "cached-name");
+    const user = userFromAddress(FIRST, username);
     await render(clientWith(), user);
     expect(context.user).toEqual(user);
   });

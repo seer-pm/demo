@@ -66,7 +66,7 @@ export type CreateCommentInput = {
 
 export type DiscussionsClient = {
   marketId: string;
-  /** API deployment used to scope cached usernames. */
+  /** Username-source cache scope, usually its API base URL. Required when implementing getUsername. */
   baseUrl?: string;
   /** Public username lookup. Missing profiles return null; failed requests throw so React Query can retry. */
   getUsername?: (address: string) => Promise<string | null>;
