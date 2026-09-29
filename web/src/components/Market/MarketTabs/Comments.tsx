@@ -3,6 +3,7 @@ import Button from "@/components/Form/Button";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useIsAccountConnected, useIsConnectedAndSignedIn } from "@/hooks/useIsConnectedAndSignedIn";
 import { useSignIn } from "@/hooks/useSignIn";
+import { paths } from "@/lib/paths";
 import { getAppUrl, isAccessTokenExpired } from "@/lib/utils";
 import { Discussion, type DiscussionButtonProps, createDiscussionsClient, userFromAddress } from "@seer-pm/discussions";
 import type { Market } from "@seer-pm/sdk";
@@ -53,6 +54,9 @@ function Comments({ market }: { market: Market }) {
         baseUrl: getAppUrl(),
         marketId: market.id,
         chainId: market.chainId,
+        // The package default builds an absolute URL on `baseUrl`. Vike only intercepts relative
+        // links for client-side navigation, so an absolute profile link would reload the page.
+        getProfileHref: ({ address, username }) => paths.portfolio(address, username),
         getAccessToken: () => {
           const token = useGlobalState.getState().accessToken;
           return isAccessTokenExpired(token) ? "" : token;

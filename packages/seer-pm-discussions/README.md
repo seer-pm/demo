@@ -47,7 +47,7 @@ Pass your design-system button via `components.Button`. If omitted, CTAs fall ba
 
 Set `baseUrl` to the Seer deployment hosting the discussion API functions. Comments come back with each author's current outcome-token positions (`comment.positions`), and the package renders a position badge automatically. To replace its presentation, pass `components.UserPositionBadge`; the override receives both `user` and `positions`.
 
-The Seer client automatically loads the signed-in wallet's username and builds profile links using `baseUrl`. Pass `userFromAddress(address, username, profileHref)` to override either value; a supplied username skips lookup. Use `getProfileHref` to customize routes for all authors. Lookup failures keep the wallet usable. Custom clients implementing `getUsername` must supply `baseUrl` as a stable identifier for their username source.
+The client loads the signed-in wallet's username from the deployment at `baseUrl` and builds profile links as absolute URLs on it. Pass `userFromAddress(address, username, profileHref)` to override either value; a supplied username skips the lookup. Pass `getProfileHref` to `createDiscussionsClient` to route every author's profile link through the host application instead, for instance to keep links relative so the host router handles them. Lookup failures keep the wallet usable.
 
 Labels resolve in this order: Seer username, verified mainnet ENS primary name, then a generated nickname. Usernames use an `@` prefix, with any ENS name shown as a secondary badge. Wrap the tree in a `QueryClientProvider` and a `WagmiProvider` whose config includes mainnet. Username lookups use a one-minute `staleTime` and the app's React Query retry and refetch settings.
 

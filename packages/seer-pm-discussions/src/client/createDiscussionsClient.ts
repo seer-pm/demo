@@ -60,10 +60,9 @@ export function createDiscussionsClient(options: CreateDiscussionsClientOptions)
     baseUrl: base,
     getProfileHref,
 
-    /** Loads a public username; missing profiles return null and request failures remain retryable. */
+    /** Loads a public username. The endpoint answers a wallet without a profile row with a null username. */
     async getUsername(address) {
       const res = await fetch(`${base}/.netlify/functions/users?address=${encodeURIComponent(address.toLowerCase())}`);
-      if (res.status === 404) return null;
       if (!res.ok) throw new Error(await readError(res));
       const json = (await res.json()) as { user?: { username?: string | null } };
       return json.user?.username || null;

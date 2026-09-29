@@ -25,7 +25,7 @@ describe("createDiscussionsClient", () => {
       getAccessToken: () => "private-token",
     });
 
-    await expect(client.getUsername!(ADDRESS.toUpperCase())).resolves.toBe("alice");
+    await expect(client.getUsername(ADDRESS.toUpperCase())).resolves.toBe("alice");
     expect(fetchMock).toHaveBeenCalledWith(`https://seer.example/.netlify/functions/users?address=${ADDRESS}`);
   });
 
@@ -38,22 +38,14 @@ describe("createDiscussionsClient", () => {
     });
     const user = userFromAddress(ADDRESS, "host-name", "/host-profile");
 
-    expect(client.getProfileHref!(user)).toBe("/host-profile");
+    expect(client.getProfileHref(user)).toBe("/host-profile");
   });
 
-  it.each([jsonResponse({ user: { username: null } }), new Response(null, { status: 404 })])(
-    "returns null for a missing username",
-    async (response) => {
-      const fetchMock = vi.fn().mockResolvedValue(response);
-      vi.stubGlobal("fetch", fetchMock);
-      const client = createDiscussionsClient({
-        marketId: "0xABC",
-        chainId: 100,
-        getAccessToken: () => "",
-      });
-      await expect(client.getUsername!(ADDRESS)).resolves.toBeNull();
-    },
-  );
+  it("returns null for a wallet without a username", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ user: { username: null } })));
+    const client = createDiscussionsClient({ marketId: "0xABC", chainId: 100, getAccessToken: () => "" });
+    await expect(client.getUsername(ADDRESS)).resolves.toBeNull();
+  });
 
   it.each([new Error("Network unavailable"), new Response("unavailable", { status: 503 })])(
     "reports lookup failures so React Query can retry them",
@@ -64,7 +56,7 @@ describe("createDiscussionsClient", () => {
       vi.stubGlobal("fetch", fetchMock);
       const client = createDiscussionsClient({ marketId: "0xABC", chainId: 100, getAccessToken: () => "" });
 
-      await expect(client.getUsername!(ADDRESS)).rejects.toThrow();
+      await expect(client.getUsername(ADDRESS)).rejects.toThrow();
     },
   );
 

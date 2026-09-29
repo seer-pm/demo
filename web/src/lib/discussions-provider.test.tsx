@@ -1,13 +1,14 @@
+// @vitest-environment jsdom
 import {
+  type DiscussionUser,
+  type DiscussionsClient,
   DiscussionsProvider,
   createDiscussionsClient,
-  type DiscussionsClient,
-  type DiscussionUser,
   useDiscussions,
   userFromAddress,
 } from "@seer-pm/discussions";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
-import { act, create, type ReactTestRenderer } from "react-test-renderer";
+import { act, cleanup, render as renderTree, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const FIRST = "0x1234567890abcdef1234567890abcdef12345678";
@@ -18,7 +19,7 @@ const SEER_CLIENT_OPTIONS = {
   chainId: 100,
   getAccessToken: () => "",
 };
-let renderer: ReactTestRenderer | undefined;
+let rerender: ((tree: React.ReactElement) => void) | undefined;
 let queryClient: QueryClient;
 let context: ReturnType<typeof useDiscussions>;
 
@@ -28,15 +29,16 @@ function Probe() {
   return null;
 }
 
-/** Builds a client stub with an optional username lookup and cache scope. */
+/** Builds a client stub around a username lookup, scoped to a deployment. */
 function clientWith(
-  getUsername?: DiscussionsClient["getUsername"],
+  getUsername: DiscussionsClient["getUsername"],
   baseUrl = "https://seer.example",
 ): DiscussionsClient {
   return {
     marketId: "0xmarket",
     baseUrl,
     getUsername,
+    getProfileHref: (user) => `${baseUrl}/portfolio/${user.username ? `@${user.username}` : user.address}`,
     listComments: async () => [],
     createComment: async () => ({ id: "comment", positions: [] }),
     editComment: async () => {},
@@ -64,31 +66,33 @@ async function render(client: DiscussionsClient, user: DiscussionUser | null) {
         </DiscussionsProvider>
       </QueryClientProvider>
     );
-    if (renderer) renderer.update(tree);
-    else renderer = create(tree);
+    if (rerender) rerender(tree);
+    else rerender = renderTree(tree).rerender;
   });
+}
+
+/** The identity the provider derives for a stub client: the default profile route on its deployment. */
+function expected(address: string, username?: string | null, baseUrl = "https://seer.example") {
+  return userFromAddress(address, username, `${baseUrl}/portfolio/${username ? `@${username}` : address}`);
 }
 
 /** Waits for React Query notifications to reach the provider before checking its identity. */
 async function expectUser(user: DiscussionUser | null) {
-  await vi.waitFor(
-    async () => {
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-      expect(context.user).toEqual(user);
-    },
-    { interval: 5 },
-  );
+  await waitFor(() => expect(context.user).toEqual(user), { interval: 5 });
+}
+
+/** Unmounts the tree so the next render starts a fresh provider. */
+function unmount() {
+  cleanup();
+  rerender = undefined;
 }
 
 beforeEach(() => {
-  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } } });
 });
 
 afterEach(() => {
-  act(() => renderer?.unmount());
-  renderer = undefined;
+  unmount();
   queryClient.clear();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -116,9 +120,9 @@ describe("discussion user resolution", () => {
     await render(client, userFromAddress(FIRST));
     await render(client, userFromAddress(SECOND));
     first.resolve("alice");
-    await expectUser(userFromAddress(SECOND));
+    await expectUser(expected(SECOND));
     second.resolve("bob");
-    await expectUser(userFromAddress(SECOND, "bob"));
+    await expectUser(expected(SECOND, "bob"));
   });
 
   it("does not restore a user after sign-out while a lookup is pending", async () => {
@@ -135,23 +139,16 @@ describe("discussion user resolution", () => {
       clientWith(async () => "first-api"),
       userFromAddress(FIRST),
     );
-    await expectUser(userFromAddress(FIRST, "first-api"));
+    await expectUser(expected(FIRST, "first-api"));
     const lookup = deferredUsername();
+    const other = "https://other-seer.example";
     await render(
-      clientWith(() => lookup.promise, "https://other-seer.example"),
+      clientWith(() => lookup.promise, other),
       userFromAddress(FIRST),
     );
-    expect(context.user).toEqual(userFromAddress(FIRST));
+    expect(context.user).toEqual(expected(FIRST, undefined, other));
     lookup.resolve("second-api");
-    await expectUser(userFromAddress(FIRST, "second-api"));
-  });
-
-  it("rejects an unscoped custom username lookup", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    const getUsername = vi.fn();
-    const client: DiscussionsClient = { ...clientWith(getUsername), baseUrl: undefined };
-    await expect(render(client, userFromAddress(FIRST))).rejects.toThrow("baseUrl cache scope");
-    expect(getUsername).not.toHaveBeenCalled();
+    await expectUser(expected(FIRST, "second-api", other));
   });
 
   it.each([undefined, "/host-profile"])(
@@ -179,60 +176,65 @@ describe("discussion user resolution", () => {
     const getUsername = vi.fn().mockResolvedValue(username);
     const client = clientWith(getUsername);
     await render(client, userFromAddress(FIRST));
-    await expectUser(userFromAddress(FIRST, username));
-    await vi.waitFor(() => expect(queryClient.isFetching()).toBe(0));
-    act(() => renderer!.unmount());
-    renderer = undefined;
+    await expectUser(expected(FIRST, username));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    unmount();
     await render({ ...client, marketId: "another-market" }, userFromAddress(FIRST));
-    expect(context.user).toEqual(userFromAddress(FIRST, username));
+    expect(context.user).toEqual(expected(FIRST, username));
     expect(getUsername).toHaveBeenCalledTimes(1);
   });
 
   it.each(["alice", null])("refreshes username (%s) through the app's publicUser invalidation", async (username) => {
     const getUsername = vi.fn().mockResolvedValueOnce(username).mockResolvedValueOnce("updated");
     await render(clientWith(getUsername), userFromAddress(FIRST));
-    await expectUser(userFromAddress(FIRST, username));
-    await vi.waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    await expectUser(expected(FIRST, username));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ["publicUser"] });
     });
-    await expectUser(userFromAddress(FIRST, "updated"));
+    await expectUser(expected(FIRST, "updated"));
     expect(getUsername).toHaveBeenCalledTimes(2);
   });
 
   it("inherits retries from the app's QueryClient without blocking the wallet", async () => {
-    queryClient.setDefaultOptions({ queries: { retry: 1, retryDelay: 0, gcTime: Infinity } });
+    queryClient.setDefaultOptions({ queries: { retry: 1, retryDelay: 0, gcTime: Number.POSITIVE_INFINITY } });
     const getUsername = vi.fn().mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValueOnce("alice");
     await render(clientWith(getUsername), userFromAddress(FIRST));
     expect(context.user?.address).toBe(FIRST);
-    await expectUser(userFromAddress(FIRST, "alice"));
+    await expectUser(expected(FIRST, "alice"));
     expect(getUsername).toHaveBeenCalledTimes(2);
   });
 
   it("refetches stale usernames on focus using the app's settings", async () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1000);
-    queryClient.setDefaultOptions({ queries: { retry: false, refetchOnWindowFocus: true, gcTime: Infinity } });
+    queryClient.setDefaultOptions({
+      queries: { retry: false, refetchOnWindowFocus: true, gcTime: Number.POSITIVE_INFINITY },
+    });
     const getUsername = vi.fn().mockResolvedValueOnce("alice").mockResolvedValueOnce("renamed");
     await render(clientWith(getUsername), userFromAddress(FIRST));
-    await expectUser(userFromAddress(FIRST, "alice"));
+    await expectUser(expected(FIRST, "alice"));
     now.mockReturnValue(61_001);
-    focusManager.setFocused(false);
-    focusManager.setFocused(true);
-    await expectUser(userFromAddress(FIRST, "renamed"));
+    act(() => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+    });
+    await expectUser(expected(FIRST, "renamed"));
     expect(getUsername).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the wallet identity after lookup fails", async () => {
     const getUsername = vi.fn().mockRejectedValue(new Error("Unavailable"));
     await render(clientWith(getUsername), userFromAddress(FIRST));
-    await vi.waitFor(() => expect(queryClient.getQueryCache().getAll()[0].state.status).toBe("error"));
-    expect(context.user).toEqual(userFromAddress(FIRST));
+    await waitFor(() => expect(queryClient.getQueryCache().getAll()[0].state.status).toBe("error"));
+    expect(context.user).toEqual(expected(FIRST));
   });
 
-  it.each([undefined, "alice"])("uses supplied identity (%s) when the client has no username lookup", async (username) => {
+  it("ignores a cached lookup when the host supplies the username", async () => {
     queryClient.setQueryData(["publicUser", "seer-discussions-username", "https://seer.example", FIRST], "cached-name");
-    const user = userFromAddress(FIRST, username);
-    await render(clientWith(), user);
-    expect(context.user).toEqual(user);
+    await render(
+      clientWith(async () => "cached-name"),
+      userFromAddress(FIRST, "alice"),
+    );
+    expect(context.user).toEqual(expected(FIRST, "alice"));
   });
 });

@@ -21,10 +21,6 @@ export default function DiscussionsProvider({
   onRequestConnect,
   components: componentsProp,
 }: DiscussionsProviderProps) {
-  if (client.getUsername && client.baseUrl === undefined) {
-    throw new Error("Clients with getUsername must supply a baseUrl cache scope.");
-  }
-
   const [user, setUser] = useState<DiscussionUser | null>(userProp);
   const [connecting, setConnecting] = useState(false);
 
@@ -32,15 +28,22 @@ export default function DiscussionsProvider({
     setUser(userProp ?? null);
   }, [userProp]);
 
-  const { data: username } = useQuery({
+  // A host-supplied username is authoritative, so the lookup only runs when the host gave an address
+  // alone. The key shares the app's `publicUser` prefix so a username change on the profile page
+  // invalidates this entry too.
+  const lookupEnabled = Boolean(user && !user.username);
+  const { data: lookedUp } = useQuery({
     queryKey: ["publicUser", "seer-discussions-username", client.baseUrl, user?.address.toLowerCase()],
-    queryFn: () => client.getUsername!(user!.address),
-    enabled: Boolean(user && !user.username && client.getUsername),
+    queryFn: () => client.getUsername(user!.address),
+    enabled: lookupEnabled,
     staleTime: 60_000,
   });
-  const identity = user ? { ...user, ...(client.getUsername && username && !user.username ? { username } : {}) } : null;
+
+  // The query keeps returning cached data while disabled, so read it only when the lookup applies.
+  const username = user?.username ?? (lookupEnabled ? (lookedUp ?? undefined) : undefined);
+  const identity: DiscussionUser | null = user ? { ...user, ...(username ? { username } : {}) } : null;
   const resolvedUser = identity
-    ? { ...identity, profileHref: identity.profileHref ?? client.getProfileHref?.(identity) ?? null }
+    ? { ...identity, profileHref: identity.profileHref ?? client.getProfileHref(identity) }
     : null;
 
   const components = useMemo(
