@@ -2,7 +2,13 @@ import { sepolia } from "@/lib/chains.ts";
 import type { Config } from "@netlify/functions";
 import type { Question, SupportedChain } from "@seer-pm/sdk";
 import { realityAddress } from "@seer-pm/sdk/contracts/reality";
-import { decodeQuestion, getAnswerText, getRealityLink, isScalarBoundInWei } from "@seer-pm/sdk/reality";
+import {
+  decodeQuestion,
+  getAnswerText,
+  getRealityLink,
+  hasInjectedParameters,
+  isScalarBoundInWei,
+} from "@seer-pm/sdk/reality";
 import { createClient } from "@supabase/supabase-js";
 import { parseAbiItem } from "viem";
 import { getBlockNumber, getLogs } from "viem/actions";
@@ -142,7 +148,14 @@ async function processChain(chainId: SupportedChain, botToken: string) {
         const question = data.question;
         question.best_answer = data.answer;
 
-        return `Question: ${decodedQuestion.question}\n
+        // A question whose parameters override the Reality template renders with different labels
+        // on reality.eth/Kleros than the ones the market pays out, so an answer here can be honest
+        // by the displayed label yet resolve the opposite outcome. Flag it for manual review.
+        const injectedWarning = hasInjectedParameters(Number(data.templateId), data.encodedQuestion)
+          ? "⚠️ INJECTED QUESTION — its parameters override the Reality template, so labels on reality.eth/Kleros may differ from Seer. Treat this answer as untrusted and consider requesting arbitration.\n\n"
+          : "";
+
+        return `${injectedWarning}Question: ${decodedQuestion.question}\n
 Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
 <a href="${getRealityLink(chainId, data.question.id)}">Check on Reality</a>\n
 <a href="https://app.seer.pm/markets/${chainId}/${data.url}">Check on Seer</a>`;
