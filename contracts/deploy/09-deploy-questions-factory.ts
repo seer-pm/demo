@@ -16,12 +16,11 @@ const deployQuestionsFactory: DeployFunction = async (hre: HardhatRuntimeEnviron
   // The ERC20s this contract deploys must be the same ones MarketFactory later finds, so the
   // position ids have to be computed with MarketFactory's own dependencies.
   const conditionalTokens = await deployments.read("MarketFactory", "conditionalTokens");
-  const collateralToken = await deployments.read("MarketFactory", "collateralToken");
   const wrapped1155Factory = await deployments.read("MarketFactory", "wrapped1155Factory");
 
   await deploy("QuestionsFactory", {
     from: deployer,
-    args: [marketFactory.address, conditionalTokens, collateralToken, wrapped1155Factory],
+    args: [marketFactory.address, conditionalTokens, wrapped1155Factory],
     log: true,
   });
 };

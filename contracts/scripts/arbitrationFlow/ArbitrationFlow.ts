@@ -170,13 +170,13 @@ export default class ArbitrationFlow {
         "0xE78996A233895bE74a66F451f1019cA9734205cc",
         "0x5bc8ddE5D07C6bf24911240AA6F9B0190ae3b557",
         "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
-        "0xaf204776c7245bF4147c2612BF6e5972Ee483701",
         "0x5BE39c00fB89688E8C38732Fb204B084ca5f8965",
-        QUESTION_TIMEOUT,
       );
     const realitio = new ethers.Contract("0xE78996A233895bE74a66F451f1019cA9734205cc", realitioAbi, this.homeSigner);
     const trx = await marketFactory.createCategoricalMarket({
       ...categoricalMarketParams,
+      collateralToken: "0xaf204776c7245bF4147c2612BF6e5972Ee483701",
+      questionTimeout: QUESTION_TIMEOUT,
       minBond: 0,
     });
     const receipt = await trx.wait(1);

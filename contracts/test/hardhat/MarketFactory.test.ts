@@ -1,17 +1,15 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { MarketFactory, RealityETH_v3_0 } from "../../typechain-types";
+import { ConditionalTokens, MarketFactory, RealityETH_v3_0, Wrapped1155Factory } from "../../typechain-types";
 import {
   ETH_BALANCE,
   MIN_BOND,
   OPENING_TS,
   QUESTION_TIMEOUT,
   REALITY_SINGLE_SELECT_TEMPLATE,
-  categoricalMarketParams,
-  multiCategoricalMarketParams,
-  multiScalarMarketParams,
-  scalarMarketParams,
+  SHORT_QUESTION_TIMEOUT,
+  type MarketParams,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 
@@ -19,6 +17,13 @@ describe("MarketFactory", function () {
   let marketFactory: MarketFactory;
   let realitio: RealityETH_v3_0;
   let arbitrator: string;
+  let conditionalTokens: ConditionalTokens;
+  let wrapped1155Factory: Wrapped1155Factory;
+
+  let categoricalMarketParams: MarketParams;
+  let multiCategoricalMarketParams: MarketParams;
+  let scalarMarketParams: MarketParams;
+  let multiScalarMarketParams: MarketParams;
 
   beforeEach(async function () {
     await network.provider.send("evm_setAutomine", [true]);
@@ -26,7 +31,16 @@ describe("MarketFactory", function () {
       marketFactory: _marketFactory,
       realitio: _realitio,
       arbitrator: _arbitrator,
+      conditionalTokens: _conditionalTokens,
+      wrapped1155Factory: _wrapped1155Factory,
+      marketParams: _marketParams,
     } = await loadFixture(marketFactoryDeployFixture);
+    conditionalTokens = _conditionalTokens;
+    wrapped1155Factory = _wrapped1155Factory;
+    categoricalMarketParams = _marketParams.categoricalMarketParams;
+    multiCategoricalMarketParams = _marketParams.multiCategoricalMarketParams;
+    scalarMarketParams = _marketParams.scalarMarketParams;
+    multiScalarMarketParams = _marketParams.multiScalarMarketParams;
 
     marketFactory = _marketFactory;
     realitio = _realitio;
@@ -225,6 +239,120 @@ describe("MarketFactory", function () {
     it("allows to create multiple multi-scalar markets with same params", async function () {
       await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
       await marketFactory.createMultiScalarMarket(multiScalarMarketParams);
+    });
+  });
+
+  describe("collateral and timeout", function () {
+    async function createCategoricalMarket(params: Parameters<MarketFactory["createCategoricalMarket"]>[0]) {
+      const marketAddress = await marketFactory.createCategoricalMarket.staticCall(params);
+      await marketFactory.createCategoricalMarket(params);
+      return ethers.getContractAt("Market", marketAddress);
+    }
+
+    it("reverts without a collateral token", async function () {
+      await expect(
+        marketFactory.createCategoricalMarket({ ...categoricalMarketParams, collateralToken: ethers.ZeroAddress })
+      ).to.be.revertedWith("Missing collateral token");
+    });
+
+    it("reverts without a question timeout", async function () {
+      await expect(
+        marketFactory.createCategoricalMarket({ ...categoricalMarketParams, questionTimeout: 0 })
+      ).to.be.revertedWith("Missing question timeout");
+    });
+
+    it("asks the Reality question with the market's timeout", async function () {
+      const market = await createCategoricalMarket({
+        ...categoricalMarketParams,
+        questionTimeout: SHORT_QUESTION_TIMEOUT,
+      });
+      const [questionId] = await market.questionsIds();
+      expect(await realitio.getTimeout(questionId)).to.equal(SHORT_QUESTION_TIMEOUT);
+    });
+
+    it("asks a different question for each timeout", async function () {
+      const slow = await createCategoricalMarket(categoricalMarketParams);
+      const fast = await createCategoricalMarket({ ...categoricalMarketParams, questionTimeout: SHORT_QUESTION_TIMEOUT });
+      const same = await createCategoricalMarket({ ...categoricalMarketParams, questionTimeout: SHORT_QUESTION_TIMEOUT });
+
+      expect((await slow.questionsIds())[0]).to.not.equal((await fast.questionsIds())[0]);
+      expect((await fast.questionsIds())[0]).to.equal((await same.questionsIds())[0]);
+      expect(await slow.conditionId()).to.not.equal(await fast.conditionId());
+    });
+
+    it("stores the collateral token on the market and uses it for the outcome tokens", async function () {
+      const collateral = await ethers.deployContract("CollateralToken");
+      const collateralAddress = await collateral.getAddress();
+      const market = await createCategoricalMarket({ ...categoricalMarketParams, collateralToken: collateralAddress });
+
+      expect(await market.collateralToken()).to.equal(collateralAddress);
+
+      const collectionId = await conditionalTokens.getCollectionId(ethers.ZeroHash, await market.conditionId(), 1);
+      const positionId = await conditionalTokens.getPositionId(collateralAddress, collectionId);
+      const [wrapped1155, data] = await market.wrappedOutcome(0);
+      expect(
+        await wrapped1155Factory.getWrapped1155(await conditionalTokens.getAddress(), positionId, data)
+      ).to.equal(wrapped1155);
+    });
+
+    it("deploys outcome tokens with the collateral's decimals", async function () {
+      const collateral = await ethers.deployContract("CollateralToken6");
+      const market = await createCategoricalMarket({
+        ...categoricalMarketParams,
+        collateralToken: await collateral.getAddress(),
+      });
+      const [wrapped1155, data] = await market.wrappedOutcome(0);
+      const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
+
+      expect(await token.decimals()).to.equal(6);
+      // the decimals byte closes the token data
+      expect(Number.parseInt(data.slice(-2), 16)).to.equal(6);
+    });
+
+    it("defaults the outcome tokens to 18 decimals when the collateral has none", async function () {
+      const collateral = await ethers.deployContract("CollateralTokenNoDecimals");
+      const market = await createCategoricalMarket({
+        ...categoricalMarketParams,
+        collateralToken: await collateral.getAddress(),
+      });
+      const [wrapped1155] = await market.wrappedOutcome(0);
+      const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
+
+      expect(await token.decimals()).to.equal(18);
+    });
+
+    it("reverts if a conditional market does not use the parent's collateral", async function () {
+      const parent = await createCategoricalMarket(categoricalMarketParams);
+      const otherCollateral = await ethers.deployContract("CollateralToken");
+
+      await expect(
+        marketFactory.createScalarMarket({
+          ...scalarMarketParams,
+          parentMarket: await parent.getAddress(),
+          parentOutcome: 1,
+          collateralToken: await otherCollateral.getAddress(),
+        })
+      ).to.be.revertedWith("Collateral must match the parent market");
+    });
+
+    it("creates a conditional market with the parent's collateral", async function () {
+      const parent = await createCategoricalMarket(categoricalMarketParams);
+      const marketAddress = await marketFactory.createScalarMarket.staticCall({
+        ...scalarMarketParams,
+        parentMarket: await parent.getAddress(),
+        parentOutcome: 1,
+      });
+      await marketFactory.createScalarMarket({
+        ...scalarMarketParams,
+        parentMarket: await parent.getAddress(),
+        parentOutcome: 1,
+      });
+      const child = await ethers.getContractAt("Market", marketAddress);
+
+      expect(await child.collateralToken()).to.equal(categoricalMarketParams.collateralToken);
+      const [parentWrapped] = await child.parentWrappedOutcome();
+      const [expectedWrapped] = await parent.wrappedOutcome(1);
+      expect(parentWrapped).to.equal(expectedWrapped);
     });
   });
 

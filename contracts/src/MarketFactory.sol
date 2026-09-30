@@ -32,6 +32,8 @@ contract MarketFactory {
     /// @param minBond Min bond to use on Reality.
     /// @param openingTime Reality question opening time.
     /// @param tokenNames Name of the ERC20 tokens associated to each outcome.
+    /// @param collateralToken Base collateral of the outcome tokens. A conditional market must use the collateral of its parent market.
+    /// @param questionTimeout Reality question timeout, in seconds.
     struct CreateMarketParams {
         string marketName;
         string[] outcomes;
@@ -47,6 +49,8 @@ contract MarketFactory {
         uint256 minBond;
         uint32 openingTime;
         string[] tokenNames;
+        address collateralToken;
+        uint32 questionTimeout;
     }
 
     /// @dev Workaround "stack too deep" errors.
@@ -66,9 +70,6 @@ contract MarketFactory {
     /// @dev Template for multi categorical markets.
     uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
 
-    /// @dev Reality question timeout.
-    uint32 public immutable questionTimeout;
-
     /// @dev Arbitrator contract.
     address public immutable arbitrator;
     /// @dev Reality.eth contract.
@@ -77,8 +78,6 @@ contract MarketFactory {
     IWrapped1155Factory public immutable wrapped1155Factory;
     /// @dev Conditional Tokens contract.
     IConditionalTokens public immutable conditionalTokens;
-    /// @dev Conditional Tokens collateral token contract.
-    address public immutable collateralToken;
     /// @dev Oracle contract.
     RealityProxy public immutable realityProxy;
     /// @dev Markets created by this factory.
@@ -109,9 +108,7 @@ contract MarketFactory {
      *  @param _realitio Address of the Realitio implementation.
      *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
-     *  @param _collateralToken Address of the collateral token.
      *  @param _realityProxy Address of the RealityProxy implementation.
-     *  @param _questionTimeout Reality question timeout.
      */
     constructor(
         address _market,
@@ -119,18 +116,14 @@ contract MarketFactory {
         IRealityETH_v3_0 _realitio,
         IWrapped1155Factory _wrapped1155Factory,
         IConditionalTokens _conditionalTokens,
-        address _collateralToken,
-        RealityProxy _realityProxy,
-        uint32 _questionTimeout
+        RealityProxy _realityProxy
     ) {
         market = _market;
         arbitrator = _arbitrator;
         realitio = _realitio;
         wrapped1155Factory = _wrapped1155Factory;
         conditionalTokens = _conditionalTokens;
-        collateralToken = _collateralToken;
         realityProxy = _realityProxy;
-        questionTimeout = _questionTimeout;
     }
 
     /// @dev Creates a Categorical market.
@@ -239,6 +232,10 @@ contract MarketFactory {
         string memory marketName,
         InternalMarketConfig memory config
     ) internal returns (address) {
+        require(params.collateralToken != address(0), "Missing collateral token");
+        // Reality rejects a timeout of zero or of 365 days and more on its own.
+        require(params.questionTimeout > 0, "Missing question timeout");
+
         (Market.ConditionalTokensParams memory conditionalTokensParams, Market.RealityParams memory realityParams) =
             createNewMarketParams(params, config);
 
@@ -251,7 +248,8 @@ contract MarketFactory {
             params.upperBound,
             conditionalTokensParams,
             realityParams,
-            realityProxy
+            realityProxy,
+            params.collateralToken
         );
 
         emit NewMarket(
@@ -285,11 +283,20 @@ contract MarketFactory {
                 1 << params.parentOutcome
             );
 
+        if (params.parentMarket != address(0)) {
+            requireParentCollateral(params, parentCollectionId);
+        }
+
         bytes32[] memory questionsIds = new bytes32[](config.encodedQuestions.length);
 
         for (uint256 i = 0; i < config.encodedQuestions.length; i++) {
-            questionsIds[i] =
-                askRealityQuestion(config.encodedQuestions[i], config.templateId, params.openingTime, params.minBond);
+            questionsIds[i] = askRealityQuestion(
+                config.encodedQuestions[i],
+                config.templateId,
+                params.openingTime,
+                params.minBond,
+                params.questionTimeout
+            );
         }
 
         // questionId must be a hash of all the values that RealityProxy.resolve() uses to resolve a market, this way if an attacker tries to resolve a fake market by changing some value its questionId will not match the id of a valid market.
@@ -298,8 +305,9 @@ contract MarketFactory {
         );
         bytes32 conditionId = prepareCondition(questionId, config.outcomeSlotCount);
 
-        (IERC20[] memory wrapped1155, bytes[] memory data) =
-            deployERC20Positions(parentCollectionId, conditionId, config.outcomeSlotCount, params.tokenNames);
+        (IERC20[] memory wrapped1155, bytes[] memory data) = deployERC20Positions(
+            params.collateralToken, parentCollectionId, conditionId, config.outcomeSlotCount, params.tokenNames
+        );
 
         return (
             Market.ConditionalTokensParams({
@@ -312,10 +320,27 @@ contract MarketFactory {
                 data: data
             }),
             Market.RealityParams({
-                questionsIds: questionsIds,
-                templateId: config.templateId,
-                encodedQuestions: config.encodedQuestions
+                questionsIds: questionsIds, templateId: config.templateId, encodedQuestions: config.encodedQuestions
             })
+        );
+    }
+
+    /// @dev Checks that a conditional market uses the collateral of its parent market.
+    /// A conditional market redeems into a parent outcome token, and that token wraps a Conditional Tokens
+    /// position over the parent's base collateral. Outcome tokens deployed over any other collateral would
+    /// wrap positions that no split can fund, so the collateral has to reproduce the parent's wrapper address.
+    /// The parent is untrusted, but the check only reads it and the wrapper address is deterministic.
+    /// @param params CreateMarketParams instance.
+    /// @param parentCollectionId The collection id of the parent outcome.
+    function requireParentCollateral(CreateMarketParams memory params, bytes32 parentCollectionId) internal view {
+        (IERC20 parentWrapped1155, bytes memory parentData) =
+            Market(params.parentMarket).wrappedOutcome(params.parentOutcome);
+        uint256 parentPositionId = conditionalTokens.getPositionId(params.collateralToken, parentCollectionId);
+
+        require(
+            wrapped1155Factory.getWrapped1155(address(conditionalTokens), parentPositionId, parentData)
+                == parentWrapped1155,
+            "Collateral must match the parent market"
         );
     }
 
@@ -364,28 +389,28 @@ contract MarketFactory {
     /// @param templateId The Reality template id.
     /// @param openingTime The question opening time.
     /// @param minBond The question min bond.
+    /// @param timeout The question timeout. It is part of the question id, so the same question with another
+    /// timeout is a different Reality question.
     /// @return The question id.
     function askRealityQuestion(
         string memory encodedQuestion,
         uint256 templateId,
         uint32 openingTime,
-        uint256 minBond
+        uint256 minBond,
+        uint32 timeout
     ) internal returns (bytes32) {
         bytes32 content_hash = keccak256(abi.encodePacked(templateId, openingTime, encodedQuestion));
 
         bytes32 question_id = keccak256(
-            abi.encodePacked(
-                content_hash, arbitrator, questionTimeout, minBond, address(realitio), address(this), uint256(0)
-            )
+            abi.encodePacked(content_hash, arbitrator, timeout, minBond, address(realitio), address(this), uint256(0))
         );
 
         if (realitio.getTimeout(question_id) != 0) {
             return question_id;
         }
 
-        return realitio.askQuestionWithMinBond(
-            templateId, encodedQuestion, arbitrator, questionTimeout, openingTime, 0, minBond
-        );
+        return
+            realitio.askQuestionWithMinBond(templateId, encodedQuestion, arbitrator, timeout, openingTime, 0, minBond);
     }
 
     /// @dev Prepares the CTF condition and returns the conditionId.
@@ -402,7 +427,21 @@ contract MarketFactory {
         return conditionId;
     }
 
+    /// @dev Returns the decimals of the collateral token, or 18 when the token does not expose them.
+    /// A Conditional Tokens position is denominated in the collateral's base units, so the wrapped
+    /// outcome token has to use the same decimals to display the same amounts.
+    /// @param collateralToken The collateral token.
+    /// @return The decimals of the outcome tokens.
+    function collateralDecimals(address collateralToken) internal view returns (uint8) {
+        try IERC20(collateralToken).decimals() returns (uint8 decimals) {
+            return decimals;
+        } catch {
+            return 18;
+        }
+    }
+
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.
+    /// @param collateralToken The base collateral of the positions.
     /// @param parentCollectionId The parentCollectionId.
     /// @param conditionId The conditionId.
     /// @param outcomeSlotCount The amount of outcomes.
@@ -410,12 +449,14 @@ contract MarketFactory {
     /// @return wrapped1155 Array of outcome tokens wrapped to ERC20.
     /// @return data Array of token data used to create each ERC20.
     function deployERC20Positions(
+        address collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint256 outcomeSlotCount,
         string[] memory tokenNames
     ) internal returns (IERC20[] memory wrapped1155, bytes[] memory data) {
         uint256 invalidResultIndex = outcomeSlotCount - 1;
+        uint8 decimals = collateralDecimals(collateralToken);
 
         wrapped1155 = new IERC20[](outcomeSlotCount);
         data = new bytes[](outcomeSlotCount);
@@ -429,7 +470,7 @@ contract MarketFactory {
             bytes memory _data = abi.encodePacked(
                 toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
                 toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
-                uint8(18)
+                decimals
             );
 
             IERC20 _wrapped1155 = wrapped1155Factory.requireWrapped1155(address(conditionalTokens), tokenId, _data);

@@ -27,8 +27,10 @@ contract BaseTest is Test {
     address internal conditionalTokens = address(0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce);
     address internal collateralToken = address(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
     address internal wrapped1155Factory = address(0xD194319D1804C1051DD21Ba1Dc931cA72410B79f);
+    address internal wxDAI = address(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d);
 
     uint256 constant MIN_BOND = 5 ether;
+    uint32 constant QUESTION_TIMEOUT = 1.5 days;
 
     bytes32 constant INVALID_RESULT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     bytes32 constant ANSWERED_TOO_SOON = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
@@ -47,9 +49,7 @@ contract BaseTest is Test {
             IRealityETH_v3_0(realitio),
             IWrapped1155Factory(wrapped1155Factory),
             IConditionalTokens(conditionalTokens),
-            collateralToken,
-            realityProxy,
-            1.5 days
+            realityProxy
         );
 
         gnosisRouter = new GnosisRouter(IConditionalTokens(conditionalTokens), IWrapped1155Factory(wrapped1155Factory));
@@ -99,12 +99,46 @@ contract BaseTest is Test {
                     minBond: minBond,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 0,
-                    upperBound: 0
+                    upperBound: 0,
+                    collateralToken: collateralToken,
+                    questionTimeout: QUESTION_TIMEOUT
                 })
             )
         );
 
         return market;
+    }
+
+    function getCategoricalMarketWithCollateral(
+        uint256 minBond,
+        uint256 numOutcomes,
+        address collateral,
+        uint32 timeout
+    ) public returns (Market) {
+        (string[] memory outcomes, string[] memory tokenNames) = getOutcomesAndTokens(numOutcomes);
+
+        return Market(
+            marketFactory.createCategoricalMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "Will Ethereum ETF launch before Feb 29, 2024?",
+                    questionStart: "",
+                    questionEnd: "",
+                    outcomeType: "",
+                    parentOutcome: 0,
+                    parentMarket: address(0),
+                    category: "technology",
+                    lang: "en_US",
+                    outcomes: outcomes,
+                    tokenNames: tokenNames,
+                    minBond: minBond,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 0,
+                    upperBound: 0,
+                    collateralToken: collateral,
+                    questionTimeout: timeout
+                })
+            )
+        );
     }
 
     function getMultiCategoricalMarket(uint256 minBond, uint256 numOutcomes) public returns (Market) {
@@ -130,7 +164,9 @@ contract BaseTest is Test {
                     minBond: minBond,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 0,
-                    upperBound: 0
+                    upperBound: 0,
+                    collateralToken: collateralToken,
+                    questionTimeout: QUESTION_TIMEOUT
                 })
             )
         );
@@ -170,7 +206,9 @@ contract BaseTest is Test {
                     minBond: minBond,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 2500,
-                    upperBound: 3500
+                    upperBound: 3500,
+                    collateralToken: collateralToken,
+                    questionTimeout: QUESTION_TIMEOUT
                 })
             )
         );
@@ -201,7 +239,9 @@ contract BaseTest is Test {
                     minBond: minBond,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 0,
-                    upperBound: 0
+                    upperBound: 0,
+                    collateralToken: collateralToken,
+                    questionTimeout: QUESTION_TIMEOUT
                 })
             )
         );

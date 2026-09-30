@@ -58,6 +58,8 @@ contract Market {
     RealityParams public realityParams;
     /// @dev Oracle contract.
     RealityProxy public realityProxy;
+    /// @dev Base collateral of the outcome tokens. A child market keeps the collateral of its root market.
+    address public collateralToken;
 
     /// @dev Initializer.
     /// @param _marketName The name of the market.
@@ -67,6 +69,7 @@ contract Market {
     /// @param _conditionalTokensParams Conditional Tokens params.
     /// @param _realityParams Reality params.
     /// @param _realityProxy Oracle contract.
+    /// @param _collateralToken Base collateral of the outcome tokens.
     function initialize(
         string memory _marketName,
         string[] memory _outcomes,
@@ -74,7 +77,8 @@ contract Market {
         uint256 _upperBound,
         ConditionalTokensParams memory _conditionalTokensParams,
         RealityParams memory _realityParams,
-        RealityProxy _realityProxy
+        RealityProxy _realityProxy,
+        address _collateralToken
     ) external {
         require(!initialized, "Already initialized.");
 
@@ -85,6 +89,7 @@ contract Market {
         conditionalTokensParams = _conditionalTokensParams;
         realityParams = _realityParams;
         realityProxy = _realityProxy;
+        collateralToken = _collateralToken;
 
         initialized = true;
     }

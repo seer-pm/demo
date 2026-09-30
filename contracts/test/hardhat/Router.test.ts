@@ -12,14 +12,13 @@ import {
   Router,
 } from "../../typechain-types";
 import {
-  categoricalMarketParams,
   MERGE_AMOUNT,
   MIN_BOND,
   OPENING_TS,
   QUESTION_TIMEOUT,
-  scalarMarketParams,
   SPLIT_AMOUNT,
   CONDITIONAL_SPLIT_AMOUNT,
+  type MarketParams,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getBitMaskDecimal, getRedeemAmounts } from "./helpers/utils";
@@ -91,6 +90,9 @@ describe("Router", function () {
     return { outcomeSlotCount, conditionId, questionsIds, market, parentCollectionId };
   }
 
+  let categoricalMarketParams: MarketParams;
+  let scalarMarketParams: MarketParams;
+
   beforeEach(async function () {
     await network.provider.send("evm_setAutomine", [true]);
     const {
@@ -101,7 +103,10 @@ describe("Router", function () {
       router: _router,
       realitio: _realitio,
       conditionalRouter: _conditionalRouter,
+      marketParams: _marketParams,
     } = await loadFixture(marketFactoryDeployFixture);
+    categoricalMarketParams = _marketParams.categoricalMarketParams;
+    scalarMarketParams = _marketParams.scalarMarketParams;
 
     marketFactory = _marketFactory;
     collateralToken = _collateralToken as CollateralToken;

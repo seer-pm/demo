@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { IERC20 } from "../../../typechain-types";
-import { QUESTION_TIMEOUT } from "./constants";
+import { getMarketParams } from "./constants";
 
 export async function marketFactoryDeployFixture(customCollateralToken?: IERC20) {
   // Deploy contracts
@@ -28,18 +28,16 @@ export async function marketFactoryDeployFixture(customCollateralToken?: IERC20)
   // Deploy MarketFactory
   const marketFactory = await (
     await ethers.getContractFactory("MarketFactory")
-  ).deploy(
-    market,
-    arbitrator,
-    realitio,
-    wrapped1155Factory,
-    conditionalTokens,
-    await collateralToken.getAddress(),
-    realityProxy,
-    QUESTION_TIMEOUT,
-  );
+  ).deploy(market, arbitrator, realitio, wrapped1155Factory, conditionalTokens, realityProxy);
+
+  const questionsFactory = await (
+    await ethers.getContractFactory("QuestionsFactory")
+  ).deploy(marketFactory, conditionalTokens, wrapped1155Factory);
+
   return {
     marketFactory,
+    questionsFactory,
+    marketParams: getMarketParams(await collateralToken.getAddress()),
     realitio,
     arbitrator,
     conditionalTokens,

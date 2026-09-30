@@ -97,12 +97,22 @@ contract RealityProxy realityProxy
 
 *Oracle contract.*
 
+### collateralToken
+
+```solidity
+address collateralToken
+```
+
+*Base collateral of the outcome tokens. A child market keeps the collateral of its root market.*
+
+Markets created by the factories with a fixed collateral do not have this getter; their collateral is the `collateralToken()` of the factory that created them.
+
 ## Functions
 
 ### initialize
 
 ```solidity
-function initialize(string _marketName, string[] _outcomes, uint256 _lowerBound, uint256 _upperBound, struct Market.ConditionalTokensParams _conditionalTokensParams, struct Market.RealityParams _realityParams, contract RealityProxy _realityProxy) external
+function initialize(string _marketName, string[] _outcomes, uint256 _lowerBound, uint256 _upperBound, struct Market.ConditionalTokensParams _conditionalTokensParams, struct Market.RealityParams _realityParams, contract RealityProxy _realityProxy, address _collateralToken) external
 ```
 
 *Initializer.*
@@ -118,6 +128,7 @@ function initialize(string _marketName, string[] _outcomes, uint256 _lowerBound,
 | \_conditionalTokensParams | struct Market.ConditionalTokensParams | Conditional Tokens params.                                        |
 | \_realityParams           | struct Market.RealityParams           | Reality params.                                                   |
 | \_realityProxy            | contract RealityProxy                 | Oracle contract.                                                  |
+| \_collateralToken         | address                               | Base collateral of the outcome tokens.                            |
 
 ### templateId
 

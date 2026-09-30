@@ -12,10 +12,7 @@ import {
   MIN_BOND,
   OPENING_TS,
   QUESTION_TIMEOUT,
-  categoricalMarketParams,
-  multiCategoricalMarketParams,
-  multiScalarMarketParams,
-  scalarMarketParams,
+  type MarketParams,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getBitMaskDecimal } from "./helpers/utils";
@@ -26,6 +23,11 @@ describe("RealityProxy", function () {
   let realitio: RealityETH_v3_0;
   let realityProxy: RealityProxy;
 
+  let categoricalMarketParams: MarketParams;
+  let multiCategoricalMarketParams: MarketParams;
+  let scalarMarketParams: MarketParams;
+  let multiScalarMarketParams: MarketParams;
+
   beforeEach(async function () {
     await network.provider.send("evm_setAutomine", [true]);
     const {
@@ -33,7 +35,12 @@ describe("RealityProxy", function () {
       realitio: _realitio,
       conditionalTokens: _conditionalTokens,
       realityProxy: _realityProxy,
+      marketParams: _marketParams,
     } = await loadFixture(marketFactoryDeployFixture);
+    categoricalMarketParams = _marketParams.categoricalMarketParams;
+    multiCategoricalMarketParams = _marketParams.multiCategoricalMarketParams;
+    scalarMarketParams = _marketParams.scalarMarketParams;
+    multiScalarMarketParams = _marketParams.multiScalarMarketParams;
 
     marketFactory = _marketFactory;
     realitio = _realitio;

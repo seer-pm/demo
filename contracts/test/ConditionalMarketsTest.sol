@@ -8,6 +8,66 @@ import "forge-std/console.sol";
 contract ConditionalMarketsTest is BaseTest {
     uint256 constant MAX_SPLIT_AMOUNT = 100_000_000 ether;
 
+    function test_revertsChildMarketWithWrongCollateral() public {
+        Market parent = getCategoricalMarket(MIN_BOND, 2);
+        (string[] memory outcomes, string[] memory tokenNames) = getOutcomesAndTokens(2);
+
+        vm.expectRevert(bytes("Collateral must match the parent market"));
+        marketFactory.createScalarMarket(
+            MarketFactory.CreateMarketParams({
+                marketName: "How many votes will OUTCOME_0 get?",
+                questionStart: "",
+                questionEnd: "",
+                outcomeType: "",
+                parentOutcome: 0,
+                parentMarket: address(parent),
+                category: "misc",
+                lang: "en_US",
+                outcomes: outcomes,
+                tokenNames: tokenNames,
+                minBond: MIN_BOND,
+                openingTime: uint32(block.timestamp) + 60,
+                lowerBound: 2500,
+                upperBound: 3500,
+                collateralToken: wxDAI,
+                questionTimeout: QUESTION_TIMEOUT
+            })
+        );
+    }
+
+    function test_childMarketKeepsRootCollateral() public {
+        Market parent = getCategoricalMarketWithCollateral(MIN_BOND, 2, wxDAI, QUESTION_TIMEOUT);
+        (string[] memory outcomes, string[] memory tokenNames) = getOutcomesAndTokens(2);
+
+        Market child = Market(
+            marketFactory.createScalarMarket(
+                MarketFactory.CreateMarketParams({
+                    marketName: "How many votes will OUTCOME_0 get?",
+                    questionStart: "",
+                    questionEnd: "",
+                    outcomeType: "",
+                    parentOutcome: 0,
+                    parentMarket: address(parent),
+                    category: "misc",
+                    lang: "en_US",
+                    outcomes: outcomes,
+                    tokenNames: tokenNames,
+                    minBond: MIN_BOND,
+                    openingTime: uint32(block.timestamp) + 60,
+                    lowerBound: 2500,
+                    upperBound: 3500,
+                    collateralToken: wxDAI,
+                    questionTimeout: QUESTION_TIMEOUT
+                })
+            )
+        );
+
+        assertEq(child.collateralToken(), wxDAI);
+        (IERC20 parentWrapped,) = child.parentWrappedOutcome();
+        (IERC20 expectedWrapped,) = parent.wrappedOutcome(0);
+        assertEq(address(parentWrapped), address(expectedWrapped));
+    }
+
     function test_splitsDeepPosition() public {
         vm.startPrank(msg.sender);
         uint256 numOutcomes = 2;

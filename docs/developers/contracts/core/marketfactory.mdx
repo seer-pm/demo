@@ -32,8 +32,15 @@ struct CreateMarketParams {
   uint256 minBond;
   uint32 openingTime;
   string[] tokenNames;
+  address collateralToken;
+  uint32 questionTimeout;
 }
 ```
+
+`collateralToken` is the base collateral of the outcome tokens: any ERC20. A conditional market must
+pass the collateral of its parent market, since it redeems into a parent outcome token that wraps a
+position over that collateral. `questionTimeout` is the Reality question timeout in seconds; Reality
+rejects zero and anything from 365 days up. Both are required.
 
 ### InternalMarketConfig
 
@@ -71,13 +78,6 @@ uint8 REALITY_MULTI_SELECT_TEMPLATE
 
 *Template for multi categorical markets.*
 
-### questionTimeout
-
-```solidity
-uint32 questionTimeout
-```
-
-*Reality question timeout.*
 
 ### arbitrator
 
@@ -111,13 +111,6 @@ contract IConditionalTokens conditionalTokens
 
 *Conditional Tokens contract.*
 
-### collateralToken
-
-```solidity
-address collateralToken
-```
-
-*Conditional Tokens collateral token contract.*
 
 ### realityProxy
 
@@ -169,7 +162,7 @@ event NewMarket(address market, string marketName, address parentMarket, bytes32
 ### constructor
 
 ```solidity
-constructor(address _market, address _arbitrator, contract IRealityETH_v3_0 _realitio, contract IWrapped1155Factory _wrapped1155Factory, contract IConditionalTokens _conditionalTokens, address _collateralToken, contract RealityProxy _realityProxy, uint32 _questionTimeout) public
+constructor(address _market, address _arbitrator, contract IRealityETH_v3_0 _realitio, contract IWrapped1155Factory _wrapped1155Factory, contract IConditionalTokens _conditionalTokens, contract RealityProxy _realityProxy) public
 ```
 
 *Constructor.*
@@ -181,9 +174,7 @@ constructor(address _market, address _arbitrator, contract IRealityETH_v3_0 _rea
 | \_realitio           | contract IRealityETH\_v3\_0  | Address of the Realitio implementation.                                          |
 | \_wrapped1155Factory | contract IWrapped1155Factory | Address of the Wrapped1155Factory implementation.                                |
 | \_conditionalTokens  | contract IConditionalTokens  | Address of the ConditionalTokens implementation.                                 |
-| \_collateralToken    | address                      | Address of the collateral token.                                                 |
 | \_realityProxy       | contract RealityProxy        | Address of the RealityProxy implementation.                                      |
-| \_questionTimeout    | uint32                       | Reality question timeout.                                                        |
 
 ### createCategoricalMarket
 
@@ -408,7 +399,7 @@ function encodeRealityQuestionWithoutOutcomes(string question, string category, 
 ### askRealityQuestion
 
 ```solidity
-function askRealityQuestion(string encodedQuestion, uint256 templateId, uint32 openingTime, uint256 minBond) internal returns (bytes32)
+function askRealityQuestion(string encodedQuestion, uint256 templateId, uint32 openingTime, uint256 minBond, uint32 timeout) internal returns (bytes32)
 ```
 
 *Asks a question on reality.*
@@ -421,6 +412,7 @@ function askRealityQuestion(string encodedQuestion, uint256 templateId, uint32 o
 | templateId      | uint256 | The Reality template id.                                |
 | openingTime     | uint32  | The question opening time.                              |
 | minBond         | uint256 | The question min bond.                                  |
+| timeout         | uint32  | The question timeout. It is part of the question id, so the same question with another timeout is a different Reality question. |
 
 **Return Values**
 
@@ -461,7 +453,7 @@ function prepareCondition(bytes32 questionId, uint256 outcomeSlotCount) internal
 ### deployERC20Positions
 
 ```solidity
-function deployERC20Positions(bytes32 parentCollectionId, bytes32 conditionId, uint256 outcomeSlotCount, string[] tokenNames) internal returns (contract IERC20[] wrapped1155, bytes[] data)
+function deployERC20Positions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256 outcomeSlotCount, string[] tokenNames) internal returns (contract IERC20[] wrapped1155, bytes[] data)
 ```
 
 *Wraps the ERC1155 outcome tokens to ERC20. The INVALID\_RESULT outcome is always called SER-INVALID.*
@@ -470,6 +462,7 @@ function deployERC20Positions(bytes32 parentCollectionId, bytes32 conditionId, u
 
 | Name               | Type      | Description                     |
 | ------------------ | --------- | ------------------------------- |
+| collateralToken    | address   | The base collateral of the positions. |
 | parentCollectionId | bytes32   | The parentCollectionId.         |
 | conditionId        | bytes32   | The conditionId.                |
 | outcomeSlotCount   | uint256   | The amount of outcomes.         |
@@ -485,6 +478,17 @@ function deployERC20Positions(bytes32 parentCollectionId, bytes32 conditionId, u
 **Logic**
 
 1. It will call `wrapped1155Factory.requireWrapped1155` to create an ERC20 token contract for each position. The new tokens addresses and data is saved in `Market` contract.
+2. The ERC20s take the `decimals()` of the collateral (18 when the token has none), since a Conditional Tokens position is denominated in the collateral's base units.
+
+### requireParentCollateral
+
+```solidity
+function requireParentCollateral(struct MarketFactory.CreateMarketParams params, bytes32 parentCollectionId) internal view
+```
+
+*Checks that a conditional market uses the collateral of its parent market.*
+
+The parent outcome token is a Wrapped1155 over the position `(collateral, parentCollectionId)`, and the Wrapped1155Factory derives the wrapper address from that position. The check recomputes the wrapper for the given collateral and reverts with `Collateral must match the parent market` when it is not the parent's outcome token. It works for parents created by factories that do not store their collateral.
 
 ### toString31
 

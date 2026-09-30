@@ -11,9 +11,7 @@ import {
   MIN_BOND,
   OPENING_TS,
   QUESTION_TIMEOUT,
-  categoricalMarketParams,
-  multiCategoricalMarketParams,
-  scalarMarketParams,
+  type MarketParams,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 
@@ -23,18 +21,26 @@ describe("MarketView", function () {
   let marketView: MarketView;
   let realitio: RealityETH_v3_0;
 
+  let categoricalMarketParams: MarketParams;
+  let multiCategoricalMarketParams: MarketParams;
+  let scalarMarketParams: MarketParams;
+
   beforeEach(async function () {
     await network.provider.send("evm_setAutomine", [true]);
     const {
       marketFactory: _marketFactory,
       realitio: _realitio,
       arbitrator: _arbitrator,
+      marketParams: _marketParams,
     } = await loadFixture(marketFactoryDeployFixture);
+    categoricalMarketParams = _marketParams.categoricalMarketParams;
+    multiCategoricalMarketParams = _marketParams.multiCategoricalMarketParams;
+    scalarMarketParams = _marketParams.scalarMarketParams;
 
     marketFactory = _marketFactory;
     realitio = _realitio;
     arbitrator = _arbitrator;
-    marketView = await ethers.deployContract("MarketView");
+    marketView = await ethers.deployContract("src/MarketView.sol:MarketView");
   });
 
   describe("getMarket", function () {
@@ -48,6 +54,7 @@ describe("MarketView", function () {
       );
 
       expect(marketInfo.id).to.equal(marketAddress);
+      expect(marketInfo.collateralToken).to.equal(categoricalMarketParams.collateralToken);
       expect(marketInfo.marketName).to.equal(await market.marketName());
       expect(marketInfo.outcomes[0]).to.equal(await market.outcomes(0));
       expect(marketInfo.lowerBound).to.equal(await market.lowerBound());
