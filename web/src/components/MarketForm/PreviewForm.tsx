@@ -39,6 +39,7 @@ import Toggle from "../Form/Toggle";
 import { ConditionalMarketAlert } from "../Market/ConditionalMarketAlert";
 import { MarketHeader } from "../Market/Header/MarketHeader";
 import { ButtonsWrapper } from "./ButtonsWrapper";
+import { getQuestionTimeoutSeconds } from "./QuestionTimeoutField";
 import { VerificationForm } from "./VerificationForm";
 
 type FormStepPreview = {
@@ -288,6 +289,7 @@ export function PreviewForm({
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
 
   const openingTime = Math.round(Date.now() / 1000 - 1);
+  const questionTimeout = getQuestionTimeoutSeconds(outcomesValues);
 
   const createMarketHandler = async () => {
     await createMarket.mutateAsync({
@@ -308,6 +310,7 @@ export function PreviewForm({
       unit: outcomesValues.unit,
       category: MISC_CATEGORY,
       openingTime,
+      questionTimeout,
       chainId,
       minBond: getConfigNumber("MIN_BOND", chainId),
     });
@@ -372,7 +375,7 @@ export function PreviewForm({
         id: "0x000",
         arbitrator: "0x000",
         opening_ts: openingTime,
-        timeout: 129600,
+        timeout: questionTimeout,
         finalize_ts: 0,
         is_pending_arbitration: false,
         best_answer: "0x0000000000000000000000000000000000000000000000000000000000000000",

@@ -2,7 +2,7 @@ import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
 import { useMergePositions } from "@/hooks/useMergePositions";
-import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useBaseCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { displayBalance } from "@/lib/utils";
 import { useTokenBalance, useTokenBalances } from "@seer-pm/react";
@@ -68,6 +68,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const baseCollateral = useBaseCollateral(market);
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
@@ -97,7 +98,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
       router,
       market: market,
       amount: parsedAmount,
-      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral, baseCollateral),
     });
   };
 

@@ -1,6 +1,6 @@
 import { isAddress } from "viem";
 import type { CreateMarketProps } from "./create-market";
-import { generateTokenName } from "./create-market";
+import { MAX_QUESTION_TIMEOUT, generateTokenName } from "./create-market";
 import { INVALID_RESULT_OUTCOME_TEXT, MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
 
 export interface NewMarketValidationIssue {
@@ -128,6 +128,19 @@ export function validateNewMarket(props: CreateMarketProps): NewMarketValidation
 
   if (typeof props.parentMarket !== "undefined" && !isAddress(props.parentMarket)) {
     pushIssue(issues, "parentMarket", "Invalid address.");
+  }
+
+  if (typeof props.collateralToken !== "undefined" && !isAddress(props.collateralToken)) {
+    pushIssue(issues, "collateralToken", "Invalid address.");
+  }
+
+  if (
+    typeof props.questionTimeout !== "undefined" &&
+    (!Number.isInteger(props.questionTimeout) ||
+      props.questionTimeout < 1 ||
+      props.questionTimeout > MAX_QUESTION_TIMEOUT)
+  ) {
+    pushIssue(issues, "questionTimeout", "Timeout must be between 1 second and 365 days.");
   }
 
   const collateralToken1 = (props.collateralToken1 ?? "").trim();

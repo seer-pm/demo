@@ -116,10 +116,23 @@ export interface GetRedeemExecutionParams {
   outcomeIndexes: bigint[];
   amounts: bigint[];
   isRedeemToParentCollateral: boolean;
+  /**
+   * Base collateral of the conditional chain, needed to redeem past the parent outcome token. Defaults to
+   * the active profile's primary, which is the collateral of every market created by a V1 factory.
+   */
+  baseCollateralToken?: Address;
 }
 
 export function getRedeemExecution(params: GetRedeemExecutionParams): Execution {
-  const { market, collateralToken, parentOutcome, outcomeIndexes, amounts, isRedeemToParentCollateral } = params;
+  const {
+    market,
+    collateralToken,
+    parentOutcome,
+    outcomeIndexes,
+    amounts,
+    isRedeemToParentCollateral,
+    baseCollateralToken,
+  } = params;
   const router = getRedeemRouter(isRedeemToParentCollateral, market);
   const { id: marketId, chainId } = market;
 
@@ -127,7 +140,7 @@ export function getRedeemExecution(params: GetRedeemExecutionParams): Execution 
     return getRedeemPositionsFutarchyExecution(router, marketId, chainId, amounts[0], amounts[1]);
   }
   if (isRedeemToParentCollateral) {
-    const collateral = getActivePrimaryCollateral(market.chainId).address;
+    const collateral = baseCollateralToken ?? getActivePrimaryCollateral(market.chainId).address;
     return getRedeemPositionsConditionalToCollateralExecution(
       router,
       marketId,

@@ -1,3 +1,4 @@
+import { hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -435,8 +436,8 @@ export function PreviewCard({ market }: { market: Market }) {
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+  const { data: marketCollateral } = useTokenInfo(
+    hasFixedCollateral(market) ? market.collateralToken : undefined,
     market.chainId,
   );
   const marketType = getMarketType(market);
@@ -512,8 +513,8 @@ export function PreviewCard({ market }: { market: Market }) {
                   <p className="text-purple-primary">Open interest:</p>
                   <p className="mx-1">
                     {displayBalance(market.outcomesSupply, 18, true)}{" "}
-                    {parentMarket
-                      ? (parentCollateral?.symbol ?? "")
+                    {hasFixedCollateral(market)
+                      ? (marketCollateral?.symbol ?? "")
                       : getActivePrimaryCollateral(market.chainId).symbol}{" "}
                     ({displayNumber(market.openInterestUSD, undefined, true)} $)
                   </p>

@@ -11,6 +11,7 @@ import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
+import { hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
@@ -33,7 +34,7 @@ import {
 } from "@seer-pm/sdk";
 import { switchChain } from "@wagmi/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useSwitchChain } from "wagmi";
 
@@ -55,11 +56,11 @@ function SwapWidget({
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
 
   // on Futarchy markets we want to buy/sell using the associated outcome token,
-  // on child markets we want to buy/sell using parent outcomes.
+  // on child markets using parent outcomes, and on markets with a non-profile collateral using that one.
   const { data: fixedCollateral } = useTokenInfo(
     market.type === "Futarchy"
       ? getLiquidityPairForToken(market, outcomeIndex)
-      : market.parentMarket.id !== zeroAddress
+      : hasFixedCollateral(market)
         ? market.collateralToken
         : undefined,
     market.chainId,

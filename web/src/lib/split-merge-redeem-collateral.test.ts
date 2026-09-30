@@ -1,4 +1,4 @@
-import { getSplitMergeRedeemCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { TOKENS_BY_CHAIN, getActivePrimaryCollateral, getSplitExecution } from "@seer-pm/sdk";
 import type { Market, Token } from "@seer-pm/sdk";
 import { decodeFunctionData, zeroAddress } from "viem";
@@ -14,6 +14,7 @@ const createMarket = (overrides: Partial<Market> = {}): Market =>
     id: "0x00000000000000000000000000000000000000aa",
     type: "Generic",
     chainId: gnosis.id,
+    collateralToken: GNOSIS_SDAI,
     parentMarket: { id: zeroAddress, conditionId: "0x0", payoutReported: false, payoutNumerators: [] },
     ...overrides,
   }) as Market;
@@ -35,6 +36,26 @@ describe("getSplitMergeRedeemCollateral", () => {
   it("returns selected collateral for Futarchy markets", () => {
     const market = createMarket({ type: "Futarchy" });
     expect(getSplitMergeRedeemCollateral(market, asToken(GNOSIS_XDAI), true)).toBe(GNOSIS_XDAI);
+  });
+
+  it("returns the base collateral for conditional markets", () => {
+    const market = createMarket({
+      collateralToken: "0x00000000000000000000000000000000000000cc",
+      parentMarket: {
+        id: "0x00000000000000000000000000000000000000bb",
+        conditionId: "0x0",
+        payoutReported: false,
+        payoutNumerators: [],
+      },
+    });
+    expect(getSplitMergeRedeemCollateral(market, asToken(GNOSIS_XDAI), true, GNOSIS_XDAI)).toBe(GNOSIS_XDAI);
+  });
+
+  it("returns the market collateral for a root market outside the profile", () => {
+    const market = createMarket({ collateralToken: "0x00000000000000000000000000000000000000cc" });
+    expect(getSplitMergeRedeemCollateral(market, asToken(GNOSIS_XDAI), true)).toBe(
+      "0x00000000000000000000000000000000000000cc",
+    );
   });
 
   it("returns active primary collateral for conditional markets", () => {
@@ -79,5 +100,35 @@ describe("split execution collateral paths", () => {
     const decoded = decodeFunctionData({ abi: gnosisRouterAbi, data: execution.data });
     expect(decoded.functionName).toBe("splitFromBase");
     expect(execution.value).toBe(amount);
+  });
+});
+
+describe("hasFixedCollateral", () => {
+  it("is false for a root market on the profile primary or secondary", () => {
+    expect(hasFixedCollateral(createMarket({ collateralToken: GNOSIS_SDAI }))).toBe(false);
+    expect(hasFixedCollateral(createMarket({ collateralToken: GNOSIS_XDAI }))).toBe(false);
+  });
+
+  it("is true for a conditional market", () => {
+    const market = createMarket({
+      collateralToken: "0x00000000000000000000000000000000000000cc",
+      parentMarket: {
+        id: "0x00000000000000000000000000000000000000bb",
+        conditionId: "0x0",
+        payoutReported: false,
+        payoutNumerators: [],
+      },
+    });
+    expect(hasFixedCollateral(market)).toBe(true);
+  });
+
+  it("is true for a root market on another collateral", () => {
+    expect(hasFixedCollateral(createMarket({ collateralToken: "0x00000000000000000000000000000000000000cc" }))).toBe(
+      true,
+    );
+  });
+
+  it("is false for futarchy markets", () => {
+    expect(hasFixedCollateral(createMarket({ type: "Futarchy" }))).toBe(false);
   });
 });

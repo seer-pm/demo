@@ -1,3 +1,4 @@
+import { hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { ArrowDropDown } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isTradingCreditsDisabled } from "@/lib/trading-credits";
@@ -9,7 +10,7 @@ import type { Token } from "@seer-pm/sdk";
 import { getActiveCollateralProfile, getActiveCreditsTokenAddress } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 import DropdownWrapper from "../Form/DropdownWrapper";
 
 type CollateralDropdownProps = {
@@ -133,7 +134,7 @@ export function MarketCollateralDropdown(props: MarketCollateralDropdownProps) {
     props.market.chainId,
   );
 
-  if (props.market.parentMarket.id !== zeroAddress) {
+  if (hasFixedCollateral(props.market)) {
     return null;
   }
 

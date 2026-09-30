@@ -6,11 +6,18 @@ import {
   futarchyFactoryAddress,
   marketFactoryAbi,
   marketFactoryAddress,
+  marketFactoryV1Abi,
+  marketFactoryV1Address,
 } from "../generated/contracts/market-factory";
-import { DEFAULT_COLLATERAL_PROFILE, getActiveCollateralProfileName } from "./collateral";
+import { DEFAULT_COLLATERAL_PROFILE, getActiveCollateralProfileName, getActivePrimaryCollateral } from "./collateral";
 import type { Execution } from "./execution";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
 import { escapeJson } from "./reality";
+
+/** Reality question timeout a market gets unless one is given: 3.5 days. */
+export const DEFAULT_QUESTION_TIMEOUT = 60 * 60 * 24 * 3.5;
+/** Reality rejects a question timeout of 365 days or more. */
+export const MAX_QUESTION_TIMEOUT = 365 * 24 * 60 * 60 - 1;
 
 /** Props for creating a market. Only fields required for your market type are mandatory. */
 export interface CreateMarketProps<TChainId extends number = number> {
@@ -41,6 +48,13 @@ export interface CreateMarketProps<TChainId extends number = number> {
   unit?: string;
   /** Reality.eth category (e.g. "politics", "weather"). Default `MISC_CATEGORY`. */
   category?: string;
+  /**
+   * Base collateral of the outcome tokens. Default: the active profile's primary collateral.
+   * A conditional market must use the collateral of its parent market, or the factory reverts.
+   */
+  collateralToken?: Address;
+  /** Reality question timeout in seconds. Default `DEFAULT_QUESTION_TIMEOUT`. */
+  questionTimeout?: number;
 }
 
 /** Full props with all optional fields resolved (used internally). */
@@ -62,6 +76,7 @@ const DEFAULT_KEYS = [
   "upperBound",
   "unit",
   "category",
+  "questionTimeout",
 ] as const;
 
 const CREATE_MARKET_DEFAULTS: Pick<CreateMarketPropsFull<number>, (typeof DEFAULT_KEYS)[number]> = {
@@ -75,6 +90,7 @@ const CREATE_MARKET_DEFAULTS: Pick<CreateMarketPropsFull<number>, (typeof DEFAUL
   upperBound: 0n,
   unit: "",
   category: "misc",
+  questionTimeout: DEFAULT_QUESTION_TIMEOUT,
 };
 
 function withCreateMarketDefaults<TChainId extends number = number>(
@@ -84,6 +100,9 @@ function withCreateMarketDefaults<TChainId extends number = number>(
     ...CREATE_MARKET_DEFAULTS,
     ...props,
     category: props.category ?? "misc",
+    // chain-dependent, so it cannot sit in the static defaults
+    collateralToken: props.collateralToken ?? getActivePrimaryCollateral(props.chainId).address,
+    questionTimeout: props.questionTimeout ?? DEFAULT_QUESTION_TIMEOUT,
   } as CreateMarketPropsFull<TChainId>;
 }
 
@@ -161,6 +180,8 @@ export function getCreateMarketParams<TChainId extends number = number>(
     upperBound: p.upperBound,
     minBond: p.minBond,
     openingTime: p.openingTime,
+    collateralToken: p.collateralToken,
+    questionTimeout: p.questionTimeout,
   };
 }
 
@@ -176,15 +197,19 @@ const MARKET_TYPE_FUNCTION: Record<
 
 /** MarketFactory deployments per chain (from generated contract addresses). */
 const marketFactoryAddressMap = marketFactoryAddress as Record<number, Address>;
+/** V1 factories have a fixed collateral and timeout; they keep serving the markets they created. */
+const marketFactoryV1AddressMap = marketFactoryV1Address as Record<number, Address>;
 const futarchyFactoryAddressMap = futarchyFactoryAddress as Record<number, Address>;
 const circlesMarketFactoryAddressMap = circlesMarketFactoryAddress as Record<number, Address>;
 
 export const MARKET_FACTORY_KEY = "marketFactory" as const;
+export const MARKET_FACTORY_V1_KEY = "marketFactoryV1" as const;
 export const FUTARCHY_FACTORY_KEY = "futarchyFactory" as const;
 export const CIRCLES_FACTORY_KEY = "circlesFactory" as const;
 
 export type FactoryKey =
   | typeof MARKET_FACTORY_KEY
+  | typeof MARKET_FACTORY_V1_KEY
   | typeof FUTARCHY_FACTORY_KEY
   | typeof CIRCLES_FACTORY_KEY
   | (string & {});
@@ -192,6 +217,7 @@ export type FactoryKey =
 const MARKET_FACTORY_BY_PROFILE: Record<string, Record<string, Record<number, Address>>> = {
   [DEFAULT_COLLATERAL_PROFILE]: {
     [MARKET_FACTORY_KEY]: marketFactoryAddressMap,
+    [MARKET_FACTORY_V1_KEY]: marketFactoryV1AddressMap,
     [FUTARCHY_FACTORY_KEY]: futarchyFactoryAddressMap,
     [CIRCLES_FACTORY_KEY]: circlesMarketFactoryAddressMap,
   },
@@ -218,8 +244,36 @@ function getFactoryAddress(chainId: number, collateralProfile: string, factoryKe
   return address as Address;
 }
 
+export type CreateMarketTarget = {
+  address: Address;
+  /** The factory takes the V1 params struct (fixed collateral and timeout), so no custom collateral or timeout. */
+  v1: boolean;
+};
+
+/**
+ * The factory a new market goes to. The default profile creates on the chain's MarketFactory where it is
+ * deployed and on the V1 one elsewhere. The circles profile keeps its own factory: listings filter
+ * markets by factory address, so a factory shared with the default profile would mix both collaterals.
+ */
+export function getCreateMarketTarget(chainId: number, collateralProfile: string): CreateMarketTarget {
+  if (collateralProfile === DEFAULT_COLLATERAL_PROFILE) {
+    const address = marketFactoryAddressMap[chainId];
+    if (address) {
+      return { address, v1: false };
+    }
+    return { address: getFactoryAddress(chainId, collateralProfile, MARKET_FACTORY_V1_KEY), v1: true };
+  }
+  return { address: getFactoryAddress(chainId, collateralProfile, MARKET_FACTORY_KEY), v1: true };
+}
+
 export function getMarketFactoryAddress(chainId: number, collateralProfile: string): Address {
-  return getFactoryAddress(chainId, collateralProfile, MARKET_FACTORY_KEY);
+  return getCreateMarketTarget(chainId, collateralProfile).address;
+}
+
+function isV1Factory(chainId: number, factoryAddress: Address): boolean {
+  return [marketFactoryV1AddressMap[chainId], circlesMarketFactoryAddressMap[chainId]].some(
+    (address) => address && isAddressEqual(address, factoryAddress),
+  );
 }
 
 /** Returns every factory address for a collateral profile (all factory keys, all chains). */
@@ -272,47 +326,38 @@ export function getProposalName(marketName: string, openingTime: number, isArbit
  *
  * @param props - CreateMarketProps (must include minBond for the chain)
  * @param marketFactoryAddress - Optional MarketFactory address; if omitted, uses the factory for the active collateral profile
+ * @throws when the target is a V1 factory and the props ask for a custom collateral or question timeout
  */
 export function getCreateMarketExecution<TChainId extends number = number>(
   props: CreateMarketProps<TChainId>,
   marketFactoryAddress?: Address,
 ): Execution<TChainId> {
   const p = withCreateMarketDefaults(props);
-  const factoryAddress = marketFactoryAddress ?? getMarketFactoryAddress(p.chainId, getActiveCollateralProfileName());
+  const target: CreateMarketTarget = marketFactoryAddress
+    ? { address: marketFactoryAddress, v1: isV1Factory(p.chainId, marketFactoryAddress) }
+    : getCreateMarketTarget(p.chainId, getActiveCollateralProfileName());
   const params = getCreateMarketParams(props);
   const functionName = MARKET_TYPE_FUNCTION[p.marketType];
-  const fnAbi = (marketFactoryAbi as readonly { type: string; name?: string }[]).find(
-    (f) => f.type === "function" && f.name === functionName,
-  );
-  if (!fnAbi) {
+  if (!functionName) {
     throw new Error(`Unknown market type: ${props.marketType}`);
   }
 
-  const data = encodeFunctionData({
-    abi: marketFactoryAbi,
-    functionName,
-    args: [
-      {
-        marketName: params.marketName,
-        outcomes: params.outcomes,
-        questionStart: params.questionStart,
-        questionEnd: params.questionEnd,
-        outcomeType: params.outcomeType,
-        parentOutcome: params.parentOutcome,
-        parentMarket: params.parentMarket,
-        category: params.category,
-        lang: params.lang,
-        lowerBound: params.lowerBound,
-        upperBound: params.upperBound,
-        minBond: params.minBond,
-        openingTime: params.openingTime,
-        tokenNames: params.tokenNames,
-      },
-    ],
-  });
+  let data: `0x${string}`;
+  if (target.v1) {
+    const primary = getActivePrimaryCollateral(p.chainId).address;
+    if (!isAddressEqual(params.collateralToken, primary) || params.questionTimeout !== DEFAULT_QUESTION_TIMEOUT) {
+      throw new Error(
+        `A custom collateral or question timeout needs the MarketFactory with per-market params, which chain ${p.chainId} does not have yet`,
+      );
+    }
+    const { collateralToken: _collateralToken, questionTimeout: _questionTimeout, ...v1Params } = params;
+    data = encodeFunctionData({ abi: marketFactoryV1Abi, functionName, args: [v1Params] });
+  } else {
+    data = encodeFunctionData({ abi: marketFactoryAbi, functionName, args: [params] });
+  }
 
   return {
-    to: factoryAddress,
+    to: target.address,
     value: 0n,
     data,
     chainId: p.chainId,

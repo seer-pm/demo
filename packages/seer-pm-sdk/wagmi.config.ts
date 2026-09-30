@@ -53,7 +53,27 @@ const readArtifacts = async (chains: typeof CHAINS): Promise<ContractConfig[]> =
     }
   }
 
+  await overlayPendingAbis(results);
+
   return Object.values(results);
+};
+
+/**
+ * `abis/pending/<Name>.json` holds the ABI of a contract whose source is ahead of every deployment
+ * JSON: compiled, but not deployed on any chain yet, or redeployed on none of them. The ABI wins over
+ * the deployment ones so the SDK compiles against the current contract, while the addresses keep
+ * coming from `contracts/deployments`. Delete the file once every chain's deployment carries the ABI.
+ */
+const overlayPendingAbis = async (results: Record<string, ContractConfig>) => {
+  const pendingPath = resolve(process.cwd(), "abis/pending");
+  if (!fs.existsSync(pendingPath)) return;
+
+  for (const file of await readdir(pendingPath)) {
+    const { name, ext } = parse(file);
+    if (ext !== ".json") continue;
+    const { abi } = JSON.parse(await readFile(join(pendingPath, file), "utf-8"));
+    results[name] = { name, address: results[name]?.address ?? {}, abi };
+  }
 };
 
 const getConfig = async (): Promise<Config[]> => {
@@ -68,7 +88,7 @@ const getConfig = async (): Promise<Config[]> => {
       "RealitioForeignProxyBase",
       "Realitio_v2_1_ArbitratorWithAppeals",
     ],
-    "market-factory": ["MarketFactory", "Market", "FutarchyFactory", "CirclesMarketFactory"],
+    "market-factory": ["MarketFactory", "MarketFactoryV1", "Market", "FutarchyFactory", "CirclesMarketFactory"],
     "market-view": ["MarketView"],
     router: ["Router", "MainnetRouter", "GnosisRouter", "ConditionalRouter", "FutarchyRouter"],
     "multi-drop": ["MultiDrop", "GovernedRecipient"],

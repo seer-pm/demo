@@ -16,19 +16,23 @@ export {
   getCreateProposalExecution,
   getCreateMarketParams,
   getMarketFactoryAddress,
+  getCreateMarketTarget,
   getAllFactoryAddressesForProfile,
   isOfficialMarketFactory,
   getFutarchyFactoryAddress,
   MARKET_FACTORY_KEY,
+  MARKET_FACTORY_V1_KEY,
   FUTARCHY_FACTORY_KEY,
   CIRCLES_FACTORY_KEY,
+  DEFAULT_QUESTION_TIMEOUT,
+  MAX_QUESTION_TIMEOUT,
   getProposalName,
   generateTokenName,
   MISC_CATEGORY,
   WEATHER_CATEGORY,
   MARKET_CATEGORIES,
 } from "./create-market";
-export type { CreateMarketProps, CreateMarketParams, FactoryKey } from "./create-market";
+export type { CreateMarketProps, CreateMarketParams, CreateMarketTarget, FactoryKey } from "./create-market";
 export { validateNewMarket } from "./validate-new-market";
 export type { NewMarketValidationIssue } from "./validate-new-market";
 export {
@@ -143,6 +147,7 @@ export {
   getActiveCollateralProfile,
   getActiveCollateralProfileName,
   getActivePrimaryCollateral,
+  isProfileCollateral,
   getCollateralTokenForSwap,
   getCollateralSymbol,
   hasAltCollateral,

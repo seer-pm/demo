@@ -26,6 +26,20 @@ Rules:
 - Give a new operation its own name rather than widening one the UI already uses; extra fields are
   paid for on every existing call site.
 
+## Contract ABIs reach the SDK through `contracts/deployments`
+
+`packages/seer-pm-sdk/wagmi.config.ts` builds `generated/contracts/*.ts` from the deployment JSONs of
+the five chain dirs, so a contract that is compiled but not deployed on any chain has no ABI in the SDK.
+For that window, put `{ "abi": [...] }` from the hardhat artifact in
+`packages/seer-pm-sdk/abis/pending/<Name>.json`: the overlay takes the ABI from there and the addresses
+from the deployments. Delete the file once every chain's deployment carries the new ABI.
+
+- A redeployed contract keeps its deployment name, so rename the old JSON first (for example
+  `MarketFactory.json` → `MarketFactoryV1.json`) or hardhat-deploy overwrites it and the SDK loses
+  the old address, which listings and the "official factory" check still need.
+- `SupportedChain` derives from the generated address maps; keep it a union of the V1 and current
+  ones so the type does not shrink to the chains that already have the new deployment.
+
 ## Netlify functions / SDK imports
 
 Netlify functions under `web/netlify/functions` import `@seer-pm/sdk`. Netlify bundles them with `esbuild` (`web/netlify.toml`). Pulling large ESM trees into that graph can fail at runtime with:

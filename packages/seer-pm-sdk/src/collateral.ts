@@ -177,6 +177,17 @@ export function getActivePrimaryCollateral(chainId: number): Token {
 }
 
 /**
+ * Whether the token is one of the active profile's collaterals on the chain: the primary, the secondary
+ * or its wrapped form. A market whose collateral is none of them trades in that collateral alone.
+ */
+export function isProfileCollateral(chainId: number, tokenAddress: Address | string): boolean {
+  const profile = getActiveCollateralProfile(chainId);
+  return [profile.primary, profile.secondary, profile.secondary?.wrapped].some(
+    (token) => !isUndefined(token) && isTwoStringsEqual(token.address, tokenAddress),
+  );
+}
+
+/**
  * Returns the collateral token address to use for a swap (e.g. sDAI for xDAI/wxDAI/DAI).
  */
 export function getCollateralTokenForSwap(tokenAddress: Address, chainId: number): Address {

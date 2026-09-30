@@ -1,6 +1,6 @@
 import type { Market, SupportedChain } from "@seer-pm/sdk";
 import { fetchMarket, mapOnChainMarket } from "@seer-pm/sdk";
-import { marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
+import { marketFactoryAddress, marketFactoryV1Address } from "@seer-pm/sdk/contracts/market-factory";
 import { readMarketViewGetMarket } from "@seer-pm/sdk/contracts/market-view";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,7 +43,10 @@ function useOnChainMarket(marketId: Address, chainId: SupportedChain) {
     queryKey: ["useMarket", "useOnChainMarket", marketId.toLowerCase(), chainId] as const,
     enabled: !!marketId && marketId !== zeroAddress,
     queryFn: async () => {
-      const factoryAddress = marketFactoryAddress[chainId as SupportedChain];
+      // MarketView only needs the factory for markets that do not store their collateral, so either one works
+      const factoryAddress =
+        (marketFactoryAddress as Partial<Record<number, Address>>)[chainId] ??
+        (marketFactoryV1Address as Partial<Record<number, Address>>)[chainId];
       if (!factoryAddress) return undefined;
       return mapOnChainMarket(
         await readMarketViewGetMarket(config, {

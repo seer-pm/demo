@@ -1,12 +1,12 @@
 import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { marketFactoryAbi, marketFactoryAddress } from "@seer-pm/sdk/contracts/market-factory";
-import { WEATHER_CATEGORY, getCreateMarketParams } from "@seer-pm/sdk/create-market";
+import { getActivePrimaryCollateral } from "@seer-pm/sdk/collateral";
+import { DEFAULT_QUESTION_TIMEOUT, WEATHER_CATEGORY, getCreateMarketExecution } from "@seer-pm/sdk/create-market";
 import { MarketTypes } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";
 import { type PrivateKeyAccount, parseEther, zeroAddress } from "viem";
 import { type Address, privateKeyToAccount } from "viem/accounts";
-import { simulateContract, writeContract } from "viem/actions";
+import { call, sendTransaction } from "viem/actions";
 import { gnosis, sepolia } from "viem/chains";
 import { getConfigNumber } from "../../src/lib/config.ts";
 import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/config.ts";
@@ -111,34 +111,37 @@ async function createMarketForCity(
 
   const openingTime = Math.round(utcDate.getTime() / 1000);
 
-  const simulation = await simulateContract(publicClient, {
-    account,
-    address: marketFactoryAddress[chainId],
-    functionName: "createScalarMarket",
-    abi: marketFactoryAbi,
-    args: [
-      getCreateMarketParams({
-        marketType: MarketTypes.SCALAR,
-        marketName: `What will be WeatherXM's median highest temperature in ${WEATHER_CITIES[cityCode].name} on ${year}-${month}-${day}, considering only stations with 100% QoD?`,
-        outcomes,
-        tokenNames,
-        parentMarket: zeroAddress,
-        parentOutcome: BigInt(0),
-        lowerBound: parseEther(String(lowerBound)),
-        upperBound: parseEther(String(upperBound)),
-        unit: "K",
-        category: WEATHER_CATEGORY,
-        openingTime,
-        chainId,
-        collateralToken1: "",
-        collateralToken2: "",
-        isArbitraryQuestion: false,
-        minBond: getConfigNumber("MIN_BOND", chainId),
-      }),
-    ],
+  // Targets the chain's MarketFactory, or the V1 one where the new factory is not deployed yet.
+  const execution = getCreateMarketExecution({
+    marketType: MarketTypes.SCALAR,
+    marketName: `What will be WeatherXM's median highest temperature in ${WEATHER_CITIES[cityCode].name} on ${year}-${month}-${day}, considering only stations with 100% QoD?`,
+    outcomes,
+    tokenNames,
+    parentMarket: zeroAddress,
+    parentOutcome: BigInt(0),
+    lowerBound: parseEther(String(lowerBound)),
+    upperBound: parseEther(String(upperBound)),
+    unit: "K",
+    category: WEATHER_CATEGORY,
+    openingTime,
+    chainId,
+    collateralToken1: "",
+    collateralToken2: "",
+    isArbitraryQuestion: false,
+    minBond: getConfigNumber("MIN_BOND", chainId),
+    collateralToken: getActivePrimaryCollateral(chainId).address,
+    questionTimeout: DEFAULT_QUESTION_TIMEOUT,
   });
 
-  const txHash = await writeContract(walletClient, simulation.request);
+  // A rejected market reverts here with the factory's reason, before any gas is spent.
+  await call(publicClient, { account, to: execution.to, data: execution.data });
+
+  const txHash = await sendTransaction(walletClient, {
+    account,
+    chain: walletClient.chain,
+    to: execution.to,
+    data: execution.data,
+  });
 
   const { error: insertError } = await supabase.from("weather_markets").insert({
     date: `${year}-${month}-${day}`,

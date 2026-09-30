@@ -33,6 +33,10 @@
  *   --erc20-batch <n>      ERC20 wrappers per QuestionsFactory tx. Default 40.
  *   --priority-fee <gwei>  maxPriorityFeePerGas. Default 1.
  *   --category <name>      Reality category. Default "misc".
+ *   --collateral <address> Base collateral of every market in the chain. Default: the chain's primary
+ *                          collateral (sDAI, sUSDS).
+ *   --timeout <seconds>    Reality question timeout. Default 3.5 days.
+ * A custom collateral or timeout needs the MarketFactory with per-market params on the chain.
  * Env: PRIVATE_KEY (only with --execute), RPC_URL (default: a public RPC for --chain).
  *
  * The opening time is always the moment the run starts; a resumed run keeps the original one so
@@ -42,8 +46,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import {
+  DEFAULT_COLLATERAL_PROFILE,
+  DEFAULT_QUESTION_TIMEOUT,
+  MAX_QUESTION_TIMEOUT,
+  getActivePrimaryCollateral,
   getCreateMarketExecution,
   getCreateMarketParams,
+  getCreateMarketTarget,
   MarketTypes,
   validateNewMarket,
 } from "@seer-pm/sdk";
@@ -56,6 +65,7 @@ import {
   encodeFunctionData,
   type Hex,
   http,
+  isAddress,
   parseEther,
   parseGwei,
   parseEventLogs,
@@ -102,6 +112,8 @@ type State = {
   openingTime: number;
   minBond: string;
   category: string;
+  collateralToken: Address;
+  questionTimeout: number;
   erc20Batch: number;
   chunks: string[][];
   markets: CreatedMarket[];
@@ -120,6 +132,8 @@ const { values: args } = parseArgs({
     "erc20-batch": { type: "string", default: String(ERC20_BATCH) },
     "priority-fee": { type: "string", default: PRIORITY_FEE_GWEI },
     category: { type: "string", default: "misc" },
+    collateral: { type: "string" },
+    timeout: { type: "string", default: String(DEFAULT_QUESTION_TIMEOUT) },
     resume: { type: "string" },
     execute: { type: "boolean", default: false },
   },
@@ -153,14 +167,29 @@ function newState(): State {
   if (!args["min-bond"]) {
     throw new Error("--min-bond is required");
   }
+  const chainId = CHAINS[chain].chain.id;
+  const collateralToken = args.collateral ?? getActivePrimaryCollateral(chainId).address;
+  if (!isAddress(collateralToken)) {
+    throw new Error(`--collateral is not an address: ${collateralToken}`);
+  }
+  const questionTimeout = Number(args.timeout);
+  if (!Number.isInteger(questionTimeout) || questionTimeout < 1 || questionTimeout > MAX_QUESTION_TIMEOUT) {
+    throw new Error("--timeout must be a whole number of seconds, under 365 days");
+  }
+  if (getCreateMarketTarget(chainId, DEFAULT_COLLATERAL_PROFILE).v1) {
+    // The V1 factory ignores both, so it would silently create the wrong market.
+    throw new Error(`The MarketFactory with per-market collateral and timeout is not deployed on ${chain}`);
+  }
   const chunks = buildChunks(args.outcomes!, Number(args["max-outcomes"]));
   return {
     marketName: args["market-name"].trim(),
     chain,
-    chainId: CHAINS[chain].chain.id,
+    chainId,
     openingTime: Math.floor(Date.now() / 1000),
     minBond: parseEther(args["min-bond"]).toString(),
     category: args.category!,
+    collateralToken,
+    questionTimeout,
     erc20Batch: Number(args["erc20-batch"]),
     chunks,
     markets: chunks.map(() => ({ erc20DeployedTo: 0 })),
@@ -176,6 +205,9 @@ function marketProps(state: State, index: number) {
     chainId: state.chainId,
     minBond: BigInt(state.minBond),
     category: state.category,
+    // every market of the chain shares the root collateral: a child must use its parent's
+    collateralToken: state.collateralToken,
+    questionTimeout: state.questionTimeout,
     parentMarket: state.markets[index - 1]?.id ?? zeroAddress,
     parentOutcome: BigInt(state.chunks[index - 1]?.indexOf(OTHER_OUTCOME) ?? 0),
   };
@@ -187,6 +219,7 @@ function printPlan(state: State) {
     `Chain: ${state.chain} (${state.chainId}), opening time: ${new Date(state.openingTime * 1000).toISOString()}`,
   );
   console.log(`Min bond: ${state.minBond} wei, category: ${state.category}`);
+  console.log(`Collateral: ${state.collateralToken}, question timeout: ${state.questionTimeout}s`);
   console.log(`Markets to create: ${state.chunks.length}`);
   let first = 1;
   state.chunks.forEach((chunk, i) => {

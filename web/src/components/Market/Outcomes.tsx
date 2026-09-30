@@ -1,5 +1,6 @@
 import { Link } from "@/components/Link";
 import { useModal } from "@/hooks/useModal";
+import { hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -16,6 +17,7 @@ import {
   useNftPositions,
   usePoolsDeposits,
   useTokenBalances,
+  useTokenInfo,
   useTokensInfo,
 } from "@seer-pm/react";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
@@ -320,11 +322,17 @@ function OutcomeDetails({
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
   const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
   const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
+  const { data: marketCollateral } = useTokenInfo(
+    hasFixedCollateral(market) ? market.collateralToken : undefined,
+    market.chainId,
+  );
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
   const getTooltipContent = (market: Market, outcomeIndex: number) => {
-    const primarySymbol = getActivePrimaryCollateral(market.chainId).symbol;
+    const primarySymbol = hasFixedCollateral(market)
+      ? (marketCollateral?.symbol ?? "")
+      : getActivePrimaryCollateral(market.chainId).symbol;
     const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
     if (outcomeIndex === 1) {
       return `Redeem for (${primarySymbol} per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;

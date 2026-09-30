@@ -1,6 +1,6 @@
 import Button from "@/components/Form/Button";
 import { useRedeemPositions } from "@/hooks/useRedeemPositions";
-import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useBaseCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import { useWinningPositions } from "@seer-pm/react";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
@@ -40,6 +40,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
     market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
 
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const baseCollateral = useBaseCollateral(market);
 
   const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market);
 
@@ -69,7 +70,8 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
       outcomeIndexes: winningOutcomeIndexes,
       amounts: redeemAmounts,
       isRedeemToParentCollateral: isParentPayoutReported && values.isRedeemToParentCollateral,
-      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral, baseCollateral),
+      baseCollateralToken: baseCollateral,
     });
   };
   if (isPending) {

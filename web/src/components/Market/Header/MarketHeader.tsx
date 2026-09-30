@@ -1,6 +1,7 @@
 import { Link } from "@/components/Link";
 import Popover from "@/components/Popover.tsx";
 import { Spinner } from "@/components/Spinner";
+import { hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes.ts";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes.ts";
 import { SUPPORTED_CHAINS } from "@/lib/chains.ts";
@@ -225,8 +226,8 @@ export function PoolTokensInfo({
 export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
-  const { data: parentCollateral } = useTokenInfo(
-    parentMarket?.wrappedTokens?.[Number(market.parentOutcome)],
+  const { data: marketCollateral } = useTokenInfo(
+    hasFixedCollateral(market) ? market.collateralToken : undefined,
     market.chainId,
   );
   const marketStatus = getMarketStatus(market);
@@ -438,8 +439,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
                       <p className="text-purple-primary">Open interest:</p>
                       <p className="mx-1">
                         {displayBalance(market.outcomesSupply, 18, true)}{" "}
-                        {parentMarket
-                          ? (parentCollateral?.symbol ?? "")
+                        {hasFixedCollateral(market)
+                          ? (marketCollateral?.symbol ?? "")
                           : getActivePrimaryCollateral(market.chainId).symbol}{" "}
                         ({displayNumber(market.openInterestUSD, undefined, true)} $)
                       </p>

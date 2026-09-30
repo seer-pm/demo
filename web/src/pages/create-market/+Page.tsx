@@ -6,7 +6,7 @@ import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN } from "@/lib/chains";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { MarketTypes } from "@seer-pm/sdk";
+import { DEFAULT_QUESTION_TIMEOUT, MarketTypes } from "@seer-pm/sdk";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAccount } from "wagmi";
@@ -40,6 +40,8 @@ function CreateMarket() {
       lowerBound: { value: 0, token: "" },
       upperBound: { value: 0, token: "" },
       unit: "",
+      questionTimeout: String(DEFAULT_QUESTION_TIMEOUT),
+      questionTimeoutHours: "",
     },
   });
 

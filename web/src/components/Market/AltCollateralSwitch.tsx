@@ -1,8 +1,9 @@
+import { hasFixedCollateral } from "@/hooks/useSelectedCollateral";
 import { isUndefined } from "@/lib/utils";
 import { useTokensInfo } from "@seer-pm/react";
 import { Market, getActiveCollateralProfile } from "@seer-pm/sdk";
 import React from "react";
-import { Address, zeroAddress } from "viem";
+import { Address } from "viem";
 import Toggle from "../Form/Toggle";
 
 type AltCollateralSwitchProps = {
@@ -38,7 +39,7 @@ const AltCollateralSwitch = React.forwardRef<HTMLInputElement | null, AltCollate
     market.chainId,
   );
 
-  if (market.parentMarket.id !== zeroAddress || !collateralTokens || collateralTokens.length === 0) {
+  if (hasFixedCollateral(market) || !collateralTokens || collateralTokens.length === 0) {
     return null;
   }
 

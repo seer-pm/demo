@@ -67,4 +67,6 @@ export type OutcomesFormValues = {
   upperBound: { value: number; token: string }; // for scalar markets
   unit: string; // for scalar markets
   isArbitraryQuestion?: boolean; // for futarchy markets
+  questionTimeout: string; // seconds as a string, or QUESTION_TIMEOUT_CUSTOM
+  questionTimeoutHours: string; // only read when questionTimeout is QUESTION_TIMEOUT_CUSTOM
 };

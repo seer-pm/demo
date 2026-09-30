@@ -22,6 +22,8 @@ export interface RedeemPositionProps {
   outcomeIndexes: bigint[];
   amounts: bigint[];
   isRedeemToParentCollateral: boolean;
+  /** Base collateral of the conditional chain; see `getRedeemExecution`. */
+  baseCollateralToken?: Address;
 }
 
 async function redeemPositions(
@@ -40,6 +42,7 @@ async function redeemPositions(
           outcomeIndexes: props.outcomeIndexes,
           amounts: props.amounts,
           isRedeemToParentCollateral: props.isRedeemToParentCollateral,
+          baseCollateralToken: props.baseCollateralToken,
         }),
       ),
     {
@@ -96,6 +99,7 @@ async function redeemPositions7702(
       outcomeIndexes: props.outcomeIndexes,
       amounts: props.amounts,
       isRedeemToParentCollateral: props.isRedeemToParentCollateral,
+      baseCollateralToken: props.baseCollateralToken,
     }),
   );
 

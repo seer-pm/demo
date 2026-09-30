@@ -16,6 +16,7 @@ import Button from "../Form/Button";
 import Input from "../Form/Input";
 import { ButtonsWrapper } from "./ButtonsWrapper";
 import { CSVUpload } from "./CSVUpload";
+import { QuestionTimeoutField } from "./QuestionTimeoutField";
 import { SearchToken, TokenListItem } from "./SearchToken";
 
 function getActualTokenName(field: FieldPath<OutcomesFormValues>, formValues: OutcomesFormValues): string {
@@ -700,6 +701,8 @@ export function OutcomesForm({
               </div>
             </>
           )}
+
+          {!isFutarchyMarket && <QuestionTimeoutField useFormReturn={useFormReturn} />}
         </div>
 
         <ButtonsWrapper

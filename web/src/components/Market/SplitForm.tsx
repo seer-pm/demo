@@ -1,7 +1,7 @@
 import Button from "@/components/Form/Button";
 import Input from "@/components/Form/Input";
 import AltCollateralSwitch from "@/components/Market/AltCollateralSwitch";
-import { getSplitMergeRedeemCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
+import { getSplitMergeRedeemCollateral, useBaseCollateral, useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { useSplitPosition } from "@/hooks/useSplitPosition";
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { displayBalance } from "@/lib/utils";
@@ -48,6 +48,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const baseCollateral = useBaseCollateral(market);
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     selectedCollateral?.address,
@@ -80,7 +81,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
     await splitPosition.mutateAsync({
       router: router,
       market: market,
-      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral),
+      collateralToken: getSplitMergeRedeemCollateral(market, selectedCollateral, useAltCollateral, baseCollateral),
       outcomeSlotCount: market.outcomes.length,
       amount: parsedAmount,
     });
