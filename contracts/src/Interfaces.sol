@@ -4,6 +4,8 @@ pragma solidity 0.8.20;
 interface IERC20 {
     function symbol() external view returns (string memory);
 
+    function decimals() external view returns (uint8);
+
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
     function transfer(address to, uint256 amount) external returns (bool);
@@ -93,12 +95,19 @@ interface IConditionalTokens {
 }
 
 interface IWrapped1155Factory {
+    function getWrapped1155(
+        /*IERC1155*/
+        address multiToken,
+        uint256 tokenId,
+        bytes calldata data
+    ) external view returns (IERC20);
+
     function requireWrapped1155(
         /*IERC1155*/
         address multiToken,
         uint256 tokenId,
         bytes calldata data
-    ) external /*Wrapped1155*/ returns (IERC20);
+    ) external /*Wrapped1155*/  returns (IERC20);
 
     function unwrap(
         /*IERC1155*/

@@ -182,8 +182,13 @@ contract MarketView {
         address parentMarket = market.parentMarket();
 
         if (parentMarket == address(0)) {
+            try market.collateralToken() returns (address collateralToken) {
+                // generic market with its own collateral
+                return collateralToken;
+            } catch {}
+
             try marketFactory.collateralToken() returns (address collateralToken) {
-                // generic market
+                // generic market from a factory with a fixed collateral
                 return collateralToken;
             } catch {
                 // futarchy market

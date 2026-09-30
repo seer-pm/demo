@@ -30,6 +30,7 @@ export const MERGE_AMOUNT = String(Number(SPLIT_AMOUNT) / 3);
 export const DELTA = ethers.parseEther(SPLIT_AMOUNT) / BigInt(1e4); //+- 0.01%
 
 export const QUESTION_TIMEOUT = 60 * 60 * 24 * 3.5; //seconds
+export const SHORT_QUESTION_TIMEOUT = 60 * 60; //seconds
 
 export const OPENING_TS = 60 * 60; // seconds
 
@@ -56,6 +57,7 @@ export const categoricalMarketParams = {
   minBond: ethers.parseEther(MIN_BOND),
   openingTime: 0,
   tokenNames: ["YES", "NO"],
+  questionTimeout: QUESTION_TIMEOUT,
 };
 
 export const multiCategoricalMarketParams = {
@@ -74,6 +76,7 @@ export const multiCategoricalMarketParams = {
   minBond: ethers.parseEther(MIN_BOND),
   openingTime: 0,
   tokenNames: ["RED", "BLUE", "GREEN"],
+  questionTimeout: QUESTION_TIMEOUT,
 };
 
 export const scalarMarketParams = {
@@ -92,6 +95,7 @@ export const scalarMarketParams = {
   minBond: ethers.parseEther(MIN_BOND),
   openingTime: 0,
   tokenNames: ["LOWER", "HIGHER"],
+  questionTimeout: QUESTION_TIMEOUT,
 };
 
 export const multiScalarMarketParams = {
@@ -113,4 +117,21 @@ export const multiScalarMarketParams = {
   minBond: ethers.parseEther(MIN_BOND),
   openingTime: 0,
   tokenNames: ["NY_TEMP", "LON_TEMP"],
+  questionTimeout: QUESTION_TIMEOUT,
 };
+
+/** The factory requires a collateral, and the mock's address is only known once the fixture has deployed it. */
+export type MarketParams = typeof categoricalMarketParams & { collateralToken: string };
+
+export function withCollateral<T extends object>(params: T, collateralToken: string): T & { collateralToken: string } {
+  return { ...params, collateralToken };
+}
+
+export function getMarketParams(collateralToken: string) {
+  return {
+    categoricalMarketParams: withCollateral(categoricalMarketParams, collateralToken),
+    multiCategoricalMarketParams: withCollateral(multiCategoricalMarketParams, collateralToken),
+    scalarMarketParams: withCollateral(scalarMarketParams, collateralToken),
+    multiScalarMarketParams: withCollateral(multiScalarMarketParams, collateralToken),
+  };
+}

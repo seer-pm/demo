@@ -10,13 +10,13 @@ import {
   RealityProxy,
 } from "../../typechain-types";
 import {
-  categoricalMarketParams,
   GnosisAddress,
   MERGE_AMOUNT,
   MIN_BOND,
   OPENING_TS,
   QUESTION_TIMEOUT,
   SPLIT_AMOUNT,
+  type MarketParams,
 } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 import { getRedeemAmounts } from "./helpers/utils";
@@ -54,6 +54,8 @@ describe("GnosisRouter", function () {
     return { outcomeSlotCount, conditionId, questionsIds, market };
   }
 
+  let categoricalMarketParams: MarketParams;
+
   beforeEach(async function () {
     await network.provider.request({
       method: "hardhat_reset",
@@ -76,7 +78,9 @@ describe("GnosisRouter", function () {
       realityProxy: _realityProxy,
       wrapped1155Factory: _wrapped1155Factory,
       realitio: _realitio,
+      marketParams: _marketParams,
     } = await loadFixture(sDAIMarketFactoryDeployFixture);
+    categoricalMarketParams = _marketParams.categoricalMarketParams;
 
     marketFactory = _marketFactory;
     conditionalTokens = _conditionalTokens;

@@ -16,7 +16,6 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   const reality = await deployments.get("Reality");
   const wrapped1155Factory = await deployments.get("Wrapped1155Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");
-  const collateralToken = await deployments.get("CollateralToken");
   const realityProxy = await deployments.get("RealityProxy");
 
   await deploy("MarketFactory", {
@@ -27,9 +26,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
       reality.address,
       wrapped1155Factory.address,
       conditionalTokens.address,
-      collateralToken.address,
       realityProxy.address,
-      60 * 60 * 24 * 3.5, // 3.5 days
     ],
     log: true,
   });

@@ -3,6 +3,8 @@ import { ethers, network } from "hardhat";
 import { Market, RealityProxy } from "../../typechain-types";
 import { getQuestionId } from "./helpers/utils";
 
+const COLLATERAL_TOKEN = "0x000000000000000000000000000000000000dEaD";
+
 describe("Market", function () {
   let market: Market;
   let realityProxy: RealityProxy;
@@ -53,6 +55,7 @@ describe("Market", function () {
           encodedQuestions,
         },
         realityProxy,
+        COLLATERAL_TOKEN,
       );
 
       expect(await market.initialized()).to.equal(true);
@@ -68,6 +71,7 @@ describe("Market", function () {
       expect(await market.encodedQuestions(0)).to.equal(encodedQuestions[0]);
       expect(await market.encodedQuestions(1)).to.equal(encodedQuestions[1]);
       expect(await market.realityProxy()).to.equal(realityProxy);
+      expect(await market.collateralToken()).to.equal(COLLATERAL_TOKEN);
     });
 
     it("reverts if already initialized", async function () {
@@ -91,6 +95,7 @@ describe("Market", function () {
           encodedQuestions: ["encoded1"],
         },
         realityProxy,
+        COLLATERAL_TOKEN,
       );
 
       await expect(
@@ -114,6 +119,7 @@ describe("Market", function () {
             encodedQuestions: ["encoded2"],
           },
           realityProxy,
+          COLLATERAL_TOKEN,
         ),
       ).to.be.revertedWith("Already initialized.");
     });
@@ -141,6 +147,7 @@ describe("Market", function () {
           encodedQuestions: ["encoded1", "encoded2"],
         },
         realityProxy,
+        COLLATERAL_TOKEN,
       );
     });
 
@@ -183,6 +190,7 @@ describe("Market", function () {
           encodedQuestions: ["encodedParent1", "encodedParent2"],
         },
         realityProxy,
+        COLLATERAL_TOKEN,
       );
 
       // Initialize the child market with a parent
@@ -207,6 +215,7 @@ describe("Market", function () {
           encodedQuestions: ["encodedChild1", "encodedChild2"],
         },
         realityProxy,
+        COLLATERAL_TOKEN,
       );
 
       // Get the parent wrapped outcome

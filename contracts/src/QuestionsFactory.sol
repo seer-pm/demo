@@ -9,10 +9,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import {IConditionalTokens, IERC20, IWrapped1155Factory} from "./Interfaces.sol";
 import "./Market.sol";
 import "./MarketFactory.sol";
 import "./RealityProxy.sol";
-import {IConditionalTokens, IWrapped1155Factory, IERC20} from "./Interfaces.sol";
 
 contract QuestionsFactory {
     /// @dev Workaround "stack too deep" errors.
@@ -34,8 +34,6 @@ contract QuestionsFactory {
     MarketFactory public immutable marketFactory;
     /// @dev Conditional Tokens contract.
     IConditionalTokens public immutable conditionalTokens;
-    /// @dev Conditional Tokens collateral token contract.
-    address public immutable collateralToken;
     /// @dev Wrapped1155Factory contract.
     IWrapped1155Factory public immutable wrapped1155Factory;
 
@@ -43,18 +41,15 @@ contract QuestionsFactory {
      *  @dev Constructor.
      *  @param _marketFactory Address of the MarketFactory contract.
      *  @param _conditionalTokens Address of the ConditionalTokens implementation.
-     *  @param _collateralToken Address of the collateral token.
      *  @param _wrapped1155Factory Address of the Wrapped1155Factory implementation.
      */
     constructor(
         MarketFactory _marketFactory,
         IConditionalTokens _conditionalTokens,
-        address _collateralToken,
         IWrapped1155Factory _wrapped1155Factory
     ) {
         marketFactory = _marketFactory;
         conditionalTokens = _conditionalTokens;
-        collateralToken = _collateralToken;
         wrapped1155Factory = _wrapped1155Factory;
     }
 
@@ -78,10 +73,14 @@ contract QuestionsFactory {
         encodedQuestions[0] =
             encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
 
-        createNewMarketParams(params, InternalMarketConfig({
-            encodedQuestions: encodedQuestions,
-            templateId: REALITY_SINGLE_SELECT_TEMPLATE
-        }), from, to, createQuestions, deployERC20);
+        createNewMarketParams(
+            params,
+            InternalMarketConfig({encodedQuestions: encodedQuestions, templateId: REALITY_SINGLE_SELECT_TEMPLATE}),
+            from,
+            to,
+            createQuestions,
+            deployERC20
+        );
     }
 
     /// @dev Creates Multi Categorical markets.
@@ -104,10 +103,14 @@ contract QuestionsFactory {
         encodedQuestions[0] =
             encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
 
-        createNewMarketParams(params, InternalMarketConfig({
-            encodedQuestions: encodedQuestions,
-            templateId: REALITY_MULTI_SELECT_TEMPLATE
-        }), from, to, createQuestions, deployERC20);
+        createNewMarketParams(
+            params,
+            InternalMarketConfig({encodedQuestions: encodedQuestions, templateId: REALITY_MULTI_SELECT_TEMPLATE}),
+            from,
+            to,
+            createQuestions,
+            deployERC20
+        );
     }
 
     /// @dev Creates Scalar markets.
@@ -132,10 +135,14 @@ contract QuestionsFactory {
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(params.marketName, params.category, params.lang);
 
-        createNewMarketParams(params, InternalMarketConfig({
-            encodedQuestions: encodedQuestions,
-            templateId: REALITY_UINT_TEMPLATE
-        }), from, to, createQuestions, deployERC20);
+        createNewMarketParams(
+            params,
+            InternalMarketConfig({encodedQuestions: encodedQuestions, templateId: REALITY_UINT_TEMPLATE}),
+            from,
+            to,
+            createQuestions,
+            deployERC20
+        );
     }
 
     /// @dev Creates Multi Scalar markets.
@@ -164,10 +171,14 @@ contract QuestionsFactory {
             );
         }
 
-        createNewMarketParams(params, InternalMarketConfig({
-            encodedQuestions: encodedQuestions,
-            templateId: REALITY_UINT_TEMPLATE
-        }), from, to, createQuestions, deployERC20);
+        createNewMarketParams(
+            params,
+            InternalMarketConfig({encodedQuestions: encodedQuestions, templateId: REALITY_UINT_TEMPLATE}),
+            from,
+            to,
+            createQuestions,
+            deployERC20
+        );
     }
 
     /// @dev Creates the structures needed to initialize the new market and optionally deploys ERC20 tokens.
@@ -193,7 +204,8 @@ contract QuestionsFactory {
                 config.encodedQuestions[i],
                 config.templateId,
                 params.openingTime,
-                params.minBond
+                params.minBond,
+                params.questionTimeout
             );
         }
 
@@ -213,7 +225,8 @@ contract QuestionsFactory {
         //             config.encodedQuestions[i],
         //             config.templateId,
         //             params.openingTime,
-        //             params.minBond
+        //             params.minBond,
+        //             params.questionTimeout
         //         );
         //     }
         // }
@@ -221,16 +234,18 @@ contract QuestionsFactory {
         // Optionally deploy ERC20 tokens (limited by from/to)
         if (deployERC20) {
             bytes32 parentCollectionId = params.parentMarket == address(0)
-            ? bytes32(0)
-            : conditionalTokens.getCollectionId(
-                Market(params.parentMarket).parentCollectionId(),
-                Market(params.parentMarket).conditionId(),
-                1 << params.parentOutcome
-            );
+                ? bytes32(0)
+                : conditionalTokens.getCollectionId(
+                    Market(params.parentMarket).parentCollectionId(),
+                    Market(params.parentMarket).conditionId(),
+                    1 << params.parentOutcome
+                );
 
             // questionId must be a hash of all the values that RealityProxy.resolve() uses to resolve a market, this way if an attacker tries to resolve a fake market by changing some value its questionId will not match the id of a valid market.
             bytes32 questionId = keccak256(
-                abi.encode(questionsIds, params.outcomes.length, config.templateId, params.lowerBound, params.upperBound)
+                abi.encode(
+                    questionsIds, params.outcomes.length, config.templateId, params.lowerBound, params.upperBound
+                )
             );
 
             uint256 outcomeSlotCount = params.outcomes.length + 1; // additional outcome for Invalid Result.
@@ -239,7 +254,9 @@ contract QuestionsFactory {
             require(from <= to, "from must be <= to");
             require(to <= outcomeSlotCount, "to exceeds outcomeSlotCount");
 
-            deployERC20Positions(parentCollectionId, conditionId, outcomeSlotCount, params.tokenNames, from, to);
+            deployERC20Positions(
+                params.collateralToken, parentCollectionId, conditionId, outcomeSlotCount, params.tokenNames, from, to
+            );
         }
     }
 
@@ -283,8 +300,22 @@ contract QuestionsFactory {
         return string(abi.encodePacked(question, separator, category, separator, lang));
     }
 
+    /// @dev Returns the decimals of the collateral token, or 18 when the token does not expose them.
+    /// Mirrors MarketFactory.collateralDecimals: the token data is part of the wrapper's CREATE2 salt, so the
+    /// ERC20s deployed here are only found by MarketFactory when the decimals match.
+    /// @param collateralToken The collateral token.
+    /// @return The decimals of the outcome tokens.
+    function collateralDecimals(address collateralToken) internal view returns (uint8) {
+        try IERC20(collateralToken).decimals() returns (uint8 decimals) {
+            return decimals;
+        } catch {
+            return 18;
+        }
+    }
+
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.
     /// @notice The INVALID_RESULT outcome (at index outcomeSlotCount - 1) is always deployed, even if not in the [from, to) range.
+    /// @param collateralToken The base collateral of the positions.
     /// @param parentCollectionId The parentCollectionId.
     /// @param conditionId The conditionId.
     /// @param outcomeSlotCount The amount of outcomes.
@@ -294,6 +325,7 @@ contract QuestionsFactory {
     /// @return wrapped1155 Array of outcome tokens wrapped to ERC20.
     /// @return data Array of token data used to create each ERC20.
     function deployERC20Positions(
+        address collateralToken,
         bytes32 parentCollectionId,
         bytes32 conditionId,
         uint256 outcomeSlotCount,
@@ -302,6 +334,7 @@ contract QuestionsFactory {
         uint256 to
     ) public returns (IERC20[] memory wrapped1155, bytes[] memory data) {
         uint256 invalidResultIndex = outcomeSlotCount - 1;
+        uint8 decimals = collateralDecimals(collateralToken);
 
         wrapped1155 = new IERC20[](outcomeSlotCount);
         data = new bytes[](outcomeSlotCount);
@@ -316,7 +349,7 @@ contract QuestionsFactory {
             bytes memory _data = abi.encodePacked(
                 toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
                 toString31(j == invalidResultIndex ? "SER-INVALID" : tokenNames[j]),
-                uint8(18)
+                decimals
             );
 
             IERC20 _wrapped1155 = wrapped1155Factory.requireWrapped1155(address(conditionalTokens), tokenId, _data);
@@ -327,14 +360,11 @@ contract QuestionsFactory {
 
         // Always deploy INVALID_RESULT ERC20 if it wasn't in the range
         if (invalidResultIndex < from || invalidResultIndex >= to) {
-            bytes32 collectionId = conditionalTokens.getCollectionId(parentCollectionId, conditionId, 1 << invalidResultIndex);
+            bytes32 collectionId =
+                conditionalTokens.getCollectionId(parentCollectionId, conditionId, 1 << invalidResultIndex);
             uint256 tokenId = conditionalTokens.getPositionId(collateralToken, collectionId);
 
-            bytes memory _data = abi.encodePacked(
-                toString31("SER-INVALID"),
-                toString31("SER-INVALID"),
-                uint8(18)
-            );
+            bytes memory _data = abi.encodePacked(toString31("SER-INVALID"), toString31("SER-INVALID"), decimals);
 
             IERC20 _wrapped1155 = wrapped1155Factory.requireWrapped1155(address(conditionalTokens), tokenId, _data);
 
@@ -349,12 +379,14 @@ contract QuestionsFactory {
     /// @param templateId The Reality template id.
     /// @param openingTime The question opening time.
     /// @param minBond The question min bond.
+    /// @param timeout The question timeout.
     /// @return The question id.
     function calculateRealityQuestionId(
         string memory encodedQuestion,
         uint256 templateId,
         uint32 openingTime,
-        uint256 minBond
+        uint256 minBond,
+        uint32 timeout
     ) public view returns (bytes32) {
         bytes32 content_hash = keccak256(abi.encodePacked(templateId, openingTime, encodedQuestion));
 
@@ -362,7 +394,7 @@ contract QuestionsFactory {
             abi.encodePacked(
                 content_hash,
                 marketFactory.arbitrator(),
-                marketFactory.questionTimeout(),
+                timeout,
                 minBond,
                 address(marketFactory.realitio()),
                 address(marketFactory),

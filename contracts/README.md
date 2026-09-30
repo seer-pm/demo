@@ -19,6 +19,11 @@ Smart contracts for Seer
 
 Refresh the list of deployed contracts by running `./scripts/generate-deployments-addresses.sh`.
 
+`MarketFactory` takes the collateral token and the Reality question timeout per market. The
+factories deployed before that, listed as `MarketFactoryV1` (and `CirclesMarketFactory` on
+Gnosis), have a fixed collateral and a 3.5 day timeout; they keep serving the markets they created.
+A chain without a `MarketFactory` entry still creates its markets on the V1 one.
+
 ### Gnosis
 
 | Contract | Address |
@@ -31,7 +36,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | FutarchyRouter | [0xE2996f6BC88ba0f2Ad3a6E2A71ac55884ec9F74E](https://gnosisscan.io/address/0xE2996f6BC88ba0f2Ad3a6E2A71ac55884ec9F74E) |
 | GnosisRouter | [0xeC9048b59b3467415b1a38F63416407eA0c70fB8](https://gnosisscan.io/address/0xeC9048b59b3467415b1a38F63416407eA0c70fB8) |
 | Market | [0x8F76bC35F8C72E5e2Ec55ebED785da5efaa9636a](https://gnosisscan.io/address/0x8F76bC35F8C72E5e2Ec55ebED785da5efaa9636a) |
-| MarketFactory | [0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1](https://gnosisscan.io/address/0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1) |
+| MarketFactoryV1 | [0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1](https://gnosisscan.io/address/0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1) |
 | MarketView | [0x010Bc82218C4857CBF5639B0046E0E05a678D8D4](https://gnosisscan.io/address/0x010Bc82218C4857CBF5639B0046E0E05a678D8D4) |
 | OpportunityCredits | [0xD2002562012BF42dEc477313CD1bcE1C24e780F6](https://gnosisscan.io/address/0xD2002562012BF42dEc477313CD1bcE1C24e780F6) |
 | RealityProxy | [0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C](https://gnosisscan.io/address/0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C) |
@@ -44,7 +49,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | ConditionalRouter | [0x1BA2dB142a69B2D0b0EDbe666A9Bd457E344D9b5](https://etherscan.io/address/0x1BA2dB142a69B2D0b0EDbe666A9Bd457E344D9b5) |
 | MainnetRouter | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
 | Market | [0x8bdC504dC3A05310059c1c67E0A2667309D27B93](https://etherscan.io/address/0x8bdC504dC3A05310059c1c67E0A2667309D27B93) |
-| MarketFactory | [0x1F728c2fD6a3008935c1446a965a313E657b7904](https://etherscan.io/address/0x1F728c2fD6a3008935c1446a965a313E657b7904) |
+| MarketFactoryV1 | [0x1F728c2fD6a3008935c1446a965a313E657b7904](https://etherscan.io/address/0x1F728c2fD6a3008935c1446a965a313E657b7904) |
 | MarketView | [0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA](https://etherscan.io/address/0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA) |
 | Realitio_v2_1_ArbitratorWithAppeals | [0x2018038203aEE8e7a29dABd73771b0355D4F85ad](https://etherscan.io/address/0x2018038203aEE8e7a29dABd73771b0355D4F85ad) |
 | RealityProxy | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://etherscan.io/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
@@ -56,7 +61,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 |----------|---------|
 | ConditionalRouter | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://optimistic.etherscan.io/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |
 | Market | [0xAb797C4C6022A401c31543E316D3cd04c67a87fC](https://optimistic.etherscan.io/address/0xAb797C4C6022A401c31543E316D3cd04c67a87fC) |
-| MarketFactory | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://optimistic.etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
+| MarketFactoryV1 | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://optimistic.etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
 | MarketView | [0xDd193f64dbe184891f0beb3510AD69b5DC849BD1](https://optimistic.etherscan.io/address/0xDd193f64dbe184891f0beb3510AD69b5DC849BD1) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://optimistic.etherscan.io/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
 | Router | [0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD](https://optimistic.etherscan.io/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD) |
@@ -68,7 +73,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 |----------|---------|
 | ConditionalRouter | [0xF5ccbf74121edBa492725F325D55356D517723B9](https://basescan.org/address/0xF5ccbf74121edBa492725F325D55356D517723B9) |
 | Market | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://basescan.org/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
-| MarketFactory | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://basescan.org/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
+| MarketFactoryV1 | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://basescan.org/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
 | MarketView | [0xDd193f64dbe184891f0beb3510AD69b5DC849BD1](https://basescan.org/address/0xDd193f64dbe184891f0beb3510AD69b5DC849BD1) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://basescan.org/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
 | Router | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://basescan.org/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |

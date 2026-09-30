@@ -365,7 +365,9 @@ contract MarketFactoryTest is BaseTest {
                     minBond: MIN_BOND,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 2500,
-                    upperBound: 3500
+                    upperBound: 3500,
+                    collateralToken: collateralToken,
+                    questionTimeout: QUESTION_TIMEOUT
                 })
             )
         );
@@ -387,7 +389,9 @@ contract MarketFactoryTest is BaseTest {
                     minBond: MIN_BOND,
                     openingTime: uint32(block.timestamp) + 60,
                     lowerBound: 0,
-                    upperBound: 0
+                    upperBound: 0,
+                    collateralToken: collateralToken,
+                    questionTimeout: QUESTION_TIMEOUT
                 })
             )
         );
@@ -395,6 +399,43 @@ contract MarketFactoryTest is BaseTest {
         bytes32[] memory questionsIdsScalar = scalar.questionsIds();
         bytes32[] memory questionsIdsMultiscalar = multiScalar.questionsIds();
         assertEq(questionsIdsScalar[0], questionsIdsMultiscalar[0]);
+    }
+
+    function test_createsMarketWithCustomCollateral() public {
+        vm.startPrank(msg.sender);
+        uint256 numOutcomes = 2;
+        uint256 splitAmount = 1 ether;
+
+        Market market = getCategoricalMarketWithCollateral(MIN_BOND, numOutcomes, wxDAI, QUESTION_TIMEOUT);
+        assertEq(market.collateralToken(), wxDAI);
+
+        deal(wxDAI, msg.sender, splitAmount);
+        IERC20(wxDAI).approve(address(gnosisRouter), splitAmount);
+        gnosisRouter.splitPosition(IERC20(wxDAI), market, splitAmount);
+        assertOutcomesBalances(msg.sender, market, getPartition(numOutcomes + 1), splitAmount);
+
+        approveWrappedTokens(address(gnosisRouter), splitAmount, market, getPartition(numOutcomes + 1));
+        gnosisRouter.mergePositions(IERC20(wxDAI), market, splitAmount);
+        assertEq(IERC20(wxDAI).balanceOf(msg.sender), splitAmount);
+        vm.stopPrank();
+    }
+
+    function test_differentTimeoutsAreDifferentQuestions() public {
+        Market slow = getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, QUESTION_TIMEOUT);
+        Market fast = getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 1 hours);
+        Market same = getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 1 hours);
+
+        assertNotEq(slow.questionsIds()[0], fast.questionsIds()[0]);
+        assertEq(fast.questionsIds()[0], same.questionsIds()[0]);
+        assertEq(IRealityETH_v3_0(realitio).getTimeout(fast.questionsIds()[0]), 1 hours);
+    }
+
+    function test_revertsWithoutCollateralOrTimeout() public {
+        vm.expectRevert(bytes("Missing collateral token"));
+        getCategoricalMarketWithCollateral(MIN_BOND, 2, address(0), QUESTION_TIMEOUT);
+
+        vm.expectRevert(bytes("Missing question timeout"));
+        getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 0);
     }
 
     function test_encodedQuestions() public {

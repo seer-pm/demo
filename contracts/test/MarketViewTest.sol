@@ -81,14 +81,14 @@ contract MarketViewTest is BaseTest {
         // answer too soon and wait until the question is finalized
         vm.warp(marketInfo.questions[0].opening_ts + 1);
         submitAnswer(originalQuestionId, ANSWERED_TOO_SOON);
-        vm.warp(block.timestamp + marketFactory.questionTimeout() + 1);
+        vm.warp(block.timestamp + QUESTION_TIMEOUT + 1);
 
         bytes32 reopenedQuestionId = IRealityReopen(realitio)
             .reopenQuestion(
                 market.templateId(),
                 market.encodedQuestions(0),
                 arbitrator,
-                marketFactory.questionTimeout(),
+                QUESTION_TIMEOUT,
                 marketInfo.questions[0].opening_ts,
                 1,
                 MIN_BOND,
