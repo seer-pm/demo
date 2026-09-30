@@ -108,7 +108,8 @@ export function encodeQuestionText(
   if (qtype === "single-select" || qtype === "multiple-select") {
     qText = qText + delim + encodeOutcomes(outcomes);
   }
-  qText = qText + delim + category + delim + (typeof lang === "undefined" || lang === "" ? "en_US" : lang);
+  const language = typeof lang === "undefined" || lang === "" ? "en_US" : lang;
+  qText = qText + delim + escapeJson(category) + delim + escapeJson(language);
   return qText;
 }
 
@@ -149,6 +150,75 @@ export function decodeQuestion(encodedQuestion: string): {
 export function decodeOutcomes(market: Market, question: Question): string[] {
   const questionIndex = market.questions.findIndex((q) => q.id === question.id);
   return decodeQuestion(market.encodedQuestions[questionIndex]).outcomes || [];
+}
+
+/**
+ * Text of the built-in Reality.eth templates the market factories ask questions with. The Reality
+ * contract defines them, so they are the same on every chain.
+ */
+const REALITY_TEMPLATES: Record<number, string> = {
+  [REALITY_TEMPLATE_UINT]: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}',
+  [REALITY_TEMPLATE_SINGLE_SELECT]:
+    '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
+  [REALITY_TEMPLATE_MULTIPLE_SELECT]:
+    '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
+};
+
+function parsesAsJson(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** True when `param` can sit between two quotes without ending the JSON string early. */
+function isJsonStringBody(param: string): boolean {
+  return parsesAsJson(`"${param}"`);
+}
+
+/** True when `param` is the inside of a JSON array that holds only strings. */
+function isOutcomesBody(param: string): boolean {
+  try {
+    return (JSON.parse(`[${param}]`) as unknown[]).every((outcome) => typeof outcome === "string");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Tells whether a parameter of an encoded question alters the JSON that Reality.eth builds from it.
+ *
+ * Reality pastes every parameter into the template as plain text, and the market factories accept
+ * any text. A parameter that holds an unescaped quote closes its string and adds keys of its own.
+ * The last duplicate of a key wins, so reality.eth and the arbitrator can show outcomes, decimals
+ * or a title that differ from the ones the market pays out on.
+ */
+export function hasInjectedParameters(templateId: number, encodedQuestion: string): boolean {
+  const template = REALITY_TEMPLATES[templateId];
+  if (template === undefined) {
+    return false;
+  }
+
+  const delim = "␟";
+  const params = encodedQuestion.split(delim);
+  const placeholders = template.split("%s").length - 1;
+
+  // A separator inside a field moves every later parameter into the wrong placeholder.
+  if (params.length !== placeholders) {
+    return true;
+  }
+
+  const outcomesIndex = template.includes("[%s]") ? 1 : -1;
+  if (params.every((param, i) => (i === outcomesIndex ? isOutcomesBody(param) : isJsonStringBody(param)))) {
+    return false;
+  }
+
+  // A malformed parameter that leaves the JSON unparseable misleads nobody: reality.eth shows the
+  // raw text as a broken question. One that still parses has changed what the question says.
+  let next = 0;
+  return parsesAsJson(template.replace(/%s/g, () => params[next++]));
 }
 
 /** Outcome label type (string). */

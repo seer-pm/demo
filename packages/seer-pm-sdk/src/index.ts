@@ -107,6 +107,7 @@ export {
   getMultiSelectAnswers,
   getQuestionStatus,
   getRealityLink,
+  hasInjectedParameters,
   isFinalized,
   isQuestionOpen,
   isQuestionUnanswered,
