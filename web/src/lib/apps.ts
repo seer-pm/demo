@@ -1,20 +1,23 @@
 import type { Address } from "viem";
-import { gnosis, optimism } from "viem/chains";
+import { gnosis } from "viem/chains";
+import { DEEPFUND_MARKETS } from "./deepfundMarkets.generated";
 
 export type SeerAppId = "foresight" | "opportunity" | "deepfund" | "futarchy";
 
 /** Keys accepted by `paths.logoImage`. */
 export type SeerAppLogoKey = "foresight" | "opportunity-markets" | "deepfund" | "futarchy";
 
-/** One parent market (session) belonging to an app; children are expanded at refresh. */
+/**
+ * One market set (session) belonging to an app. Usually a single parent market; a set with no
+ * parent lists its top-level markets in `marketIds` instead. Children are expanded at refresh.
+ */
 export type SeerAppMarket = {
   /** Stable slug; materialized as `${appId}:${id}` when `splitLeaderboard` is set. */
   id: string;
   /** Chip / UI label. */
   label: string;
   chainId: number;
-  marketId: `0x${string}`;
-};
+} & ({ marketId: `0x${string}`; marketIds?: never } | { marketIds: `0x${string}`[]; marketId?: never });
 
 export type SeerApp = {
   id: SeerAppId;
@@ -83,38 +86,8 @@ export const SEER_APPS: Record<SeerAppId, SeerApp> = {
     label: "Deepfunding",
     logoKey: "deepfund",
     splitLeaderboard: true,
-    markets: [
-      {
-        id: "round2-l1",
-        label: "Round 2 · L1",
-        chainId: optimism.id,
-        marketId: "0x3220a208aaf4d2ceecde5a2e21ec0c9145f40ba6",
-      },
-      {
-        id: "round2-l2",
-        label: "Round 2 · L2",
-        chainId: optimism.id,
-        marketId: "0x2d05454c1b4387b5d8be84bee20d58390a01ca64",
-      },
-      {
-        id: "round2",
-        label: "Round 2 · Originality",
-        chainId: optimism.id,
-        marketId: "0xdb3aae8d1c964767eeaa17805be25cded7a17210",
-      },
-      {
-        id: "round1",
-        label: "Round 1",
-        chainId: optimism.id,
-        marketId: "0xb88275fe4e2494e04cea8fb5e9d913aa48add581",
-      },
-      {
-        id: "octant",
-        label: "Octant",
-        chainId: optimism.id,
-        marketId: "0xe85ada7cd6d33cb41ac596fb4749e3f94d836ece",
-      },
-    ],
+    // Generated from the deepfund contest registry (ai-prediction-markets `npm run sync:seer`).
+    markets: DEEPFUND_MARKETS,
   },
   futarchy: {
     id: "futarchy",
@@ -195,6 +168,11 @@ function normalizeMarketId(id: `0x${string}`): Address {
   return id.toLowerCase() as Address;
 }
 
+/** Root market ids of an app market (its parent, or its flat list), lowercased. */
+export function appMarketRoots(market: SeerAppMarket): Address[] {
+  return (market.marketIds ?? [market.marketId]).map(normalizeMarketId);
+}
+
 function uniqueSortedChainIds(markets: readonly SeerAppMarket[]): number[] {
   return [...new Set(markets.map((m) => m.chainId))].sort((a, b) => a - b);
 }
@@ -222,9 +200,9 @@ export function marketsForAppFilter(app: SeerAppFilterId, chainId: number): Addr
   const parsed = parseAppFilter(app);
   if (!parsed || parsed.kind === "all") return null;
   if (parsed.kind === "market") {
-    return parsed.market.chainId === chainId ? [normalizeMarketId(parsed.market.marketId)] : [];
+    return parsed.market.chainId === chainId ? appMarketRoots(parsed.market) : [];
   }
-  return parsed.app.markets.filter((m) => m.chainId === chainId).map((m) => normalizeMarketId(m.marketId));
+  return parsed.app.markets.filter((m) => m.chainId === chainId).flatMap(appMarketRoots);
 }
 
 /**
@@ -266,7 +244,7 @@ export function leaderboardJobsFromApps(): LeaderboardRefreshJobSpec[] {
         jobs.push({
           appId: marketScopeFilterId(app.id, market.id),
           chainId: market.chainId,
-          marketIds: [normalizeMarketId(market.marketId)],
+          marketIds: appMarketRoots(market),
         });
       }
       continue;
@@ -275,7 +253,7 @@ export function leaderboardJobsFromApps(): LeaderboardRefreshJobSpec[] {
     const byChain = new Map<number, Address[]>();
     for (const market of app.markets) {
       const list = byChain.get(market.chainId) ?? [];
-      list.push(normalizeMarketId(market.marketId));
+      list.push(...appMarketRoots(market));
       byChain.set(market.chainId, list);
     }
     for (const [chainId, marketIds] of byChain) {
