@@ -9,6 +9,7 @@ import {
   decodeQuestion,
   displayScalarBound,
   escapeJson,
+  hasInjectedParameters,
   isQuestionInDispute,
   isQuestionOpen,
   isQuestionPending,
@@ -292,11 +293,18 @@ export function getTemplateByMarketType(marketType: MarketTypes): number {
 /**
  * Heuristic to determine whether a market configuration is considered reliable.
  *
- * For scalar markets there is nothing to validate. For multi‑scalar markets we verify that the
+ * For every market type, no parameter of an encoded question may alter the JSON that Reality.eth
+ * builds from it (see {@link hasInjectedParameters}). For multi‑scalar markets we also verify that the
  * encoded question text preserves the same question prefix/suffix (only the outcome type varies).
  * For categorical markets we validate that the encoded outcomes count matches the market outcomes.
  */
 export function isMarketReliable(market: Market): boolean {
+  const templateId = Number(market.templateId);
+
+  if (market.encodedQuestions.some((encodedQuestion) => hasInjectedParameters(templateId, encodedQuestion))) {
+    return false;
+  }
+
   if (getMarketType(market) === MarketTypes.SCALAR) {
     return true;
   }

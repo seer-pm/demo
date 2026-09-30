@@ -383,4 +383,79 @@ describe("isMarketReliable", () => {
     expect(getMarketType(market)).toBe(MarketTypes.MULTI_SCALAR);
     expect(isMarketReliable(market)).toBe(false);
   });
+
+  describe("parameters that alter the Reality.eth question JSON", () => {
+    const delim = "␟";
+    const marketName = "Will it happen?";
+    const encodedOutcomes = '"Yes","No"';
+
+    const createCategoricalMarket = (encodedQuestion: string) =>
+      createMinimalMarket({
+        type: "Generic",
+        marketName: marketName,
+        outcomes: ["Yes", "No", INVALID_RESULT_OUTCOME_TEXT],
+        encodedQuestions: [encodedQuestion],
+        templateId: BigInt(REALITY_TEMPLATE_SINGLE_SELECT),
+        questions: [createDefaultQuestion()],
+      });
+
+    it("should return false when lang adds a second outcomes key", () => {
+      const lang = 'en_US","outcomes":["No","Yes"],"z":"';
+      const market = createCategoricalMarket([marketName, encodedOutcomes, defaultCategory, lang].join(delim));
+      expect(isMarketReliable(market)).toBe(false);
+    });
+
+    it("should return false when category repeats existing keys without adding a new one", () => {
+      const category = 'misc","outcomes":["No","Yes"],"category":"misc';
+      const market = createCategoricalMarket([marketName, encodedOutcomes, category, defaultLang].join(delim));
+      expect(isMarketReliable(market)).toBe(false);
+    });
+
+    it("should return false when the outcomes parameter closes its array", () => {
+      const outcomes = '"Yes","No"],"outcomes":["No","Yes"';
+      const market = createCategoricalMarket([marketName, outcomes, defaultCategory, defaultLang].join(delim));
+      expect(isMarketReliable(market)).toBe(false);
+    });
+
+    it("should return false when a scalar question overrides decimals", () => {
+      const lang = 'en_US","decimals":0,"z":"';
+      const market = createMinimalMarket({
+        type: "Generic",
+        marketName: marketName,
+        encodedQuestions: [[marketName, defaultCategory, lang].join(delim)],
+        lowerBound: 0n,
+        upperBound: 100n,
+        templateId: BigInt(REALITY_TEMPLATE_UINT),
+        questions: [createDefaultQuestion()],
+      });
+      expect(getMarketType(market)).toBe(MarketTypes.SCALAR);
+      expect(isMarketReliable(market)).toBe(false);
+    });
+
+    it("should return false when the title holds the parameter separator", () => {
+      const title = [marketName, '"No","Yes"', defaultCategory, defaultLang].join(delim);
+      const market = createCategoricalMarket([title, encodedOutcomes, defaultCategory, defaultLang].join(delim));
+      expect(isMarketReliable(market)).toBe(false);
+    });
+
+    it("should return true when unescaped quotes leave the question JSON unparseable", () => {
+      const title = 'Will "it" happen?';
+      const market = createCategoricalMarket([title, encodedOutcomes, defaultCategory, defaultLang].join(delim));
+      expect(isMarketReliable(market)).toBe(true);
+    });
+
+    it("should return true when the quotes in the title are escaped", () => {
+      const title = 'Will \\"it\\" happen?';
+      const market = createCategoricalMarket([title, encodedOutcomes, defaultCategory, defaultLang].join(delim));
+      expect(isMarketReliable(market)).toBe(true);
+    });
+
+    it("should return true when encodeQuestionText receives a category with quotes", () => {
+      const category = 'misc","outcomes":["No","Yes"],"z":"';
+      const market = createCategoricalMarket(
+        encodeQuestionText("single-select", marketName, ["Yes", "No"], category, defaultLang),
+      );
+      expect(isMarketReliable(market)).toBe(true);
+    });
+  });
 });

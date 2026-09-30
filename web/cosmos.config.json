@@ -1,6 +1,7 @@
 {
   "plugins": ["react-cosmos-plugin-vite"],
   "vite": {
-    "configPath": "./vite.config.ts"
+    "configPath": "./vite.cosmos.config.ts",
+    "indexPath": "./cosmos-entry.tsx"
   }
 }

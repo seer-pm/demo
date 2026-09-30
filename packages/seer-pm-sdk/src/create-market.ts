@@ -154,7 +154,7 @@ export function getCreateMarketParams<TChainId extends number = number>(
     parentMarket: p.parentMarket,
     parentOutcome: p.parentOutcome,
     lang: "en_US",
-    category: p.category || MISC_CATEGORY,
+    category: escapeJson(p.category || MISC_CATEGORY),
     outcomes: outcomes.map(escapeJson),
     tokenNames: getTokenNames(p.tokenNames, outcomes),
     lowerBound: p.lowerBound,
