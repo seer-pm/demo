@@ -37,6 +37,37 @@ contract MarketViewTest is BaseTest {
         assertEq(marketView.getMarkets(2, IMarketFactory(address(marketFactory))).length, 2);
     }
 
+    function test_marketViewParentOutcomes() public {
+        MarketView marketView = new MarketView();
+
+        // the parent info is sized by the parent's condition, whatever the child's outcome count is
+        assertParentOutcomes(marketView, 3, 10);
+        assertParentOutcomes(marketView, 10, 2);
+    }
+
+    function assertParentOutcomes(MarketView marketView, uint256 parentNumOutcomes, uint256 childNumOutcomes) internal {
+        Market parentMarket = getCategoricalMarket(MIN_BOND, parentNumOutcomes);
+        Market childMarket = getCategoricalMarket(MIN_BOND, childNumOutcomes, 0, address(parentMarket));
+
+        MarketView.MarketInfo memory marketInfo =
+            marketView.getMarket(IMarketFactory(address(marketFactory)), childMarket);
+        MarketView.ParentMarketInfo memory parentInfo = marketInfo.parentMarket;
+
+        // one extra slot for the INVALID_RESULT outcome
+        assertEq(parentInfo.outcomes.length, parentNumOutcomes + 1);
+        assertEq(parentInfo.wrappedTokens.length, parentNumOutcomes + 1);
+        assertEq(parentInfo.outcomes[parentNumOutcomes], "Invalid result");
+
+        for (uint256 i = 0; i <= parentNumOutcomes; i++) {
+            if (i < parentNumOutcomes) {
+                assertEq(parentInfo.outcomes[i], parentMarket.outcomes(i));
+            }
+
+            (IERC20 wrapped1155,) = parentMarket.wrappedOutcome(i);
+            assertEq(parentInfo.wrappedTokens[i], address(wrapped1155));
+        }
+    }
+
     function test_marketViewBaseQuestionsIds() public {
         Market market = getCategoricalMarket(MIN_BOND, 2);
         MarketView marketView = new MarketView();

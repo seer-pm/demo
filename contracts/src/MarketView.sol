@@ -220,8 +220,9 @@ contract MarketView {
 
         (address collateralToken1,) = getCollateralTokens(parentMarket);
 
-        (string[] memory outcomes, address[] memory wrappedTokens) =
-            getOutcomesAndTokens(conditionalTokens, parentMarket, market.conditionId(), collateralToken1 != address(0));
+        (string[] memory outcomes, address[] memory wrappedTokens) = getOutcomesAndTokens(
+            conditionalTokens, parentMarket, parentMarket.conditionId(), collateralToken1 != address(0)
+        );
 
         return ParentMarketInfo({
             id: market.parentMarket(),
