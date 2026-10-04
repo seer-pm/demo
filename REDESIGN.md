@@ -94,3 +94,17 @@ Review capture: [market studio](docs/review/market-studio.png). Unit tests cover
 - Validation: TypeScript and seven targeted tests passed. Browser checks confirmed every visible homepage card’s leader and the demo’s rows, five/ten-level control and mobile layout.
 
 Captures: [price leaders](docs/review/homepage-leaders.png), [Brazilian order book](docs/review/brazil-order-book.png).
+
+## Sticky whole-app comparison
+
+Run `corepack yarn workspace @seer-pm/web preview:compare`, then open **http://localhost:3002**. Keep that terminal running. The launcher reuses the redesign on port 3000 when available and starts an isolated original baseline on port 3001. The comparison toolbar stays outside both pages, follows navigation and query parameters, and retains each frame's scroll/state when its route has not changed. The URL stores the selected version and route for local sharing/bookmarking.
+
+The baseline is exported from commit `60423441`, not a new fork or a second tracked copy. A temporary directory receives only preview runtime adapters (public read proxy, disabled wallets, comparison bridge). Its original navigation and layout remain intact; the Brazilian pool panel uses the same controlled fixture with cumulative shares for comparison. Installed dependencies and generated SDK files are shared with this checkout. No branch is switched and `main` is untouched. The small bridge is injected by Vite only with `VITE_DESIGN_PREVIEW=true`; normal production builds have no comparison controls or bridge.
+
+Both sides fetch public data independently, so this compares designs rather than guaranteeing identical data timestamps. Wallet-only baseline routes retain their original connection requirements; the proposed portfolio's labelled sample mode is a new feature. This is a local review tool, not a public hosted URL.
+
+The Brazilian demo now appears only inside each valid outcome's **View pool details → Liquidity** panel. Flávio's rows remain the captured sample; other outcomes show clearly labelled illustrative depth. No demo ladder appears above the market. Normal production pool data remains unchanged.
+
+Validation: TypeScript, six pool/demo tests and the comparison routing test passed. Browser checks covered both versions, same-market switching, sticky scrolling, and opening Flávio/Lula pool details. Browser automation has intermittent iframe-click limitations; standalone page checks verify the underlying interactions.
+
+Outcome headers in Proposed toggle their pool details when clicked; nested links and action buttons retain their own actions. Both preview ladders show exactly five levels per side with no row selector. Current accumulates shares; Proposed accumulates price × shares. The global design-preview notice is removed and the discovery header uses equal 12px top/bottom spacing.

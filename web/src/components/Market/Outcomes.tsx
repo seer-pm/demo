@@ -490,7 +490,11 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
         if (!element) return;
         if (isOutcomeCardFullyVisible(element)) return;
 
-        const top = element.getBoundingClientRect().top + window.scrollY - OUTCOME_CARD_SCROLL_OFFSET;
+        const headerHeight = document.getElementById("header")?.getBoundingClientRect().height ?? 0;
+        const top =
+          element.getBoundingClientRect().top +
+          window.scrollY -
+          Math.max(OUTCOME_CARD_SCROLL_OFFSET, headerHeight + 12);
         window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
       }, delay);
     });
@@ -531,10 +535,14 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
             >
               <div
                 onClick={(e) => {
-                  const isClickOnLinkOrButton = (e.target as HTMLElement).closest?.("a, button");
-                  onOutcomeChange(i, !isClickOnLinkOrButton);
-                  if (!isClickOnLinkOrButton) {
-                    setPoolDetailsOutcomeIndex(null);
+                  if ((e.target as HTMLElement).closest?.("a, button, select, textarea")) return;
+                  if (market.type === "Generic") {
+                    onOutcomeChange(i, false);
+                    const willOpen = poolDetailsOutcomeIndex !== i;
+                    setPoolDetailsOutcomeIndex(willOpen ? i : null);
+                    if (willOpen) scrollOutcomeCardIntoView(i, true);
+                  } else {
+                    onOutcomeChange(i, true);
                     scrollOutcomeCardIntoView(i);
                   }
                 }}

@@ -31,3 +31,23 @@ export const brazilOrderBookPreview = {
     [0.35, 19.92],
   ].map(([price, shares]) => ({ price, shares })),
 };
+
+/** Other outcomes use explicitly synthetic depth to demonstrate the same interaction. */
+export function getBrazilPreviewBook(outcome: string) {
+  if (outcome === brazilOrderBookPreview.outcome) return { ...brazilOrderBookPreview, synthetic: false };
+  const reference =
+    ({ "Luiz Inácio Lula da Silva": 0.423, "Renan Santos": 0.01, Others: 0.007 } as Record<string, number>)[outcome] ??
+    0.5;
+  const step = Math.min(0.01, reference / 10);
+  return {
+    ...brazilOrderBookPreview,
+    outcome,
+    last: reference,
+    synthetic: true,
+    asks: Array.from({ length: 10 }, (_, i) => ({ price: reference + step * (i + 1), shares: 10 + i * 3 })),
+    bids: Array.from({ length: 10 }, (_, i) => ({
+      price: Math.max(0.0001, reference - step * (i + 1)),
+      shares: 12 + i * 2,
+    })),
+  };
+}

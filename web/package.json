@@ -15,7 +15,8 @@
     "cosmos-export": "cosmos-export",
     "typecheck-netlify-functions": "tsc --noEmit --project netlify/tsconfig.json",
     "test": "vitest",
-    "preview:design": "cross-env VITE_DESIGN_PREVIEW=true VITE_WEBSITE_URL=http://localhost:3000 X_REDIRECT_URI=http://localhost:3000 npx --yes netlify-cli@27.10.2 dev --offline --framework \"#custom\" --command \"node ./server\" --target-port 3000 --port 8888 --functions netlify/functions"
+    "preview:design": "cross-env VITE_DESIGN_PREVIEW=true VITE_WEBSITE_URL=http://localhost:3000 X_REDIRECT_URI=http://localhost:3000 npx --yes netlify-cli@27.10.2 dev --offline --framework \"#custom\" --command \"node ./server\" --target-port 3000 --port 8888 --functions netlify/functions",
+    "preview:compare": "node ../scripts/comparison/start.mjs"
   },
   "dependencies": {
     "@bigmi/react": "^0.6.0",

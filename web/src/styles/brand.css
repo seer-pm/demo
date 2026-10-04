@@ -80,7 +80,7 @@ a:focus-visible, button:focus-visible {
 .container-fluid { width: 100%; max-width: 1480px; padding-inline: 32px; margin-inline: auto; }
 .seer-main { flex: 1; min-width: 0; padding-bottom: 64px; }
 .seer-header { background: var(--seer-page); color: var(--seer-text); position: sticky; top: 0; z-index: 40; }
-.seer-navbar { display: flex; gap: 32px; padding-block: 14px; position: relative; }
+.seer-navbar { display: flex; gap: 32px; padding-block: 10px; position: relative; }
 .seer-home-link { flex-shrink: 0; }
 .seer-primary-nav, .seer-account-nav { display: flex; align-items: center; gap: 22px; font-size: 13px; }
 .seer-primary-nav { margin-left: auto; }
@@ -194,7 +194,6 @@ a:focus-visible, button:focus-visible {
   .seer-reward-panel, .seer-reward-callout { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
-.seer-preview-notice { padding: 8px 20px; text-align: center; background: var(--seer-accent-soft); color: var(--seer-text); font-size: 11px; }
 .seer-primary-nav > a[aria-current="page"] { color: var(--seer-brand-purple); }
 :root[data-theme="dark"] .seer-primary-nav > a[aria-current="page"] { color: #b18aff; }
 .seer-header .dropdown > button svg { fill: currentColor; }
@@ -227,7 +226,7 @@ a:focus-visible, button:focus-visible {
   border-bottom: 0 !important;
 }
 .seer-discovery-header .seer-navbar {
-  padding-block: 24px 12px;
+  padding-block: 12px;
   gap: 20px;
 }
 .seer-discovery-header .seer-home-link {
