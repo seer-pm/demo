@@ -1,6 +1,5 @@
 import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
 import { Alert } from "@/components/Alert";
-import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
@@ -121,7 +120,6 @@ function PageContent({ params }: { params: UseMarketsProps }) {
   return (
     <div className="seer-home">
       <div className="container-fluid seer-home-controls">
-        <MarketsFilter />
         <MarketCategoryNav />
       </div>
 
@@ -135,11 +133,20 @@ function PageContent({ params }: { params: UseMarketsProps }) {
           </div>
         )}
 
-        {isError && <Alert type="warning" title="Markets are unavailable">
-          <p>We couldn't load the market feed. Please try again.</p>
-          <button type="button" className="btn btn-sm btn-primary mt-3" onClick={() => refetch()}>Try again</button>
-        </Alert>}
-        {!isPending && !isError && data.markets.length === 0 && <div className="seer-empty-state"><h2>No markets found</h2><p>Try another category or adjust your search and filters.</p></div>}
+        {isError && (
+          <Alert type="warning" title="Markets are unavailable">
+            <p>We couldn't load the market feed. Please try again.</p>
+            <button type="button" className="btn btn-sm btn-primary mt-3" onClick={() => refetch()}>
+              Try again
+            </button>
+          </Alert>
+        )}
+        {!isPending && !isError && data.markets.length === 0 && (
+          <div className="seer-empty-state">
+            <h2>No markets found</h2>
+            <p>Try another category or adjust your search and filters.</p>
+          </div>
+        )}
 
         <div className="mb-8 seer-market-grid">
           {data.markets.map((market) => (

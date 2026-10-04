@@ -8,9 +8,15 @@ import { PageIntro } from "./PageIntro";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <LayoutShell>
-      <a href="#main-content" className="seer-skip-link">Skip to content</a>
+      <a href="#main-content" className="seer-skip-link">
+        Skip to content
+      </a>
       <Header />
-      {DESIGN_PREVIEW && <div className="seer-preview-notice" role="status">Design preview · Public market data · Wallet connections and transactions are disabled</div>}
+      {DESIGN_PREVIEW && (
+        <div className="seer-preview-notice" role="status">
+          Design preview · Wallet actions disabled · Portfolio demo uses labelled sample data
+        </div>
+      )}
       <main id="main-content" className="seer-main">
         <PageIntro />
         {children}

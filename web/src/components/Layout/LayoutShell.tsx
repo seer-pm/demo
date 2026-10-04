@@ -13,6 +13,7 @@ import { config } from "../../wagmi.ts";
 import "react-toastify/dist/ReactToastify.css";
 import "../../index.scss";
 import "../../styles/brand.css";
+import "../../styles/portfolio.css";
 import { configureCollateral, configureCredits } from "@seer-pm/sdk";
 import { AuthUpdater } from "../AuthUpdater.tsx";
 

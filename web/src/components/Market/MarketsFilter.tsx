@@ -10,7 +10,10 @@ import Input from "../Form/Input";
 import { Link } from "../Link";
 import { MarketsFilterBox } from "./MarketsFilterBox";
 
-export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boolean }) {
+export function MarketsFilter({
+  isFutarchyPage = false,
+  mode = "full",
+}: { isFutarchyPage?: boolean; mode?: "full" | "search" | "actions" }) {
   const { address } = useAccount();
   const [searchParams] = useSearchParams();
   const {
@@ -30,6 +33,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
     }, 300),
     [searchParams],
   );
+  useEffect(() => () => debounceSetMarketNameParams.cancel(), [debounceSetMarketNameParams]);
   const onChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = (event.target as HTMLInputElement).value;
     setMarketName(value);
@@ -42,56 +46,64 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
     setIsClient(true);
   }, []);
   return (
-    <div>
+    <div className={`seer-filter-${mode}`}>
       <div className="seer-market-toolbar">
-        <div className="grow @container">
-          <Input
-            aria-label="Search markets"
-            placeholder="Search markets, outcomes or collections"
-            className="w-full text-[13px] @[250px]:text-[14px] @[400px]:text-[16px]"
-            icon={<SearchIcon fill="currentColor" />}
-            value={marketName}
-            onChange={onChangeName}
-            isClearable
-            onClear={() => {
-              setMarketName("");
-              debounceSetMarketNameParams("");
-            }}
-            disabled={!isClient}
-          />
-        </div>
-        <button
-          type="button"
-          className={clsx(
-            "seer-filter-button select select-bordered bg-base-100 flex items-center gap-2",
-            isShowFilters && "!outline-purple-primary !outline-2 outline outline-offset-2",
-          )}
-          aria-expanded={isShowFilters}
-          aria-controls="market-filter-panel"
-          onClick={() => setShowFilters((state) => !state)}
-        >
-          <div className="relative">
-            {hasFilters && <div className="absolute w-2 h-2 bg-error-primary rounded-full right-[-5px] top-[-5px]" />}
-            <Filter />
-          </div>{" "}
-          Filters
-        </button>
-        {isShowFilters && (
-          <div id="market-filter-panel" className="seer-filter-panel">
-            <MarketsFilterBox setShowFilters={setShowFilters} />
+        {mode !== "actions" && (
+          <div className="grow @container">
+            <Input
+              aria-label="Search markets"
+              placeholder="Search markets..."
+              className="w-full text-[13px] @[250px]:text-[14px] @[400px]:text-[16px]"
+              icon={<SearchIcon fill="currentColor" />}
+              value={marketName}
+              onChange={onChangeName}
+              isClearable
+              onClear={() => {
+                setMarketName("");
+                debounceSetMarketNameParams("");
+              }}
+              disabled={!isClient}
+            />
           </div>
         )}
+        {mode !== "search" && (
+          <>
+            <button
+              type="button"
+              className={clsx(
+                "seer-filter-button select select-bordered bg-base-100 flex items-center gap-2",
+                isShowFilters && "!outline-purple-primary !outline-2 outline outline-offset-2",
+              )}
+              aria-expanded={isShowFilters}
+              aria-controls="market-filter-panel"
+              onClick={() => setShowFilters((state) => !state)}
+            >
+              <div className="relative">
+                {hasFilters && (
+                  <div className="absolute w-2 h-2 bg-error-primary rounded-full right-[-5px] top-[-5px]" />
+                )}
+                <Filter />
+              </div>{" "}
+              Filter
+            </button>
+            {isShowFilters && (
+              <div id="market-filter-panel" className="seer-filter-panel">
+                <MarketsFilterBox setShowFilters={setShowFilters} />
+              </div>
+            )}
 
-        <div>
-          <LinkButton
-            to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
-            text={isFutarchyPage ? "Create New Proposal" : "Create market"}
-            icon={<PlusCircleIcon />}
-            className="seer-create-button"
-          />
-        </div>
+            <div>
+              <LinkButton
+                to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
+                text={isFutarchyPage ? "Create New Proposal" : "Create Market"}
+                icon={<PlusCircleIcon />}
+                className="seer-create-button"
+              />
+            </div>
+          </>
+        )}
       </div>
-      {address && (
+      {address && mode === "full" && (
         <div className="flex mt-8">
           <Link
             to={"/collections/default"}

@@ -1,3 +1,4 @@
+import { MarketsFilter } from "../Market/MarketsFilter";
 import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
 import { useModal } from "@/hooks/useModal";
@@ -114,7 +115,11 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean, pathname: strin
         return (
           <Link
             key={item.id}
-            aria-current={item.url && (pathname === item.url || (item.url !== "/" && pathname.startsWith(`${item.url}/`))) ? "page" : undefined}
+            aria-current={
+              item.url && (pathname === item.url || (item.url !== "/" && pathname.startsWith(`${item.url}/`)))
+                ? "page"
+                : undefined
+            }
             to={item.url ?? ""}
             className={
               item.className ?? (isMobile ? "hover:font-semibold block" : "whitespace-nowrap hover:opacity-85 py-3")
@@ -157,6 +162,7 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean, pathname: strin
 export default function Header() {
   const { urlParsed } = usePageContext();
   const { isConnected } = useAccount();
+  const isHome = urlParsed.pathname === "/";
   const { balance, isFetching, symbol, chainId } = useWalletBalance();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topOffset, setTopOffset] = useState(0);
@@ -255,14 +261,14 @@ export default function Header() {
       {
         id: "container-1",
         type: "container",
-        className: isMobile
-          ? "space-y-[24px]"
-          : "seer-primary-nav",
+        className: isMobile ? "space-y-[24px]" : "seer-primary-nav",
         children: [
           { id: "market", type: "link", url: "/", title: "Markets" },
           { id: "portfolio-main", type: "link", url: "/portfolio", title: "Portfolio" },
           { id: "leaderboard", type: "link", url: "/leaderboard", title: "Leaderboard" },
-          { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
+          ...(!isHome || isMobile
+            ? [{ id: "create-market", type: "link" as const, url: "/create-market", title: "Create Market" }]
+            : []),
           {
             id: "policies-dropdown",
             type: "nested_links",
@@ -304,9 +310,7 @@ export default function Header() {
       {
         id: "container-2",
         type: "container",
-        className: isMobile
-          ? "space-y-[24px] mt-5"
-          : "seer-account-nav",
+        className: isMobile ? "space-y-[24px] mt-5" : "seer-account-nav",
         children: [
           { id: "connect-wallet", type: "custom", element: <ConnectWallet isMobile={isMobile} /> },
           {
@@ -439,26 +443,30 @@ export default function Header() {
   };
 
   return (
-    <header id="header" className="seer-header">
+    <header id="header" className={`seer-header ${isHome ? "seer-discovery-header" : ""}`}>
       <Modal
         title="Deposit"
         className="w-[400px]"
         content={<DepositGuide closeModal={closeModal} chainId={chainId} balance={balance} symbol={symbol ?? ""} />}
       />
       <BetaWarning />
-      <nav
-        ref={navRef}
-        className="navbar container-fluid seer-navbar"
-      >
+      <nav ref={navRef} className="navbar container-fluid seer-navbar">
         <div className="seer-home-link">
           <Link aria-label="Seer home" className="hover:opacity-85" to="/">
             <BrandLockup />
           </Link>
         </div>
+        {isHome && <MarketsFilter mode="search" />}
         {buildAndRender(mobileOpen)}
+        {isHome && <MarketsFilter mode="actions" />}
         <div className="seer-mobile-actions">
           <ThemeToggleButton iconFill="currentColor" />
-          <button type="button" aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen} onClick={toggle}>
+          <button
+            type="button"
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={mobileOpen}
+            onClick={toggle}
+          >
             {mobileOpen ? <CloseIcon /> : <Menu />}
           </button>
         </div>

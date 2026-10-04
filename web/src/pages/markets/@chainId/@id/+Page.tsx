@@ -1,3 +1,4 @@
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
@@ -94,6 +95,8 @@ function SwapWidget({
 
 function MarketPage() {
   const { routeParams } = usePageContext();
+  const [marketSearchParams] = useSearchParams();
+  const requestedOutcome = marketSearchParams.get("outcome");
   const { address: account, chainId: connectedChainId } = useAccount();
   const { isPending: isSwitchPending } = useSwitchChain();
   // Guard: only one auto-switch attempt per market (per chainId). Never reset when on correct chain
@@ -122,6 +125,10 @@ function MarketPage() {
     isLoading: isMarketLoading,
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
+  const requestedOutcomeIndex = requestedOutcome ? market?.outcomes.indexOf(requestedOutcome) : 0;
+  useEffect(() => {
+    if (requestedOutcomeIndex !== undefined) setOutcomeIndex(Math.max(0, requestedOutcomeIndex));
+  }, [idOrSlug, requestedOutcome, requestedOutcomeIndex]);
 
   market = useMarketQuestions(market, chainId);
 

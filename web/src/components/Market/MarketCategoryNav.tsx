@@ -5,7 +5,7 @@ export function MarketCategoryNav() {
   const { categoryList, setCategory } = useMarketsSearchParams();
   return (
     <nav className="seer-categories" aria-label="Market categories">
-      {[{ value: "", text: "All markets" }, ...MARKET_CATEGORIES].map(({ value, text }) => (
+      {[{ value: "", text: "All" }, ...MARKET_CATEGORIES].map(({ value, text }) => (
         <button
           key={value}
           type="button"

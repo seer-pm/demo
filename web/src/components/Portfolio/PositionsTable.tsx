@@ -1,13 +1,13 @@
 import React, { useState } from "react";
+import type { ReviewPosition } from "./portfolio-review-data";
 
 import { useModal } from "@/hooks/useModal";
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
-import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import { CloseIcon, ConditionalMarketIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
+import { CloseIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isExecutorRow } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
-import type { PortfolioChainId, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId, SupportedChain } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { MarketStatus } from "@seer-pm/sdk";
 import {
@@ -22,9 +22,7 @@ import {
 import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
-import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
-import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
 import Popover from "../Popover";
 import { ExecutorBadge } from "./ExecutorBadge";
@@ -61,16 +59,19 @@ function PositionsTableInner({
   chainId,
   account,
   showRedeemColumn,
+  review = false,
 }: {
-  data: PortfolioPosition[];
+  data: ReviewPosition[];
   chainId: PortfolioChainId;
   account: Address | undefined;
   showRedeemColumn: boolean;
+  review?: boolean;
 }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
   const [selectedChainId, setSelectedChainId] = useState<SupportedChain>(chainId === "all" ? DEFAULT_CHAIN : chainId);
   const showChain = chainId === "all";
+  const [expanded, setExpanded] = useState<string>();
   function formatSmallNumber(n: number | undefined) {
     if (typeof n !== "number") return "-";
     if (n === 0) return "0";
@@ -81,8 +82,8 @@ function PositionsTableInner({
     return n.toFixed(2);
   }
   const singleChainSymbol = chainId === "all" ? null : getActiveCollateralProfile(chainId).primary.symbol;
-  const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
-    const redeemColumn: ColumnDef<PortfolioPosition> = {
+  const columns = React.useMemo<ColumnDef<ReviewPosition>[]>(() => {
+    const redeemColumn: ColumnDef<ReviewPosition> = {
       accessorKey: "marketStatus",
       cell: (info) => {
         const position = info.row.original;
@@ -150,100 +151,75 @@ function PositionsTableInner({
           const rowChainId = position.chainId;
           const chainName = SUPPORTED_CHAINS[rowChainId as keyof typeof SUPPORTED_CHAINS]?.name;
           return (
-            <div className="w-[100%] flex gap-1">
-              {position.parentMarketId && (
-                <Popover
-                  label="Conditional market. Show the parent market."
-                  trigger={
-                    <span title="Conditional Market">
-                      <ConditionalMarketIcon width="24" fill="#7D33FF" />
-                    </span>
-                  }
-                  content={
-                    <p className="text-base-content/70 text-[14px]">
-                      Conditional on{" "}
-                      <a
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline text-purple-primary cursor-pointer hover:underline"
-                        href={`${paths.market(
-                          position.parentMarketId!,
-                          rowChainId,
-                        )}?outcome=${encodeURIComponent(position.parentOutcome!)}`}
-                      >
-                        "{position.parentMarketName}"
-                      </a>{" "}
-                      being <span className="text-base-content">"{position.parentOutcome}"</span>
-                    </p>
-                  }
-                />
-              )}
-              <div className="min-w-0 w-full text-left">
-                <div className="flex items-center gap-2 min-w-0">
-                  <OutcomeImage
-                    image={position.outcomeImage}
-                    title={position.outcome}
-                    isInvalidOutcome={position.isInvalidOutcome}
-                    className="w-[24px] h-[24px] rounded-full shrink-0"
-                  />
-                  <p className="text-[14px] truncate min-w-0">
-                    <span className="text-purple-primary dark:text-purple-secondary font-semibold">
-                      {formatSmallNumber(position.tokenBalance + (position.lpTokenBalance ?? 0))}{" "}
-                    </span>
-                    <span title={position.outcome}>{position.outcome}</span>
-                  </p>
-                  {showChain && NETWORK_ICON_MAPPING[rowChainId] ? (
-                    <img
-                      alt={chainName ?? String(rowChainId)}
-                      title={chainName}
-                      className="w-4 h-4 rounded-full shrink-0"
-                      src={NETWORK_ICON_MAPPING[rowChainId]}
-                    />
-                  ) : null}
-                  {isExecutorRow(position.sourceWallet, account) ? (
-                    <ExecutorBadge wallet={position.sourceWallet as Address} />
-                  ) : null}
-                </div>
-                {/* Shown whenever the wallet has a pool position, including one the price has moved
-                    out of range: the row would otherwise read as a bare 0 with no explanation. */}
+            <div className="portfolio-market-cell">
+              <span className="portfolio-market-symbol" aria-hidden="true">
+                {position.tokenIndex === 0 ? "ϟ" : "◎"}
+              </span>
+              <div>
+                {review ? (
+                  <p>{position.marketName}</p>
+                ) : (
+                  <a
+                    href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  >
+                    {position.marketName}
+                  </a>
+                )}
+                <span className="portfolio-outcome">{position.outcome}</span>
+                {showChain && (
+                  <small className="portfolio-muted">
+                    {" "}
+                    {chainName} · {getActiveCollateralProfile(rowChainId).primary.symbol}
+                  </small>
+                )}
+                {isExecutorRow(position.sourceWallet, account) && (
+                  <ExecutorBadge wallet={position.sourceWallet as Address} />
+                )}
+                {position.parentMarketId && (
+                  <small className="portfolio-muted block">
+                    Conditional on{" "}
+                    <a
+                      href={`${paths.market(position.parentMarketId, rowChainId)}?outcome=${encodeURIComponent(position.parentOutcome ?? "")}`}
+                    >
+                      {position.parentOutcome}
+                    </a>
+                  </small>
+                )}
                 {((position.lpTokenBalance ?? 0) > 0 || (position.lpLegs?.length ?? 0) > 0) && (
-                  <p className="mt-1 text-[12px] text-black-secondary">
+                  <small className="portfolio-muted block">
                     {formatSmallNumber(position.tokenBalance)} held · {formatSmallNumber(position.lpTokenBalance ?? 0)}{" "}
                     in LP
-                  </p>
+                  </small>
                 )}
-                <a
-                  className="flex gap-2 items-start mt-1 text-[13px] text-base-content hover:underline cursor-pointer min-w-0"
-                  href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="flex-shrink-0 mt-0.5" aria-hidden>
-                    <SubDirArrowRight />
-                  </span>
-                  <MarketImage marketAddress={position.marketId} chainId={rowChainId} />
-                  <p title={info.getValue<string>()} className="line-clamp-2 text-left min-w-0">
-                    {info.getValue<string>()}
-                  </p>
-                </a>
               </div>
             </div>
           );
         },
-        header: "Position",
+        header: "Market / outcome",
       },
 
+      {
+        id: "entry",
+        accessorFn: (row) => row.reviewMetrics?.averageEntry,
+        header: "Avg. entry",
+        cell: (info) =>
+          info.getValue<number>() === undefined ? (
+            <span title="Acquisition cost is not supplied by the portfolio API">N/A</span>
+          ) : (
+            info.getValue<number>().toFixed(4)
+          ),
+      },
       {
         accessorKey: "tokenPrice",
         cell: (info) => {
           const position = info.row.original;
           const symbol = getActiveCollateralProfile(position.chainId).primary.symbol;
           const suffix = showChain ? ` ${symbol}` : "";
-          if (position.redeemedPrice) {
+          if (position.marketStatus === MarketStatus.CLOSED && Number.isFinite(position.redeemedPrice)) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
                 <p>
-                  {formatSmallNumber(position.redeemedPrice)}
+                  {position.redeemedPrice.toFixed(4)}
                   {suffix}
                 </p>
                 <span className="tooltip">
@@ -271,14 +247,46 @@ function PositionsTableInner({
           }
           return (
             <p className="font-semibold text-[14px] text-center">
-              {formatSmallNumber(info.getValue<number>())}
+              {Number.isFinite(info.getValue<number>()) ? info.getValue<number>().toFixed(4) : "N/A"}
               {suffix}
             </p>
           );
         },
-        header: singleChainSymbol ? `Price (${singleChainSymbol})` : "Price",
+        header: "Now",
       },
 
+      {
+        id: "shares",
+        accessorFn: (row) => row.tokenBalance + (row.lpTokenBalance ?? 0),
+        header: "Shares",
+        cell: (info) => formatSmallNumber(info.getValue<number>()),
+      },
+      {
+        id: "cost",
+        accessorFn: (row) => row.reviewMetrics?.cost,
+        header: "Cost / traded",
+        cell: (info) => (
+          <>
+            {formatSmallNumber(info.getValue<number>())}
+            <small className="portfolio-secondary">
+              {info.row.original.reviewMetrics
+                ? `${formatSmallNumber(info.row.original.reviewMetrics.traded)} traded`
+                : "Not available"}
+            </small>
+          </>
+        ),
+      },
+      {
+        id: "payout",
+        accessorFn: (row) => row.reviewMetrics?.payout,
+        header: "If won",
+        cell: (info) =>
+          info.getValue<number>() === undefined ? (
+            <span title="Payout depends on market settlement rules and is not supplied by this API">N/A</span>
+          ) : (
+            formatSmallNumber(info.getValue<number>())
+          ),
+      },
       {
         accessorKey: "tokenValue",
         cell: (info) => {
@@ -288,14 +296,64 @@ function PositionsTableInner({
             <p className="font-semibold text-[14px] text-center">
               {formatSmallNumber(info.getValue<number>())}
               {symbol}
+              {position.reviewMetrics ? (
+                <>
+                  <small
+                    className={
+                      position.tokenValue - position.reviewMetrics.cost >= 0
+                        ? "portfolio-gain portfolio-secondary"
+                        : "portfolio-loss portfolio-secondary"
+                    }
+                  >
+                    {position.tokenValue >= position.reviewMetrics.cost ? "+" : ""}
+                    {formatSmallNumber(position.tokenValue - position.reviewMetrics.cost)}
+                  </small>
+                  <small
+                    className={
+                      position.tokenValue >= position.reviewMetrics.cost
+                        ? "portfolio-gain portfolio-secondary"
+                        : "portfolio-loss portfolio-secondary"
+                    }
+                  >
+                    {position.reviewMetrics.cost > 0
+                      ? `(${position.tokenValue >= position.reviewMetrics.cost ? "+" : ""}${(((position.tokenValue - position.reviewMetrics.cost) / position.reviewMetrics.cost) * 100).toFixed(2)}%)`
+                      : "Return unavailable"}
+                  </small>
+                </>
+              ) : (
+                <small className="portfolio-secondary" title="Remaining cost basis is not supplied by the API">
+                  P&L unavailable
+                </small>
+              )}
             </p>
           );
         },
-        header: singleChainSymbol ? `Value (${singleChainSymbol})` : "Value",
+        header: "Value / P&L",
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
+      {
+        id: "profit",
+        accessorFn: (row) => (row.reviewMetrics ? row.tokenValue - row.reviewMetrics.cost : undefined),
+        header: "Profit / loss",
+      },
+      {
+        id: "details",
+        header: "",
+        enableSorting: false,
+        cell: (info) => (
+          <button
+            className="portfolio-expand"
+            type="button"
+            aria-label={`${expanded === info.row.id ? "Hide" : "Show"} ${info.row.original.outcome} details`}
+            aria-expanded={expanded === info.row.id}
+            onClick={() => setExpanded(expanded === info.row.id ? undefined : info.row.id)}
+          >
+            {expanded === info.row.id ? "−" : "+"}
+          </button>
+        ),
+      },
     ];
-  }, [showChain, showRedeemColumn, singleChainSymbol, account]);
+  }, [showChain, showRedeemColumn, singleChainSymbol, account, review, expanded]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -303,27 +361,41 @@ function PositionsTableInner({
   const table = useReactTable({
     columns,
     data,
+    getRowId: (row) => `${row.chainId}:${row.tokenId}:${row.sourceWallet ?? "owner"}`,
+    state: { pagination, columnVisibility: { profit: false } },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
     enableMultiSort: true,
-    state: {
-      pagination,
-    },
     initialState: {
-      sorting: showRedeemColumn
-        ? [
-            { id: "marketStatus", desc: false },
-            { id: "tokenValue", desc: true },
-          ]
-        : [{ id: "tokenValue", desc: true }],
+      sorting: [{ id: "tokenValue", desc: true }],
     },
   });
 
   return (
     <>
-      <div className="w-full overflow-x-auto mb-6">
+      <div className="portfolio-table-tools">
+        <label>
+          Sort by{" "}
+          <select
+            aria-label="Sort positions"
+            value={table.getState().sorting[0]?.id ?? "tokenValue"}
+            onChange={(event) => {
+              table.setSorting([{ id: event.target.value, desc: event.target.value !== "marketName" }]);
+              table.setPageIndex(0);
+            }}
+          >
+            <option value="tokenValue">Current value</option>
+            <option value="marketName">Market name</option>
+            <option value="shares">Shares</option>
+            <option value="profit" disabled={!data.some((row) => row.reviewMetrics)}>
+              Profit / loss
+            </option>
+          </select>
+        </label>
+      </div>
+      <section className="w-full overflow-x-auto mb-6" aria-label="Position details" tabIndex={0}>
         {showRedeemColumn && (
           <Modal
             title="Redeem"
@@ -348,23 +420,7 @@ function PositionsTableInner({
             className="[&_.btn-primary]:w-full"
           />
         )}
-        <table className="simple-table table-fixed">
-          <colgroup>
-            {showRedeemColumn ? (
-              <>
-                <col style={{ width: "46%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "24%" }} />
-              </>
-            ) : (
-              <>
-                <col style={{ width: "52%" }} />
-                <col style={{ width: "24%" }} />
-                <col style={{ width: "24%" }} />
-              </>
-            )}
-          </colgroup>
+        <table className="simple-table portfolio-positions-table">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -381,25 +437,61 @@ function PositionsTableInner({
           <tbody>
             {table.getRowModel().rows.map((row) => {
               return (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => {
-                    return (
-                      <td className={cell.column.id === "marketName" ? "text-left" : "text-center"} key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                <React.Fragment key={row.id}>
+                  <tr>
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <td className={cell.column.id === "marketName" ? "text-left" : "text-center"} key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {expanded === row.id && (
+                    <tr className="portfolio-expanded-row">
+                      <td colSpan={row.getVisibleCells().length}>
+                        <div className="portfolio-expanded-grid">
+                          <span>
+                            Amount traded (buys + sells)
+                            <b>
+                              {row.original.reviewMetrics
+                                ? `${formatSmallNumber(row.original.reviewMetrics.traded)} ${getActiveCollateralProfile(row.original.chainId).primary.symbol}`
+                                : "Not available"}
+                            </b>
+                          </span>
+                          <span>
+                            Gross payout if outcome wins
+                            <b>
+                              {row.original.reviewMetrics
+                                ? `${formatSmallNumber(row.original.reviewMetrics.payout)} ${getActiveCollateralProfile(row.original.chainId).primary.symbol}`
+                                : "Depends on settlement rules"}
+                            </b>
+                          </span>
+                          <span>
+                            Settlement
+                            <b>
+                              {row.original.marketStatus === MarketStatus.CLOSED
+                                ? "Resolved"
+                                : "Open · not yet redeemable"}
+                            </b>
+                          </span>
+                        </div>
                       </td>
-                    );
-                  })}
-                </tr>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
-      </div>
-      <MarketsPagination
-        pageCount={table.getPageCount()}
-        handlePageClick={({ selected }) => table.setPageIndex(selected)}
-        page={table.getState().pagination.pageIndex + 1}
-      />
+      </section>
+      {table.getPageCount() > 1 && (
+        <MarketsPagination
+          pageCount={table.getPageCount()}
+          handlePageClick={({ selected }) => table.setPageIndex(selected)}
+          page={table.getState().pagination.pageIndex + 1}
+        />
+      )}
     </>
   );
 }
@@ -408,8 +500,10 @@ export default function PositionsTable({
   data,
   chainId,
   account,
+  review = false,
 }: {
-  data: PortfolioPosition[];
+  review?: boolean;
+  data: ReviewPosition[];
   chainId: PortfolioChainId;
   account: Address | undefined;
 }) {
@@ -423,7 +517,8 @@ export default function PositionsTable({
       data={data}
       chainId={chainId}
       account={account}
-      showRedeemColumn={showRedeemColumn}
+      showRedeemColumn={showRedeemColumn && !review}
+      review={review}
     />
   );
 }

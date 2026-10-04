@@ -49,7 +49,8 @@ The earlier ChatGPT Site is an independent prototype and is not a preview of thi
 - Official identity, converging streak, shared light/dark surfaces and responsive navigation now carry across existing routes.
 - Homepage adds category navigation, compact filters and a responsive market grid while retaining live data and supported outcome types.
 - Portfolio, airdrop, market detail, leaderboard and creation screens receive the same visual treatment. Existing business rules remain authoritative.
-- This is the visual foundation for review. The prototype's P&L chart, extra position metrics and new airdrop UX still need separate data-backed work.
+- `/portfolio` in design-preview mode now integrates the approved dashboard: interactive chart, all position columns, search/sort/expansion and the connected Airdrop view. Public account routes use the same overview and table components.
+- Missing account API fields remain explicitly unavailable: historical P&L series, realized/unrealized breakdown, remaining cost basis, average entry, gross traded amount and settlement-aware potential payout. Review fixtures never substitute for real account data.
 
 ## Run the read-only preview
 
@@ -61,6 +62,17 @@ corepack yarn workspace @seer-pm/web preview:design
 
 Open http://localhost:3000. The command runs Netlify locally and enables an explicit design-preview flag. It fetches allowlisted public data from app.seer.pm without forwarding credentials; wallet connections and writes are disabled. This local address works only on the machine running the preview. A shareable hosting deployment is still pending.
 
-Public portfolio and airdrop data can be viewed by opening a trader from the leaderboard. The disconnected portfolio is intentional without an account. Creation forms can be explored as drafts, without submitting transactions. Policy documents that depend on subgraph configuration are unavailable in this limited preview; configure the normal app environment to validate them.
+Public portfolio and airdrop data can be viewed by opening a trader from the leaderboard. In design-preview mode, the bare `/portfolio` route opens the labelled illustrative dashboard. In normal mode it retains the wallet connection prompt. Creation forms can be explored as drafts, without submitting transactions. Policy documents that depend on subgraph configuration are unavailable in this limited preview; configure the normal app environment to validate them.
 
 Validation: TypeScript and the production build with the preview flag passed; category-filter tests and preview access-control tests passed. Browser checks covered home in both themes, mobile navigation, filters, market detail, leaderboard, public portfolio/airdrop, profile and draft market creation. Authenticated account actions, transactions and every secondary route have not been validated. Keep normal production environment setup for those checks.
+
+## Portfolio and homepage review update
+
+- Match the supplied homepage layout with search in the header, compact category navigation, dense cards and binary outcome actions. Non-binary markets select their actual outcome; do not invent a separate No token. Scalar and multi-categorical visualization is retained.
+- Integrate the approved portfolio layout as React components within existing routes. Review data is isolated in `portfolio-review-data.ts` and used only when design-preview mode is active without an account route.
+- Chart ranges, keyboard/pointer inspection, position search, profit sorting, expanded details and Airdrop navigation are interactive. Archived filtering can only display rows supplied by the API.
+- The next planned work is order-book UX, then conversational market creation. Neither flow is changed in this update.
+
+Account integration contract: summary totals are USD; rows remain in native collateral. Supply historical USD P&L observations (excluding external deposits/withdrawals) and realized/unrealized values for each supported range. Supply remaining acquisition cost and average entry after partial sales/transfers, gross buy/sell volume and settlement-aware payout per position. Account API values must account for liquidity holdings and linked TradeExecutors before replacing unavailable states. The review uses the original illustrative figures, including the original USD/native-collateral distinction.
+
+Review captures: [homepage](docs/review/homepage.png), [portfolio overview](docs/review/portfolio-overview.png), [positions](docs/review/portfolio-positions.png). Production preview build and four targeted tests pass. Browser checks include six chart ranges, keyboard inspection, filtering, expanded rows, Airdrop navigation, homepage filters, outcome deep links and 390px layouts. Wallet transactions remain untested.

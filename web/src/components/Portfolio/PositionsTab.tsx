@@ -1,26 +1,34 @@
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
 import { usePortfolioPositions } from "@seer-pm/react";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import type { PortfolioChainId } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
 import PositionsTable from "./PositionsTable";
+import type { ReviewPosition } from "./portfolio-review-data";
 
-function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: PortfolioChainId }) {
-  const { data: positions = [], isLoading, error, refetch, isFetching } = usePortfolioPositions(account, chainId);
+function PositionsTab({
+  account,
+  chainId,
+  reviewData,
+}: { account: Address | undefined; chainId: PortfolioChainId; reviewData?: ReviewPosition[] }) {
+  const { data: livePositions = [], isLoading, error, refetch, isFetching } = usePortfolioPositions(account, chainId);
+  const positions = reviewData ?? livePositions;
+  const [showArchived, setShowArchived] = useState(false);
   const [filterMarketName, setFilterMarketName] = useState("");
 
   const filteredPositions =
     positions.filter((position) => {
       const isMatchName = isTextInString(filterMarketName, position.marketName);
       const isMatchOutcome = isTextInString(filterMarketName, position.outcome);
-      return isMatchName || isMatchOutcome;
+      return (isMatchName || isMatchOutcome) && (showArchived || !position.isWorthless);
     }) ?? [];
 
   const renderTable = () => {
-    if (isLoading) {
+    if (isLoading && !reviewData) {
       return (
         <div aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading positions</span>
@@ -44,10 +52,10 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
         </Alert>
       );
     }
-    return <PositionsTable account={account} chainId={chainId} data={filteredPositions} />;
+    return <PositionsTable account={account} chainId={chainId} data={filteredPositions} review={!!reviewData} />;
   };
 
-  if (error) {
+  if (error && !reviewData) {
     return (
       <Alert type="error" title="Couldn't load positions">
         <div className="space-y-3">
@@ -66,8 +74,8 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
   }
 
   return (
-    <div>
-      <div className="grow mb-6">
+    <div className="portfolio-positions">
+      <div className="portfolio-position-search">
         <label className="sr-only" htmlFor="positions-search">
           Search by market or outcome
         </label>
@@ -82,10 +90,30 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
           onChange={(event) => setFilterMarketName(event.target.value)}
         />
       </div>
-      <p className="text-sm text-black-primary mb-4">
-        Price and Value in the table are in each chain's collateral (sDAI, sUSDS, and others), not USD.
-      </p>
+      <label className="portfolio-archived">
+        <input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />{" "}
+        Show archived
+      </label>
+      <details className="portfolio-definitions">
+        <summary>
+          {chainId === "all" ? "Collateral labelled per row" : getActiveCollateralProfile(chainId).primary.symbol} ·
+          Prices, cost, payout and value · How values work
+        </summary>
+        <p>
+          Average entry is the acquisition price of remaining shares. Cost is remaining cost basis. Traded is gross buys
+          plus sells. If won is gross settlement payout, not profit. Position P&L is value minus cost; return is P&L
+          divided by cost. N/A means the account API does not provide this figure. Each row uses its chain's collateral,
+          never an unlabelled mix of currencies.
+        </p>
+      </details>
       {renderTable()}
+      <div className="portfolio-results">
+        <span>
+          {filteredPositions.length} of {positions.length} positions
+          {showArchived ? " · including archived where supplied" : ""}
+        </span>
+        <span>Marked value · execution price may differ</span>
+      </div>
     </div>
   );
 }
