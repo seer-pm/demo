@@ -435,8 +435,8 @@ function MarketOutcomeRows({ market }: { market: Market }) {
     .filter(({ name }) => name !== INVALID_RESULT_OUTCOME_TEXT);
   const binary =
     outcomes.length === 2 &&
-    outcomes.some((o) => o.name.toLowerCase() === "yes") &&
-    outcomes.some((o) => o.name.toLowerCase() === "no");
+    outcomes.some((o) => o.name.trim().toLowerCase() === "yes") &&
+    outcomes.some((o) => o.name.trim().toLowerCase() === "no");
   const link = (name: string) => `${paths.market(market)}?outcome=${encodeURIComponent(name)}`;
   return (
     <div className={`seer-outcome-list ${binary ? "seer-binary-actions" : ""}`}>
@@ -445,7 +445,7 @@ function MarketOutcomeRows({ market }: { market: Market }) {
             <Link
               key={index}
               to={link(name)}
-              className={`seer-binary-action ${name.toLowerCase() === "no" ? "seer-action-soft" : ""}`}
+              className={`seer-binary-action ${name.trim().toLowerCase() === "no" ? "seer-action-soft" : ""}`}
               aria-label={`Select ${name} in ${market.marketName}`}
             >
               <span>{name}</span>
@@ -453,19 +453,17 @@ function MarketOutcomeRows({ market }: { market: Market }) {
             </Link>
           ))
         : outcomes.slice(0, 2).map(({ name, index }) => (
-            <div key={index} className="seer-outcome-row">
+            <Link
+              key={index}
+              to={link(name)}
+              className="seer-outcome-row"
+              aria-label={`Select ${name} in ${market.marketName}`}
+            >
               <span className="seer-outcome-name" title={name}>
                 {name}
               </span>
               <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index]) : "N/A"}</strong>
-              <Link
-                to={link(name)}
-                className="seer-outcome-action"
-                aria-label={`Select ${name} in ${market.marketName}`}
-              >
-                Select
-              </Link>
-            </div>
+            </Link>
           ))}
       {outcomes.length > 2 && (
         <Link className="seer-more-outcomes" to={paths.market(market)}>
@@ -528,7 +526,7 @@ export function PreviewCard({ market }: { market: Market }) {
       <div className="seer-market-card-outcomes px-4 custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
-        ) : marketType === MarketTypes.CATEGORICAL ? (
+        ) : marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR ? (
           <MarketOutcomeRows market={market} />
         ) : (
           <OutcomesInfo

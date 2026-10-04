@@ -342,8 +342,8 @@ a:focus-visible, button:focus-visible {
   gap: 12px;
   padding: 12px;
   border-radius: 8px;
-  background: #7d33ff;
-  color: white;
+  background: #a275ef;
+  color: #24133f;
   min-height: 44px;
   font-size: 12px;
 }
@@ -464,3 +464,11 @@ a:focus-visible, button:focus-visible {
 .seer-home .seer-market-card { background: var(--seer-surface); }
 .seer-create-button { flex-wrap: nowrap; gap: 6px; }
 .seer-create-button svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.seer-binary-action:hover { filter: brightness(1.06); }
+.seer-outcome-row:focus-visible, .seer-binary-action:focus-visible { outline: 2px solid var(--seer-brand-purple); outline-offset: 3px; }
+
+.seer-market-card-heading > div { padding-left: 12px; padding-right: 12px; }
+.seer-market-card-heading a[title] { font-size: 13px; }
+.seer-market-card-outcomes, .seer-market-card-footer { padding-left: 12px; padding-right: 12px; }
+.seer-market-card-heading .bg-purple-primary { background: #a275ef; }
