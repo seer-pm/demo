@@ -40,6 +40,7 @@ import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
+import { rankPreviewOutcomes } from "./previewOutcomeRanking";
 
 const DONUT_SIZE = 56;
 const DONUT_PAD_ANGLE = 2;
@@ -429,10 +430,8 @@ function MarketResult({ market }: { market: Market }) {
 }
 
 function MarketOutcomeRows({ market }: { market: Market }) {
-  const odds = rescaleOdds(market.odds);
-  const outcomes = market.outcomes
-    .map((name, index) => ({ name, index }))
-    .filter(({ name }) => name !== INVALID_RESULT_OUTCOME_TEXT);
+  const odds = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
+  const outcomes = rankPreviewOutcomes(market.outcomes, market.odds, INVALID_RESULT_OUTCOME_TEXT);
   const binary =
     outcomes.length === 2 &&
     outcomes.some((o) => o.name.trim().toLowerCase() === "yes") &&
@@ -441,28 +440,28 @@ function MarketOutcomeRows({ market }: { market: Market }) {
   return (
     <div className={`seer-outcome-list ${binary ? "seer-binary-actions" : ""}`}>
       {binary
-        ? outcomes.map(({ name, index }) => (
+        ? outcomes.map(({ name, index, leading }) => (
             <Link
               key={index}
               to={link(name)}
-              className={`seer-binary-action ${name.trim().toLowerCase() === "no" ? "seer-action-soft" : ""}`}
+              className={`seer-binary-action ${leading ? "seer-outcome-leading" : "seer-action-soft"}`}
               aria-label={`Select ${name} in ${market.marketName}`}
             >
               <span>{name}</span>
-              <small>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index]) : "N/A"}</small>
+              <small>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</small>
             </Link>
           ))
-        : outcomes.slice(0, 2).map(({ name, index }) => (
+        : outcomes.slice(0, 2).map(({ name, index, leading }) => (
             <Link
               key={index}
               to={link(name)}
-              className="seer-outcome-row"
+              className={`seer-outcome-row ${leading ? "seer-outcome-leading" : ""}`}
               aria-label={`Select ${name} in ${market.marketName}`}
             >
               <span className="seer-outcome-name" title={name}>
                 {name}
               </span>
-              <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index]) : "N/A"}</strong>
+              <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</strong>
             </Link>
           ))}
       {outcomes.length > 2 && (
@@ -475,7 +474,6 @@ function MarketOutcomeRows({ market }: { market: Market }) {
 }
 
 export function PreviewCard({ market }: { market: Market }) {
-  const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
@@ -526,15 +524,8 @@ export function PreviewCard({ market }: { market: Market }) {
       <div className="seer-market-card-outcomes px-4 custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
-        ) : marketType === MarketTypes.CATEGORICAL || marketType === MarketTypes.MULTI_SCALAR ? (
-          <MarketOutcomeRows market={market} />
         ) : (
-          <OutcomesInfo
-            market={market}
-            outcomesCount={outcomesCount}
-            images={market.images?.outcomes}
-            marketStatus={marketStatus}
-          />
+          <MarketOutcomeRows market={market} />
         )}
       </div>
 

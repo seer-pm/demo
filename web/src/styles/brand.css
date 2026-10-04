@@ -472,3 +472,6 @@ a:focus-visible, button:focus-visible {
 .seer-market-card-heading a[title] { font-size: 13px; }
 .seer-market-card-outcomes, .seer-market-card-footer { padding-left: 12px; padding-right: 12px; }
 .seer-market-card-heading .bg-purple-primary { background: #a275ef; }
+
+.seer-market-card .seer-outcome-leading { background: #a275ef; color: #24133f; }
+.seer-market-card .seer-outcome-leading:hover { background: #b08af2; }
