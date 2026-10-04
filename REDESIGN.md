@@ -5,7 +5,7 @@
 - `main`: clean upstream baseline. No design edits here.
 - `redesign/brand-foundation`: shared palette, surfaces and control styling. First reviewable change.
 - `redesign/app-shell`: shared app layout, homepage and initial visual pass across existing routes. Its review PR targets `redesign/brand-foundation`.
-- Next: separate Portfolio and Airdrop UX branches after visual review.
+- Portfolio and Airdrop review components are integrated into `redesign/app-shell`. Subsequent feature commits can be reviewed or cherry-picked separately.
 - Each review PR in this private repository should target the branch containing its prerequisites. Keep main as the baseline during design review.
 - An integration branch may collect reviewed commits for a whole-app preview. Do not submit that aggregate branch as a single oversized upstream PR.
 - Amend existing routes and components. Add reusable components where necessary; do not keep duplicate production versions of every page.
@@ -71,8 +71,17 @@ Validation: TypeScript and the production build with the preview flag passed; ca
 - Match the supplied homepage layout with search in the header, compact category navigation, dense cards and binary outcome actions. Non-binary markets select their actual outcome; do not invent a separate No token. Scalar and multi-categorical visualization is retained.
 - Integrate the approved portfolio layout as React components within existing routes. Review data is isolated in `portfolio-review-data.ts` and used only when design-preview mode is active without an account route.
 - Chart ranges, keyboard/pointer inspection, position search, profit sorting, expanded details and Airdrop navigation are interactive. Archived filtering can only display rows supplied by the API.
-- The next planned work is order-book UX, then conversational market creation. Neither flow is changed in this update.
+- Order-book cost totals and a conversational creation preview are included in the subsequent feature commits.
 
 Account integration contract: summary totals are USD; rows remain in native collateral. Supply historical USD P&L observations (excluding external deposits/withdrawals) and realized/unrealized values for each supported range. Supply remaining acquisition cost and average entry after partial sales/transfers, gross buy/sell volume and settlement-aware payout per position. Account API values must account for liquidity holdings and linked TradeExecutors before replacing unavailable states. The review uses the original illustrative figures, including the original USD/native-collateral distinction.
 
 Review captures: [homepage](docs/review/homepage.png), [portfolio overview](docs/review/portfolio-overview.png), [positions](docs/review/portfolio-positions.png). Production preview build and four targeted tests pass. Browser checks include six chart ranges, keyboard inspection, filtering, expanded rows, Airdrop navigation, homepage filters, outcome deep links and 390px layouts. Wallet transactions remain untested.
+
+## Market cards, order book and creation studio
+
+- Lighter lavender outcome buttons (`#A275EF`, an implementation choice), compact reference spacing and clickable outcome rows. No extra View/Select badges. Keep actual Seer outcomes; categorical outcomes do not have invented No tokens.
+- Order-book Total is the cumulative sum of each level’s price × shares, starting at the best price independently for asks and bids. Asks are then reversed for display. Round only for display; show the pool quote-token symbol. This is an approximate pool-depth cost excluding fees, not an executable swap quote. Horizontal liquidity charts remain denominated in shares.
+- In design-preview mode, `/create-market` opens a chat studio with editable drafts, rule refinement and review cards. Responses are local templates, labelled simulated. No AI request or publishing is performed. The manual form remains accessible, and remains the default outside preview mode.
+- Developer connection: replace the local `send` response templates with a server AI endpoint returning structured draft patches. Validate category, deadline, source and oracle-compatible rules before mapping a reviewed draft into the existing creation form. Never invoke wallet submission from an AI response. Drafts currently persist only while the studio remains mounted, including switches to the manual form.
+
+Review capture: [market studio](docs/review/market-studio.png). Unit tests cover independent cumulative cost ordering/precision and chat draft validation/refinement. No new fees or creation business rules are introduced.

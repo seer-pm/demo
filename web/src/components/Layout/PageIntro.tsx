@@ -1,3 +1,4 @@
+import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import { usePageContext } from "vike-react/usePageContext";
 import { BrandStreak } from "./BrandStreak";
 
@@ -29,7 +30,7 @@ const sections: [string, string, string, string][] = [
 export function PageIntro() {
   const { urlParsed } = usePageContext();
   const section = sections.find(([path]) => urlParsed.pathname === path || urlParsed.pathname.startsWith(`${path}/`));
-  if (!section) return null;
+  if (!section || (DESIGN_PREVIEW && urlParsed.pathname === "/create-market")) return null;
   const [, eyebrow, title, description] = section;
   return (
     <div className="container-fluid seer-page-intro">

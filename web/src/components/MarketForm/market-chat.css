@@ -1,0 +1,46 @@
+.seer-chat-builder { max-width: 1180px; margin: 24px auto 64px; color: var(--seer-text); }
+.seer-chat-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 30px; }
+.seer-chat-eyebrow { font-size: 10px; letter-spacing: .15em; font-weight: 700; color: var(--seer-muted); }
+.seer-chat-heading h1 { font-size: clamp(28px, 4vw, 42px); font-weight: 600; letter-spacing: -.04em; margin: 9px 0; }
+.seer-chat-heading p, .seer-chat-empty p { color: var(--seer-muted); font-size: 14px; line-height: 1.7; }
+.seer-chat-text-button { font-size: 12px; color: var(--seer-muted); white-space: nowrap; }
+.seer-chat-workspace { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; align-items: start; }
+.seer-chat-conversation, .seer-chat-draft { background: var(--seer-surface); border: 1px solid var(--seer-border); border-radius: 20px; overflow: hidden; min-width: 0; }
+.seer-chat-conversation > header, .seer-chat-draft > header { display: flex; align-items: center; gap: 10px; padding: 20px 24px; border-bottom: 1px solid var(--seer-border); font-size: 13px; }
+.seer-chat-spark { font-size: 24px; color: #a275ef; }
+.seer-chat-badge { background: var(--seer-surface-raised); color: var(--seer-muted); border-radius: 20px; padding: 5px 9px; font-size: 9px; margin-left: auto; white-space: nowrap; }
+.seer-chat-messages { padding: 25px; height: 355px; overflow-y: auto; overscroll-behavior: contain; }
+.seer-chat-message { margin-bottom: 22px; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.seer-chat-message small { font-size: 10px; font-weight: 600; color: var(--seer-muted); }
+.seer-chat-message.user { background: var(--seer-surface-raised); padding: 12px 16px; margin-left: 36px; border-radius: 14px 14px 4px 14px; }
+.seer-chat-examples { display: grid; gap: 8px; margin-top: 24px; }
+.seer-chat-examples > small { font-size: 9px; letter-spacing: .12em; color: var(--seer-muted); margin-bottom: 4px; }
+.seer-chat-examples button { display: flex; justify-content: space-between; text-align: left; gap: 12px; padding: 11px 14px; border: 1px solid var(--seer-border); border-radius: 10px; font-size: 12px; }
+.seer-chat-examples button:hover { background: var(--seer-surface-raised); }
+.seer-chat-suggestions { padding: 0 24px 12px; font-size: 11px; color: #a275ef; }
+.seer-chat-composer { margin: 0 20px; border: 1px solid var(--seer-border); border-radius: 14px; padding: 12px; display: flex; gap: 8px; align-items: end; background: var(--seer-page); }
+.seer-chat-composer textarea { background: transparent; resize: none; flex: 1; min-width: 0; font-size: 13px; outline: none; }
+.seer-chat-composer:focus-within { border-color: #a275ef; }
+.seer-chat-composer button { width: 36px; height: 36px; background: #a275ef; color: #24133f; border-radius: 10px; font-size: 24px; }
+.seer-chat-composer button:disabled { opacity: .35; }
+.seer-chat-footnote { color: var(--seer-muted); font-size: 10px; text-align: center; padding: 14px 16px; }
+.seer-chat-empty { min-height: 470px; padding: 72px 40px; text-align: center; background: radial-gradient(ellipse at 50% 0%, #a275ef15, transparent 70%); }
+.seer-chat-empty > span { color: #a275ef; font-size: 65px; }
+.seer-chat-empty h2 { font-size: 20px; font-weight: 600; margin: 16px 0 10px; }
+.seer-chat-skeleton { background: var(--seer-surface-raised); height: 10px; border-radius: 8px; margin: 24px auto 0; max-width: 230px; }
+.seer-chat-skeleton.short { max-width: 150px; margin-top: 10px; }
+.seer-chat-fields, .seer-chat-review { padding: 24px; display: grid; gap: 18px; }
+.seer-chat-fields label { display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: var(--seer-muted); min-width: 0; }
+.seer-chat-fields input, .seer-chat-fields textarea, .seer-chat-fields select { border: 1px solid var(--seer-border); background: var(--seer-page); border-radius: 9px; padding: 10px 12px; font-size: 12px; color: var(--seer-text); width: 100%; min-width: 0; }
+.seer-chat-fields textarea { resize: vertical; }
+.seer-chat-field-pair { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px; }
+.seer-chat-outcomes { display: flex; gap: 10px; }
+.seer-chat-outcomes span { flex: 1; padding: 10px; text-align: center; border-radius: 8px; background: #a275ef; color: #24133f; font-size: 12px; }
+.seer-chat-outcomes span + span { background: var(--seer-surface-raised); color: var(--seer-text); }
+.seer-chat-primary { background: #7d33ff; color: white; padding: 12px 18px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.seer-chat-review h2 { font-size: 23px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.seer-chat-review dt { font-size: 10px; color: var(--seer-muted); margin-bottom: 6px; }
+.seer-chat-review dd { font-size: 12px; line-height: 1.7; margin-bottom: 20px; overflow-wrap: anywhere; }
+.seer-chat-error { color: #dd6666; font-size: 12px; }
+@media(max-width: 760px) { .seer-chat-workspace { grid-template-columns: 1fr; } .seer-chat-heading { align-items: start; flex-direction: column; } .seer-chat-builder { margin-top: 12px; } .seer-chat-messages { height: 320px; padding: 20px; } .seer-chat-conversation > header, .seer-chat-draft > header { padding: 16px; } .seer-chat-badge { font-size: 8px; } .seer-chat-empty { min-height: 250px; padding: 25px; } }
+@media(max-width: 760px) { .seer-chat-builder { margin-left: 16px; margin-right: 16px; } .seer-chat-field-pair { grid-template-columns: 1fr; } }
