@@ -1,4 +1,3 @@
-import { useSearchParams } from "@/hooks/useSearchParams";
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
@@ -10,9 +9,13 @@ import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
+import OrderBookPreview from "@/components/Market/PoolDetails/OrderBookPreview";
+import { BRAZIL_PREVIEW_MARKET } from "@/components/Market/PoolDetails/brazilOrderBookPreview";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
 import {
@@ -238,6 +241,9 @@ function MarketPage() {
         )}
         <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-8">
+            {DESIGN_PREVIEW && market.chainId === 100 && market.id.toLowerCase() === BRAZIL_PREVIEW_MARKET && (
+              <OrderBookPreview />
+            )}
             <MarketChart market={market} />
 
             <Outcomes

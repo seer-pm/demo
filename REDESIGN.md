@@ -85,3 +85,12 @@ Review captures: [homepage](docs/review/homepage.png), [portfolio overview](docs
 - Developer connection: replace the local `send` response templates with a server AI endpoint returning structured draft patches. Validate category, deadline, source and oracle-compatible rules before mapping a reviewed draft into the existing creation form. Never invoke wallet submission from an AI response. Drafts currently persist only while the studio remains mounted, including switches to the manual form.
 
 Review capture: [market studio](docs/review/market-studio.png). Unit tests cover independent cumulative cost ordering/precision and chat draft validation/refinement. No new fees or creation business rules are introduced.
+
+## Price leaders and Brazilian order-book demo
+
+- Purple marks the highest-priced valid outcome, including No when it leads. Cards rank outcomes before taking the first two, retain original token links, highlight tied leaders, and leave missing prices unhighlighted. All open market types use outcome rows.
+- The Brazilian election page includes a demo ladder for Flávio Bolsonaro in design-preview mode only. Five or ten levels, keyboard/hover inspection and cumulative cost/proceeds use the same calculation as the live liquidity ladder.
+- Sample price/share rows were copied from the public Seer pool display on 4 Oct 2026, rounded as displayed. They are frozen review data, not a live quote. Asks total 6.51 then 15.58 sDAI for the first two levels; bids total 2.41 then 9.18 sDAI. Fees are excluded.
+- Validation: TypeScript and seven targeted tests passed. Browser checks confirmed every visible homepage card’s leader and the demo’s rows, five/ten-level control and mobile layout.
+
+Captures: [price leaders](docs/review/homepage-leaders.png), [Brazilian order book](docs/review/brazil-order-book.png).
