@@ -53,7 +53,7 @@ The earlier ChatGPT Site is an independent prototype and is not a preview of thi
 
 ## Run the read-only preview
 
-Use Node 20+ and Corepack/Yarn 4. Install dependencies with `corepack yarn install`, generate SDK files with `corepack yarn generate` if needed, then run `corepack yarn workspace @seer-pm/sdk build`. From the repository root:
+Use Node 20+ and Corepack/Yarn 4. Install dependencies with `corepack yarn install`, generate SDK files with `corepack yarn workspace @seer-pm/sdk generate` if needed, then run `corepack yarn workspace @seer-pm/sdk build`. From the repository root:
 
 ```sh
 corepack yarn workspace @seer-pm/web preview:design
