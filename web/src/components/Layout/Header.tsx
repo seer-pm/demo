@@ -14,7 +14,6 @@ import {
   PersonAdd,
   PolicyIcon,
   QuestionIcon,
-  SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
@@ -33,6 +32,7 @@ import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
 import { ThemeToggleButton } from "./ThemeToggleButton";
+import { BrandLockup } from "./BrandLockup";
 import { UseSmartAccountToggle } from "./UseSmartAccountToggle";
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
@@ -440,7 +440,7 @@ export default function Header() {
       >
         <div className="absolute left-[24px] lg:left-[12px]">
           <Link className="text-white hover:opacity-85" to="/">
-            <SeerLogo width="99.2px" height="46px" />
+            <BrandLockup />
           </Link>
         </div>
         {buildAndRender(mobileOpen)}

@@ -1,0 +1,75 @@
+/* Brand anchors: HYPEDSGN Seer identity. Supporting surfaces follow the portfolio concept. */
+:root:root {
+  --seer-brand-purple: #7d33ff;
+  --seer-brand-ink: #141223;
+  --seer-brand-white: #ffffff;
+  --seer-page: #f4f3f9;
+  --seer-surface: #ffffff;
+  --seer-surface-raised: #eeecf6;
+  --seer-text: #141223;
+  --seer-muted: #686278;
+  --seer-border: #e1deec;
+  --card-bg: var(--seer-surface);
+  --separator-100: var(--seer-border);
+  --rounded-box: 16px;
+  --rounded-btn: 10px;
+  --b1: 100.00000% 0.0000000 89.87556;
+  --b2: 96.66245% 0.0080239 293.91094;
+  --b3: 94.75147% 0.0134984 295.31612;
+  --bc: 19.39745% 0.0338783 288.20722;
+  --p: 55.17400% 0.2708327 291.03070;
+  --pc: 100% 0 0;
+}
+:root:root[data-theme="dark"] {
+  --seer-page: #141223;
+  --seer-surface: #1e1a2e;
+  --seer-surface-raised: #282239;
+  --seer-text: #f4f1ff;
+  --seer-muted: #b2a8c5;
+  --seer-border: #39314a;
+  --card-bg: var(--seer-surface);
+  --separator-100: var(--seer-border);
+  --b1: 23.26902% 0.0382358 292.34702;
+  --b2: 19.39745% 0.0338783 288.20722;
+  --b3: 26.99098% 0.0426145 295.39002;
+  --bc: 96.45072% 0.0188577 295.86598;
+  --black-secondary-fg: 74.93831% 0.0425013 301.09117;
+  color-scheme: dark;
+}
+:root body,
+:root[data-theme="dark"] body {
+  background: var(--seer-page);
+  color: var(--seer-text);
+  -webkit-font-smoothing: antialiased;
+}
+#header { border-bottom: 1px solid var(--seer-border); }
+#header .navbar { min-height: 76px; }
+.seer-brand-lockup { display: inline-flex; align-items: center; gap: 6px; }
+.seer-brand-lockup img { flex: none; width: 46px; height: 46px; border-radius: 10px; }
+.seer-brand-wordmark {
+  display: block;
+  width: 76px;
+  height: 25px;
+  background: currentColor;
+  mask: url('/assets/brand/official-wordmark.svg') center / contain no-repeat;
+  -webkit-mask: url('/assets/brand/official-wordmark.svg') center / contain no-repeat;
+}
+:root[data-theme="dark"] .text-purple-primary { color: #b18aff; }
+.btn.btn-primary:hover { background-color: #6925df; border-color: #6925df; }
+.input, .select, .textarea { border-radius: 10px; }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible,
+a:focus-visible, button:focus-visible {
+  outline: 2px solid #b18aff;
+  outline-offset: 3px;
+}
+.seer-market-card {
+  border: 1px solid var(--seer-border);
+  border-radius: 14px;
+  box-shadow: none;
+  transition: border-color 150ms ease;
+}
+.seer-market-card:hover { border-color: #9d78d2; }
+.seer-market-card img { border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .seer-market-card { transition: none; }
+}

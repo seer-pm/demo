@@ -449,7 +449,7 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "bg-base-100 rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "seer-market-card bg-base-100 text-left flex flex-col",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
