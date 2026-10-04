@@ -43,12 +43,13 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
   }, []);
   return (
     <div>
-      <div className="flex flex-col lg:flex-row max-lg:space-y-[12px] lg:space-x-[24px] relative">
+      <div className="seer-market-toolbar">
         <div className="grow @container">
           <Input
-            placeholder="Search by market, outcome or collection"
+            aria-label="Search markets"
+            placeholder="Search markets, outcomes or collections"
             className="w-full text-[13px] @[250px]:text-[14px] @[400px]:text-[16px]"
-            icon={<SearchIcon fill="#9747ff" />}
+            icon={<SearchIcon fill="currentColor" />}
             value={marketName}
             onChange={onChangeName}
             isClearable
@@ -62,9 +63,11 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <button
           type="button"
           className={clsx(
-            "select select-bordered bg-base-100 lg:w-[210px] flex items-center gap-2 w-full",
+            "seer-filter-button select select-bordered bg-base-100 flex items-center gap-2",
             isShowFilters && "!outline-purple-primary !outline-2 outline outline-offset-2",
           )}
+          aria-expanded={isShowFilters}
+          aria-controls="market-filter-panel"
           onClick={() => setShowFilters((state) => !state)}
         >
           <div className="relative">
@@ -74,7 +77,7 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
           Filters
         </button>
         {isShowFilters && (
-          <div className="absolute lg:top-[60px] top-[110px] left-0 w-full !ml-0 z-[1]">
+          <div id="market-filter-panel" className="seer-filter-panel">
             <MarketsFilterBox setShowFilters={setShowFilters} />
           </div>
         )}
@@ -82,9 +85,9 @@ export function MarketsFilter({ isFutarchyPage = false }: { isFutarchyPage?: boo
         <div>
           <LinkButton
             to={isFutarchyPage ? "/futarchy/create-proposal" : "/create-market"}
-            text={isFutarchyPage ? "Create New Proposal" : "Create New Market"}
+            text={isFutarchyPage ? "Create New Proposal" : "Create market"}
             icon={<PlusCircleIcon />}
-            className="max-lg:w-full min-w-[256px]"
+            className="seer-create-button"
           />
         </div>
       </div>

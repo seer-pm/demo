@@ -4,7 +4,8 @@
 
 - `main`: clean upstream baseline. No design edits here.
 - `redesign/brand-foundation`: shared palette, surfaces and control styling. First reviewable change.
-- Next: a homepage branch based on the approved foundation, followed by Portfolio and Airdrop branches.
+- `redesign/app-shell`: shared app layout, homepage and initial visual pass across existing routes. Its review PR targets `redesign/brand-foundation`.
+- Next: separate Portfolio and Airdrop UX branches after visual review.
 - Each review PR in this private repository should target the branch containing its prerequisites. Keep main as the baseline during design review.
 - An integration branch may collect reviewed commits for a whole-app preview. Do not submit that aggregate branch as a single oversized upstream PR.
 - Amend existing routes and components. Add reusable components where necessary; do not keep duplicate production versions of every page.
@@ -43,6 +44,23 @@ Keep one baseline preview tied to the baseline commit and one redesign preview t
 
 The earlier ChatGPT Site is an independent prototype and is not a preview of this repository.
 
-## Current local draft
+## Current visual pass
 
-The foundation applies the confirmed purple and ink tokens, shared light/dark surfaces, softer corners, input focus styling and market-card treatment. The header pairs the supplied official logo and wordmark. It does not yet reproduce the full homepage or apply the streak motif throughout the app. TypeScript and stylesheet compilation checks pass. Full runtime validation and preview deployment remain pending.
+- Official identity, converging streak, shared light/dark surfaces and responsive navigation now carry across existing routes.
+- Homepage adds category navigation, compact filters and a responsive market grid while retaining live data and supported outcome types.
+- Portfolio, airdrop, market detail, leaderboard and creation screens receive the same visual treatment. Existing business rules remain authoritative.
+- This is the visual foundation for review. The prototype's P&L chart, extra position metrics and new airdrop UX still need separate data-backed work.
+
+## Run the read-only preview
+
+Use Node 20+ and Corepack/Yarn 4. Install dependencies with `corepack yarn install`, generate SDK files with `corepack yarn generate` if needed, then run `corepack yarn workspace @seer-pm/sdk build`. From the repository root:
+
+```sh
+corepack yarn workspace @seer-pm/web preview:design
+```
+
+Open http://localhost:3000. The command runs Netlify locally and enables an explicit design-preview flag. It fetches allowlisted public data from app.seer.pm without forwarding credentials; wallet connections and writes are disabled. This local address works only on the machine running the preview. A shareable hosting deployment is still pending.
+
+Public portfolio and airdrop data can be viewed by opening a trader from the leaderboard. The disconnected portfolio is intentional without an account. Creation forms can be explored as drafts, without submitting transactions. Policy documents that depend on subgraph configuration are unavailable in this limited preview; configure the normal app environment to validate them.
+
+Validation: TypeScript and the production build with the preview flag passed; category-filter tests and preview access-control tests passed. Browser checks covered home in both themes, mobile navigation, filters, market detail, leaderboard, public portfolio/airdrop, profile and draft market creation. Authenticated account actions, transactions and every secondary route have not been validated. Keep normal production environment setup for those checks.

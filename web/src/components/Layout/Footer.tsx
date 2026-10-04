@@ -1,36 +1,29 @@
+import { Link } from "@/components/Link";
 import { DiscordIcon, GithubIcon, SecuredByKleros, TelegramIcon, TwitterIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
+import { BrandLockup } from "./BrandLockup";
+import { BrandStreak } from "./BrandStreak";
 
 export default function Footer() {
   return (
-    <div className="bg-purple-dark mt-auto">
-      <div className="container-fluid flex flex-col lg:flex-row justify-between min-h-[64px] items-center max-lg:py-[24px] max-lg:space-y-[24px] text-white mt-auto">
-        <div>
-          <a href="https://kleros.io/" target="_blank" rel="noopener noreferrer">
-            <SecuredByKleros />
-          </a>
-        </div>
-        <div className="flex items-center space-x-[16px] text-white">
-          {/*<a href={paths.etherscan()} target="_blank" rel="noopener noreferrer">
-          <EtherscanIcon />
-        </a>*/}
-          {/*<a href={paths.snapshot()} target="_blank" rel="noopener noreferrer">
-          <SnapshotIcon />
-        </a>*/}
-          <a href={paths.discord()} target="_blank" rel="noopener noreferrer">
-            <DiscordIcon />
-          </a>
-          <a href={paths.telegram()} target="_blank" rel="noopener noreferrer">
-            <TelegramIcon />
-          </a>
-          <a href={paths.twitter()} target="_blank" rel="noopener noreferrer">
-            <TwitterIcon />
-          </a>
-          <a href={paths.github()} target="_blank" rel="noopener noreferrer">
-            <GithubIcon />
-          </a>
+    <footer className="seer-footer">
+      <div className="container-fluid seer-footer-top">
+        <div><BrandLockup /><p>A clearer view of what comes next.</p></div>
+        <BrandStreak className="seer-footer-streak" />
+        <nav aria-label="Footer" className="seer-footer-links">
+          <Link to="/">Markets</Link><Link to="/portfolio">Portfolio</Link>
+          <Link to="/policy/rules">Market rules</Link><Link to="/policy/verified">Verification policy</Link>
+        </nav>
+      </div>
+      <div className="container-fluid seer-footer-bottom">
+        <a href="https://kleros.io/" target="_blank" rel="noopener noreferrer" aria-label="Secured by Kleros"><SecuredByKleros /></a>
+        <div className="flex items-center gap-5">
+          <a href={paths.discord()} aria-label="Seer Discord" target="_blank" rel="noopener noreferrer"><DiscordIcon /></a>
+          <a href={paths.telegram()} aria-label="Seer Telegram" target="_blank" rel="noopener noreferrer"><TelegramIcon /></a>
+          <a href={paths.twitter()} aria-label="Seer on X" target="_blank" rel="noopener noreferrer"><TwitterIcon /></a>
+          <a href={paths.github()} aria-label="Seer GitHub" target="_blank" rel="noopener noreferrer"><GithubIcon /></a>
         </div>
       </div>
-    </div>
+    </footer>
   );
 }

@@ -16,7 +16,7 @@ function Figure({
 }) {
   const poh = tone === "poh";
   return (
-    <div className="min-w-0">
+    <div className="seer-reward-figure min-w-0">
       <dt className="text-sm font-medium text-black-primary">{label}</dt>
       <dd
         className={`mt-1 text-lg font-semibold tabular-nums ${poh ? "text-purple-primary dark:text-purple-secondary" : "text-base-content"}`}
@@ -42,8 +42,8 @@ function MetricGroup({
     <section
       className={
         accent
-          ? "bg-purple-medium dark:bg-neutral rounded-[3px] px-4 py-5 sm:px-5 border border-purple-primary/20 dark:border-purple-primary/40"
-          : undefined
+          ? "seer-reward-panel seer-reward-panel-accent"
+          : "seer-reward-panel"
       }
     >
       <h3 className={`text-sm font-semibold ${accent ? "text-purple-primary" : "text-base-content"}`}>{title}</h3>
@@ -55,7 +55,7 @@ function MetricGroup({
 
 function PohRegisterCallout({ href }: { href: string }) {
   return (
-    <div className="bg-purple-medium dark:bg-neutral rounded-[3px] px-4 py-5 sm:px-5 space-y-3 border border-transparent dark:border-purple-primary/40">
+    <div className="seer-reward-callout space-y-3">
       <p className="text-sm text-black-primary">
         Proof of Humanity verifies you are a unique person. Register for additional SEER.
       </p>

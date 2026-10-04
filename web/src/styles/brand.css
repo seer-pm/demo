@@ -73,3 +73,143 @@ a:focus-visible, button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .seer-market-card { transition: none; }
 }
+
+/* Shared app shell and responsive navigation. */
+:root:root { color-scheme: light; --seer-accent-soft: #eee8ff; }
+:root:root[data-theme="dark"] { color-scheme: dark; --seer-accent-soft: #2c2442; }
+.container-fluid { width: 100%; max-width: 1480px; padding-inline: 32px; margin-inline: auto; }
+.seer-main { flex: 1; min-width: 0; padding-bottom: 64px; }
+.seer-header { background: var(--seer-page); color: var(--seer-text); position: sticky; top: 0; z-index: 40; }
+.seer-navbar { display: flex; gap: 32px; padding-block: 14px; position: relative; }
+.seer-home-link { flex-shrink: 0; }
+.seer-primary-nav, .seer-account-nav { display: flex; align-items: center; gap: 22px; font-size: 13px; }
+.seer-primary-nav { margin-left: auto; }
+.seer-account-nav { gap: 10px; }
+.seer-primary-nav > a { font-weight: 600; }
+.seer-primary-nav > a:hover { color: var(--seer-brand-purple); }
+.seer-mobile-actions { display: none; align-items: center; gap: 20px; margin-left: auto; }
+.seer-mobile-actions > button { min-width: 40px; min-height: 40px; display: grid; place-items: center; }
+.seer-mobile-actions svg { fill: currentColor; }
+.seer-beta { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 24px; background: var(--seer-brand-ink); color: #d7cfea; font-size: 11px; }
+.seer-beta button { padding: 4px; }
+.seer-skip-link { position: fixed; left: 20px; top: -100px; z-index: 1000; background: var(--seer-surface); padding: 12px 20px; border-radius: 10px; }
+.seer-skip-link:focus { top: 12px; }
+.seer-page-intro { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-block: 36px 28px; overflow: hidden; }
+.seer-page-intro-copy { position: relative; z-index: 1; }
+.seer-eyebrow { color: var(--seer-muted); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px; }
+.seer-page-intro h1 { font-size: clamp(28px, 3vw, 40px); font-weight: 600; letter-spacing: -.045em; line-height: 1.2; }
+.seer-page-description { color: var(--seer-muted); font-size: 14px; margin-top: 12px; max-width: 560px; line-height: 1.7; }
+.seer-intro-streak { width: 260px; height: 112px; color: var(--seer-brand-purple); opacity: .7; flex-shrink: 0; }
+.seer-main > .container-fluid { padding-top: 24px; }
+.seer-main > .seer-page-intro { padding-top: 40px; }
+.seer-main > .seer-page-intro + .container-fluid { padding-top: 8px; }
+.seer-footer { margin-top: auto; background: var(--seer-brand-ink); color: #f2edff; }
+.seer-footer-top { padding-block: 32px; display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+.seer-footer-top p { margin-top: 12px; color: #b9b1ca; font-size: 12px; }
+.seer-footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 36px; font-size: 12px; }
+.seer-footer-links a:hover { text-decoration: underline; }
+.seer-footer-streak { width: 180px; color: #9d71f8; opacity: .6; }
+.seer-footer-bottom { border-top: 1px solid #39314a; min-height: 64px; display: flex; justify-content: space-between; align-items: center; }
+.seer-footer-bottom svg { max-height: 22px; }
+
+/* Market discovery follows the compact grid in the supplied homepage artwork. */
+.seer-home-controls { padding-top: 28px; }
+.seer-market-toolbar { display: flex; align-items: center; gap: 12px; position: relative; }
+.seer-market-toolbar > .grow { min-width: 0; }
+.seer-market-toolbar .input { background: var(--seer-surface-raised); border-color: transparent; border-radius: 40px; height: 46px; font-size: 13px; padding-right: 42px; }
+.seer-filter-button { width: auto; min-width: 120px; border-radius: 40px; height: 46px; font-size: 13px; }
+.seer-create-button { white-space: nowrap; border-radius: 40px; min-width: 170px; font-size: 13px; }
+.seer-filter-panel { position: absolute; top: calc(100% + 12px); left: 0; width: 100%; z-index: 25; }
+.seer-categories { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding-block: 22px; scrollbar-width: thin; }
+.seer-categories button { flex: none; min-height: 36px; padding: 8px 16px; border-radius: 7px; font-size: 12px; color: var(--seer-muted); white-space: nowrap; }
+.seer-categories button:hover { background: var(--seer-accent-soft); color: var(--seer-text); }
+.seer-categories button[aria-pressed="true"] { background: var(--seer-brand-purple); color: white; }
+.seer-market-results { padding-top: 4px; }
+.seer-market-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.seer-market-card { border-color: transparent; border-radius: 12px; min-width: 0; }
+.seer-market-card-heading { min-height: 82px; padding-bottom: 12px; }
+.seer-market-card-heading img { width: 40px; height: 40px; object-fit: cover; }
+.seer-market-card-heading a[title] { font-size: 13px; font-weight: 600; line-height: 1.6; }
+.seer-market-card-outcomes { flex: 1; min-height: 104px; padding-bottom: 12px; }
+.seer-outcome-list { display: flex; flex-direction: column; gap: 8px; }
+.seer-outcome-row { display: flex; align-items: center; gap: 8px; background: var(--seer-surface-raised); padding: 9px 10px; border-radius: 8px; font-size: 12px; min-height: 42px; }
+.seer-outcome-row:hover { background: var(--seer-accent-soft); }
+.seer-outcome-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seer-outcome-row strong { font-variant-numeric: tabular-nums; font-weight: 600; }
+.seer-outcome-action { background: var(--seer-brand-purple); color: white; border-radius: 5px; padding: 5px 8px; font-size: 10px; white-space: nowrap; }
+.seer-more-outcomes { font-size: 11px; color: var(--seer-muted); padding-top: 3px; }
+.seer-market-card-footer { min-height: 40px; gap: 8px; color: var(--seer-muted); }
+.seer-card-volume { font-size: 10px; white-space: nowrap; }
+.seer-empty-state { text-align: center; padding: 72px 24px; background: var(--seer-surface); border: 1px solid var(--seer-border); border-radius: 16px; }
+.seer-empty-state h2 { font-size: 22px; font-weight: 600; margin-bottom: 12px; }
+.seer-empty-state p { color: var(--seer-muted); font-size: 14px; }
+
+/* Shared controls, tables, cards and feedback for all existing app routes. */
+.seer-main .card, .seer-main .alert, .modal-box { box-shadow: none; border-radius: 16px; }
+.seer-main .alert { padding: 24px; border: 1px solid var(--seer-border); }
+.btn { font-weight: 600; box-shadow: none; text-transform: none; transition: background-color .15s, border-color .15s; }
+.btn.btn-secondary { color: var(--seer-brand-purple); background: var(--seer-accent-soft); border-color: transparent; }
+:root[data-theme="dark"] .btn.btn-secondary { color: #c4a7ff; }
+.btn.btn-secondary:hover { border-color: var(--seer-brand-purple); background: var(--seer-accent-soft); }
+.input, .textarea, .select { border-color: var(--seer-border); }
+.input::placeholder, .textarea::placeholder { color: var(--seer-muted); opacity: .8; }
+.tabs-bordered { border-bottom: 1px solid var(--seer-border); display: flex; gap: 8px; }
+.tabs-bordered > .tab { height: 46px; min-width: max-content; padding-inline: 20px; font-size: 14px; color: var(--seer-muted); }
+.tabs-bordered > .tab.tab-active { color: var(--seer-brand-purple); border-color: var(--seer-brand-purple); }
+:root[data-theme="dark"] .tabs-bordered > .tab.tab-active { color: #b18aff; }
+.seer-main .simple-table, .seer-main .table { background: var(--seer-surface); border-radius: 12px; font-size: 13px; }
+.seer-main .simple-table th, .seer-main .table th { color: var(--seer-muted); font-size: 11px; font-weight: 600; letter-spacing: .025em; padding: 16px; }
+.seer-main .simple-table td, .seer-main .table td { padding: 18px 16px; border-color: var(--seer-border); }
+.seer-main tbody tr:hover { background: var(--seer-surface-raised); }
+.seer-portfolio-summary { border-top: 3px solid var(--seer-brand-purple); }
+.seer-reward-panel { padding: 28px; background: var(--seer-surface); border: 1px solid var(--seer-border); border-radius: 16px; }
+.seer-reward-panel-accent { background: var(--seer-accent-soft); border-color: transparent; }
+.seer-reward-figure dd { font-size: clamp(22px, 3vw, 32px); letter-spacing: -.04em; margin-top: 12px; }
+.seer-reward-callout { padding: 24px 28px; border: 1px solid var(--seer-brand-purple); border-radius: 16px; background: var(--seer-surface); }
+.seer-main h2 { letter-spacing: -.025em; }
+@media (max-width: 1279px) {
+  .seer-primary-nav, .seer-account-nav { display: none; }
+  .seer-mobile-actions { display: flex; }
+  .seer-market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1000px) { .seer-market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .container-fluid { padding-inline: 20px; }
+  .seer-navbar { gap: 12px; }
+  .seer-beta { font-size: 10px; justify-content: space-between; padding-inline: 20px; }
+  .seer-page-intro { padding-block: 28px 20px; }
+  .seer-intro-streak { width: 95px; height: 90px; opacity: .35; margin-right: -42px; }
+  .seer-page-description { font-size: 12px; }
+  .seer-market-toolbar { flex-wrap: wrap; gap: 10px; }
+  .seer-market-toolbar > .grow { flex-basis: 100%; }
+  .seer-market-toolbar > div:last-child { flex: 1; }
+  .seer-create-button { width: 100%; min-width: 0; }
+  .seer-filter-button { flex: 1; }
+  .seer-categories { margin-inline: -20px; padding-inline: 20px; gap: 2px; }
+  .seer-market-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .seer-footer-top { flex-wrap: wrap; gap: 24px; }
+  .seer-footer-streak { width: 100px; }
+  .seer-footer-links { width: 100%; }
+  .seer-main { padding-bottom: 40px; }
+  .seer-reward-panel, .seer-reward-callout { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+.seer-preview-notice { padding: 8px 20px; text-align: center; background: var(--seer-accent-soft); color: var(--seer-text); font-size: 11px; }
+.seer-primary-nav > a[aria-current="page"] { color: var(--seer-brand-purple); }
+:root[data-theme="dark"] .seer-primary-nav > a[aria-current="page"] { color: #b18aff; }
+.seer-header .dropdown > button svg { fill: currentColor; }
+.seer-methodology { font-size: 13px; color: var(--seer-muted); max-width: 720px; }
+.seer-methodology summary { cursor: pointer; padding-block: 8px; }
+.seer-methodology p { margin-block: 12px; line-height: 1.8; }
+.seer-form-page { max-width: 924px; width: calc(100% - 40px); margin: 0 auto; padding: 24px 0 48px; text-align: center; }
+.seer-chart-panel { background: var(--seer-surface); border: 1px solid var(--seer-border); border-radius: 16px; padding: 20px; }
+.seer-market-card .tooltip:last-child .tooltiptext { left: auto; right: 0; transform: none; }
+.seer-form-page { margin-top: 12px; padding: 32px; background: var(--seer-surface); border: 1px solid var(--seer-border); border-radius: 18px; }
+.seer-form-page .steps { font-size: 12px; color: var(--seer-muted); gap: 24px; }
+.seer-form-page form { text-align: left; }
+.seer-form-page form .btn { border-radius: 10px; }
+@media (max-width: 640px) { .seer-form-page { padding: 24px 16px; } }
+.seer-brand-scaled { display: inline-flex; align-items: center; }
+.seer-brand-scaled .seer-brand-lockup { width: 100%; height: 100%; gap: 4%; }
+.seer-brand-scaled .seer-brand-lockup img { width: 32%; height: auto; border-radius: 20%; }
+.seer-brand-scaled .seer-brand-wordmark { width: 64%; height: 100%; min-height: 12px; }

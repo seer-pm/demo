@@ -1,3 +1,4 @@
+import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
 import { Alert } from "@/components/Alert";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
@@ -102,6 +103,8 @@ function PageContent({ params }: { params: UseMarketsProps }) {
   const {
     data,
     isPending,
+    isError,
+    refetch,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterResults(results);
 
@@ -116,14 +119,15 @@ function PageContent({ params }: { params: UseMarketsProps }) {
   }, [params.page, queryClient]);
 
   return (
-    <div>
-      <div className="container-fluid py-[16px]">
+    <div className="seer-home">
+      <div className="container-fluid seer-home-controls">
         <MarketsFilter />
+        <MarketCategoryNav />
       </div>
 
-      <div className="container-fluid py-[24px]">
+      <div className="container-fluid seer-market-results">
         {isPending && (
-          <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+          <div className="seer-market-grid">
             <div className="shimmer-container h-[225px]"></div>
             <div className="shimmer-container h-[225px]"></div>
             <div className="shimmer-container h-[225px]"></div>
@@ -131,9 +135,13 @@ function PageContent({ params }: { params: UseMarketsProps }) {
           </div>
         )}
 
-        {!isPending && data.markets.length === 0 && <Alert type="warning">No results found.</Alert>}
+        {isError && <Alert type="warning" title="Markets are unavailable">
+          <p>We couldn't load the market feed. Please try again.</p>
+          <button type="button" className="btn btn-sm btn-primary mt-3" onClick={() => refetch()}>Try again</button>
+        </Alert>}
+        {!isPending && !isError && data.markets.length === 0 && <div className="seer-empty-state"><h2>No markets found</h2><p>Try another category or adjust your search and filters.</p></div>}
 
-        <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
+        <div className="mb-8 seer-market-grid">
           {data.markets.map((market) => (
             <PreviewCard key={`${market.id}_${market.chainId}`} market={market} />
           ))}

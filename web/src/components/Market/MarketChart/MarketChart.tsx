@@ -322,7 +322,7 @@ function MarketChart({
               The chart represents the token distribution in the liquidity pool over time and may not fully align with
               the outcome odds, which are calculated based on potential token purchases.
             </p>
-            <QuestionIcon fill="#9747FF" />
+            <QuestionIcon fill="#7D33FF" />
           </div>
           {!embedded && (
             <button
@@ -508,7 +508,7 @@ function LightweightChart({
   }, [series, Array.from(visibleOutcomes).join(",")]);
 
   return (
-    <div className="mt-6 flex size-full flex-col px-[10px] relative">
+    <div className="seer-chart-panel mt-6 flex size-full flex-col relative">
       {showLegend && (
         <Legend
           outcomesData={series}

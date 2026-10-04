@@ -10,7 +10,6 @@ import {
   ExclamationCircleIcon,
   LawBalanceIcon,
   PresentIcon,
-  SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, displayNumber, formatBigNumbers, isUndefined } from "@/lib/utils";
@@ -429,6 +428,24 @@ function MarketResult({ market }: { market: Market }) {
   );
 }
 
+function MarketOutcomeRows({ market }: { market: Market }) {
+  const odds = rescaleOdds(market.odds);
+  const outcomes = market.outcomes.map((name, index) => ({ name, index }))
+    .filter(({ name }) => name !== INVALID_RESULT_OUTCOME_TEXT);
+  return (
+    <div className="seer-outcome-list">
+      {outcomes.slice(0, 3).map(({ name, index }) => (
+        <Link key={index} to={paths.market(market)} className="seer-outcome-row" aria-label={`View ${name} in ${market.marketName}`}>
+          <span className="seer-outcome-name">{name}</span>
+          <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index]) : "N/A"}</strong>
+          <span className="seer-outcome-action" aria-hidden="true">View ↗</span>
+        </Link>
+      ))}
+      {outcomes.length > 3 && <Link className="seer-more-outcomes" to={paths.market(market)}>View all {outcomes.length} outcomes</Link>}
+    </div>
+  );
+}
+
 export function PreviewCard({ market }: { market: Market }) {
   const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
@@ -453,7 +470,7 @@ export function PreviewCard({ market }: { market: Market }) {
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="h-[100px] @container">
+      <div className="seer-market-card-heading @container">
         <div className={clsx("flex space-x-3 px-4 pt-3")}>
           <Link to={paths.market(market)} className="flex-shrink-0">
             {market.images?.market ? (
@@ -469,7 +486,7 @@ export function PreviewCard({ market }: { market: Market }) {
           <div className="grow min-w-0">
             <Link
               title={market.marketName}
-              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-4"
+              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-3"
               to={paths.market(market)}
             >
               {market.marketName}
@@ -478,9 +495,11 @@ export function PreviewCard({ market }: { market: Market }) {
         </div>
       </div>
 
-      <div className="px-4 h-[90px] overflow-y-auto custom-scrollbar">
+      <div className="seer-market-card-outcomes px-4 custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
+        ) : marketType === MarketTypes.CATEGORICAL ? (
+          <MarketOutcomeRows market={market} />
         ) : (
           <OutcomesInfo
             market={market}
@@ -491,8 +510,8 @@ export function PreviewCard({ market }: { market: Market }) {
         )}
       </div>
 
-      <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
-        <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
+      <div className="seer-market-card-footer px-[16px] flex items-center justify-between w-full">
+        <span className="seer-card-volume" title="Market trading volume">${formatBigNumbers(market.volumeUSD)} Vol.</span>
         <div className="flex items-center gap-2">
           {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0 ? (
             <Popover

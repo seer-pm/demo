@@ -1,3 +1,4 @@
+import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import { Alert } from "@/components/Alert";
 import { MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
@@ -73,12 +74,12 @@ function CreateProposal() {
   };
 
   return (
-    <div className="w-[924px] max-w-[90%] mx-auto py-[65px] text-center">
-      {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
+    <div className="seer-form-page">
+      {!chain && !DESIGN_PREVIEW && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
-      {chain && (
+      {(chain || DESIGN_PREVIEW) && (
         <>
-          <div className="text-[16px] text-purple-primary mb-[24px]">Create New Proposal</div>
+
 
           {activeStep !== FormSteps.PREVIEW && <Steps activeStep={activeStep} />}
 

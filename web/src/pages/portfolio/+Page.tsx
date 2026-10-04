@@ -1,3 +1,4 @@
+import ConnectWallet from "@/components/ConnectWallet";
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
@@ -321,8 +322,9 @@ function PortfolioPage() {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
         <Breadcrumb links={[{ title: "Portfolio" }]} />
-        <Alert type="warning" title="Account not found">
-          <p>{error || "Connect your wallet to see this portfolio."}</p>
+        <Alert type={error ? "warning" : "info"} title={error ? "Account not found" : "Your portfolio starts here"}>
+          <p>{error || "Connect your wallet to see positions, trading performance and SEER rewards."}</p>
+          {!error && <div className="mt-5 flex flex-wrap items-center gap-4"><ConnectWallet size="large" /><Link to="/leaderboard" className="text-purple-primary text-sm">Explore public portfolios ↗</Link></div>}
           {/* A mistyped or renamed @username otherwise dead-ends here; the leaderboard is the one
               place that searches usernames and addresses by substring. */}
           {isUsernameRoute ? (
@@ -342,14 +344,14 @@ function PortfolioPage() {
       <Breadcrumb links={[{ title: "Portfolio" }]} />
       <div className="mt-8 space-y-4">
         {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
-        <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
+        <div className="seer-portfolio-summary bg-base-100 border border-separator-100 rounded-[16px] shadow-none min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
           <ProfileIdentity
             address={account}
             username={username}
             xAccount={publicUser?.xAccount}
             isSelf={isSelf}
             isLoading={isLoading}
-            nameAs="h1"
+            nameAs="h2"
           >
             {/* The one place a user without a username meets the idea, on the page that shows the
                 generated nickname standing in for one. */}

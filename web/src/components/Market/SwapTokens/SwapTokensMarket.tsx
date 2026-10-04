@@ -630,7 +630,7 @@ export function SwapTokensMarket({
                     <p className="tooltiptext">
                       {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
                     </p>
-                    <QuestionIcon fill="#9747FF" />
+                    <QuestionIcon fill="#7D33FF" />
                   </span>
                 )}
               </div>
@@ -651,7 +651,7 @@ export function SwapTokensMarket({
                       <p className="tooltiptext">
                         {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
                       </p>
-                      <QuestionIcon fill="#9747FF" />
+                      <QuestionIcon fill="#7D33FF" />
                     </span>
                   )}
                 </div>

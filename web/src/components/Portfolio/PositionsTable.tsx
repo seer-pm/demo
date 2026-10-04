@@ -156,7 +156,7 @@ function PositionsTableInner({
                   label="Conditional market. Show the parent market."
                   trigger={
                     <span title="Conditional Market">
-                      <ConditionalMarketIcon width="24" fill="#9747ff" />
+                      <ConditionalMarketIcon width="24" fill="#7D33FF" />
                     </span>
                   }
                   content={
@@ -248,7 +248,7 @@ function PositionsTableInner({
                 </p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
-                  <QuestionIcon fill="#9747FF" />
+                  <QuestionIcon fill="#7D33FF" />
                 </span>
               </div>
             );
@@ -264,7 +264,7 @@ function PositionsTableInner({
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                     = relative price to parent outcome &times; parent's {symbol} price
                   </p>
-                  <QuestionIcon fill="#9747FF" />
+                  <QuestionIcon fill="#7D33FF" />
                 </span>
               </div>
             );

@@ -359,7 +359,7 @@ function OutcomeDetails({
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
                 {getTooltipContent(market, outcomeIndex)}
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="#7D33FF" />
             </span>
           )}
           {_isInvalidOutcome && (
@@ -368,7 +368,7 @@ function OutcomeDetails({
                 Invalid outcome tokens can be redeemed for the underlying tokens when the question is resolved to
                 invalid.
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="#7D33FF" />
             </span>
           )}
 

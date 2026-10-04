@@ -388,7 +388,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="#7D33FF" />
             </span>
           )}
         </div>
@@ -432,7 +432,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0) && (
                 <Popover
                   label="Open interest and liquidity breakdown"
-                  trigger={<QuestionIcon fill="#9747FF" />}
+                  trigger={<QuestionIcon fill="#7D33FF" />}
                   content={
                     <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                       <p className="text-purple-primary">Open interest:</p>
