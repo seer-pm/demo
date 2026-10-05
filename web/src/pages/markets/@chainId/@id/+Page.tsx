@@ -1,4 +1,6 @@
 import { Alert } from "@/components/Alert";
+import { BrandStreak } from "@/components/Layout/BrandStreak";
+import "@/styles/market-detail.css";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
@@ -189,7 +191,7 @@ function MarketPage() {
   const reliableMarket = isMarketReliable(market);
 
   return (
-    <div className="container-fluid py-10">
+    <div className="container-fluid py-10 seer-market-detail">
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         {marketStatus !== MarketStatus.CLOSED && !isOfficialMarketFactory(market.factory, market.chainId) && (
@@ -227,7 +229,10 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <MarketHeader market={market} images={market.images} />
+        <section className="seer-market-hero" aria-label="Market overview">
+          <BrandStreak className="seer-market-streak" />
+          <MarketHeader market={market} images={market.images} />
+        </section>
         {!reliableMarket && (
           <Alert
             type="error"
@@ -236,21 +241,27 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
+        <div className="seer-market-workspace grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-8">
             <MarketChart market={market} />
 
-            <Outcomes
-              market={market}
-              images={market?.images?.outcomes}
-              activeOutcome={outcomeIndex}
-              onOutcomeChange={onOutcomeChange}
-            />
+            <section className="seer-market-outcomes" aria-label="Market outcomes">
+              <Outcomes
+                market={market}
+                images={market?.images?.outcomes}
+                activeOutcome={outcomeIndex}
+                onOutcomeChange={onOutcomeChange}
+              />
+            </section>
           </div>
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-[130px]">
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
-              <>
+              <div className="seer-market-trade">
+                <div className="seer-trade-heading">
+                  <span>Trade</span>
+                  <span>Choose an outcome</span>
+                </div>
                 <SwapWidget
                   market={market}
                   outcomeIndex={outcomeIndex}
@@ -258,12 +269,14 @@ function MarketPage() {
                   onOutcomeChange={onOutcomeChange}
                 />
                 <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
-              </>
+              </div>
             )}
             <MajorEvents market={market} />
           </div>
           <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
-            <MarketTabs market={market} />
+            <section className="seer-market-discussion" aria-label="Market activity">
+              <MarketTabs market={market} />
+            </section>
           </div>
         </div>
         {/* Mobile Drawer */}

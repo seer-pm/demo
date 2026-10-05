@@ -24,10 +24,10 @@ export interface IOutcomeData {
 }
 
 const CHART_COLORS = [
-  "#f58231",
-  "#4363d8",
-  "#3cb44b",
-  "#e6194B",
+  "#a275ef",
+  "#36b8a0",
+  "#e5a653",
+  "#e27d9b",
   "#42d4f4",
   "#fabed4",
   "#469990",
@@ -273,16 +273,27 @@ function MarketChart({
     <>
       <div
         className={clsx(
-          "w-full bg-base-100 text-[12px] relative",
+          "seer-market-chart w-full bg-base-100 text-[12px] relative",
           // the wrapper's drop-shadow filter creates a stacking context, so the date picker
           // dropdown can't escape it; lift the whole card above the outcome cards while it's open
           isShowDateRangePicker && "z-30",
-          !embedded && "p-5 drop-shadow",
+          !embedded && "p-5",
         )}
       >
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        {!embedded && (
+          <div className="seer-chart-heading">
+            <div>
+              <h2>Market history</h2>
+              <p>Outcome trends over time</p>
+            </div>
+            <span>Historical pool data</span>
+          </div>
+        )}
+        <div className="seer-chart-controls flex flex-wrap items-center gap-2 mb-4">
           {Object.keys(CHART_OPTION_PERIODS).map((option) => (
-            <div
+            <button
+              type="button"
+              aria-pressed={!startDate && !endDate && period === option}
               key={option}
               onClick={() => {
                 setPeriod(option as ChartOptionPeriod);
@@ -292,7 +303,7 @@ function MarketChart({
               className={clsx("pill-button", !startDate && !endDate && period === option && "pill-button-active")}
             >
               {option}
-            </div>
+            </button>
           ))}
           <div className="relative">
             <button
@@ -327,6 +338,7 @@ function MarketChart({
           {!embedded && (
             <button
               type="button"
+              aria-label="Export chart data"
               className="hover:opacity-80 ml-auto tooltip"
               onClick={() => mutateExport.mutate()}
               disabled={mutateExport.isPending}
@@ -370,13 +382,6 @@ function LightweightChart({
   useEffect(() => {
     setVisibleOutcomes(new Set(outcomeNames));
   }, [outcomeNames]);
-  const truncateOutcomeName = (name: string, maxLength = 12) => {
-    if (!name) return "";
-
-    if (name.length <= maxLength) return name;
-
-    return `${name.slice(0, maxLength - 2)}…`;
-  };
   const handleToggleOutcome = (outcomeName: string) => {
     setVisibleOutcomes((prev) => {
       const newSet = new Set(prev);
@@ -389,16 +394,13 @@ function LightweightChart({
     });
   };
 
-  const accentColor = "#999";
-
-  const gridLinesColor = "#e5e5e5";
-
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
     const handleResize = () => {
+      setTooltipData(null);
       chart.applyOptions({ width: chartContainerRef?.current?.clientWidth });
     };
 
@@ -407,10 +409,12 @@ function LightweightChart({
         background: {
           color: "transparent",
         },
-        textColor: accentColor,
+        textColor: "#9a90ad",
+        fontFamily: "inherit",
+        fontSize: 11,
       },
       width: chartContainerRef?.current?.clientWidth,
-      height: 300,
+      height: 340,
       autoSize: true,
       rightPriceScale: {
         borderVisible: false,
@@ -427,24 +431,32 @@ function LightweightChart({
       },
       grid: {
         vertLines: {
-          color: gridLinesColor,
+          visible: false,
+          color: "#9a90ad22",
           style: LineStyle.SparseDotted,
         },
         horzLines: {
-          color: gridLinesColor,
+          color: "#9a90ad22",
           style: LineStyle.SparseDotted,
         },
       },
     });
-    chart.timeScale().fitContent();
+    const syncTheme = () => {
+      const style = getComputedStyle(chartContainerRef.current!);
+      chart.applyOptions({ layout: { textColor: style.getPropertyValue("--seer-muted").trim() || "#9a90ad" } });
+    };
+    syncTheme();
+    const themeObserver = new MutationObserver(syncTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
     const seriesInstances: Array<{ data: IOutcomeData; color: string }> = [];
     for (const outcomeData of series) {
       if (visibleOutcomes.has(outcomeData.outcome.name)) {
         const series = chart.addSeries(LineSeries, {
           color: outcomeData.outcome.color,
-          lineWidth: 2,
-          title: truncateOutcomeName(outcomeData.outcome.name),
+          lineWidth: 3,
+          priceLineVisible: false,
+          lastValueVisible: false,
           priceFormat: {
             type: "price",
             precision: market.type === "Futarchy" ? 3 : 2,
@@ -455,6 +467,8 @@ function LightweightChart({
         seriesInstances.push({ data: outcomeData, color: outcomeData.outcome.color });
       }
     }
+
+    chart.timeScale().fitContent();
 
     // Add crosshair move event listener for tooltip
     chart.subscribeCrosshairMove((param) => {
@@ -503,6 +517,7 @@ function LightweightChart({
     return () => {
       window.removeEventListener("resize", handleResize);
 
+      themeObserver.disconnect();
       chart.remove();
     };
   }, [series, Array.from(visibleOutcomes).join(",")]);
@@ -517,12 +532,14 @@ function LightweightChart({
           market={market}
         />
       )}
-      <div ref={chartContainerRef} />
+      <div ref={chartContainerRef} className="seer-chart-canvas" style={{ height: 340 }} />
       {tooltipData && (
         <div
           className="absolute bg-base-100 rounded-lg shadow-lg p-3 z-10 pointer-events-none"
           style={{
-            left: `${tooltipData.x + 10}px`,
+            left: `clamp(0px, ${tooltipData.x + 10}px, max(0px, 100% - 210px))`,
+            width: "210px",
+            maxWidth: "100%",
             top: `${tooltipData.y - 10}px`,
             transform: "translateY(-100%)",
             boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
@@ -536,7 +553,9 @@ function LightweightChart({
               <div key={index} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm">{item.name}:</span>
-                <span className="text-sm text-gray-700">{item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%</span>
+                <span className="text-sm text-base-content">
+                  {item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%
+                </span>
               </div>
             ))}
           </div>

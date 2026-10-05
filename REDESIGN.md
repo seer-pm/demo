@@ -118,3 +118,11 @@ Outcome headers in Proposed toggle their pool details when clicked; nested links
 - Reference: https://www.w3.org/WAI/ARIA/apg/patterns/accordion/ for disclosure semantics; https://www.nngroup.com/articles/accordions-complex-content/ for predictable open/closed state.
 
 Validation: seven ranking/demo tests, TypeScript and targeted Biome checks pass.
+
+## Individual market design
+
+Market detail pages share the brand surfaces, purple convergence motif and typography used across the redesign. A stronger market title and compact status/metrics area lead into a bordered history chart, outcome disclosures, trade panel and activity section. Existing trading, resolution and verification controls remain available.
+
+Chart data and calculations are unchanged. The chart has purple-led, contrasting series colours, subtle horizontal gridlines, a 340px canvas, keyboard-operable range and legend buttons, and theme-aware axis labels. Redundant right-edge series labels are removed; the legend and hover readout retain values. Mobile statistics wrap and chart tooltips stay within the page.
+
+Validation: TypeScript and targeted Biome checks; browser review of light/dark layouts, legend toggles and the 390px mobile layout.

@@ -328,7 +328,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
         <div className="grow min-w-0">
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
-            {type === "default" && market.marketName}
+            {type === "default" && <h1 className="seer-market-title">{market.marketName}</h1>}
             {type !== "default" && (
               <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
@@ -406,7 +406,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
 
       {type !== "small" && (
-        <div className="border-t border-separator-100 px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
+        <div className="seer-market-metrics border-t border-separator-100 px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
           <div className="flex items-center gap-4">
             <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" height="100%" />
             <div className="tooltip">
