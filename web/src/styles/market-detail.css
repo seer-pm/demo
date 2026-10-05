@@ -210,13 +210,11 @@
   .event-ticket-column:focus-visible { outline: 2px solid #a275ef; outline-offset: 3px; }
 }
 
-.event-brand-ribbon { width: calc(100vw - 16px); margin-left: calc(50% - 50vw + 8px); height: 28px; color: #a275ef; opacity: .65; pointer-events: none; }
 .event-brand-ribbon svg { display: block; width: 100%; height: 100%; }
 .seer-market-discussion [role="tablist"] { margin-bottom: 20px; }
 .seer-market-discussion [role="tab"] { font-size: 13px; }
-/* The ribbon decorates the existing top inset without pushing market data down. */
+/* The market owns the decorative ribbon positioning. */
 .seer-market-detail { position: relative; }
-.event-brand-ribbon { position: absolute; top: 0; left: 50%; margin: 0 !important; transform: translateX(-50%); height: 16px; }
 @media(min-width:1200px) {
   .seer-market-detail > .space-y-5 > :first-child { display: none; }
   .event-heading { padding-top: 10px; }
@@ -238,8 +236,9 @@
   .event-outcomes > div > .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px; }
 }
 
-/* Give the brand strokes enough weight and breathing room to read as decoration. */
-.event-brand-ribbon { position: relative; left: 50%; top: auto; height: 44px; opacity: .85; margin-block: 0 8px !important; color: #a275ef; }
+/* Filled wedges retain the reference silhouette; low opacity keeps attention on market data. */
+.event-brand-ribbon { position: relative; left: 50%; width: calc(100vw - 16px); height: 64px; margin: 0 0 8px !important; transform: translateX(-50%); color: #7d33ff; opacity: .18; pointer-events: none; }
+[data-theme="dark"] .event-brand-ribbon { color: #a275ef; opacity: .25; }
 .event-comments { margin-bottom: 28px; }
 .event-comments header { margin-bottom: 12px; }
 .event-comments h2 { font-size: 18px; font-weight: 600; }

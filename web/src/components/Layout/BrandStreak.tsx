@@ -9,19 +9,13 @@ export function BrandStreak({ className = "" }: { className?: string }) {
   );
 }
 
-/** Broad vector strokes preserve the identity motif at every viewport width. */
+/** Seven tapered wedges echo the supplied identity, converging just beyond the right edge. */
 export function BrandRibbon() {
   return (
     <div className="event-brand-ribbon" aria-hidden="true">
-      <svg viewBox="0 0 1600 56" preserveAspectRatio="none" fill="none" focusable="false">
-        {[0, 1, 2, 3].map((line) => (
-          <path
-            key={line}
-            d={`M-20 ${10 + line * 12} C450 ${10 + line * 12}, 1050 ${5 + line * 9}, 1620 ${5 + line * 9}`}
-            stroke="currentColor"
-            strokeWidth="4"
-            vectorEffect="non-scaling-stroke"
-          />
+      <svg viewBox="0 0 1600 160" preserveAspectRatio="none" fill="currentColor" focusable="false">
+        {[0, 1, 2, 3, 4, 5, 6].map((line) => (
+          <path key={line} d={`M0 ${7 + line * 22} L1740 80 L0 ${21 + line * 22} Z`} />
         ))}
       </svg>
     </div>

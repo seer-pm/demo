@@ -145,4 +145,4 @@ Desktop uses independent scrolling: market content follows the document while th
 
 ## Market polish
 
-Four visible 4px SVG strokes span a 44px brand band across the market page. The compact desktop header retains plot height. The Leaderboard page uses a short introduction and removes redundant headings to bring trader rankings into the first screen. Comments remain visible above activity tabs, with compact spacing and a smaller empty state. Invalid resolution retains its real settlement meaning, with a neutral shield icon and explicit price-unavailable text instead of NA.
+Seven filled SVG wedges match the supplied brand reference, tapering toward a point just beyond the right edge. The full-width 64px band uses 18% opacity in light mode and 25% in dark mode. The compact desktop header retains plot height. The Leaderboard page uses a short introduction and removes redundant headings to bring trader rankings into the first screen. Comments remain visible above activity tabs, with compact spacing and a smaller empty state. Invalid resolution retains its real settlement meaning, with a neutral shield icon and explicit price-unavailable text instead of NA.
