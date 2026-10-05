@@ -131,7 +131,7 @@ Validation: TypeScript and targeted Biome checks; browser review of light/dark l
 
 The market detail layout uses an integrated event-and-chart surface beside a persistent desktop trade ticket. The selected outcome's current odds and name sit above the history chart. Compare outcomes / Selected outcome changes the chart scope; historical pool data retains its existing meaning and source.
 
-Generic markets use compact outcome rows: the row is a keyboard-operable depth disclosure, while Trade selects that outcome and opens the existing mobile ticket when applicable. Liquidity links, conditional-market creation and pool panels remain accessible in each expanded row. Non-generic markets retain their specialized outcome controls. Rules and settlement, verification and resolution actions are available in the expandable details section. Mint, merge and redeem are grouped beneath the desktop ticket.
+Generic markets use compact outcome rows: the row selects the outcome and is a keyboard-operable depth disclosure. The mobile trade drawer remains available through the page-level control. Liquidity links, conditional-market creation and pool panels remain accessible in each expanded row. Non-generic markets retain their specialized outcome controls. Rules are shown as readable question text with a resolver card and settlement controls. Additional technical details preserve the existing verification information. Mint, merge and redeem are visible beneath the desktop ticket in its independent scroll container.
 
 UX reference: https://agg.market/events/wvo4e2zfkcvaja9k03s1lgen . Seer retains its own branding and trading functionality; aggregation-specific venue routing is not reproduced.
 
@@ -146,3 +146,5 @@ Desktop uses independent scrolling: market content follows the document while th
 ## Market polish
 
 Seven filled SVG wedges match the supplied brand reference, tapering toward a point just beyond the right edge. The full-width motif covers the initial viewport height (at least 640px) behind the content, using 16% opacity in light mode and 20% in dark mode. Translucent analysis panels reveal its shape without adding layout height. The compact desktop header retains plot height. The Leaderboard page uses a short introduction and removes redundant headings to bring trader rankings into the first screen. Comments remain visible above activity tabs, with compact spacing and a smaller empty state. Invalid resolution retains its real settlement meaning, with a neutral shield icon and explicit price-unavailable text instead of NA.
+
+Main navigation uses the same links, weight, sizing and spacing across routes. Create Market remains a separate desktop action. Browser verification confirms wheel scrolling moves the trade panel while the document stays fixed.

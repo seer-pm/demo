@@ -5,9 +5,9 @@ import { Drawer } from "@/components/Drawer";
 import { BrandRibbon } from "@/components/Layout/BrandStreak";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
-import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";
 import { MarketOverview } from "@/components/Market/MarketOverview";
+import { MarketRules } from "@/components/Market/MarketRules";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
@@ -284,22 +284,15 @@ function MarketPage() {
                   images={market?.images?.outcomes}
                   onOutcomeChange={onOutcomeChange}
                 />
-                <details className="event-token-tools">
-                  <summary>Mint, merge & redeem</summary>
-                  <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
-                </details>
+                <section className="event-token-tools" aria-label="Mint, merge and redeem">
+                  <ConditionalTokenActions expanded market={market} account={account} outcomeIndex={outcomeIndex} />
+                </section>
               </div>
             )}
             <MajorEvents market={market} />
           </aside>
           <div className="event-secondary">
-            <details id="event-rules" className="event-rules">
-              <summary>
-                <span>Rules & settlement</span>
-                <span>Market details, verification and resolution</span>
-              </summary>
-              <MarketHeader market={market} images={market.images} />
-            </details>
+            <MarketRules market={market} />
             <section className="seer-market-discussion" aria-label="Market activity">
               <MarketTabs market={market} />
             </section>

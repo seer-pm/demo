@@ -251,3 +251,21 @@
 .event-overview { background: color-mix(in srgb, var(--seer-surface) 45%, transparent); }
 .event-overview .seer-market-chart { background: transparent; }
 .event-outcome-row { background: color-mix(in srgb, var(--seer-surface) 85%, transparent); }
+
+.event-outcome-top { padding-right: 0; }
+.event-rules-readable { padding: 20px 4px; margin-bottom: 24px; scroll-margin-top: 100px; }
+.event-rules-readable h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+.event-rules-copy { font-size: 14px; line-height: 1.8; }
+.event-rules-copy p { white-space: pre-line; overflow-wrap: anywhere; margin-bottom: 16px; }
+.event-rules-date { font-size: 12px; color: var(--seer-muted); margin-block: 20px; }
+.event-resolver { display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 12px; background: var(--seer-surface); border: 1px solid var(--seer-border); }
+.event-resolver img { width: 32px; height: 32px; border-radius: 8px; }
+.event-resolver span { display: block; font-size: 12px; color: var(--seer-muted); }
+.event-resolver a { display: block; font-size: 14px; color: var(--seer-brand-purple); margin-top: 4px; }
+.event-resolution-status { padding-block: 16px; }
+.event-technical-details > summary { cursor: pointer; font-size: 12px; color: var(--seer-muted); }
+.event-technical-details > .card { margin-top: 16px; }
+.event-token-tools .card { border: 0; box-shadow: none; background: transparent; padding: 0; }
+.event-token-tools .card > :first-child { display: none; }
+.event-token-tools [role="tablist"] { margin-bottom: 16px; }
+.event-token-tools [role="tab"] { font-size: 13px; }

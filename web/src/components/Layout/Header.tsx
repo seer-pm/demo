@@ -1,4 +1,3 @@
-import { MarketsFilter } from "../Market/MarketsFilter";
 import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
 import { useModal } from "@/hooks/useModal";
@@ -32,8 +31,9 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
-import { ThemeToggleButton } from "./ThemeToggleButton";
+import { MarketsFilter } from "../Market/MarketsFilter";
 import { BrandLockup } from "./BrandLockup";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 import { UseSmartAccountToggle } from "./UseSmartAccountToggle";
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
@@ -266,7 +266,7 @@ export default function Header() {
           { id: "market", type: "link", url: "/", title: "Markets" },
           { id: "portfolio-main", type: "link", url: "/portfolio", title: "Portfolio" },
           { id: "leaderboard", type: "link", url: "/leaderboard", title: "Leaderboard" },
-          ...(!isHome || isMobile
+          ...(isMobile
             ? [{ id: "create-market", type: "link" as const, url: "/create-market", title: "Create Market" }]
             : []),
           {
@@ -459,6 +459,11 @@ export default function Header() {
         {isHome && <MarketsFilter mode="search" />}
         {buildAndRender(mobileOpen)}
         {isHome && <MarketsFilter mode="actions" />}
+        {!isHome && (
+          <Link to="/create-market" className="seer-global-create">
+            + Create Market
+          </Link>
+        )}
         <div className="seer-mobile-actions">
           <ThemeToggleButton iconFill="currentColor" />
           <button

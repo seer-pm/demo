@@ -11,6 +11,7 @@ interface ConditionalTokenActionsProps {
   account?: Address;
   market: Market;
   outcomeIndex: number;
+  expanded?: boolean;
 }
 
 const titles = {
@@ -19,7 +20,12 @@ const titles = {
   redeem: "Redeem",
 };
 
-export function ConditionalTokenActions({ account, market, outcomeIndex }: ConditionalTokenActionsProps) {
+export function ConditionalTokenActions({
+  account,
+  market,
+  outcomeIndex,
+  expanded = false,
+}: ConditionalTokenActionsProps) {
   const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
   const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   const marketStatus = getMarketStatus(market);
@@ -76,6 +82,8 @@ export function ConditionalTokenActions({ account, market, outcomeIndex }: Condi
   if (!outcomeToken) {
     return null;
   }
+
+  if (expanded) return renderActionBox();
 
   return (
     <div className="space-y-2">

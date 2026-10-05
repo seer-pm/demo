@@ -537,14 +537,6 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
                       {expanded ? "−" : "+"}
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    className="event-trade-outcome"
-                    aria-label={`Trade ${market.outcomes[i]}`}
-                    onClick={() => onOutcomeChange(i, true)}
-                  >
-                    Trade ↗
-                  </button>
                 </div>
                 <div id={`pool-details-${market.id}-${i}`} hidden={!expanded}>
                   {expanded && (
