@@ -21,11 +21,17 @@ export default function MarketTabs({ market }: { market: Market }) {
   // Prefetch holders + activity data while user is on other tabs to avoid Netlify cold start on first request
   useMarketHolders(market);
 
-  const [discussionOpen, setDiscussionOpen] = useState(false);
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"conditionalMarkets" | "topHolders" | "activity">("activity");
   return (
     <div>
+      <section className="event-comments" aria-labelledby="market-comments-heading">
+        <header>
+          <h2 id="market-comments-heading">Comments</h2>
+          <p>Share a source, ask a question, or add your perspective.</p>
+        </header>
+        <Comments market={market} fallback={<CommentsFallback />} />
+      </section>
       <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
           type="button"
@@ -58,19 +64,6 @@ export default function MarketTabs({ market }: { market: Market }) {
       )}
       {activeTab === "topHolders" && <TopHolders market={market} />}
       {activeTab === "activity" && <Activity market={market} />}
-      <details
-        className="event-discussion-disclosure"
-        onToggle={(event) => setDiscussionOpen(event.currentTarget.open)}
-      >
-        <summary>
-          <span>
-            <strong>Discussion</strong>
-            <small>Questions, sources & perspectives</small>
-          </span>
-          <span className="event-discussion-action">{discussionOpen ? "Close" : "Join discussion"}</span>
-        </summary>
-        {discussionOpen && <Comments market={market} fallback={<CommentsFallback />} />}
-      </details>
     </div>
   );
 }

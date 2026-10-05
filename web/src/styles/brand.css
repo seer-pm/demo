@@ -475,3 +475,14 @@ a:focus-visible, button:focus-visible {
 
 .seer-market-card .seer-outcome-leading { background: #a275ef; color: #24133f; }
 .seer-market-card .seer-outcome-leading:hover { background: #b08af2; }
+
+/* Keep rankings, filters and search in the first screen. */
+.seer-main > .seer-leaderboard-intro { padding-top: 20px; padding-bottom: 12px; }
+.seer-leaderboard-intro .seer-eyebrow { display: none; }
+.seer-leaderboard-intro h1 { font-size: 28px; }
+.seer-leaderboard-intro .seer-page-description { margin-top: 6px; }
+.seer-leaderboard-intro .seer-intro-streak { height: 64px; }
+.seer-main > .seer-leaderboard { padding-top: 0; padding-bottom: 24px; }
+.seer-leaderboard .seer-methodology { font-size: 12px; color: var(--seer-muted); }
+.seer-leaderboard .seer-methodology summary { cursor: pointer; }
+.seer-leaderboard table td { padding-block: 12px; }

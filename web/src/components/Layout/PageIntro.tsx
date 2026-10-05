@@ -33,7 +33,9 @@ export function PageIntro() {
   if (!section || (DESIGN_PREVIEW && urlParsed.pathname === "/create-market")) return null;
   const [, eyebrow, title, description] = section;
   return (
-    <div className="container-fluid seer-page-intro">
+    <div
+      className={`container-fluid seer-page-intro ${urlParsed.pathname === "/leaderboard" ? "seer-leaderboard-intro" : ""}`}
+    >
       <div className="seer-page-intro-copy">
         <p className="seer-eyebrow">{eyebrow}</p>
         <h1>{title}</h1>

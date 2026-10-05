@@ -1,4 +1,3 @@
-import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { EnsBadge } from "@/components/EnsBadge";
 import { TraderScoreBadge, type TraderScoreBreakdown } from "@/components/TraderScoreBadge";
@@ -447,31 +446,29 @@ function LeaderboardPage() {
     clsx("btn btn-sm", active ? "btn-primary" : "btn-ghost border border-separator-100");
 
   return (
-    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[32px]">
-      <Breadcrumb links={[{ title: "Leaderboard" }]} />
-
+    <div className="container-fluid seer-leaderboard space-y-4">
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold text-base-content">Trading performance</h2>
-        <details className="seer-methodology"><summary>How rankings and trader scores work</summary>
-        <p className="text-black-secondary max-w-2xl">
-          Rankings of wallets by trading P/L in USD. <strong>All</strong> covers every Seer market on a chain (including
-          markets not assigned to an app). App filters scope to that app&apos;s configured markets; Deepfunding and
-          Foresight also offer per-market boards.
-        </p>
-        <p className="text-black-secondary max-w-2xl">
-          <strong className="font-semibold text-base-content">Trader Score</strong> rates each wallet 0–100 on returns,
-          profit factor, hit rate edge, loss burn and breadth across the markets it traded, shrunk toward the middle
-          when it traded few of them.{" "}
-          <a
-            className="text-purple-primary hover:underline"
-            href={paths.leaderboardGuide()}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            How it works
-          </a>
-          .
-        </p>
+        <details className="seer-methodology">
+          <summary>How rankings and trader scores work</summary>
+          <p className="text-black-secondary max-w-2xl">
+            Rankings of wallets by trading P/L in USD. <strong>All</strong> covers every Seer market on a chain
+            (including markets not assigned to an app). App filters scope to that app&apos;s configured markets;
+            Deepfunding and Foresight also offer per-market boards.
+          </p>
+          <p className="text-black-secondary max-w-2xl">
+            <strong className="font-semibold text-base-content">Trader Score</strong> rates each wallet 0–100 on
+            returns, profit factor, hit rate edge, loss burn and breadth across the markets it traded, shrunk toward the
+            middle when it traded few of them.{" "}
+            <a
+              className="text-purple-primary hover:underline"
+              href={paths.leaderboardGuide()}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              How it works
+            </a>
+            .
+          </p>
         </details>
       </div>
 

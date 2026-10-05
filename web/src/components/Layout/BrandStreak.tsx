@@ -9,17 +9,17 @@ export function BrandStreak({ className = "" }: { className?: string }) {
   );
 }
 
-/** Thin vector ribbons span the page without losing definition at any screen size. */
+/** Broad vector strokes preserve the identity motif at every viewport width. */
 export function BrandRibbon() {
   return (
     <div className="event-brand-ribbon" aria-hidden="true">
-      <svg viewBox="0 0 1600 40" preserveAspectRatio="none" fill="none" focusable="false">
-        {[0, 1, 2, 3, 4].map((line) => (
+      <svg viewBox="0 0 1600 56" preserveAspectRatio="none" fill="none" focusable="false">
+        {[0, 1, 2, 3].map((line) => (
           <path
             key={line}
-            d={`M-20 ${5 + line * 7} C450 ${5 + line * 7}, 1050 ${2 + line * 4}, 1620 ${2 + line * 4}`}
+            d={`M-20 ${10 + line * 12} C450 ${10 + line * 12}, 1050 ${5 + line * 9}, 1620 ${5 + line * 9}`}
             stroke="currentColor"
-            strokeWidth="1"
+            strokeWidth="4"
             vectorEffect="non-scaling-stroke"
           />
         ))}

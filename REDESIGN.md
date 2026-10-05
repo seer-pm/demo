@@ -145,4 +145,4 @@ Desktop uses independent scrolling: market content follows the document while th
 
 ## Market polish
 
-Thin SVG ribbons span the market page, with non-scaling strokes for crisp rendering. The compact desktop header brings the first outcome rows above the fold without reducing plot height. Activity is the default information tab; discussion is an on-demand disclosure so quiet markets do not display a large empty comment panel. Invalid resolution retains its real settlement meaning, with a neutral shield icon and explicit price-unavailable text instead of NA.
+Four visible 4px SVG strokes span a 44px brand band across the market page. The compact desktop header retains plot height. The Leaderboard page uses a short introduction and removes redundant headings to bring trader rankings into the first screen. Comments remain visible above activity tabs, with compact spacing and a smaller empty state. Invalid resolution retains its real settlement meaning, with a neutral shield icon and explicit price-unavailable text instead of NA.
