@@ -108,6 +108,8 @@ function MarketPage() {
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const isMobile = useIsSmallScreen(1200);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
   const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
 
   // Auto-switch to the market's chain when the wallet is connected but on a different chain.
@@ -126,6 +128,18 @@ function MarketPage() {
     isLoading: isMarketLoading,
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
+  useEffect(() => {
+    const header = document.querySelector(".seer-header");
+    if (!header || !market) return;
+    const updateTicketTop = () => {
+      workspaceRef.current?.style.setProperty("--event-ticket-top", `${header.getBoundingClientRect().height + 12}px`);
+    };
+    const observer = new ResizeObserver(updateTicketTop);
+    observer.observe(header);
+    updateTicketTop();
+    return () => observer.disconnect();
+  }, [isMobile, market?.id]);
+
   const requestedOutcomeIndex = requestedOutcome ? market?.outcomes.indexOf(requestedOutcome) : 0;
   useEffect(() => {
     if (requestedOutcomeIndex !== undefined) setOutcomeIndex(Math.max(0, requestedOutcomeIndex));
@@ -236,7 +250,7 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <div className="event-workspace">
+        <div className="event-workspace" ref={workspaceRef}>
           <div className="event-main">
             <MarketOverview market={market} selected={outcomeIndex} />
 
@@ -250,7 +264,11 @@ function MarketPage() {
               />
             </section>
           </div>
-          <aside className="event-ticket-column">
+          <aside
+            className="event-ticket-column"
+            aria-label="Trade outcome and token tools"
+            tabIndex={isMobile ? undefined : 0}
+          >
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
               <div className="seer-market-trade">

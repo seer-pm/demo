@@ -195,3 +195,17 @@
   .event-outcomes { margin-top: 8px; }
   .event-outcomes > div > .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
 }
+
+/* Desktop trading stays available while market content follows document scroll. */
+@media (min-width: 1200px) {
+  .event-ticket-column {
+    position: sticky;
+    top: var(--event-ticket-top, 100px);
+    max-height: calc(100dvh - var(--event-ticket-top, 100px) - 16px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--seer-border) transparent;
+  }
+  .event-ticket-column:focus-visible { outline: 2px solid #a275ef; outline-offset: 3px; }
+}
