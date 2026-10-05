@@ -46,6 +46,7 @@ import { OutcomeActivePanel } from "./OutcomeActivePanel";
 import { OutcomeImage } from "./OutcomeImage";
 
 interface OutcomesProps {
+  compact?: boolean;
   market: Market;
   images?: string[];
   activeOutcome: number;
@@ -459,7 +460,7 @@ function MultiScalarEstimate({
   );
 }
 
-export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: OutcomesProps) {
+export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compact = false }: OutcomesProps) {
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
@@ -487,13 +488,80 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
 
   return (
     <div>
-      <div className="text-[16px] font-semibold mb-[24px]">Outcomes</div>
+      <div className={compact ? "event-outcome-heading" : "text-[16px] font-semibold mb-[24px]"}>
+        <h2>Outcomes</h2>
+        {compact && <span>Select to inspect depth · Trade to place an order</span>}
+      </div>
       <div className="space-y-3">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
           const isActive = activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2);
+          if (compact && market.type === "Generic") {
+            const expanded = openPoolDetails.has(i);
+            return (
+              <article className={`event-outcome-row ${isActive ? "is-selected" : ""}`} key={market.wrappedTokens[i]}>
+                <div className="event-outcome-top">
+                  <button
+                    type="button"
+                    className="event-outcome-disclosure"
+                    aria-expanded={expanded}
+                    aria-controls={`pool-details-${market.id}-${i}`}
+                    onClick={() => {
+                      onOutcomeChange(i, false);
+                      togglePoolDetails(i);
+                    }}
+                  >
+                    <span className="event-outcome-avatar">
+                      <OutcomeImage
+                        image={images?.[i]}
+                        isInvalidOutcome={isInvalidOutcome(market, i)}
+                        title={market.outcomes[i]}
+                      />
+                    </span>
+                    <span className="event-outcome-name">
+                      <strong>{market.outcomes[i]}</strong>
+                      <small>{expanded ? "Hide order book" : "Order book & liquidity"}</small>
+                    </span>
+                    <span className="event-outcome-price">
+                      <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
+                    </span>
+                    <span className="event-outcome-chevron" aria-hidden="true">
+                      {expanded ? "−" : "+"}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="event-trade-outcome"
+                    aria-label={`Trade ${market.outcomes[i]}`}
+                    onClick={() => onOutcomeChange(i, true)}
+                  >
+                    Trade ↗
+                  </button>
+                </div>
+                <div id={`pool-details-${market.id}-${i}`} hidden={!expanded}>
+                  {expanded && (
+                    <>
+                      <div className="event-outcome-tools">
+                        <OutcomeDetails
+                          market={market}
+                          wrappedAddress={market.wrappedTokens[i]}
+                          marketStatus={marketStatus}
+                          openModal={openModalCallback}
+                          outcomeIndex={i}
+                          pools={pools}
+                          loopIndex={j}
+                          images={images}
+                        />
+                      </div>
+                      <OutcomeActivePanel market={market} outcomeIndex={i} />
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          }
           return (
             <div key={market.wrappedTokens[i]} className={clsx("card", isActive ? "card-active" : "")}>
               <div

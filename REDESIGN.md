@@ -126,3 +126,13 @@ Market detail pages share the brand surfaces, purple convergence motif and typog
 Chart data and calculations are unchanged. The chart has purple-led, contrasting series colours, subtle horizontal gridlines, a 340px canvas, keyboard-operable range and legend buttons, and theme-aware axis labels. Redundant right-edge series labels are removed; the legend and hover readout retain values. Mobile statistics wrap and chart tooltips stay within the page.
 
 Validation: TypeScript and targeted Biome checks; browser review of light/dark layouts, legend toggles and the 390px mobile layout.
+
+## Event workspace
+
+The market detail layout uses an integrated event-and-chart surface beside a persistent desktop trade ticket. The selected outcome's current odds and name sit above the history chart. Compare outcomes / Selected outcome changes the chart scope; historical pool data retains its existing meaning and source.
+
+Generic markets use compact outcome rows: the row is a keyboard-operable depth disclosure, while Trade selects that outcome and opens the existing mobile ticket when applicable. Liquidity links, conditional-market creation and pool panels remain accessible in each expanded row. Non-generic markets retain their specialized outcome controls. Rules and settlement, verification and resolution actions are available in the expandable details section. Mint, merge and redeem are grouped beneath the desktop ticket.
+
+UX reference: https://agg.market/events/wvo4e2zfkcvaja9k03s1lgen . Seer retains its own branding and trading functionality; aggregation-specific venue routing is not reproduced.
+
+Validation: TypeScript and targeted Biome; browser checks for outcome selection, depth disclosure, chart scope and mobile trade drawer (390px, no horizontal overflow).

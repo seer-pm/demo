@@ -50,3 +50,80 @@
 @media(max-width: 700px) {
   .seer-market-chart .tooltiptext { left: auto !important; right: 0; transform: none !important; }
 }
+/* Event workspace: analysis on the left, a persistent trade ticket on the right. */
+.event-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 24px; align-items: start; }
+.event-main { min-width: 0; }
+.event-overview { border: 1px solid var(--seer-border); border-radius: 20px; background: var(--seer-surface); overflow: clip; }
+.event-heading { padding: 26px 28px 0; position: relative; isolation: isolate; }
+.event-streak { position: absolute; right: 0; top: 0; width: 240px; height: 150px; color: #7d33ff; opacity: .16; z-index: -1; pointer-events: none; }
+.event-kicker { display: flex; align-items: center; gap: 12px; font-size: 10px; letter-spacing: .12em; color: var(--seer-muted); margin-bottom: 22px; }
+.event-kicker > :last-child { color: var(--seer-brand-purple); letter-spacing: 0; border-radius: 20px; background: var(--seer-accent-soft); padding: 5px 9px; }
+.event-title-row { display: flex; align-items: flex-start; gap: 16px; }
+.event-title-row > img { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; }
+.event-title-row h1 { flex: 1; font-size: clamp(23px,2.3vw,32px); line-height: 1.18; font-weight: 600; letter-spacing: -.035em; }
+.event-metrics { display: flex; flex-wrap: wrap; gap: 28px; align-items: center; padding: 24px 0; border-bottom: 1px solid var(--seer-border); }
+.event-metrics > span { display: flex; gap: 7px; align-items: baseline; }
+.event-metrics small { color: var(--seer-muted); font-size: 11px; }
+.event-metrics strong { font-size: 12px; font-weight: 500; }
+.event-metrics a { margin-left: auto; color: var(--seer-muted); font-size: 11px; }
+.event-chart-summary { padding: 24px 28px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.event-selected-label { font-size: 10px; color: var(--seer-muted); }
+.event-chart-summary h2 { font-size: 17px; font-weight: 500; margin-top: 4px; }
+.event-selected-odds { color: #a275ef; font-size: 42px; font-weight: 500; letter-spacing: -.05em; line-height: 1; }
+.event-chart-switch { margin: 0 28px; display: inline-flex; padding: 4px; gap: 4px; background: var(--seer-surface-raised); border-radius: 9px; }
+.event-chart-switch button { font-size: 11px; padding: 7px 12px; color: var(--seer-muted); border-radius: 6px; }
+.event-chart-switch button[aria-pressed="true"] { background: var(--seer-surface); color: var(--seer-text); box-shadow: 0 1px 3px #0001; }
+.event-overview .seer-market-chart { border: 0; border-radius: 0; padding: 18px 28px 22px; display: flex; flex-direction: column; }
+.event-overview .seer-chart-heading { display: none; }
+.event-overview .seer-chart-controls { order: 2; margin: 18px 0 0; padding-top: 12px; border-top: 1px solid var(--seer-border); }
+.event-overview .seer-chart-panel { margin-top: 0; }
+.event-overview .seer-chart-canvas { height: 280px !important; }
+.event-outcomes { margin-top: 26px; }
+.event-outcome-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.event-outcome-heading h2 { font-size: 18px; font-weight: 600; }
+.event-outcome-heading > span { font-size: 10px; color: var(--seer-muted); }
+.event-outcome-row { border: 1px solid var(--seer-border); border-radius: 13px; background: var(--seer-surface); overflow: clip; }
+.event-outcome-row.is-selected { border-color: #a275ef; }
+.event-outcome-top { display: flex; align-items: center; gap: 14px; padding-right: 16px; }
+.event-outcome-disclosure { display: flex; flex: 1; min-width: 0; align-items: center; gap: 14px; padding: 17px; text-align: left; }
+.event-outcome-disclosure:hover { background: var(--seer-surface-raised); }
+.event-outcome-avatar { width: 38px; height: 38px; flex-shrink: 0; overflow: hidden; border-radius: 10px; }
+.event-outcome-avatar img, .event-outcome-avatar > div { width: 38px !important; height: 38px !important; min-width: 0 !important; }
+.event-outcome-name { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.event-outcome-name strong { font-size: 14px; font-weight: 500; }
+.event-outcome-name small { color: var(--seer-muted); font-size: 10px; }
+.event-outcome-price { font-size: 22px; font-weight: 500; letter-spacing: -.03em; }
+.event-outcome-chevron { color: var(--seer-muted); width: 14px; }
+.event-trade-outcome { border-radius: 8px; padding: 10px 16px; font-size: 12px; background: var(--seer-accent-soft); color: var(--seer-brand-purple); }
+.event-outcome-row.is-selected .event-trade-outcome { background: #7d33ff; color: white; }
+.event-outcome-tools { padding: 16px; border-top: 1px solid var(--seer-border); }
+.event-ticket-column { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 96px; min-width: 0; }
+.event-ticket-column .seer-market-trade { border-top: 3px solid #a275ef; border-radius: 16px; padding: 22px; }
+.event-token-tools { border-top: 1px solid var(--seer-border); padding-top: 16px; color: var(--seer-muted); font-size: 12px; }
+.event-token-tools summary { cursor: pointer; }
+.event-token-tools > :last-child { margin-top: 16px; }
+.event-secondary { grid-column: 1; min-width: 0; }
+.event-rules { scroll-margin-top: 100px; margin-bottom: 24px; border: 1px solid var(--seer-border); border-radius: 14px; background: var(--seer-surface); }
+.event-rules summary { cursor: pointer; padding: 20px; }
+.event-rules summary > :first-child { font-size: 15px; font-weight: 500; }
+.event-rules summary > :last-child { display: block; font-size: 11px; color: var(--seer-muted); margin: 6px 0 0 18px; }
+.event-rules .card { box-shadow: none; border: 0; }
+[data-theme="dark"] .event-trade-outcome, [data-theme="dark"] .event-kicker > :last-child { color: #c9acff; }
+@media(max-width:1199px) { .event-workspace { grid-template-columns: minmax(0,1fr); } .event-ticket-column { grid-column: 1; grid-row: auto; position: static; } }
+@media(max-width:600px) {
+  .event-heading { padding: 20px 18px 0; }
+  .event-title-row > img { width: 42px; height: 42px; }
+  .event-title-row { gap: 12px; }
+  .event-metrics { gap: 14px; }
+  .event-metrics a { margin-left: 0; }
+  .event-chart-summary { padding: 20px 18px; }
+  .event-selected-odds { font-size: 32px; }
+  .event-chart-switch { margin-inline: 18px; }
+  .event-overview .seer-market-chart { padding-inline: 18px; }
+  .event-outcome-heading > span { display: none; }
+  .event-outcome-avatar { display: none; }
+  .event-outcome-disclosure { gap: 10px; padding: 14px 12px; }
+  .event-outcome-price { font-size: 19px; }
+  .event-outcome-top { gap: 0; padding-right: 10px; }
+  .event-trade-outcome { padding: 9px 11px; }
+}

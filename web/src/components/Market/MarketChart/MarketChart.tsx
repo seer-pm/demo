@@ -416,6 +416,8 @@ function LightweightChart({
       width: chartContainerRef?.current?.clientWidth,
       height: 340,
       autoSize: true,
+      handleScroll: { mouseWheel: false, vertTouchDrag: false },
+      handleScale: { mouseWheel: false },
       rightPriceScale: {
         borderVisible: false,
         visible: true,

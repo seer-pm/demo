@@ -1,5 +1,4 @@
 import { Alert } from "@/components/Alert";
-import { BrandStreak } from "@/components/Layout/BrandStreak";
 import "@/styles/market-detail.css";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
@@ -7,7 +6,7 @@ import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAle
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";
-import MarketChart from "@/components/Market/MarketChart/MarketChart";
+import { MarketOverview } from "@/components/Market/MarketOverview";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
@@ -229,10 +228,6 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <section className="seer-market-hero" aria-label="Market overview">
-          <BrandStreak className="seer-market-streak" />
-          <MarketHeader market={market} images={market.images} />
-        </section>
         {!reliableMarket && (
           <Alert
             type="error"
@@ -241,12 +236,13 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <div className="seer-market-workspace grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-8">
-            <MarketChart market={market} />
+        <div className="event-workspace">
+          <div className="event-main">
+            <MarketOverview market={market} selected={outcomeIndex} />
 
-            <section className="seer-market-outcomes" aria-label="Market outcomes">
+            <section className="event-outcomes" aria-label="Market outcomes">
               <Outcomes
+                compact
                 market={market}
                 images={market?.images?.outcomes}
                 activeOutcome={outcomeIndex}
@@ -254,13 +250,13 @@ function MarketPage() {
               />
             </section>
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-[130px]">
+          <aside className="event-ticket-column">
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
               <div className="seer-market-trade">
                 <div className="seer-trade-heading">
-                  <span>Trade</span>
-                  <span>Choose an outcome</span>
+                  <span>Trade outcome</span>
+                  <span>SEER</span>
                 </div>
                 <SwapWidget
                   market={market}
@@ -268,12 +264,22 @@ function MarketPage() {
                   images={market?.images?.outcomes}
                   onOutcomeChange={onOutcomeChange}
                 />
-                <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
+                <details className="event-token-tools">
+                  <summary>Mint, merge & redeem</summary>
+                  <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
+                </details>
               </div>
             )}
             <MajorEvents market={market} />
-          </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
+          </aside>
+          <div className="event-secondary">
+            <details id="event-rules" className="event-rules">
+              <summary>
+                <span>Rules & settlement</span>
+                <span>Market details, verification and resolution</span>
+              </summary>
+              <MarketHeader market={market} images={market.images} />
+            </details>
             <section className="seer-market-discussion" aria-label="Market activity">
               <MarketTabs market={market} />
             </section>
