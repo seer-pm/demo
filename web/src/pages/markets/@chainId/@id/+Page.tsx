@@ -2,6 +2,7 @@ import { Alert } from "@/components/Alert";
 import "@/styles/market-detail.css";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
+import { BrandRibbon } from "@/components/Layout/BrandStreak";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MarketHeader } from "@/components/Market/Header/MarketHeader";
@@ -250,6 +251,7 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
+        <BrandRibbon />
         <div className="event-workspace" ref={workspaceRef}>
           <div className="event-main">
             <MarketOverview market={market} selected={outcomeIndex} />

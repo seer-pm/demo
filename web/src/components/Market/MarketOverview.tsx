@@ -1,4 +1,3 @@
-import { BrandStreak } from "@/components/Layout/BrandStreak";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { formatBigNumbers } from "@/lib/utils";
 import { useMarketOdds } from "@seer-pm/react";
@@ -15,7 +14,6 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
   return (
     <section className="event-overview" aria-label="Event overview">
       <header className="event-heading">
-        <BrandStreak className="event-streak" />
         <div className="event-kicker">
           <span>SEER MARKETS</span>
           <span>{status ? STATUS_TEXTS[status](market.liquidityUSD > 0) : "Market"}</span>

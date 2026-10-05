@@ -21,26 +21,19 @@ export default function MarketTabs({ market }: { market: Market }) {
   // Prefetch holders + activity data while user is on other tabs to avoid Netlify cold start on first request
   useMarketHolders(market);
 
+  const [discussionOpen, setDiscussionOpen] = useState(false);
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets" | "topHolders" | "activity">("comments");
+  const [activeTab, setActiveTab] = useState<"conditionalMarkets" | "topHolders" | "activity">("activity");
   return (
     <div>
       <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
         <button
           type="button"
           role="tab"
-          className={`tab text-[16px] ${activeTab === "comments" && "tab-active"}`}
-          onClick={() => setActiveTab("comments")}
-        >
-          Comments
-        </button>
-        <button
-          type="button"
-          role="tab"
           className={`tab text-[16px] whitespace-nowrap ${activeTab === "conditionalMarkets" && "tab-active"}`}
           onClick={() => setActiveTab("conditionalMarkets")}
         >
-          Related Conditional Markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
+          Related markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
         </button>
         <button
           type="button"
@@ -59,12 +52,25 @@ export default function MarketTabs({ market }: { market: Market }) {
           Activity
         </button>
       </div>
-      {activeTab === "comments" && <Comments market={market} fallback={<CommentsFallback />} />}
+
       {activeTab === "conditionalMarkets" && (
         <RelatedMarkets market={market} setRelatedMarketsCount={(count: number) => setRelatedMarketsCount(count)} />
       )}
       {activeTab === "topHolders" && <TopHolders market={market} />}
       {activeTab === "activity" && <Activity market={market} />}
+      <details
+        className="event-discussion-disclosure"
+        onToggle={(event) => setDiscussionOpen(event.currentTarget.open)}
+      >
+        <summary>
+          <span>
+            <strong>Discussion</strong>
+            <small>Questions, sources & perspectives</small>
+          </span>
+          <span className="event-discussion-action">{discussionOpen ? "Close" : "Join discussion"}</span>
+        </summary>
+        {discussionOpen && <Comments market={market} fallback={<CommentsFallback />} />}
+      </details>
     </div>
   );
 }

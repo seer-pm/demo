@@ -142,3 +142,7 @@ Validation: TypeScript and targeted Biome; browser checks for outcome selection,
 The chart and surrounding spacing adapt to desktop viewport height so initial outcome rows and the complete default swap form are visible sooner. Short laptop viewports use a 230px plot; taller ones use 300-360px. The selected-outcome toolbar is a compact single line and the redundant Outcomes heading is removed to reclaim space. Typography and controls retain their sizes while redundant spacing is reduced. Additional error messages or expanded tools can naturally increase the form height.
 
 Desktop uses independent scrolling: market content follows the document while the trade column stays beneath the header. Overflow in the trade column scrolls separately, including expanded mint/merge tools, without passing scroll gestures into the market column. Its offset tracks the header height. Mobile retains the existing trade drawer.
+
+## Market polish
+
+Thin SVG ribbons span the market page, with non-scaling strokes for crisp rendering. The compact desktop header brings the first outcome rows above the fold without reducing plot height. Activity is the default information tab; discussion is an on-demand disclosure so quiet markets do not display a large empty comment panel. Invalid resolution retains its real settlement meaning, with a neutral shield icon and explicit price-unavailable text instead of NA.

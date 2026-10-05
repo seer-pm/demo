@@ -521,8 +521,14 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
                       />
                     </span>
                     <span className="event-outcome-name">
-                      <strong>{market.outcomes[i]}</strong>
-                      <small>{expanded ? "Hide order book" : "Order book & liquidity"}</small>
+                      <strong>{isInvalidOutcome(market, i) ? "Invalid resolution" : market.outcomes[i]}</strong>
+                      <small>
+                        {isInvalidOutcome(market, i)
+                          ? "Applies if the market resolves as invalid"
+                          : expanded
+                            ? "Hide order book"
+                            : "Order book & liquidity"}
+                      </small>
                     </span>
                     <span className="event-outcome-price">
                       <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />

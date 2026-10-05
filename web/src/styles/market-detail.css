@@ -209,3 +209,38 @@
   }
   .event-ticket-column:focus-visible { outline: 2px solid #a275ef; outline-offset: 3px; }
 }
+
+.event-brand-ribbon { width: calc(100vw - 16px); margin-left: calc(50% - 50vw + 8px); height: 28px; color: #a275ef; opacity: .65; pointer-events: none; }
+.event-brand-ribbon svg { display: block; width: 100%; height: 100%; }
+.event-discussion-disclosure { margin-top: 20px; border-top: 1px solid var(--seer-border); padding-top: 16px; }
+.event-discussion-disclosure summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; list-style: none; }
+.event-discussion-disclosure summary::-webkit-details-marker { display: none; }
+.event-discussion-disclosure summary strong { display: block; font-size: 14px; font-weight: 600; }
+.event-discussion-disclosure summary small { display: block; margin-top: 4px; font-size: 11px; color: var(--seer-muted); }
+.event-discussion-action { font-size: 12px; color: var(--seer-brand-purple); background: var(--seer-accent-soft); border-radius: 8px; padding: 9px 12px; white-space: nowrap; }
+.event-discussion-disclosure[open] summary { margin-bottom: 20px; }
+.seer-market-discussion [role="tablist"] { margin-bottom: 20px; }
+.seer-market-discussion [role="tab"] { font-size: 13px; }
+/* The ribbon decorates the existing top inset without pushing market data down. */
+.seer-market-detail { position: relative; }
+.event-brand-ribbon { position: absolute; top: 0; left: 50%; margin: 0 !important; transform: translateX(-50%); height: 16px; }
+@media(min-width:1200px) {
+  .seer-market-detail > .space-y-5 > :first-child { display: none; }
+  .event-heading { padding-top: 10px; }
+  .event-kicker { margin-bottom: 5px; }
+  .event-kicker > :first-child { display: none; }
+  .event-kicker > :last-child { padding: 2px 7px; }
+  .event-title-row h1 { font-size: 23px; }
+  .event-title-row > img { width: 34px; height: 34px; }
+  .event-overview .seer-market-chart { padding-top: 6px; }
+  .event-chart-summary { padding-block: 3px; }
+  .event-outcome-disclosure { padding-block: 8px; }
+}
+@media(min-width:1200px) {
+  .event-outcome-avatar { width: 34px; height: 34px; }
+  .event-outcome-avatar img, .event-outcome-avatar > div { width: 34px !important; height: 34px !important; }
+}
+@media(min-width:1200px) {
+  .event-outcome-disclosure { padding-block: 6px; }
+  .event-outcomes > div > .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px; }
+}

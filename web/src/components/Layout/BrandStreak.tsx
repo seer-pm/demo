@@ -8,3 +8,22 @@ export function BrandStreak({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+
+/** Thin vector ribbons span the page without losing definition at any screen size. */
+export function BrandRibbon() {
+  return (
+    <div className="event-brand-ribbon" aria-hidden="true">
+      <svg viewBox="0 0 1600 40" preserveAspectRatio="none" fill="none" focusable="false">
+        {[0, 1, 2, 3, 4].map((line) => (
+          <path
+            key={line}
+            d={`M-20 ${5 + line * 7} C450 ${5 + line * 7}, 1050 ${2 + line * 4}, 1620 ${2 + line * 4}`}
+            stroke="currentColor"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+    </div>
+  );
+}
