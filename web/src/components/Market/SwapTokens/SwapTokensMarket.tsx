@@ -432,7 +432,7 @@ export function SwapTokensMarket({
               setFocus("amount");
             }}
             className={clsx(
-              "rounded-[12px] p-4 space-y-2 cursor-pointer h-[137px]",
+              "seer-swap-amount rounded-[12px] p-4 space-y-2 cursor-pointer h-[137px]",
               focusContainer === 0 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
             )}
           >
@@ -547,7 +547,7 @@ export function SwapTokensMarket({
               setFocus("amountOut");
             }}
             className={clsx(
-              "rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
+              "seer-swap-amount rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
               focusContainer === 1 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
             )}
           >

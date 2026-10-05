@@ -50,7 +50,7 @@
 @media(max-width: 700px) {
   .seer-market-chart .tooltiptext { left: auto !important; right: 0; transform: none !important; }
 }
-/* Event workspace: analysis on the left, a persistent trade ticket on the right. */
+/* Event workspace: analysis on the left, a trade ticket in the same document flow on the right. */
 .event-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 24px; align-items: start; }
 .event-main { min-width: 0; }
 .event-overview { border: 1px solid var(--seer-border); border-radius: 20px; background: var(--seer-surface); overflow: clip; }
@@ -97,7 +97,7 @@
 .event-trade-outcome { border-radius: 8px; padding: 10px 16px; font-size: 12px; background: var(--seer-accent-soft); color: var(--seer-brand-purple); }
 .event-outcome-row.is-selected .event-trade-outcome { background: #7d33ff; color: white; }
 .event-outcome-tools { padding: 16px; border-top: 1px solid var(--seer-border); }
-.event-ticket-column { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 96px; min-width: 0; }
+.event-ticket-column { grid-column: 2; grid-row: 1 / span 2; position: static; min-width: 0; }
 .event-ticket-column .seer-market-trade { border-top: 3px solid #a275ef; border-radius: 16px; padding: 22px; }
 .event-token-tools { border-top: 1px solid var(--seer-border); padding-top: 16px; color: var(--seer-muted); font-size: 12px; }
 .event-token-tools summary { cursor: pointer; }
@@ -126,4 +126,53 @@
   .event-outcome-price { font-size: 19px; }
   .event-outcome-top { gap: 0; padding-right: 10px; }
   .event-trade-outcome { padding: 9px 11px; }
+}
+
+/* Keep the chart, initial outcomes and complete ticket within a desktop viewport. */
+@media(min-width:1200px) {
+  .seer-market-detail { padding-top: 12px !important; }
+  .seer-market-detail > .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+  .event-heading { padding: 16px 20px 0; }
+  .event-kicker { margin-bottom: 10px; }
+  .event-title-row { gap: 12px; }
+  .event-title-row > img { width: 42px; height: 42px; }
+  .event-title-row h1 { font-size: 25px; }
+  .event-metrics { padding: 12px 0; gap: 20px; }
+  .event-chart-summary { display: inline-flex; vertical-align: middle; width: calc(100% - 275px); padding: 12px 20px; gap: 12px; }
+  .event-chart-summary h2 { font-size: 14px; margin-top: 2px; }
+  .event-selected-odds { font-size: 28px; }
+  .event-chart-switch { margin: 0 12px 0 0; vertical-align: middle; padding: 3px; }
+  .event-chart-switch button { padding: 6px 9px; font-size: 10px; }
+  .event-overview .seer-market-chart { padding: 0 20px 10px; }
+  .event-overview .seer-chart-canvas { height: clamp(150px, 20vh, 180px) !important; margin-top: 8px; }
+  .event-overview .seer-chart-controls { margin-top: 6px; padding-top: 6px; }
+  .event-overview .seer-chart-legend-item { min-height: 28px; font-size: 10px; }
+  .event-outcomes { margin-top: 16px; }
+  .event-outcome-heading { margin-bottom: 10px; }
+  .event-outcome-disclosure { padding: 10px 14px; }
+  .event-outcome-row + .event-outcome-row { margin-top: 8px; }
+  .event-ticket-column .seer-market-trade { padding: 16px; }
+  .event-ticket-column .seer-trade-heading { padding-bottom: 10px; margin-bottom: 12px; }
+  .event-ticket-column .seer-swap-widget .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  .event-ticket-column .seer-swap-widget.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+  .event-ticket-column .seer-swap-amount { height: auto; min-height: 102px; padding: 12px; }
+  .event-token-tools { padding-top: 12px; }
+  .event-ticket-column .seer-market-trade > :last-child { margin-top: 12px; }
+}
+@media(min-width:1200px) and (max-height:800px) {
+  .seer-market-detail { padding-top: 6px !important; }
+  .seer-market-detail > .space-y-5 > :first-child { display: none; }
+  .event-heading { padding-top: 10px; }
+  .event-kicker { margin-bottom: 6px; }
+  .event-metrics { padding-block: 8px; }
+  .event-chart-summary { padding-block: 8px; }
+  .event-overview .seer-chart-canvas { height: 115px !important; margin-top: 4px; }
+  .event-overview .seer-chart-controls .pill-button { min-height: 26px; padding-block: 4px; }
+  .event-outcomes { margin-top: 10px; }
+  .event-outcome-disclosure { padding-block: 8px; }
+  .event-ticket-column .seer-trade-heading { padding-bottom: 8px; margin-bottom: 8px; }
+  .event-ticket-column .seer-swap-widget > :first-child img { width: 34px; height: 34px; }
+  .event-ticket-column .seer-swap-widget .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  .event-ticket-column .seer-swap-widget.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .event-ticket-column .seer-swap-amount { padding: 8px 12px; min-height: 92px; }
 }
