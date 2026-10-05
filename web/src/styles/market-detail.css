@@ -144,7 +144,7 @@
   .event-chart-switch { margin: 0 12px 0 0; vertical-align: middle; padding: 3px; }
   .event-chart-switch button { padding: 6px 9px; font-size: 10px; }
   .event-overview .seer-market-chart { padding: 0 20px 10px; }
-  .event-overview .seer-chart-canvas { height: clamp(150px, 20vh, 180px) !important; margin-top: 8px; }
+  .event-overview .seer-chart-canvas { height: clamp(300px, 40vh, 360px) !important; margin-top: 8px; }
   .event-overview .seer-chart-controls { margin-top: 6px; padding-top: 6px; }
   .event-overview .seer-chart-legend-item { min-height: 28px; font-size: 10px; }
   .event-outcomes { margin-top: 16px; }
@@ -166,7 +166,7 @@
   .event-kicker { margin-bottom: 6px; }
   .event-metrics { padding-block: 8px; }
   .event-chart-summary { padding-block: 8px; }
-  .event-overview .seer-chart-canvas { height: 115px !important; margin-top: 4px; }
+  .event-overview .seer-chart-canvas { height: 230px !important; margin-top: 4px; }
   .event-overview .seer-chart-controls .pill-button { min-height: 26px; padding-block: 4px; }
   .event-outcomes { margin-top: 10px; }
   .event-outcome-disclosure { padding-block: 8px; }
@@ -175,4 +175,23 @@
   .event-ticket-column .seer-swap-widget .space-y-5 > :not([hidden]) ~ :not([hidden]),
   .event-ticket-column .seer-swap-widget.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
   .event-ticket-column .seer-swap-amount { padding: 8px 12px; min-height: 92px; }
+}
+
+/* Prioritize plot height; keep the selected-outcome toolbar to one compact line. */
+.event-outcomes .event-outcome-heading { display: none; }
+.event-outcomes { margin-top: 8px; }
+@media(min-width:1200px) {
+  .event-chart-summary { padding: 6px 20px; gap: 10px; }
+  .event-selected-label { display: none; }
+  .event-chart-summary h2 { margin: 0; font-size: 12px; }
+  .event-selected-odds { font-size: 22px; }
+  .event-chart-switch { padding: 2px; }
+  .event-chart-switch button { padding: 4px 8px; }
+  .event-overview .seer-chart-legend-item { min-height: 24px; padding-block: 2px; }
+  .event-overview .seer-chart-canvas { margin-top: 4px; }
+  .event-overview .seer-chart-controls { margin-top: 4px; padding-top: 4px; }
+  .event-overview .seer-market-chart { padding-bottom: 6px; }
+  .event-metrics { padding-block: 6px; }
+  .event-outcomes { margin-top: 8px; }
+  .event-outcomes > div > .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
 }

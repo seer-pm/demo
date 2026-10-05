@@ -139,6 +139,6 @@ Validation: TypeScript and targeted Biome; browser checks for outcome selection,
 
 ## Compact desktop market layout
 
-The chart and surrounding spacing adapt to desktop viewport height so initial outcome rows and the complete default swap form are visible sooner. Short laptop viewports use a 115px plot; taller ones use 150-180px. Typography and controls retain their sizes while redundant spacing is reduced. Additional error messages or expanded tools can naturally increase the form height.
+The chart and surrounding spacing adapt to desktop viewport height so initial outcome rows and the complete default swap form are visible sooner. Short laptop viewports use a 230px plot; taller ones use 300-360px. The selected-outcome toolbar is a compact single line and the redundant Outcomes heading is removed to reclaim space. Typography and controls retain their sizes while redundant spacing is reduced. Additional error messages or expanded tools can naturally increase the form height.
 
 Both columns now use normal document scrolling. The trade ticket is no longer sticky, and there is no separate scroll container for the swap form. Mint/merge tools move with the rest of the page.
