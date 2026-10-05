@@ -496,3 +496,9 @@ a:focus-visible, button:focus-visible {
 @media(min-width:1280px) and (max-width:1500px) {
   .seer-header .seer-primary-nav { gap: 14px; }
 }
+
+/* The supplied white bird becomes a transparent, theme-colored luminance mask. */
+.seer-brand-lockup { gap: 9px; }
+.seer-brand-bird { display: block; flex: none; width: 42px; height: 42px; background: #000; mask: url('/assets/brand/seer-bird-white.png') center / 120% no-repeat; mask-mode: luminance; }
+[data-theme="dark"] .seer-brand-bird, .seer-footer .seer-brand-bird { background: #fff; }
+.seer-brand-scaled .seer-brand-bird { width: 30%; height: 100%; aspect-ratio: 1; }

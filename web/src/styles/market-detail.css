@@ -269,3 +269,10 @@
 .event-token-tools .card > :first-child { display: none; }
 .event-token-tools [role="tablist"] { margin-bottom: 16px; }
 .event-token-tools [role="tab"] { font-size: 13px; }
+
+.event-outcome-top { flex-wrap: wrap; }
+.event-outcome-disclosure { flex-basis: 100%; }
+.event-outcome-inline-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 16px 12px 64px; font-size: 12px; }
+.event-outcome-inline-actions > a, .event-outcome-inline-actions button { border: 1px solid var(--seer-border); border-radius: 7px; padding: 6px 10px; color: var(--seer-brand-purple); background: var(--seer-surface); }
+.event-outcome-inline-actions > a:hover, .event-outcome-inline-actions button:hover { background: var(--seer-accent-soft); }
+@media(max-width:600px) { .event-outcome-inline-actions { padding-left: 12px; } }

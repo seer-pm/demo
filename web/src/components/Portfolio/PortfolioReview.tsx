@@ -1,9 +1,11 @@
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
+import type { PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { useState } from "react";
 import { BrandStreak } from "../Layout/BrandStreak";
 import PortfolioOverview, { PerformanceChart, type ReviewRange } from "./PortfolioOverview";
 import PositionsTab from "./PositionsTab";
-import { REVIEW_POSITIONS, REVIEW_SERIES } from "./portfolio-review-data";
+import { REVIEW_ACCOUNT, REVIEW_POSITIONS } from "./portfolio-review-data";
 
 function AllocationReviewChart() {
   const [range, setRange] = useState<"All" | "1M" | "1W">("All");
@@ -57,7 +59,8 @@ export default function PortfolioReview() {
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") === "airdrop" ? "airdrop" : params.get("tab") === "history" ? "history" : "positions";
   const [period, setPeriod] = useState<ReviewRange>("All");
-  const series = REVIEW_SERIES[period];
+  const value = usePortfolioValue(REVIEW_ACCOUNT, "all");
+  const pnl = usePortfolioPnL(REVIEW_ACCOUNT, "all", period.toLowerCase() as PortfolioPnLPeriod);
   const setTab = (value: string) =>
     setParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -68,23 +71,34 @@ export default function PortfolioReview() {
     <div className="container-fluid portfolio-page">
       <div className="portfolio-page-heading">
         <div>
-          <h1>Your portfolio</h1>
-          <p>A clearer view of every position.</p>
+          <h1>public-interested-parakeet</h1>
+          <p>
+            Brazilian election position ·{" "}
+            <a href={`https://app.seer.pm/portfolio/${REVIEW_ACCOUNT}`} target="_blank" rel="noreferrer">
+              View source account ↗
+            </a>
+          </p>
         </div>
-        <span className="portfolio-demo-label">Design preview · illustrative data</span>
+        <span className="portfolio-demo-label">
+          {tab === "airdrop" ? "Illustrative airdrop demo" : "Position snapshot · 5 Oct 2026"}
+        </span>
       </div>
       {tab !== "airdrop" && (
         <PortfolioOverview
-          value={262.21}
-          delta={3}
-          deltaPercent={1.16}
-          positionsValue={175.66}
-          available={86.55}
-          pnl={series.points[series.points.length - 1]}
+          value={value.data?.currentPortfolioValue}
+          delta={value.data?.delta}
+          deltaPercent={value.data?.deltaPercent}
+          pnl={pnl.data?.computed === false ? undefined : pnl.data?.pnl}
           period={period}
           onPeriodChange={setPeriod}
-          series={series}
+          supported={["1D", "1W", "1M", "All"]}
+          pending={value.isLoading || pnl.isLoading}
         />
+      )}
+      {tab !== "airdrop" && (
+        <p className="portfolio-note">
+          Summary covers the full account. The table shows only the selected Brazilian election position.
+        </p>
       )}
       <div className="portfolio-view-tabs" role="tablist" aria-label="Portfolio sections">
         {["positions", "history", "airdrop"].map((name, index, names) => (
@@ -108,12 +122,12 @@ export default function PortfolioReview() {
             }}
           >
             {name[0].toUpperCase() + name.slice(1)}
-            {name === "positions" && <span>2</span>}
+            {name === "positions" && <span>{REVIEW_POSITIONS.length}</span>}
           </button>
         ))}
       </div>
       <div role="tabpanel" id="review-panel" aria-labelledby={`review-${tab}`}>
-        {tab === "positions" && <PositionsTab account={undefined} chainId={100} reviewData={REVIEW_POSITIONS} />}
+        {tab === "positions" && <PositionsTab account={REVIEW_ACCOUNT} chainId={100} reviewData={REVIEW_POSITIONS} />}
         {tab === "history" && (
           <div className="portfolio-chart-unavailable">
             The review has no sample trade history. Real account history remains available on public portfolio pages.

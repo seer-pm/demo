@@ -153,11 +153,21 @@ function PositionsTableInner({
           return (
             <div className="portfolio-market-cell">
               <span className="portfolio-market-symbol" aria-hidden="true">
-                {position.tokenIndex === 0 ? "ϟ" : "◎"}
+                {position.outcomeImage ? (
+                  <img src={position.outcomeImage} alt="" className="w-full h-full rounded-full object-cover" />
+                ) : position.tokenIndex === 0 ? (
+                  "ϟ"
+                ) : (
+                  "◎"
+                )}
               </span>
               <div>
                 {review ? (
-                  <p>{position.marketName}</p>
+                  <a
+                    href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  >
+                    {position.marketName}
+                  </a>
                 ) : (
                   <a
                     href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
@@ -278,7 +288,7 @@ function PositionsTableInner({
       },
       {
         id: "payout",
-        accessorFn: (row) => row.reviewMetrics?.payout,
+        accessorFn: (row) => row.reviewMetrics?.payout ?? row.reviewPayout,
         header: "If won",
         cell: (info) =>
           info.getValue<number>() === undefined ? (
@@ -462,8 +472,8 @@ function PositionsTableInner({
                           <span>
                             Gross payout if outcome wins
                             <b>
-                              {row.original.reviewMetrics
-                                ? `${formatSmallNumber(row.original.reviewMetrics.payout)} ${getActiveCollateralProfile(row.original.chainId).primary.symbol}`
+                              {(row.original.reviewMetrics?.payout ?? row.original.reviewPayout) !== undefined
+                                ? `${formatSmallNumber(row.original.reviewMetrics?.payout ?? row.original.reviewPayout)} ${getActiveCollateralProfile(row.original.chainId).primary.symbol}`
                                 : "Depends on settlement rules"}
                             </b>
                           </span>

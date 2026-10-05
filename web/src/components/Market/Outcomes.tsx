@@ -537,22 +537,26 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
                       {expanded ? "−" : "+"}
                     </span>
                   </button>
+                  {expanded && (
+                    <div className="event-outcome-inline-actions">
+                      <AddLiquidityLinks
+                        market={market}
+                        outcomeIndex={i}
+                        pools={pools}
+                        openLiquidityModal={openModalCallback}
+                      />
+                      <Link
+                        to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[i])}`}
+                        className="text-purple-primary"
+                      >
+                        New conditional market ↗
+                      </Link>
+                    </div>
+                  )}
                 </div>
                 <div id={`pool-details-${market.id}-${i}`} hidden={!expanded}>
                   {expanded && (
                     <>
-                      <div className="event-outcome-tools">
-                        <OutcomeDetails
-                          market={market}
-                          wrappedAddress={market.wrappedTokens[i]}
-                          marketStatus={marketStatus}
-                          openModal={openModalCallback}
-                          outcomeIndex={i}
-                          pools={pools}
-                          loopIndex={j}
-                          images={images}
-                        />
-                      </div>
                       <OutcomeActivePanel market={market} outcomeIndex={i} />
                     </>
                   )}
