@@ -3,8 +3,8 @@ import { rankPreviewOutcomes } from "./previewOutcomeRanking";
 it("highlights No when it has the higher price", () => {
   const rows = rankPreviewOutcomes(["Yes", "No", "Invalid"], [30, 70, 99], "Invalid");
   expect(rows.map((r) => [r.name, r.leading])).toEqual([
-    ["No", true],
     ["Yes", false],
+    ["No", true],
   ]);
 });
 it("brings a leader outside the first two outcomes into view with its original token index", () => {
@@ -21,4 +21,15 @@ it("handles missing data and equal leaders without picking an arbitrary favourit
     true,
     false,
   ]);
+});
+
+it("keeps Yes first regardless of source order, whitespace or changing prices", () => {
+  for (const prices of [
+    [70, 30],
+    [20, 80],
+  ]) {
+    const rows = rankPreviewOutcomes(["No ", "Yes"], prices, "Invalid");
+    expect(rows.map((r) => r.index)).toEqual([1, 0]);
+    expect(rows.find((r) => r.leading)?.price).toBe(Math.max(...prices));
+  }
 });

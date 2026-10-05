@@ -241,7 +241,8 @@ a:focus-visible, button:focus-visible {
 .seer-discovery-header .seer-primary-nav {
   order: 2;
   gap: 20px;
-  margin-left: auto;
+  margin-inline: auto;
+  justify-content: center;
   font-size: 12px;
 }
 .seer-discovery-header .seer-primary-nav > a {

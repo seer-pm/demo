@@ -108,3 +108,13 @@ The Brazilian demo now appears only inside each valid outcome's **View pool deta
 Validation: TypeScript, six pool/demo tests and the comparison routing test passed. Browser checks covered both versions, same-market switching, sticky scrolling, and opening Flávio/Lula pool details. Browser automation has intermittent iframe-click limitations; standalone page checks verify the underlying interactions.
 
 Outcome headers in Proposed toggle their pool details when clicked; nested links and action buttons retain their own actions. Both preview ladders show exactly five levels per side with no row selector. Current accumulates shares; Proposed accumulates price × shares. The global design-preview notice is removed and the discovery header uses equal 12px top/bottom spacing.
+
+## Interaction rules
+
+- Binary previews keep Yes above No, independent of price; purple marks the highest unrounded price. Categorical previews retain price ranking. Equal leaders share the highlight.
+- Desktop homepage navigation has equal free space on both sides between search and filter controls.
+- Outcome details are independent disclosures. Opening one never closes another. Expand/collapse is immediate, without delayed page scrolling or nested scroll boxes. Users keep control of the viewport; no motion is required, including for reduced-motion users.
+- Native disclosure buttons support Enter/Space and expose `aria-expanded` and `aria-controls`. Other links and actions in the row retain their own behavior.
+- Reference: https://www.w3.org/WAI/ARIA/apg/patterns/accordion/ for disclosure semantics; https://www.nngroup.com/articles/accordions-complex-content/ for predictable open/closed state.
+
+Validation: seven ranking/demo tests, TypeScript and targeted Biome checks pass.
