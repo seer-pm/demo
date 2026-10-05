@@ -2,14 +2,12 @@ import { Link } from "@/components/Link";
 import { DiscordIcon, GithubIcon, SecuredByKleros, TelegramIcon, TwitterIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { BrandLockup } from "./BrandLockup";
-import { BrandStreak } from "./BrandStreak";
 
 export default function Footer() {
   return (
     <footer className="seer-footer">
       <div className="container-fluid seer-footer-top">
         <div><BrandLockup /><p>A clearer view of what comes next.</p></div>
-        <BrandStreak className="seer-footer-streak" />
         <nav aria-label="Footer" className="seer-footer-links">
           <Link to="/">Markets</Link><Link to="/portfolio">Portfolio</Link>
           <Link to="/policy/rules">Market rules</Link><Link to="/policy/verified">Verification policy</Link>
