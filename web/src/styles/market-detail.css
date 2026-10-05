@@ -214,7 +214,7 @@
 .seer-market-discussion [role="tablist"] { margin-bottom: 20px; }
 .seer-market-discussion [role="tab"] { font-size: 13px; }
 /* The market owns the decorative ribbon positioning. */
-.seer-market-detail { position: relative; }
+.seer-market-detail { position: relative; isolation: isolate; }
 @media(min-width:1200px) {
   .seer-market-detail > .space-y-5 > :first-child { display: none; }
   .event-heading { padding-top: 10px; }
@@ -237,8 +237,8 @@
 }
 
 /* Filled wedges retain the reference silhouette; low opacity keeps attention on market data. */
-.event-brand-ribbon { position: relative; left: 50%; width: calc(100vw - 16px); height: 64px; margin: 0 0 8px !important; transform: translateX(-50%); color: #7d33ff; opacity: .18; pointer-events: none; }
-[data-theme="dark"] .event-brand-ribbon { color: #a275ef; opacity: .25; }
+.event-brand-ribbon { position: absolute; z-index: -1; top: 0; left: 50%; width: calc(100vw - 16px); height: max(640px, calc(100dvh - 80px)); margin: 0 !important; transform: translateX(-50%); color: #7d33ff; opacity: .16; pointer-events: none; }
+[data-theme="dark"] .event-brand-ribbon { color: #a275ef; opacity: .20; }
 .event-comments { margin-bottom: 28px; }
 .event-comments header { margin-bottom: 12px; }
 .event-comments h2 { font-size: 18px; font-weight: 600; }
@@ -246,3 +246,8 @@
 .event-comments .seer-discussion { border: 1px solid var(--seer-border); border-radius: 12px; overflow: hidden; }
 .event-comments .seer-discussion > div { padding: 16px; }
 .event-comments .seer-discussion > div:nth-child(2) > div:has(> svg) > svg { display: none; }
+
+/* Translucent analysis surfaces reveal the full-scale motif without competing with chart data. */
+.event-overview { background: color-mix(in srgb, var(--seer-surface) 45%, transparent); }
+.event-overview .seer-market-chart { background: transparent; }
+.event-outcome-row { background: color-mix(in srgb, var(--seer-surface) 85%, transparent); }

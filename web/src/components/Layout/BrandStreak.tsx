@@ -13,9 +13,9 @@ export function BrandStreak({ className = "" }: { className?: string }) {
 export function BrandRibbon() {
   return (
     <div className="event-brand-ribbon" aria-hidden="true">
-      <svg viewBox="0 0 1600 160" preserveAspectRatio="none" fill="currentColor" focusable="false">
+      <svg viewBox="0 0 1600 1000" preserveAspectRatio="none" fill="currentColor" focusable="false">
         {[0, 1, 2, 3, 4, 5, 6].map((line) => (
-          <path key={line} d={`M0 ${7 + line * 22} L1740 80 L0 ${21 + line * 22} Z`} />
+          <path key={line} d={`M0 ${15 + line * 145} L1740 500 L0 ${105 + line * 145} Z`} />
         ))}
       </svg>
     </div>
