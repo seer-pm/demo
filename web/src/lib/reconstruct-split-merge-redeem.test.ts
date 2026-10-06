@@ -1,4 +1,9 @@
-import { liquidityPoolTxKey, reconstructSplitMergeRedeemFromTransfers } from "@seer-pm/sdk";
+import {
+  POOL_FACTORY_ADDRESSES,
+  computePoolAddress,
+  liquidityPoolTxKey,
+  reconstructSplitMergeRedeemFromTransfers,
+} from "@seer-pm/sdk";
 import type { Market, Token, TokenTransfer } from "@seer-pm/sdk";
 import { type Address, parseUnits, zeroAddress } from "viem";
 import { gnosis } from "viem/chains";
@@ -139,5 +144,27 @@ describe("reconstructSplitMergeRedeemFromTransfers swap classification", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ type: "split", trader: ALICE, amount: "100" });
+  });
+});
+
+describe("reconstructSplitMergeRedeemFromTransfers on a child market without a pool list", () => {
+  const GNOSIS_SDAI = "0xaf204776c7245bf4147c2612bf6e5972ee483701" as Address;
+  const PARENT_OTHER = addr("d1");
+
+  // The child settles in the parent's "Other" token but its outcome is pooled against sDAI.
+  const childMarket = { ...market(), collateralToken: PARENT_OTHER, parentMarket: { id: addr("bb") } } as Market;
+  const sDaiPool = computePoolAddress({
+    factoryAddress: POOL_FACTORY_ADDRESSES[gnosis.id]!,
+    tokenA: YES,
+    tokenB: GNOSIS_SDAI,
+  });
+
+  it("reads a transfer out of the derived main collateral pool as a purchase", () => {
+    const rows = reconstructSplitMergeRedeemFromTransfers([transfer(YES, sDaiPool, ALICE, "10")], childMarket, sDai, {
+      identifySwaps: true,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ type: "bought", trader: ALICE, amount: "10", outcomeToken: YES });
   });
 });

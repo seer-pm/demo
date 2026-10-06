@@ -1,6 +1,6 @@
 import type { PortfolioLpLeg, PortfolioPosition } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk/chains";
-import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
+import { getMarketAllPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { type Address, formatUnits } from "viem";
 import { getAllLiquidityEvents, getLiquidityPositionsAtTimestamp } from "./airdropCalculation/getLiquidityBalances";
@@ -78,7 +78,7 @@ export async function legsFromLiquidityEvents(
   markets: Market[],
   origins?: Address[],
 ): Promise<LiquidityLeg[]> {
-  const pairs = markets.flatMap(getMarketPoolsPairs);
+  const pairs = markets.flatMap(getMarketAllPoolsPairs);
   const [events, pools] = await Promise.all([
     getAllLiquidityEvents(
       chainId,
@@ -225,7 +225,7 @@ export async function getMarketsLiquidityLegs(
   if (supportsPositionEntity(chainId)) {
     // Pools are needed regardless: `mergeTokenHolders` uses them to keep pool reserves out of the
     // direct holders, and those reserves are exactly what the legs below re-credit to the LPs.
-    const pools = await fetchPools(chainId, markets.flatMap(getMarketPoolsPairs));
+    const pools = await fetchPools(chainId, markets.flatMap(getMarketAllPoolsPairs));
     const poolAddresses = pools.map((pool) => pool.id.toLowerCase());
     return { legs: await fetchPoolLiquidityLegs(chainId, poolAddresses), poolAddresses };
   }

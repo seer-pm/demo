@@ -1,6 +1,6 @@
 import { liquidityPoolTxKey } from "@seer-pm/sdk";
 import type { SupportedChain } from "@seer-pm/sdk/chains";
-import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
+import { getMarketAllPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import { getAllLiquidityEvents } from "./airdropCalculation/getLiquidityBalances";
 
@@ -24,7 +24,7 @@ import { getAllLiquidityEvents } from "./airdropCalculation/getLiquidityBalances
  * market's pools in the same transaction.
  */
 export async function fetchMarketLiquidityPoolTxKeys(market: Market, sinceTimestamp: number): Promise<Set<string>> {
-  const pairs = getMarketPoolsPairs(market);
+  const pairs = getMarketAllPoolsPairs(market);
   const keys = new Set<string>();
   if (pairs.length === 0) return keys;
 
