@@ -15,3 +15,4 @@ export {
   type SubgraphTypes,
 } from "./subgraph-endpoints";
 export { getTokenPriceFromSubgraph } from "./get-token-price-from-subgraph";
+export { getPoolsStateFromSubgraph, type SubgraphPoolState } from "./get-market-pools-from-subgraph";

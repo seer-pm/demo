@@ -252,7 +252,9 @@ export {
   normalizeOdds,
   getMarketOdds,
   getMarketEstimate,
+  getOutcomePricesFromPools,
 } from "./market-odds";
+export type { OutcomePricePool } from "./market-odds";
 export { getMarketPositions } from "./get-market-positions";
 export type { MarketPosition } from "./get-market-positions";
 export { getWinningPositions } from "./get-winning-positions";
