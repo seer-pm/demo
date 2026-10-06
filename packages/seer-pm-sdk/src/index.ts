@@ -167,6 +167,7 @@ export type { QuoteAmmTradeParams } from "./amm-trade";
 export {
   executeAmmTrade,
   tradeTokens,
+  buildTradeBatches7702,
   buildTradeCalls7702,
   buildAmmTradeExecution,
   getMaximumAmountIn,
@@ -213,6 +214,8 @@ export {
   getMintToCoverDisabledReasons,
   getOutcomeToken,
   getSplitCollateralDisabledReasons,
+  getSplitSpendTokens,
+  getSplitSteps,
   isCompleteSetRoutingEnabled,
   isMintToCoverRoutingEnabled,
   isSplitCollateralEnabled,
@@ -223,16 +226,30 @@ export type {
   CompleteSetLeg,
   CompleteSetQuoteResult,
   CompleteSetRoute,
+  CompleteSetSplitStep,
 } from "./complete-set-quote";
 export { buildMintToCoverQuote, isMintToCoverEligible } from "./mint-to-cover";
-export type { MintToCoverParams, MintToCoverStatus } from "./mint-to-cover";
+export {
+  APPROVE_GAS,
+  BATCH_GAS_BUDGET,
+  MAX_SPLIT_OUTCOMES,
+  SPLIT_GAS_PER_OUTCOME,
+  SWAP_GAS,
+  estimateSplitGas,
+  packByGas,
+  packUnits,
+} from "./batch-gas";
+export type { CallUnit } from "./batch-gas";
+export type { MintToCoverEligibilityParams, MintToCoverParams, MintToCoverStatus } from "./mint-to-cover";
 export {
   buildPsm3CompositeTradeCalls7702,
   executePsm3CompositeTrade,
   getPsm3CompositeApprovalTokens,
 } from "./psm3-composite-trade";
 export {
+  buildCompleteSetTradeBatches7702,
   buildCompleteSetTradeCalls7702,
+  countCompleteSetBatches,
   executeCompleteSetTrade,
   getCompleteSetApprovalTokens,
 } from "./complete-set-trade";

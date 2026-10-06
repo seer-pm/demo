@@ -219,6 +219,7 @@ export function SwapTokensMarket({
 
   const mintToCover = useMintToCover({
     market,
+    parentMarket,
     outcomeIndex,
     selectedCollateral,
     outcomeToken,
@@ -251,7 +252,7 @@ export function SwapTokensMarket({
   const canMintShortfall =
     hasShortfall &&
     collateralBalance >= parsedAmount - balance &&
-    isMintToCoverEligible({ market, outcomeIndex, selectedCollateral, swapType, tradeType, account });
+    isMintToCoverEligible({ market, parentMarket, outcomeIndex, selectedCollateral, swapType, tradeType, account });
   const canMintShortfallRef = useRef(canMintShortfall);
   canMintShortfallRef.current = canMintShortfall;
 
@@ -306,6 +307,7 @@ export function SwapTokensMarket({
   }, [quoteData, swapType]);
 
   const outcomeText = market.outcomes[outcomeIndex];
+  const parentOutcomeText = parentMarket?.outcomes[Number(market.parentOutcome)];
   // check if current token price higher than 1 (primary) collateral per token
   const isPriceTooHigh =
     market.type === "Generic" &&
@@ -426,6 +428,7 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isTradingCredits={isTradingCreditsCollateral}
             outcomeToken={outcomeToken}
+            parentOutcomeText={parentOutcomeText}
           />
         }
       />
@@ -688,7 +691,12 @@ export function SwapTokensMarket({
           />
         </div>
 
-        <MintToCoverNotice status={mintToCover} collateral={selectedCollateral} outcomeText={outcomeText} />
+        <MintToCoverNotice
+          status={mintToCover}
+          collateral={selectedCollateral}
+          outcomeText={outcomeText}
+          parentOutcomeText={parentOutcomeText}
+        />
         {isPriceTooHigh && (
           <Alert type="warning">
             Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.

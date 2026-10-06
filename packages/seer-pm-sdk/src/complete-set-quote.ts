@@ -6,6 +6,7 @@ import type { Address, Client, PublicClient } from "viem";
 import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
 import { multicall } from "viem/actions";
 import type { AmmTrade } from "./amm-trade";
+import { getActivePrimaryCollateral } from "./collateral";
 import { isCompleteSetMarket } from "./market";
 import type { Market } from "./market-types";
 import { isPsm3SwapToken } from "./psm3";
@@ -32,9 +33,31 @@ export interface CompleteSetLeftover {
   amount: bigint;
 }
 
+/**
+ * One `Router.splitPosition` call. On a root market the user spends the collateral the router is
+ * told about. On a child market the router still takes the base collateral as its argument (it
+ * derives the position ids from it) while pulling the parent outcome token from the user, so the
+ * two tokens are kept apart.
+ */
+export interface CompleteSetSplitStep {
+  market: MarketLike;
+  /** ERC20 the user approves to the router and the router pulls: base collateral or parent outcome. */
+  spendToken: Address;
+  /** `collateralToken` argument of `Router.splitPosition`: always the base collateral. */
+  routerCollateral: Address;
+  amount: bigint;
+  /** Wrapped tokens the split mints, Invalid included. Drives the gas the step is planned with. */
+  outcomeCount: number;
+}
+
 export interface CompleteSetLeg {
   route: "mintSell" | "buyMerge" | "mintToCover";
   splitAmount?: bigint;
+  /**
+   * Splits to run before the swap, root market first. Absent on a root-market leg, where the one
+   * split spends `collateralToken` on `market`; see `getSplitSteps`.
+   */
+  splitSteps?: CompleteSetSplitStep[];
   mergeAmount?: bigint;
   /**
    * Token fed into the AMM leg. Defaults to `oppositeOutcomeToken` (classic mint+sell buy);
@@ -70,6 +93,27 @@ export interface CompleteSetQuoteResult extends QuoteTradeResult {
   completeSetLeg?: CompleteSetLeg;
   /** Present when route is mintSell or buyMerge and beats direct. Never set for mintToCover. */
   savingsPercent?: number;
+}
+
+/** The ordered splits a split-first leg runs, falling back to the single root-market split. */
+export function getSplitSteps(leg: CompleteSetLeg): CompleteSetSplitStep[] {
+  if (leg.splitSteps && leg.splitSteps.length > 0) {
+    return leg.splitSteps;
+  }
+  if (!leg.splitAmount) {
+    return [];
+  }
+  // Only the binary routes rely on this fallback, and `isCompleteSetMarket` holds them to exactly
+  // three wrapped tokens.
+  return [
+    {
+      market: leg.market,
+      spendToken: leg.collateralToken,
+      routerCollateral: leg.collateralToken,
+      amount: leg.splitAmount,
+      outcomeCount: 3,
+    },
+  ];
 }
 
 export function getOppositeOutcomeIndex(index: 0 | 1): 0 | 1 {
@@ -186,13 +230,6 @@ export function getSplitCollateralDisabledReasons(market: Market, collateralToke
   if (market.wrappedTokens.length < 3) {
     reasons.push(`market has ${market.wrappedTokens.length} wrapped tokens, need at least 3`);
   }
-  // Child markets: the router takes the *base* collateral as the split/merge argument (it derives
-  // the position ids from it) while the user spends the parent outcome token. `market.collateralToken`
-  // is the parent outcome token, so building a split or merge from it produces a wrong position id
-  // and the transaction reverts. Routing them needs the two tokens threaded separately.
-  if (market.parentMarket.id !== zeroAddress) {
-    reasons.push("conditional market: split/merge needs the base collateral, not the parent outcome token");
-  }
   if (isTradingCredits(market.chainId, collateralToken)) {
     reasons.push("Seer Credits collateral is excluded in v1");
   }
@@ -202,11 +239,24 @@ export function getSplitCollateralDisabledReasons(market: Market, collateralToke
   if (isTwoStringsEqual(collateralToken, NATIVE_TOKEN)) {
     reasons.push("native xDAI/DAI shortcut is excluded in v1");
   }
-  if (!isTwoStringsEqual(collateralToken, market.collateralToken as Address)) {
+  if (!getSplitSpendTokens(market).some((token) => isTwoStringsEqual(collateralToken, token))) {
     reasons.push(`selected collateral ${collateralToken} != market collateral ${market.collateralToken as Address}`);
   }
 
   return reasons;
+}
+
+/**
+ * Collaterals a full set of this market can be minted from. A root market splits from its own
+ * collateral. A child market splits from the parent outcome token (`market.collateralToken`), or
+ * from the base collateral by first minting the parent's full set and splitting that outcome.
+ */
+export function getSplitSpendTokens(market: Market): Address[] {
+  const tokens = [market.collateralToken as Address];
+  if (market.parentMarket.id !== zeroAddress) {
+    tokens.push(getActivePrimaryCollateral(market.chainId).address);
+  }
+  return tokens;
 }
 
 /**
@@ -225,6 +275,12 @@ export function getCompleteSetRoutingDisabledReasons(
 ): string[] {
   const reasons = getSplitCollateralDisabledReasons(market, collateralToken);
 
+  // mint+sell and buy+merge pair one split or merge with one swap against `market.collateralToken`.
+  // On a child market that token is the parent outcome while the router argument is the base
+  // collateral. Only mint-to-cover tells the two apart, through `splitSteps`.
+  if (market.parentMarket.id !== zeroAddress) {
+    reasons.push("conditional market: split/merge needs the base collateral, not the parent outcome token");
+  }
   if (!isCompleteSetMarket(market)) {
     reasons.push("not a binary Generic market (need exactly 3 wrapped tokens: 2 tradeable + Invalid)");
   }

@@ -155,6 +155,21 @@ async function executePsm3CompositeTradeWrapper(client: Client, props: TradeToke
 }
 
 /**
+ * The 7702 calls grouped into batches that each fit one transaction, to be sent in order. Only a
+ * complete-set route whose splits outgrow a transaction ever needs more than one.
+ */
+export async function buildTradeBatches7702(props: TradeTokensProps): Promise<Execution[][]> {
+  if (props.completeSetLeg) {
+    if (props.isTradingCredits) {
+      throw new Error("Complete-set trades are not supported with trading credits");
+    }
+    const { buildCompleteSetTradeBatches7702 } = await import("./complete-set-trade");
+    return buildCompleteSetTradeBatches7702(props);
+  }
+  return [await buildTradeCalls7702(props)];
+}
+
+/**
  * Build calls for 7702 batch (approvals + swap).
  */
 export async function buildTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {

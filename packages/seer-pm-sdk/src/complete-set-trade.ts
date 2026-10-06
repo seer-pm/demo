@@ -1,13 +1,22 @@
 /**
- * Complete-set composite trade execution: mint+sell and buy+merge in one batch or sequential txs.
+ * Complete-set composite trade execution: mint+sell, mint-to-cover and buy+merge as 7702 batches
+ * or sequential txs.
+ *
+ * A split's gas grows with the outcome count of the set it mints, and mint-to-cover on a child
+ * market paid in the base collateral runs two of them, so the 7702 calls are planned with
+ * `batch-gas` and packed into batches under `BATCH_GAS_BUDGET`, sent in order. Each split and its
+ * approval stay together; a batch that fails after the first leaves the user holding full sets,
+ * never short of anything.
  */
 
 import type { Address, Client } from "viem";
 import { sendTransaction } from "viem/actions";
 import type { AmmTrade } from "./amm-trade";
 import { fetchNeededApprovals, getApprovals7702 } from "./approvals";
+import { APPROVE_GAS, type CallUnit, SWAP_GAS, estimateSplitGas, packByGas, packUnits } from "./batch-gas";
 import type { SupportedChain } from "./chains";
-import type { CompleteSetLeg } from "./complete-set-quote";
+import type { CompleteSetLeg, CompleteSetSplitStep } from "./complete-set-quote";
+import { getSplitSteps } from "./complete-set-quote";
 import { buildAmmTradeExecution, getTradeApprovals7702 } from "./execute-trade";
 import type { Execution } from "./execution";
 import { getMergeExecution } from "./merge-positions";
@@ -27,6 +36,8 @@ type ValidatedCompleteSetTrade = {
   | {
       route: "mintSell" | "mintToCover";
       splitAmount: bigint;
+      /** Splits to run before the swap, root market first. */
+      splitSteps: CompleteSetSplitStep[];
       /** Token sold after the split: the opposite outcome for mintSell, the target for mintToCover. */
       swapInputToken: Address;
       /** Sell size: equal to splitAmount for mintSell, minted + already held for mintToCover. */
@@ -70,6 +81,10 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
     if (!splitAmount) {
       throw new Error(`${route} route requires splitAmount`);
     }
+    const splitSteps = getSplitSteps(completeSetLeg);
+    if (splitSteps.some((step) => step.amount <= 0n)) {
+      throw new Error(`${route} route requires a positive amount on every split step`);
+    }
     // Defaults keep mint+sell on its original behaviour: sell exactly what was minted.
     const swapInputAmount = completeSetLeg.swapInputAmount ?? splitAmount;
     if (swapInputAmount <= 0n) {
@@ -87,6 +102,7 @@ function validateCompleteSetTradeProps(props: TradeTokensProps): ValidatedComple
       swapSpender,
       route,
       splitAmount,
+      splitSteps,
       swapInputToken: swapInputToken.address,
       swapInputAmount,
     };
@@ -128,49 +144,76 @@ async function getSecondarySwapExecution(
   return buildAmmTradeExecution(trade, account, isTradingCredits);
 }
 
-export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
+/** Gas each split step is planned with: its approval plus the split of its whole set. */
+function getSplitStepGas(step: CompleteSetSplitStep): bigint {
+  return APPROVE_GAS + estimateSplitGas(step.outcomeCount);
+}
+
+/**
+ * How many transactions the 7702 path sends for this leg, from the gas plan alone. The same
+ * packing as `buildCompleteSetTradeBatches7702`, without building any calldata.
+ */
+export function countCompleteSetBatches(completeSetLeg: CompleteSetLeg): number {
+  if (!SPLIT_FIRST_ROUTES.has(completeSetLeg.route)) {
+    return 1;
+  }
+  const units = getSplitSteps(completeSetLeg).map((step) => ({ gas: getSplitStepGas(step) }));
+  units.push({ gas: APPROVE_GAS + SWAP_GAS });
+  return packByGas(units).length;
+}
+
+/**
+ * The 7702 calls grouped into batches that each fit one transaction. Batches must be sent in
+ * order: a later split spends what the one before it mints, and the sell needs the minted tokens.
+ */
+export async function buildCompleteSetTradeBatches7702(props: TradeTokensProps): Promise<Execution[][]> {
   const { account, isTradingCredits } = props;
   const validated = validateCompleteSetTradeProps(props);
   const { completeSetLeg, trade, swapSpender } = validated;
 
   const router = getRouterAddress(completeSetLeg.market);
   const chainId = completeSetLeg.market.chainId as SupportedChain;
-  const calls: Execution[] = [];
 
   if (validated.route !== "buyMerge") {
-    const { splitAmount, swapInputToken, swapInputAmount } = validated;
+    const { splitSteps, swapInputToken, swapInputAmount } = validated;
 
-    calls.push(
-      ...getTradeApprovals7702({
-        tokensAddresses: [completeSetLeg.collateralToken],
-        account,
-        spender: router,
-        amounts: splitAmount,
-        chainId,
-      }),
-    );
-    calls.push(
-      getSplitExecution({
-        router,
-        market: completeSetLeg.market,
-        collateralToken: completeSetLeg.collateralToken,
-        amount: splitAmount,
-      }),
-    );
-    calls.push(
-      ...getTradeApprovals7702({
-        tokensAddresses: [swapInputToken],
-        account,
-        spender: swapSpender,
-        amounts: swapInputAmount,
-        chainId,
-      }),
-    );
-    calls.push(await getSecondarySwapExecution(trade, account, isTradingCredits));
-    return calls;
+    // Approvals carry no balance check, so each one can precede its split inside the same unit.
+    const units: CallUnit[] = splitSteps.map((step) => ({
+      gas: getSplitStepGas(step),
+      calls: [
+        ...getTradeApprovals7702({
+          tokensAddresses: [step.spendToken],
+          account,
+          spender: router,
+          amounts: step.amount,
+          chainId,
+        }),
+        getSplitExecution({
+          router,
+          market: step.market,
+          collateralToken: step.routerCollateral,
+          amount: step.amount,
+        }),
+      ],
+    }));
+    units.push({
+      gas: APPROVE_GAS + SWAP_GAS,
+      calls: [
+        ...getTradeApprovals7702({
+          tokensAddresses: [swapInputToken],
+          account,
+          spender: swapSpender,
+          amounts: swapInputAmount,
+          chainId,
+        }),
+        await getSecondarySwapExecution(trade, account, isTradingCredits),
+      ],
+    });
+    return packUnits(units);
   }
 
   const { mergeAmount, maxBuyIn, mergeOutcomeTokens } = validated;
+  const calls: Execution[] = [];
 
   calls.push(
     ...getTradeApprovals7702({
@@ -200,7 +243,13 @@ export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): P
     }),
   );
 
-  return calls;
+  return [calls];
+}
+
+/** Every 7702 call in order, for callers that send the whole trade as one batch. */
+export async function buildCompleteSetTradeCalls7702(props: TradeTokensProps): Promise<Execution[]> {
+  const batches = await buildCompleteSetTradeBatches7702(props);
+  return batches.flat();
 }
 
 async function sendApprovalCalls(client: Client, account: Address, calls: Execution[]): Promise<void> {
@@ -218,34 +267,35 @@ export async function executeCompleteSetTrade(client: Client, props: TradeTokens
   const chainId = completeSetLeg.market.chainId as SupportedChain;
 
   if (validated.route !== "buyMerge") {
-    const { splitAmount, swapInputToken, swapInputAmount } = validated;
-    const neededSplit = await fetchNeededApprovals(client, [completeSetLeg.collateralToken], account, router, [
-      splitAmount,
-    ]);
-    for (const approval of neededSplit) {
-      await sendApprovalCalls(
-        client,
-        account,
-        getApprovals7702({
-          tokensAddresses: [approval.tokenAddress],
-          account,
-          spender: router,
-          amounts: approval.amount,
-          chainId,
-        }),
-      );
-    }
+    const { splitSteps, swapInputToken, swapInputAmount } = validated;
 
-    await sendTransaction(client, {
-      ...getSplitExecution({
-        router,
-        market: completeSetLeg.market,
-        collateralToken: completeSetLeg.collateralToken,
-        amount: splitAmount,
-      }),
-      account,
-      chain: client.chain,
-    });
+    for (const step of splitSteps) {
+      const neededSplit = await fetchNeededApprovals(client, [step.spendToken], account, router, [step.amount]);
+      for (const approval of neededSplit) {
+        await sendApprovalCalls(
+          client,
+          account,
+          getApprovals7702({
+            tokensAddresses: [approval.tokenAddress],
+            account,
+            spender: router,
+            amounts: approval.amount,
+            chainId,
+          }),
+        );
+      }
+
+      await sendTransaction(client, {
+        ...getSplitExecution({
+          router,
+          market: step.market,
+          collateralToken: step.routerCollateral,
+          amount: step.amount,
+        }),
+        account,
+        chain: client.chain,
+      });
+    }
 
     const neededSell = await fetchNeededApprovals(client, [swapInputToken], account, swapSpender, [swapInputAmount]);
     for (const approval of neededSell) {
@@ -342,9 +392,11 @@ export function getCompleteSetApprovalTokens(props: TradeTokensProps): {
   const amounts: bigint[] = [];
 
   if (SPLIT_FIRST_ROUTES.has(completeSetLeg.route) && completeSetLeg.splitAmount) {
-    tokensAddresses.push(completeSetLeg.collateralToken);
-    spenders.push(router);
-    amounts.push(completeSetLeg.splitAmount);
+    for (const step of getSplitSteps(completeSetLeg)) {
+      tokensAddresses.push(step.spendToken);
+      spenders.push(router);
+      amounts.push(step.amount);
+    }
 
     const swapInputToken = completeSetLeg.swapInputToken ?? completeSetLeg.oppositeOutcomeToken;
     if (!swapInputToken) {

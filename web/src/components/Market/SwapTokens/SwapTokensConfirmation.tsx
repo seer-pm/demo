@@ -5,7 +5,12 @@ import { RightArrow } from "@/lib/icons";
 import { summarizeLeftovers } from "@/lib/leftovers";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
-import { getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
+import {
+  countCompleteSetBatches,
+  getActiveCollateralProfile,
+  getActiveCreditsSymbol,
+  getSplitSteps,
+} from "@seer-pm/sdk";
 import { type AmmTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
@@ -25,6 +30,8 @@ interface SwapTokensConfirmationProps {
   originalAmount: string;
   isTradingCredits: boolean;
   outcomeToken: Token;
+  /** On a child market, the parent outcome this market is conditional on. */
+  parentOutcomeText?: string;
 }
 
 function isCompleteSetSummary(
@@ -71,9 +78,11 @@ function getSavingsMessage(quoteData: CompleteSetQuoteResult): string | undefine
 function CompleteSetBreakdown({
   quoteData,
   collateral,
+  parentOutcomeText,
 }: {
   quoteData: CompleteSetQuoteResult;
   collateral: Token;
+  parentOutcomeText?: string;
 }) {
   const leg = quoteData.completeSetLeg;
   const savingsMessage = getSavingsMessage(quoteData);
@@ -126,25 +135,39 @@ function CompleteSetBreakdown({
     const proceeds = quoteData.value;
     const netCollateral = proceeds - leg.splitAmount;
     const leftovers = leg.leftoverTokens ?? [];
+    // On a child market paid in the base collateral the parent's full set is minted first and the
+    // parent outcome this market hangs off is split again. The step rows name what each split spends.
+    const splitsParentFirst = getSplitSteps(leg).length > 1;
+    const stepOffset = splitsParentFirst ? 1 : 0;
 
     return (
       <div className="space-y-2 text-[14px] pb-4">
         <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
         <div className="flex items-center justify-between gap-2">
-          <span>1. Mint (split)</span>
+          <span>1. Mint (split{splitsParentFirst ? " parent market" : ""})</span>
           <span className="text-right">
             {splitAmount} {collateral.symbol}
           </span>
         </div>
+        {splitsParentFirst && (
+          <div className="flex items-center justify-between gap-2">
+            <span>2. Mint (split this market)</span>
+            <span className="text-right">
+              {splitAmount} {parentOutcomeText ?? "parent outcome"}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2">
-          <span>2. Receive</span>
+          <span>{2 + stepOffset}. Receive</span>
           <span className="text-right">
             {splitAmount} {leg.targetOutcomeToken.symbol}
             {leftovers.length > 0 ? ` + ${summarizeLeftovers(leftovers)}` : ""}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span>3. Sell {leg.targetOutcomeToken.symbol}</span>
+          <span>
+            {3 + stepOffset}. Sell {leg.targetOutcomeToken.symbol}
+          </span>
           <span className="text-right">
             {sellAmount} {leg.targetOutcomeToken.symbol}
             {held > 0n
@@ -169,6 +192,7 @@ function CompleteSetBreakdown({
         </div>
         <p className="text-[13px] text-black-secondary">
           You end up short {sellAmount} {leg.targetOutcomeToken.symbol} and long {splitAmount} of every other outcome
+          {splitsParentFirst ? " of this market and of the parent market" : ""}
           {held > 0n ? `, having sold the ${leg.targetOutcomeToken.symbol} you already held` : ""}.
         </p>
       </div>
@@ -227,13 +251,16 @@ function ShowCompleteSetSummary({
   trade,
   quoteData,
   collateral,
+  parentOutcomeText,
 }: {
   trade: AmmTrade;
   quoteData: CompleteSetQuoteResult;
   collateral: Token;
+  parentOutcomeText?: string;
 }) {
   const { maximumSlippage, minimumReceive, maximumSent } = useGetTradeInfo(trade)!;
   const supports7702 = useCheck7702Support();
+  const batchCount = quoteData.completeSetLeg ? countCompleteSetBatches(quoteData.completeSetLeg) : 1;
 
   const slippageAlert =
     quoteData.route === "mintSell" || quoteData.route === "mintToCover" ? (
@@ -257,15 +284,24 @@ function ShowCompleteSetSummary({
   return (
     <>
       <div className="min-w-[400px] min-h-[150px]">
-        <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} />
+        <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} parentOutcomeText={parentOutcomeText} />
       </div>
-      {!supports7702 && (
-        <Alert type="warning" className="mt-2">
-          This runs as separate transactions. If the sell fails after the mint you keep the minted tokens — you can
-          merge them back into {collateral.symbol} from the Merge tab.
-        </Alert>
-      )}
-      {slippageAlert}
+      <div className="mt-2 space-y-2">
+        {!supports7702 && (
+          <Alert type="warning">
+            This runs as separate transactions. If the sell fails after the mint you keep the minted tokens. You can
+            merge them back into {collateral.symbol} from the Merge tab.
+          </Alert>
+        )}
+        {supports7702 && batchCount > 1 && (
+          <Alert type="warning">
+            The sets to mint are too large for one transaction, so this runs as {batchCount} transactions, each
+            confirmed in your wallet. If one fails after the first you keep the full sets already minted and can merge
+            them back from the Merge tab.
+          </Alert>
+        )}
+        {slippageAlert}
+      </div>
     </>
   );
 }
@@ -382,6 +418,7 @@ export function SwapTokensConfirmation({
   collateral,
   isTradingCredits,
   outcomeToken,
+  parentOutcomeText,
 }: SwapTokensConfirmationProps) {
   if (!trade) {
     return (
@@ -400,7 +437,12 @@ export function SwapTokensConfirmation({
   return (
     <div className="flex flex-col justify-center items-center">
       {isCompleteSetSummary(quoteData) ? (
-        <ShowCompleteSetSummary trade={trade} quoteData={quoteData} collateral={collateral} />
+        <ShowCompleteSetSummary
+          trade={trade}
+          quoteData={quoteData}
+          collateral={collateral}
+          parentOutcomeText={parentOutcomeText}
+        />
       ) : (
         <ShowSwapSummary
           trade={trade}

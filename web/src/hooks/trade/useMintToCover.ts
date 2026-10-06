@@ -11,6 +11,8 @@ import { type Address, parseUnits } from "viem";
 
 interface Props {
   market: Market;
+  /** Loaded parent of a child market; covering a shortfall paid in the base collateral splits it first. */
+  parentMarket: Market | undefined;
   outcomeIndex: number;
   selectedCollateral: Token;
   outcomeToken: Token;
@@ -33,6 +35,7 @@ interface Props {
  */
 export function useMintToCover({
   market,
+  parentMarket,
   outcomeIndex,
   selectedCollateral,
   outcomeToken,
@@ -57,6 +60,7 @@ export function useMintToCover({
 
     return buildMintToCoverQuote({
       market,
+      parentMarket,
       outcomeIndex,
       selectedCollateral,
       swapType,
@@ -68,6 +72,7 @@ export function useMintToCover({
     });
   }, [
     market,
+    parentMarket,
     outcomeIndex,
     selectedCollateral,
     outcomeToken.decimals,
