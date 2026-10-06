@@ -71,10 +71,11 @@ export {
   getMarketAllPoolsPairs,
   getMarketPoolsPairs,
   getOutcomePoolPairs,
+  getOutcomeSwapCollaterals,
   getToken0Token1,
   getTokensPairKey,
 } from "./market-pools";
-export type { Token0Token1 } from "./market-pools";
+export type { Token0Token1, PoolLiquidity, OutcomeSwapCollaterals } from "./market-pools";
 export {
   UNISWAP_V3_POOL_INIT_CODE_HASH,
   POOL_FACTORY_ADDRESSES,

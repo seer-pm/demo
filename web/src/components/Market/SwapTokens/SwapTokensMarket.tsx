@@ -44,6 +44,8 @@ interface SwapTokensMarketProps {
   outcomeIndex: number;
   outcomeToken: Token;
   fixedCollateral: Token | undefined;
+  collateralOptions?: Token[];
+  onCollateralChange?: (collateral: Token) => void;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -114,6 +116,8 @@ export function SwapTokensMarket({
   outcomeToken,
   setShowMaxSlippage,
   fixedCollateral,
+  collateralOptions,
+  onCollateralChange,
   outcomeImage,
   isInvalidOutcome,
   onOutcomeChange,
@@ -313,6 +317,7 @@ export function SwapTokensMarket({
     outcomeToken.address,
     swapType,
     getOutcomeTokenVolume(quoteData, swapType),
+    selectedCollateral.address,
   );
   const resetInputs = () => {
     // defaultValue "": the form defaults were seeded from the draft, so resetting a
@@ -489,6 +494,8 @@ export function SwapTokensMarket({
                   market,
                   fixedCollateral,
                   setPreferredCollateral,
+                  collateralOptions,
+                  onCollateralChange,
                   parentMarket,
                   outcomeIndex,
                   outcomeImage,
@@ -588,6 +595,8 @@ export function SwapTokensMarket({
                   market,
                   fixedCollateral,
                   setPreferredCollateral,
+                  collateralOptions,
+                  onCollateralChange,
                   parentMarket,
                   outcomeIndex,
                   outcomeImage,

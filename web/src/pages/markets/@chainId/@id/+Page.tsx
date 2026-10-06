@@ -10,6 +10,7 @@ import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
+import { useChildMarketSwapCollateral } from "@/hooks/trade/useChildMarketSwapCollateral";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
@@ -54,16 +55,20 @@ function SwapWidget({
 
   const hasLiquidity = useMarketHasLiquidity(market, outcomeIndex);
 
-  // on Futarchy markets we want to buy/sell using the associated outcome token,
-  // on child markets we want to buy/sell using parent outcomes.
-  const { data: fixedCollateral } = useTokenInfo(
+  // Futarchy markets buy/sell with the associated outcome token. Child markets buy/sell with the parent
+  // outcome token, or with the main collateral when the outcome has a pool against it; fill-to-estimate
+  // stays on the parent token because its plan reads the parent pair.
+  const isChildMarket = market.type === "Generic" && market.parentMarket.id !== zeroAddress;
+  const { data: pairCollateral } = useTokenInfo(
     market.type === "Futarchy"
       ? getLiquidityPairForToken(market, outcomeIndex)
-      : market.parentMarket.id !== zeroAddress
+      : isChildMarket
         ? market.collateralToken
         : undefined,
     market.chainId,
   );
+  const childSwapCollateral = useChildMarketSwapCollateral(market, outcomeIndex);
+  const fixedCollateral = isChildMarket ? childSwapCollateral.collateral || pairCollateral : pairCollateral;
   const marketStatus = getMarketStatus(market);
 
   if (marketStatus === MarketStatus.CLOSED) {
@@ -85,6 +90,9 @@ function SwapWidget({
       outcomeIndex={outcomeIndex}
       outcomeToken={outcomeToken}
       fixedCollateral={fixedCollateral}
+      collateralOptions={isChildMarket ? childSwapCollateral.options : undefined}
+      onCollateralChange={isChildMarket ? childSwapCollateral.setCollateral : undefined}
+      fillToEstimateCollateral={isChildMarket ? pairCollateral : undefined}
       outcomeImage={images?.[outcomeIndex]}
       hasEnoughLiquidity={hasLiquidity}
       onOutcomeChange={onOutcomeChange}

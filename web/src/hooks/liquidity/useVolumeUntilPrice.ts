@@ -10,10 +10,12 @@ export function useVolumeUntilPrice(
   outcome: Address,
   swapType: "buy" | "sell",
   targetPrice: number | undefined,
+  collateral?: Address,
 ) {
   const { data: ticksByPool } = useTicksData(
     market,
     market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcome)),
+    collateral,
   );
   if (!ticksByPool || !targetPrice || targetPrice > 1 || targetPrice < 0) {
     return;

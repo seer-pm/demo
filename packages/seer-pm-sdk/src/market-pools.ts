@@ -70,6 +70,54 @@ export function getOutcomePoolPairs(market: Market, outcomeIndex: number): Token
   return pairs;
 }
 
+export type PoolLiquidity = { token0: Address; token1: Address; liquidity: bigint };
+
+export type OutcomeSwapCollaterals = {
+  /** Collateral addresses the outcome can be swapped against, the market collateral first. */
+  options: Address[];
+  /** The first option whose pool holds liquidity, or the market collateral when none does. */
+  defaultCollateral: Address;
+};
+
+/**
+ * Collaterals the swap widget can trade `outcomeIndex` in, from the pools fetched for the outcome.
+ *
+ * The market collateral is always offered: it is the token the outcome redeems to and the one every
+ * existing market trades in. On a child Generic market the main collateral (sDAI, sUSDS) is offered only
+ * when one of its pools holds liquidity, because the quoter has no route through an empty or missing pool
+ * and the option would only produce a "no liquidity" error. The default follows the same precedence as
+ * the odds: the parent pool when it has liquidity, the main collateral pool otherwise.
+ */
+export function getOutcomeSwapCollaterals(
+  market: Market,
+  outcomeIndex: number,
+  pools: PoolLiquidity[],
+): OutcomeSwapCollaterals {
+  const outcomeToken = market.wrappedTokens[outcomeIndex].toLowerCase();
+  const liquidityByPair = new Map<string, bigint>();
+  for (const pool of pools) {
+    const key = getTokensPairKey(pool.token0, pool.token1);
+    const current = liquidityByPair.get(key) ?? 0n;
+    liquidityByPair.set(key, pool.liquidity > current ? pool.liquidity : current);
+  }
+
+  const options: Address[] = [];
+  let defaultCollateral: Address | undefined;
+  getOutcomePoolPairs(market, outcomeIndex).forEach((pair, index) => {
+    const collateral = pair.token0 === outcomeToken ? pair.token1 : pair.token0;
+    const hasLiquidity = (liquidityByPair.get(getTokensPairKey(pair.token0, pair.token1)) ?? 0n) > 0n;
+    if (index > 0 && !hasLiquidity) {
+      return;
+    }
+    options.push(collateral);
+    if (hasLiquidity && defaultCollateral === undefined) {
+      defaultCollateral = collateral;
+    }
+  });
+
+  return { options, defaultCollateral: defaultCollateral ?? options[0] };
+}
+
 /**
  * Every pool pair of the market, deduplicated. Not aligned with the outcome index, unlike
  * `getMarketPoolsPairs`: use it where the pairs are a set (which pools to fetch), not a per-outcome list.

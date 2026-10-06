@@ -18,6 +18,14 @@ interface SwapTokensProps {
   hasEnoughLiquidity?: boolean;
   outcomeImage?: string;
   fixedCollateral: Token | undefined;
+  /** Child markets: the collaterals the outcome can be swapped against and the setter for the chosen one. */
+  collateralOptions?: Token[];
+  onCollateralChange?: (collateral: Token) => void;
+  /**
+   * Fill-to-estimate reads the pools of the parent pair for every outcome, so on a child market it keeps
+   * the parent token even when the market and limit forms trade in the main collateral.
+   */
+  fillToEstimateCollateral?: Token;
   onOutcomeChange: (i: number, isClick: boolean) => void;
 }
 
@@ -28,6 +36,9 @@ export function SwapTokens({
   hasEnoughLiquidity,
   outcomeImage,
   fixedCollateral,
+  collateralOptions,
+  onCollateralChange,
+  fillToEstimateCollateral,
   onOutcomeChange,
 }: SwapTokensProps) {
   // The order type lives in the draft store so it survives the widget unmounting.
@@ -85,6 +96,8 @@ export function SwapTokens({
               outcomeIndex={outcomeIndex}
               outcomeToken={outcomeToken}
               fixedCollateral={fixedCollateral}
+              collateralOptions={collateralOptions}
+              onCollateralChange={onCollateralChange}
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
               isInvalidOutcome={isInvalidOutcome}
@@ -97,6 +110,8 @@ export function SwapTokens({
               outcomeIndex={outcomeIndex}
               outcomeToken={outcomeToken}
               fixedCollateral={fixedCollateral}
+              collateralOptions={collateralOptions}
+              onCollateralChange={onCollateralChange}
               setShowMaxSlippage={setShowMaxSlippage}
               outcomeImage={outcomeImage}
               isInvalidOutcome={isInvalidOutcome}
@@ -106,7 +121,7 @@ export function SwapTokens({
           {orderType === "fill-to-estimate" && (
             <SwapTokensFillToEstimate
               market={market}
-              fixedCollateral={fixedCollateral}
+              fixedCollateral={fillToEstimateCollateral ?? fixedCollateral}
               setShowMaxSlippage={setShowMaxSlippage}
             />
           )}
