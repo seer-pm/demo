@@ -1,5 +1,5 @@
 import type { SupportedChain } from "@seer-pm/sdk";
-import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
+import { getMarketAllPoolsPairs } from "@seer-pm/sdk/market-pools";
 import type { Market } from "@seer-pm/sdk/market-types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchPools } from "./fetchPools";
@@ -48,9 +48,10 @@ async function loadMarketsForChain(supabase: SupabaseClient<Database>, chainId: 
  * that is the behaviour we want when the subgraph is down.
  *
  * Derived from the chain's markets rather than from bytecode probing, the same way
- * `getLiquidityHolders` derives it (`marketLiquidityHolders.ts`): `getMarketPoolsPairs` gives the
- * (outcome, collateral) pairs of every market and `fetchPools` asks the DEX subgraph which of them
- * are deployed. Cached for 15 minutes because the refresh job walks a whole chain per invocation.
+ * `getLiquidityHolders` derives it (`marketLiquidityHolders.ts`): `getMarketAllPoolsPairs` gives every
+ * pair an outcome can be pooled in (its market collateral, plus the chain's main collateral for a
+ * child market) and `fetchPools` asks the DEX subgraph which of them are deployed. Cached for 15
+ * minutes because the refresh job walks a whole chain per invocation.
  */
 export function chainPoolAddressSet(supabase: SupabaseClient<Database>, chainId: SupportedChain): Promise<Set<string>> {
   const key = String(chainId);
@@ -73,7 +74,7 @@ async function loadChainPoolAddresses(
   chainId: SupportedChain,
 ): Promise<Set<string>> {
   const markets = await loadMarketsForChain(supabase, chainId);
-  const pairs = markets.flatMap((market) => getMarketPoolsPairs(market));
+  const pairs = markets.flatMap((market) => getMarketAllPoolsPairs(market));
   if (pairs.length === 0) return new Set();
 
   const pools = await fetchPools(chainId, pairs);

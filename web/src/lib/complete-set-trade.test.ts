@@ -1,13 +1,17 @@
 import {
   AmmTrade,
   type CompleteSetLeg,
+  MAX_SPLIT_OUTCOMES,
   type TradeTokensProps,
+  buildCompleteSetTradeBatches7702,
   buildCompleteSetTradeCalls7702,
+  countCompleteSetBatches,
   getCompleteSetApprovalTokens,
 } from "@seer-pm/sdk";
 import type { Address } from "viem";
 import { decodeFunctionData, erc20Abi, zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
+import { routerAbi } from "../../../packages/seer-pm-sdk/generated/contracts/router";
 
 const account = "0x0000000000000000000000000000000000000001" as Address;
 const collateralToken = "0x0000000000000000000000000000000000000002" as Address;
@@ -167,6 +171,7 @@ describe("mintToCover route", () => {
         chainId: 100,
       },
       amount: splitAmount,
+      marketId: zeroAddress,
     }));
     const leg = createMintToCoverLeg({ leftoverTokens });
     const leftoverAddresses = leftoverTokens.map((leftover) => leftover.token.address);
@@ -181,6 +186,104 @@ describe("mintToCover route", () => {
     for (const address of leftoverAddresses) {
       expect(tokensAddresses).not.toContain(address);
     }
+  });
+
+  it("runs every split step before the sell, root market first", async () => {
+    const baseCollateral = "0x0000000000000000000000000000000000000005" as Address;
+    const parentOutcomeToken = "0x0000000000000000000000000000000000000006" as Address;
+    const parentMarketId = "0x0000000000000000000000000000000000000007" as Address;
+    const childMarketId = "0x0000000000000000000000000000000000000008" as Address;
+    const leg = createMintToCoverLeg({
+      collateralToken: baseCollateral,
+      market: { id: childMarketId, type: "Generic", chainId: 100 },
+      splitSteps: [
+        {
+          market: { id: parentMarketId, type: "Generic", chainId: 100 },
+          spendToken: baseCollateral,
+          routerCollateral: baseCollateral,
+          amount: splitAmount,
+          outcomeCount: 3,
+        },
+        {
+          market: { id: childMarketId, type: "Generic", chainId: 100 },
+          spendToken: parentOutcomeToken,
+          routerCollateral: baseCollateral,
+          amount: splitAmount,
+          outcomeCount: 3,
+        },
+      ],
+    });
+
+    // Small sets: everything fits one batch.
+    expect(countCompleteSetBatches(leg)).toBe(1);
+    expect(await buildCompleteSetTradeBatches7702(createProps(leg))).toHaveLength(1);
+
+    const calls = await buildCompleteSetTradeCalls7702(createProps(leg));
+    expect(calls).toHaveLength(6);
+
+    const [baseApproval, parentSplit, parentTokenApproval, childSplit, sellApproval] = calls;
+    expect(baseApproval.to).toBe(baseCollateral);
+    expect(decodeFunctionData({ abi: erc20Abi, data: baseApproval.data }).args?.[1]).toBe(splitAmount);
+    expect(parentTokenApproval.to).toBe(parentOutcomeToken);
+    expect(decodeFunctionData({ abi: erc20Abi, data: parentTokenApproval.data }).args?.[1]).toBe(splitAmount);
+    expect(sellApproval.to).toBe(outcomeToken);
+
+    const decodedParentSplit = decodeFunctionData({ abi: routerAbi, data: parentSplit.data });
+    expect(decodedParentSplit.functionName).toBe("splitPosition");
+    expect(decodedParentSplit.args).toEqual([baseCollateral, parentMarketId, splitAmount]);
+    // The child split is told the base collateral too: the router derives the position ids from it
+    // and pulls the parent outcome token on its own.
+    const decodedChildSplit = decodeFunctionData({ abi: routerAbi, data: childSplit.data });
+    expect(decodedChildSplit.functionName).toBe("splitPosition");
+    expect(decodedChildSplit.args).toEqual([baseCollateral, childMarketId, splitAmount]);
+
+    const { tokensAddresses, spenders, amounts } = getCompleteSetApprovalTokens(createProps(leg));
+    expect(tokensAddresses).toEqual([baseCollateral, parentOutcomeToken, outcomeToken]);
+    expect(spenders[0]).toBe(spenders[1]);
+    expect(amounts).toEqual([splitAmount, splitAmount, sellAmount]);
+  });
+
+  it("puts each oversized split in its own batch and the sell after the last one", async () => {
+    const baseCollateral = "0x0000000000000000000000000000000000000005" as Address;
+    const parentOutcomeToken = "0x0000000000000000000000000000000000000006" as Address;
+    const parentMarketId = "0x0000000000000000000000000000000000000007" as Address;
+    const childMarketId = "0x0000000000000000000000000000000000000008" as Address;
+    // Two markets of 79 outcomes plus Invalid, the pair that cannot share a transaction.
+    const leg = createMintToCoverLeg({
+      collateralToken: baseCollateral,
+      market: { id: childMarketId, type: "Generic", chainId: 100 },
+      splitSteps: [
+        {
+          market: { id: parentMarketId, type: "Generic", chainId: 100 },
+          spendToken: baseCollateral,
+          routerCollateral: baseCollateral,
+          amount: splitAmount,
+          outcomeCount: 80,
+        },
+        {
+          market: { id: childMarketId, type: "Generic", chainId: 100 },
+          spendToken: parentOutcomeToken,
+          routerCollateral: baseCollateral,
+          amount: splitAmount,
+          outcomeCount: 80,
+        },
+      ],
+    });
+    expect(80).toBeLessThanOrEqual(MAX_SPLIT_OUTCOMES);
+
+    expect(countCompleteSetBatches(leg)).toBe(2);
+    const batches = await buildCompleteSetTradeBatches7702(createProps(leg));
+    expect(batches.map((batch) => batch.map((call) => call.to))).toEqual([
+      [baseCollateral, "0xeC9048b59b3467415b1a38F63416407eA0c70fB8"],
+      [
+        parentOutcomeToken,
+        "0xeC9048b59b3467415b1a38F63416407eA0c70fB8",
+        outcomeToken,
+        leg.secondaryTrade.approveAddress,
+      ],
+    ]);
+    // The flat view is the same calls in the same order.
+    expect(batches.flat()).toEqual(await buildCompleteSetTradeCalls7702(createProps(leg)));
   });
 
   it("leaves mintSell defaults untouched", async () => {

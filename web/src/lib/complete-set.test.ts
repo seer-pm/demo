@@ -5,7 +5,7 @@ import {
   compareCompleteSetRoutes,
   getCompleteSetRoutingDisabledReasons,
   getOppositeOutcomeIndex,
-  getSplitCollateralDisabledReasons,
+  getSplitSpendTokens,
   isCompleteSetMarket,
   isCompleteSetRoutingEnabled,
   isMintToCoverRoutingEnabled,
@@ -14,7 +14,7 @@ import {
 import { REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import type { Market } from "@seer-pm/sdk";
 import { TradeType } from "@seer-pm/sdk";
-import { getActiveCreditsTokenAddress } from "@seer-pm/sdk";
+import { getActiveCreditsTokenAddress, getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
 
@@ -172,8 +172,10 @@ describe("isSplitCollateralEnabled", () => {
     expect(isSplitCollateralEnabled(createMinimalMarket({ wrappedTokens: [zeroAddress] }), COLLATERAL)).toBe(false);
   });
 
-  it("rejects conditional markets, whose split takes the base collateral", () => {
+  it("splits a conditional market from the parent outcome token or from the base collateral", () => {
+    const parentOutcomeToken = "0x0000000000000000000000000000000000000006";
     const market = createMinimalMarket({
+      collateralToken: parentOutcomeToken,
       parentMarket: {
         id: "0x0000000000000000000000000000000000000005",
         conditionId: "0x0",
@@ -182,10 +184,13 @@ describe("isSplitCollateralEnabled", () => {
       },
     });
 
+    expect(isSplitCollateralEnabled(market, parentOutcomeToken)).toBe(true);
+    expect(isSplitCollateralEnabled(market, getActivePrimaryCollateral(100).address)).toBe(true);
     expect(isSplitCollateralEnabled(market, COLLATERAL)).toBe(false);
-    expect(getSplitCollateralDisabledReasons(market, COLLATERAL)).toContain(
-      "conditional market: split/merge needs the base collateral, not the parent outcome token",
-    );
+    expect(getSplitSpendTokens(market)).toEqual([parentOutcomeToken, getActivePrimaryCollateral(100).address]);
+    // Only mint-to-cover threads the parent token and the base collateral apart; the binary routes stay off.
+    expect(isCompleteSetRoutingEnabled(market, 0, parentOutcomeToken)).toBe(false);
+    expect(isMintToCoverRoutingEnabled(market, 0, parentOutcomeToken)).toBe(true);
   });
 
   it("rejects trading credits collateral", () => {

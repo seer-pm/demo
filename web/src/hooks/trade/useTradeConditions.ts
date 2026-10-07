@@ -4,7 +4,7 @@ import { useTokenBalance } from "@seer-pm/react";
 
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
 import { isTwoStringsEqual } from "@/lib/utils";
-import { useMarket } from "@seer-pm/react";
+import { useParentMarkets } from "@seer-pm/react";
 import {
   Market,
   NATIVE_TOKEN,
@@ -34,7 +34,8 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
   const selectedCollateral = fixedCollateral || preferredCollateral || primaryCollateral;
 
   const { address: account } = useAccount();
-  const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
+  const { data: parentMarkets } = useParentMarkets(market);
+  const parentMarket = parentMarkets?.[0];
   const { isFetching, sharesToAssets, assetsToShares } = useShareAssetRatio(market.chainId);
 
   const [buyToken, sellToken] =
@@ -70,6 +71,7 @@ export function useTradeConditions({ market, outcomeToken, fixedCollateral, swap
     maxSlippage,
     account,
     parentMarket,
+    parentMarkets,
     selectedCollateral,
     isFetching,
     sharesToAssets,

@@ -2,7 +2,7 @@ import { paths } from "@/lib/paths";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
-import { MarketCollateralDropdown } from "../CollateralDropdown";
+import { CollateralDropdown, MarketCollateralDropdown } from "../CollateralDropdown";
 import { OutcomeDropdown } from "../OutcomeDropdown";
 import { OutcomeImage } from "../OutcomeImage";
 
@@ -14,6 +14,9 @@ interface TokenSelectorProps {
   market: Market;
   fixedCollateral: Token | undefined;
   setPreferredCollateral: (collateral: Token, chainId: number) => void;
+  /** Child markets: every collateral the outcome can be swapped against, see `useChildMarketSwapCollateral`. */
+  collateralOptions?: Token[];
+  onCollateralChange?: (collateral: Token) => void;
   parentMarket: Market | undefined;
   outcomeIndex: number;
   outcomeImage?: string;
@@ -30,6 +33,8 @@ export const TokenSelector = ({
   market,
   fixedCollateral,
   setPreferredCollateral,
+  collateralOptions,
+  onCollateralChange,
   parentMarket,
   outcomeIndex,
   outcomeImage,
@@ -54,6 +59,37 @@ export const TokenSelector = ({
       />
     );
   }
+  const parentTokenImage = parentMarket && (
+    <OutcomeImage
+      className="w-full h-full"
+      image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
+      isInvalidOutcome={
+        parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
+      }
+      title={parentMarket.outcomes[Number(market.parentOutcome)]}
+    />
+  );
+  // The fixed collateral of a child market stays a dropdown while the outcome has more than one pool
+  // to trade in. The choice is per market, so it does not touch the persisted preferred collateral.
+  if (
+    isTokenCollateral &&
+    !isUndefined(fixedCollateral) &&
+    market.type !== "Futarchy" &&
+    collateralOptions &&
+    collateralOptions.length > 1 &&
+    onCollateralChange
+  ) {
+    return (
+      <CollateralDropdown
+        collateralTokens={collateralOptions}
+        selectedCollateral={selectedCollateral}
+        setSelectedCollateral={onCollateralChange}
+        renderTokenImage={(token) =>
+          isTwoStringsEqual(token.address, market.collateralToken) ? parentTokenImage || undefined : undefined
+        }
+      />
+    );
+  }
   const imageElement = (() => {
     if (isTokenCollateral) {
       if (isUndefined(fixedCollateral)) {
@@ -75,19 +111,10 @@ export const TokenSelector = ({
           />
         );
       }
-      if (!parentMarket) {
+      if (!parentTokenImage) {
         return <div className="w-full h-full bg-purple-primary"></div>;
       }
-      return (
-        <OutcomeImage
-          className="w-full h-full"
-          image={parentMarket.images?.outcomes?.[Number(market.parentOutcome)]}
-          isInvalidOutcome={
-            parentMarket.type === "Generic" && Number(market.parentOutcome) === parentMarket.wrappedTokens.length - 1
-          }
-          title={parentMarket.outcomes[Number(market.parentOutcome)]}
-        />
-      );
+      return parentTokenImage;
     }
     return (
       <OutcomeImage

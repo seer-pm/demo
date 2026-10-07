@@ -45,6 +45,8 @@ interface SwapTokensLimitUptoProps {
   outcomeIndex: number;
   outcomeToken: Token;
   fixedCollateral: Token | undefined;
+  collateralOptions?: Token[];
+  onCollateralChange?: (collateral: Token) => void;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -57,6 +59,8 @@ export function SwapTokensLimitUpto({
   outcomeToken,
   setShowMaxSlippage,
   fixedCollateral,
+  collateralOptions,
+  onCollateralChange,
   outcomeImage,
   isInvalidOutcome,
   onOutcomeChange,
@@ -78,6 +82,7 @@ export function SwapTokensLimitUpto({
   const { data: ticksByPool } = useTicksData(
     market,
     market.wrappedTokens.findIndex((x) => isTwoStringsEqual(x, outcomeToken.address)),
+    fixedCollateral?.address,
   );
   const poolInfo = ticksByPool ? Object.values(ticksByPool)[0].poolInfo : undefined;
   const currentSqrtPriceX96 = poolInfo ? BigInt(TickMath.getSqrtRatioAtTick(poolInfo.tick).toString()) : 0n;
@@ -145,12 +150,14 @@ export function SwapTokensLimitUpto({
     outcomeToken.address,
     swapType,
     debounceLimitPrice ? Number(debounceLimitPrice) : undefined,
+    selectedCollateral.address,
   );
   const limitPriceFromVolume = usePriceFromVolume(
     market,
     outcomeToken.address,
     swapType,
     tradeType === TradeType.EXACT_INPUT ? Number(amountOut) : Number(amount),
+    selectedCollateral.address,
   );
 
   const isTradingCreditsCollateral = isTradingCredits(market.chainId, selectedCollateral.address);
@@ -488,6 +495,8 @@ export function SwapTokensLimitUpto({
                   market,
                   fixedCollateral,
                   setPreferredCollateral,
+                  collateralOptions,
+                  onCollateralChange,
                   parentMarket,
                   outcomeIndex,
                   outcomeImage,
@@ -549,6 +558,8 @@ export function SwapTokensLimitUpto({
                   market,
                   fixedCollateral,
                   setPreferredCollateral,
+                  collateralOptions,
+                  onCollateralChange,
                   parentMarket,
                   outcomeIndex,
                   outcomeImage,

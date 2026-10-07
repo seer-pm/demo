@@ -77,6 +77,38 @@ export function useMarket(marketId: Address, chainId: SupportedChain) {
   return graphMarket.isError ? onChainMarket : graphMarket;
 }
 
+/** A conditional chain deeper than this is not something the factory produces; it only bounds the walk. */
+const MAX_PARENT_DEPTH = 16;
+
+/**
+ * Every ancestor of a child market, nearest first, up to the root. A conditional market can hang
+ * off another conditional market, and anything that mints or redeems through the chain (such as
+ * covering a sell paid in the base collateral) needs every level, not just the direct parent.
+ * Each market loaded on the way is also seeded into the `useGraphMarket` cache.
+ */
+export function useParentMarkets(market: Market) {
+  const queryClient = useQueryClient();
+  const chainId = market.chainId as SupportedChain;
+  const parentId = market.parentMarket.id as Address;
+  return useQuery<Market[], Error>({
+    queryKey: ["useMarket", "useParentMarkets", parentId.toLowerCase(), chainId] as const,
+    enabled: parentId !== zeroAddress,
+    queryFn: async () => {
+      const parents: Market[] = [];
+      let nextId = parentId;
+      while (nextId !== zeroAddress && parents.length < MAX_PARENT_DEPTH) {
+        const parent = await getGraphMarketQueryFn(queryClient, nextId, chainId);
+        if (!parent) {
+          throw new Error(`Parent market ${nextId} not found on chain ${chainId}`);
+        }
+        parents.push(parent);
+        nextId = parent.parentMarket.id as Address;
+      }
+      return parents;
+    },
+  });
+}
+
 /**
  * Overrides the market's question data with fresh on-chain data (e.g. best_answer, reopened status).
  */

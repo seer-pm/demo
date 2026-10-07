@@ -1,7 +1,9 @@
 import { QuestionIcon } from "@/lib/icons";
+import { isTwoStringsEqual } from "@/lib/utils";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
+import { zeroAddress } from "viem";
 import PotentialReturnConfig from "./PotentialReturnConfig";
 import { PotentialReturnResult } from "./PotentialReturnResult";
 
@@ -40,6 +42,11 @@ export function PotentialReturn({
   if (swapType !== "buy" || market.type === "Futarchy") {
     return null;
   }
+  // A child outcome bought with the main collateral still redeems to the parent outcome token, which is
+  // only worth one unit of main collateral when every market up the parent chain resolves to the
+  // outcome the next one is conditioned on.
+  const redeemsThroughParent =
+    market.parentMarket.id !== zeroAddress && !isTwoStringsEqual(selectedCollateral.address, market.collateralToken);
 
   const isOneOrNothingPotentialReturn =
     getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID";
@@ -71,7 +78,8 @@ export function PotentialReturn({
             Each token can be redeemed for 1{" "}
             {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
             {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
-            market resolves to {outcomeText}.
+            market resolves to {outcomeText}
+            {redeemsThroughParent ? " and every market in its parent chain resolves to the required outcome" : ""}.
           </p>
           <QuestionIcon fill="#9747FF" />
         </span>

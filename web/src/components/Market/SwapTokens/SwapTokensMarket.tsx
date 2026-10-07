@@ -44,6 +44,8 @@ interface SwapTokensMarketProps {
   outcomeIndex: number;
   outcomeToken: Token;
   fixedCollateral: Token | undefined;
+  collateralOptions?: Token[];
+  onCollateralChange?: (collateral: Token) => void;
   setShowMaxSlippage: (isShow: boolean) => void;
   outcomeImage?: string;
   isInvalidOutcome: boolean;
@@ -114,6 +116,8 @@ export function SwapTokensMarket({
   outcomeToken,
   setShowMaxSlippage,
   fixedCollateral,
+  collateralOptions,
+  onCollateralChange,
   outcomeImage,
   isInvalidOutcome,
   onOutcomeChange,
@@ -169,6 +173,7 @@ export function SwapTokensMarket({
     maxSlippage,
     account,
     parentMarket,
+    parentMarkets,
     isFetching,
     sharesToAssets,
     assetsToShares,
@@ -215,6 +220,7 @@ export function SwapTokensMarket({
 
   const mintToCover = useMintToCover({
     market,
+    parentMarkets,
     outcomeIndex,
     selectedCollateral,
     outcomeToken,
@@ -247,7 +253,7 @@ export function SwapTokensMarket({
   const canMintShortfall =
     hasShortfall &&
     collateralBalance >= parsedAmount - balance &&
-    isMintToCoverEligible({ market, outcomeIndex, selectedCollateral, swapType, tradeType, account });
+    isMintToCoverEligible({ market, parentMarkets, outcomeIndex, selectedCollateral, swapType, tradeType, account });
   const canMintShortfallRef = useRef(canMintShortfall);
   canMintShortfallRef.current = canMintShortfall;
 
@@ -313,6 +319,7 @@ export function SwapTokensMarket({
     outcomeToken.address,
     swapType,
     getOutcomeTokenVolume(quoteData, swapType),
+    selectedCollateral.address,
   );
   const resetInputs = () => {
     // defaultValue "": the form defaults were seeded from the draft, so resetting a
@@ -489,6 +496,8 @@ export function SwapTokensMarket({
                   market,
                   fixedCollateral,
                   setPreferredCollateral,
+                  collateralOptions,
+                  onCollateralChange,
                   parentMarket,
                   outcomeIndex,
                   outcomeImage,
@@ -588,6 +597,8 @@ export function SwapTokensMarket({
                   market,
                   fixedCollateral,
                   setPreferredCollateral,
+                  collateralOptions,
+                  onCollateralChange,
                   parentMarket,
                   outcomeIndex,
                   outcomeImage,
@@ -601,7 +612,7 @@ export function SwapTokensMarket({
               // The card is a fixed height, so this one stays a single summary line; the full
               // breakdown is in the notice below and in the confirmation.
               <p className="text-[12px] text-black-secondary truncate" title={formatLeftoverList(mintToCoverLeftovers)}>
-                + {summarizeLeftovers(mintToCoverLeftovers)}
+                + {summarizeLeftovers(mintToCoverLeftovers, market.id)}
               </p>
             )}
           </div>

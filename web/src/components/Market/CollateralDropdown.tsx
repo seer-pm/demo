@@ -2,21 +2,22 @@ import { ArrowDropDown } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isTradingCreditsDisabled } from "@/lib/trading-credits";
 import { isTwoStringsEqual } from "@/lib/utils";
-import type { GetTokenResult } from "@seer-pm/react";
 import { useTokensInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { getActiveCollateralProfile, getActiveCreditsTokenAddress } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Address, zeroAddress } from "viem";
 import DropdownWrapper from "../Form/DropdownWrapper";
 
 type CollateralDropdownProps = {
   selectedCollateral: Token;
   setSelectedCollateral: (selectedCollateral: Token) => void;
-  collateralTokens: GetTokenResult[] | undefined;
+  collateralTokens: Token[] | undefined;
   showChainLogo?: boolean;
+  /** Replaces the token logo. A parent outcome token has no logo of its own and shows its outcome image. */
+  renderTokenImage?: (token: Token) => ReactNode;
 };
 
 type MarketCollateralDropdownProps = {
@@ -58,13 +59,28 @@ function getCollateralOptions(market: Market, type: "buy" | "sell"): Address[] {
 }
 
 export function CollateralDropdown(props: CollateralDropdownProps) {
-  const { collateralTokens, selectedCollateral, setSelectedCollateral, showChainLogo = false } = props;
+  const {
+    collateralTokens,
+    selectedCollateral,
+    setSelectedCollateral,
+    showChainLogo = false,
+    renderTokenImage,
+  } = props;
 
   const [isOpen, setIsOpen] = useState(false);
 
   if (!collateralTokens || collateralTokens.length === 0) {
     return null;
   }
+
+  const tokenImage = (token: Token) =>
+    renderTokenImage?.(token) ?? (
+      <img
+        className="w-full h-full rounded-full"
+        alt={token.symbol}
+        src={paths.tokenImage(token.address, token.chainId)}
+      />
+    );
 
   return (
     <DropdownWrapper
@@ -86,11 +102,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
               )}
             >
               <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
-                <img
-                  className="w-full h-full rounded-full "
-                  alt={collateralToken.symbol}
-                  src={paths.tokenImage(collateralToken.address, collateralToken.chainId)}
-                />
+                {tokenImage(collateralToken)}
                 {showChainLogo && (
                   <img
                     className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-base-100 rounded-full"
@@ -107,11 +119,7 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
     >
       <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">
         <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
-          <img
-            className="w-full h-full rounded-full"
-            alt={selectedCollateral.symbol}
-            src={paths.tokenImage(selectedCollateral.address, selectedCollateral.chainId)}
-          />
+          {tokenImage(selectedCollateral)}
           {showChainLogo && (
             <img
               className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-base-100 rounded-full"
