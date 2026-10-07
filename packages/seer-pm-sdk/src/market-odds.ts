@@ -80,7 +80,9 @@ export function getOutcomePricesFromPools(market: Market, pools: OutcomePricePoo
       if (!pool) {
         continue;
       }
-      const [price0, price1] = tickToPrice(pool.tick as number);
+      // Full precision: the default form rounds to four decimals, which turns a cheap outcome into a
+      // 0 that reads as a valid pool price and skips the swap-quote fallback.
+      const [price0, price1] = tickToPrice(pool.tick as number, 18, true);
       return isTwoStringsEqual(pool.token0, outcomeToken) ? Number(price0) : Number(price1);
     }
     return Number.NaN;

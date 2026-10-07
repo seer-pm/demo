@@ -239,8 +239,9 @@ export function getSplitCollateralDisabledReasons(market: Market, collateralToke
   if (isTwoStringsEqual(collateralToken, NATIVE_TOKEN)) {
     reasons.push("native xDAI/DAI shortcut is excluded in v1");
   }
-  if (!getSplitSpendTokens(market).some((token) => isTwoStringsEqual(collateralToken, token))) {
-    reasons.push(`selected collateral ${collateralToken} != market collateral ${market.collateralToken as Address}`);
+  const spendTokens = getSplitSpendTokens(market);
+  if (!spendTokens.some((token) => isTwoStringsEqual(collateralToken, token))) {
+    reasons.push(`selected collateral ${collateralToken} is not one of ${spendTokens.join(", ")}`);
   }
 
   return reasons;

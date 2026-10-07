@@ -43,7 +43,8 @@ export function PotentialReturn({
     return null;
   }
   // A child outcome bought with the main collateral still redeems to the parent outcome token, which is
-  // only worth one unit of main collateral when the parent resolves to that outcome as well.
+  // only worth one unit of main collateral when every market up the parent chain resolves to the
+  // outcome the next one is conditioned on.
   const redeemsThroughParent =
     market.parentMarket.id !== zeroAddress && !isTwoStringsEqual(selectedCollateral.address, market.collateralToken);
 
@@ -78,7 +79,7 @@ export function PotentialReturn({
             {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
             {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
             market resolves to {outcomeText}
-            {redeemsThroughParent ? " and the parent market resolves to its outcome" : ""}.
+            {redeemsThroughParent ? " and every market in its parent chain resolves to the required outcome" : ""}.
           </p>
           <QuestionIcon fill="#9747FF" />
         </span>
