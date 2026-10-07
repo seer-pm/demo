@@ -19,9 +19,3 @@ export function getSplitStepMarketLabel(steps: CompleteSetSplitStep[], index: nu
   }
   return `the parent market ${distance} levels up`;
 }
-
-/** The ancestors a chain of steps splits, for copy such as "its 2 parent markets". */
-export function describeParentMarkets(steps: CompleteSetSplitStep[]): string {
-  const count = steps.length - 1;
-  return count === 1 ? "its parent market" : `its ${count} parent markets`;
-}

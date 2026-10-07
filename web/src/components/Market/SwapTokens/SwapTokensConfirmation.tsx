@@ -2,8 +2,7 @@ import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
 import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
-import { summarizeLeftovers } from "@/lib/leftovers";
-import { describeParentMarkets, getSplitStepMarketLabel } from "@/lib/split-steps";
+import { getSplitStepMarketLabel } from "@/lib/split-steps";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
 import {
@@ -13,7 +12,8 @@ import {
   getSplitSteps,
 } from "@seer-pm/sdk";
 import { type AmmTrade } from "@seer-pm/sdk";
-import { useEffect, useState } from "react";
+import clsx from "clsx";
+import { type ReactNode, useEffect, useState } from "react";
 import { formatUnits } from "viem";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
@@ -74,6 +74,36 @@ function getSavingsMessage(quoteData: CompleteSetQuoteResult): string | undefine
   return undefined;
 }
 
+/**
+ * One line of the breakdown. The label keeps its natural width and the value takes the rest of
+ * the row, so a value made of outcome names (full outcome text, not tickers) wraps on the right
+ * instead of squeezing the label into a column of single words.
+ */
+function BreakdownRow({
+  label,
+  value,
+  detail,
+  emphasis,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  /** A second, quieter line under the value, for how the amount is made up. */
+  detail?: ReactNode;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className={clsx("grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 items-baseline", emphasis && "font-semibold")}>
+      <span>{label}</span>
+      <span className="text-right tabular-nums">{value}</span>
+      {detail && (
+        <span className="col-start-2 text-right tabular-nums text-[12px] font-normal text-black-secondary-fg">
+          {detail}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function CompleteSetBreakdown({ quoteData, collateral }: { quoteData: CompleteSetQuoteResult; collateral: Token }) {
   const leg = quoteData.completeSetLeg;
   const savingsMessage = getSavingsMessage(quoteData);
@@ -88,32 +118,22 @@ function CompleteSetBreakdown({ quoteData, collateral }: { quoteData: CompleteSe
     const netCost = formatCompositeAmount(quoteData.sellAmount);
 
     return (
-      <div className="space-y-2 text-[14px] pb-4">
+      <div className="text-[14px] pb-4">
         <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
-        {savingsMessage && <p className="text-[13px] text-black-secondary">{savingsMessage}</p>}
-        <div className="flex items-center justify-between gap-2">
-          <span>1. Split (mint)</span>
-          <span className="text-right">
-            {splitAmount} {collateral.symbol}
-          </span>
+        {savingsMessage && <p className="mt-1 text-[13px] text-black-secondary-fg">{savingsMessage}</p>}
+        <div className="mt-3 space-y-2">
+          <BreakdownRow label="1. Split (mint)" value={`${splitAmount} ${collateral.symbol}`} />
+          <BreakdownRow
+            label="2. Receive"
+            value={`${splitAmount} ${leg.targetOutcomeToken.symbol} + ${splitAmount} ${leg.oppositeOutcomeToken.symbol}`}
+          />
+          <BreakdownRow
+            label={`3. Sell ${leg.oppositeOutcomeToken.symbol}`}
+            value={`${sellAmount} ${leg.oppositeOutcomeToken.symbol}`}
+          />
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span>2. Receive</span>
-          <span className="text-right">
-            {splitAmount} {leg.targetOutcomeToken.symbol} + {splitAmount} {leg.oppositeOutcomeToken.symbol}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span>3. Sell {leg.oppositeOutcomeToken.symbol}</span>
-          <span className="text-right">
-            {sellAmount} {leg.oppositeOutcomeToken.symbol}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-2 font-semibold">
-          <span>Net cost</span>
-          <span className="text-right">
-            {netCost} {collateral.symbol}
-          </span>
+        <div className="mt-3 pt-3 border-t border-separator-100">
+          <BreakdownRow emphasis label="Net cost" value={`${netCost} ${collateral.symbol}`} />
         </div>
       </div>
     );
@@ -129,58 +149,44 @@ function CompleteSetBreakdown({ quoteData, collateral }: { quoteData: CompleteSe
     // On a child market paid in the base collateral every ancestor's full set is minted first, root
     // first, and the outcome this market hangs off is split again. One row per split names what it spends.
     const steps = getSplitSteps(leg);
+    const target = leg.targetOutcomeToken.symbol;
 
     return (
-      <div className="space-y-2 text-[14px] pb-4">
+      <div className="text-[14px] pb-4">
         <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
-        {steps.map((step, index) => (
-          <div key={step.market.id} className="flex items-center justify-between gap-2">
-            <span>
-              {index + 1}. Mint (split {getSplitStepMarketLabel(steps, index)})
-            </span>
-            <span className="text-right">
-              {splitAmount} {step.spendOutcome?.symbol ?? collateral.symbol}
-            </span>
-          </div>
-        ))}
-        <div className="flex items-center justify-between gap-2">
-          <span>{steps.length + 1}. Receive</span>
-          <span className="text-right">
-            {splitAmount} {leg.targetOutcomeToken.symbol}
-            {leftovers.length > 0 ? ` + ${summarizeLeftovers(leftovers, leg.market.id)}` : ""}
-          </span>
+        <div className="mt-3 space-y-2">
+          {steps.map((step, index) => (
+            <BreakdownRow
+              key={step.market.id}
+              label={`${index + 1}. Mint (split ${getSplitStepMarketLabel(steps, index)})`}
+              value={`${splitAmount} ${step.spendOutcome?.symbol ?? collateral.symbol}`}
+            />
+          ))}
+          <BreakdownRow
+            label={`${steps.length + 1}. Sell ${target}`}
+            value={`${sellAmount} ${target}`}
+            detail={
+              held > 0n
+                ? `${formatCompositeAmount(formatUnits(held, leg.targetOutcomeToken.decimals))} held + ${splitAmount} minted`
+                : undefined
+            }
+          />
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span>
-            {steps.length + 2}. Sell {leg.targetOutcomeToken.symbol}
-          </span>
-          <span className="text-right">
-            {sellAmount} {leg.targetOutcomeToken.symbol}
-            {held > 0n
-              ? ` (${formatCompositeAmount(formatUnits(held, leg.targetOutcomeToken.decimals))} held + ${splitAmount} minted)`
-              : ""}
-          </span>
-        </div>
-        {leftovers.length > 0 && (
-          <div className="flex items-start justify-between gap-2 font-semibold">
-            <span>You keep</span>
-            <LeftoverTokens leftovers={leftovers} marketId={leg.market.id} className="text-right" />
-          </div>
-        )}
-        <div className="flex items-center justify-between gap-2 font-semibold">
-          <span>{netCollateral < 0n ? "Net cost" : "Net received"}</span>
-          <span className="text-right">
-            {formatCompositeAmount(
+        <div className="mt-3 pt-3 border-t border-separator-100 space-y-3">
+          <BreakdownRow
+            emphasis
+            label={netCollateral < 0n ? "Net cost" : "Net received"}
+            value={`${formatCompositeAmount(
               formatUnits(netCollateral < 0n ? -netCollateral : netCollateral, collateral.decimals),
-            )}{" "}
-            {collateral.symbol}
-          </span>
+            )} ${collateral.symbol}`}
+          />
+          {leftovers.length > 0 && (
+            <div>
+              <p className="font-semibold">You keep</p>
+              <LeftoverTokens leftovers={leftovers} marketId={leg.market.id} layout="block" />
+            </div>
+          )}
         </div>
-        <p className="text-[13px] text-black-secondary">
-          You end up short {sellAmount} {leg.targetOutcomeToken.symbol} and long {splitAmount} of every other outcome
-          {steps.length > 1 ? ` of this market and of ${describeParentMarkets(steps)}` : ""}
-          {held > 0n ? `, having sold the ${leg.targetOutcomeToken.symbol} you already held` : ""}.
-        </p>
       </div>
     );
   }
@@ -191,40 +197,35 @@ function CompleteSetBreakdown({ quoteData, collateral }: { quoteData: CompleteSe
     const buyCost = formatCompositeAmount(formatUnits(quoteData.netCollateral, collateral.decimals));
 
     return (
-      <div className="space-y-2 text-[14px] pb-4">
+      <div className="text-[14px] pb-4">
         <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
-        {savingsMessage && <p className="text-[13px] text-black-secondary">{savingsMessage}</p>}
-        <div className="flex items-center justify-between gap-2">
-          <span>1. Use {leg.targetOutcomeToken.symbol}</span>
-          <span className="text-right">
-            {mergeAmount} {leg.targetOutcomeToken.symbol}
-          </span>
+        {savingsMessage && <p className="mt-1 text-[13px] text-black-secondary-fg">{savingsMessage}</p>}
+        <div className="mt-3 space-y-2">
+          <BreakdownRow
+            label={`1. Use ${leg.targetOutcomeToken.symbol}`}
+            value={`${mergeAmount} ${leg.targetOutcomeToken.symbol}`}
+          />
+          <BreakdownRow
+            label={`2. Buy ${leg.oppositeOutcomeToken.symbol}`}
+            value={`${buyAmount} ${leg.oppositeOutcomeToken.symbol} (${buyCost} ${collateral.symbol})`}
+          />
+          {leg.invalidOutcomeToken && (
+            <BreakdownRow
+              label={`3. Use ${leg.invalidOutcomeToken.symbol}`}
+              value={`${mergeAmount} ${leg.invalidOutcomeToken.symbol}`}
+            />
+          )}
+          <BreakdownRow
+            label={leg.invalidOutcomeToken ? "4. Merge sets" : "3. Merge sets"}
+            value={`${mergeAmount} ${collateral.symbol}`}
+          />
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span>2. Buy {leg.oppositeOutcomeToken.symbol}</span>
-          <span className="text-right">
-            {buyAmount} {leg.oppositeOutcomeToken.symbol} ({buyCost} {collateral.symbol})
-          </span>
-        </div>
-        {leg.invalidOutcomeToken && (
-          <div className="flex items-center justify-between gap-2">
-            <span>3. Use {leg.invalidOutcomeToken.symbol}</span>
-            <span className="text-right">
-              {mergeAmount} {leg.invalidOutcomeToken.symbol}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center justify-between gap-2">
-          <span>{leg.invalidOutcomeToken ? "4. Merge sets" : "3. Merge sets"}</span>
-          <span className="text-right">
-            {mergeAmount} {collateral.symbol}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-2 font-semibold">
-          <span>Net received</span>
-          <span className="text-right">
-            {displayBalance(quoteData.value, quoteData.decimals, false)} {collateral.symbol}
-          </span>
+        <div className="mt-3 pt-3 border-t border-separator-100">
+          <BreakdownRow
+            emphasis
+            label="Net received"
+            value={`${displayBalance(quoteData.value, quoteData.decimals, false)} ${collateral.symbol}`}
+          />
         </div>
       </div>
     );
@@ -267,7 +268,7 @@ function ShowCompleteSetSummary({
 
   return (
     <>
-      <div className="min-w-[400px] min-h-[150px]">
+      <div className="w-full min-h-[150px]">
         <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} />
       </div>
       <div className="mt-2 space-y-2">
@@ -334,7 +335,7 @@ function ShowSwapSummary({
 
   return (
     <>
-      <div className="min-w-[400px] min-h-[150px]">
+      <div className="w-full min-h-[150px]">
         <div className="flex items-center justify-between mb-5 gap-2">
           <p className="text-2xl break-words">
             {inputAmount} {isTradingCredits ? getActiveCreditsSymbol() : inputToken}
@@ -406,7 +407,7 @@ export function SwapTokensConfirmation({
   if (!trade) {
     return (
       <div className="flex flex-col justify-center items-center">
-        <div className="w-[400px] h-[150px] flex items-center justify-center">
+        <div className="w-full h-[150px] flex items-center justify-center">
           <Spinner />
         </div>
 
