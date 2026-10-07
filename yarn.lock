@@ -6541,7 +6541,7 @@ __metadata:
     tsup: "npm:^8.0.2"
     typescript: "npm:^5.2.2"
   peerDependencies:
-    "@seer-pm/sdk": ~0.0.1
+    "@seer-pm/sdk": ~0.0.20
     "@tanstack/react-query": ">=5.0.0"
     "@wagmi/core": ">=2.0.0"
     react: ">=18.0.0"

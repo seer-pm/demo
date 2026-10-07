@@ -1,6 +1,6 @@
 {
   "name": "@seer-pm/react",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "React hooks for the Seer prediction market protocol",
   "license": "MIT",
   "author": "Seer",
@@ -32,7 +32,7 @@
     "prepublishOnly": "yarn build"
   },
   "peerDependencies": {
-    "@seer-pm/sdk": "~0.0.1",
+    "@seer-pm/sdk": "~0.0.20",
     "@tanstack/react-query": ">=5.0.0",
     "@wagmi/core": ">=2.0.0",
     "react": ">=18.0.0",
