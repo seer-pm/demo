@@ -1,4 +1,5 @@
 import { Alert } from "@/components/Alert";
+import { getSplitStepMarketLabel } from "@/lib/split-steps";
 import { displayBalance } from "@/lib/utils";
 import type { MintToCoverStatus, Token } from "@seer-pm/sdk";
 import { getSplitSteps } from "@seer-pm/sdk";
@@ -12,13 +13,10 @@ export function MintToCoverNotice({
   status,
   collateral,
   outcomeText,
-  parentOutcomeText,
 }: {
   status: MintToCoverStatus;
   collateral: Token;
   outcomeText: string;
-  /** On a child market, the parent outcome this market is conditional on. */
-  parentOutcomeText?: string;
 }) {
   if (status.kind === "insufficientCollateral") {
     const missing = status.splitAmount - status.collateralBalance;
@@ -36,10 +34,9 @@ export function MintToCoverNotice({
   if (status.kind === "splitTooLarge") {
     return (
       <Alert type="info">
-        You don't hold enough {outcomeText} to sell that much, and{" "}
-        {status.isParent ? "the parent market" : "this market"} has {status.outcomeCount} outcomes, more than the{" "}
-        {status.maxOutcomeCount} a single transaction can mint, so the difference cannot be minted for you. Sell what
-        you hold, or buy {outcomeText} first.
+        You don't hold enough {outcomeText} to sell that much, and {status.isParent ? "a parent market" : "this market"}{" "}
+        has {status.outcomeCount} outcomes, more than the {status.maxOutcomeCount} a single transaction can mint, so the
+        difference cannot be minted for you. Sell what you hold, or buy {outcomeText} first.
       </Alert>
     );
   }
@@ -56,8 +53,10 @@ export function MintToCoverNotice({
   const held = leg.existingBalance ?? 0n;
   const minted = displayBalance(leg.splitAmount, collateral.decimals, false);
   const leftovers = leg.leftoverTokens ?? [];
-  // Two steps means the parent market is split first and one of its outcomes is split again.
-  const splitsParentFirst = getSplitSteps(leg).length > 1;
+  // Past one step the ancestors are split first, root first, and the outcome each next market
+  // hangs off is split again.
+  const steps = getSplitSteps(leg);
+  const parentSteps = steps.slice(1);
 
   return (
     <Alert type="info" title="You don't hold enough — we'll mint the rest">
@@ -75,11 +74,17 @@ export function MintToCoverNotice({
           <span className="font-bold">
             {minted} {collateral.symbol}
           </span>{" "}
-          {splitsParentFirst ? (
+          {parentSteps.length > 0 ? (
             <>
-              will be minted into a full set of the parent market, and its{" "}
-              <span className="font-bold">{parentOutcomeText ?? "outcome"}</span> into a full set of this market, so you
-              can sell{" "}
+              will be minted into a full set of the {getSplitStepMarketLabel(steps, 0)}
+              {parentSteps.map((step, index) => (
+                <span key={step.market.id}>
+                  {index === parentSteps.length - 1 ? ", and its " : ", its "}
+                  <span className="font-bold">{step.spendOutcome?.symbol ?? "outcome"}</span> into a full set of the{" "}
+                  {getSplitStepMarketLabel(steps, index + 1)}
+                </span>
+              ))}
+              , so you can sell{" "}
             </>
           ) : (
             <>will be minted into a full set so you can sell </>
@@ -91,7 +96,8 @@ export function MintToCoverNotice({
         </p>
         {leftovers.length > 0 && (
           <div>
-            You'll also keep <LeftoverTokens leftovers={leftovers} className="inline-block align-top" />
+            You'll also keep{" "}
+            <LeftoverTokens leftovers={leftovers} marketId={leg.market.id} className="inline-block align-top" />
           </div>
         )}
       </div>

@@ -15,9 +15,10 @@
  *
  * On a child market the split spends the parent outcome token, and the router is told the base
  * collateral (it derives the position ids from it). When the user trades against the base
- * collateral instead, the shortfall is covered by two splits: the parent market from the base
- * collateral, then the child from the parent outcome just minted. The leftovers then span both
- * markets. One parent level is supported, which is what the protocol's redeem path assumes.
+ * collateral instead, the shortfall is covered by one split per level, root first: the root market
+ * from the base collateral, then each market down the chain from the outcome of the market above
+ * that it hangs off. `Router.splitPosition` pulls `parentWrappedOutcome()` from the caller on every
+ * conditional market, so no level can be skipped. The leftovers then span every market split.
  *
  * The sell leg is the direct AMM quote for the full N: the Lens quoter is a view and does not care
  * about the caller's balance, so no extra round trip is needed and this stays a pure transform.
@@ -52,8 +53,11 @@ export type MintToCoverStatus =
 
 export interface MintToCoverParams {
   market: Market;
-  /** The parent of a child market. Required to cover a shortfall paid in the base collateral. */
-  parentMarket?: Market;
+  /**
+   * The ancestors of a child market, in any order, up to the root. Required to cover a shortfall
+   * paid in the base collateral, which splits every one of them.
+   */
+  parentMarkets?: Market[];
   outcomeIndex: number;
   selectedCollateral: Token;
   swapType: "buy" | "sell";
@@ -76,7 +80,7 @@ export function isMintToCoverEligible(params: MintToCoverEligibilityParams): boo
 
 export interface MintToCoverEligibilityParams {
   market: Market;
-  parentMarket?: Market;
+  parentMarkets?: Market[];
   outcomeIndex: number;
   selectedCollateral: Token;
   swapType: "buy" | "sell";
@@ -84,17 +88,17 @@ export interface MintToCoverEligibilityParams {
   account: Address | undefined;
 }
 
-/** The market whose set is too large to split in one transaction, if any: the parent is checked first because it is split first. */
+/** The market whose set is too large to split in one transaction, if any: ancestors are checked first because they are split first. */
 function getOversizedSplit(params: {
   market: Market;
-  parentMarket?: Market;
+  parentMarkets?: Market[];
   selectedCollateral: Token;
 }): Extract<MintToCoverStatus, { kind: "splitTooLarge" }> | undefined {
-  const { market, parentMarket, selectedCollateral } = params;
-  const splits: { market: Market; isParent: boolean }[] = [];
-  if (needsParentSplit(market, selectedCollateral.address) && isParentMarketOf(market, parentMarket)) {
-    splits.push({ market: parentMarket, isParent: true });
-  }
+  const { market, parentMarkets, selectedCollateral } = params;
+  const chain = needsParentSplit(market, selectedCollateral.address) ? getAncestorChain(market, parentMarkets) : [];
+  const splits: { market: Market; isParent: boolean }[] = [...(chain ?? [])]
+    .reverse()
+    .map((ancestor) => ({ market: ancestor, isParent: true }));
   splits.push({ market, isParent: false });
 
   for (const split of splits) {
@@ -108,7 +112,7 @@ function getOversizedSplit(params: {
 
 /** Every gate except the split size, which `buildMintToCoverQuote` reports as its own status. */
 function isMintToCoverEligibleIgnoringGas(params: MintToCoverEligibilityParams): boolean {
-  const { market, parentMarket, outcomeIndex, selectedCollateral, swapType, tradeType, account } = params;
+  const { market, parentMarkets, outcomeIndex, selectedCollateral, swapType, tradeType, account } = params;
 
   if (swapType !== "sell" || !account) {
     return false;
@@ -121,10 +125,14 @@ function isMintToCoverEligibleIgnoringGas(params: MintToCoverEligibilityParams):
   if (!isMintToCoverRoutingEnabled(market, outcomeIndex, selectedCollateral.address)) {
     return false;
   }
-  // Paying in the base collateral on a child market mints the parent's full set first, so the
-  // parent's outcomes are needed to build the split and to disclose the leftovers.
-  if (needsParentSplit(market, selectedCollateral.address) && !isParentMarketOf(market, parentMarket)) {
-    return false;
+  // Paying in the base collateral on a child market mints the full set of every ancestor first, so
+  // all of them are needed to build the splits and to disclose the leftovers, and the chain is only
+  // mintable from the root's own collateral.
+  if (needsParentSplit(market, selectedCollateral.address)) {
+    const chain = getAncestorChain(market, parentMarkets);
+    if (!chain || !isTwoStringsEqual(chain[chain.length - 1].collateralToken, selectedCollateral.address)) {
+      return false;
+    }
   }
   // Split amounts are compared against 18-decimal outcome tokens without conversion.
   if (selectedCollateral.decimals !== COMPLETE_SET_DECIMALS) {
@@ -142,8 +150,24 @@ function needsParentSplit(market: Market, collateralToken: Address): boolean {
   return isChildMarket(market) && !isTwoStringsEqual(collateralToken, market.collateralToken as Address);
 }
 
-function isParentMarketOf(market: Market, parentMarket: Market | undefined): parentMarket is Market {
-  return parentMarket !== undefined && isTwoStringsEqual(parentMarket.id, market.parentMarket.id);
+/**
+ * The ancestors of `market` nearest first, ending at the root, picked out of `parentMarkets` by
+ * following the `parentMarket.id` links. `undefined` when a link is not loaded, since a split
+ * chain with a hole in it cannot be built. Cycles are impossible on chain, so the walk is bounded
+ * by the list.
+ */
+function getAncestorChain(market: Market, parentMarkets: Market[] | undefined): Market[] | undefined {
+  const chain: Market[] = [];
+  let current = market;
+  while (isChildMarket(current)) {
+    const parent = parentMarkets?.find((candidate) => isTwoStringsEqual(candidate.id, current.parentMarket.id));
+    if (!parent || chain.length >= (parentMarkets?.length ?? 0)) {
+      return undefined;
+    }
+    chain.push(parent);
+    current = parent;
+  }
+  return chain;
 }
 
 function toMarketLike(market: Market): MarketLike {
@@ -154,11 +178,11 @@ function getLeftovers(market: Market, keptOutcomeIndex: number, amount: bigint):
   return market.wrappedTokens
     .map((_, index) => index)
     .filter((index) => index !== keptOutcomeIndex)
-    .map((index) => ({ token: getOutcomeToken(market, index), amount }));
+    .map((index) => ({ token: getOutcomeToken(market, index), amount, marketId: market.id }));
 }
 
 export function buildMintToCoverQuote(params: MintToCoverParams): MintToCoverStatus {
-  const { market, parentMarket, outcomeIndex, selectedCollateral, outcomeBalance, collateralBalance, directQuote } =
+  const { market, parentMarkets, outcomeIndex, selectedCollateral, outcomeBalance, collateralBalance, directQuote } =
     params;
 
   if (!isMintToCoverEligibleIgnoringGas(params)) {
@@ -194,43 +218,38 @@ export function buildMintToCoverQuote(params: MintToCoverParams): MintToCoverSta
   const targetOutcomeToken = getOutcomeToken(market, outcomeIndex);
   const marketLike = toMarketLike(market);
 
-  // The rest of the complete set, Invalid included: minted by the same split, never swapped.
-  const leftoverTokens: CompleteSetLeftover[] = getLeftovers(market, outcomeIndex, splitAmount);
-  const splitSteps: CompleteSetSplitStep[] = [];
+  // The markets to split, root first. Paying in the market's own collateral splits only the
+  // market itself; paying in the base collateral splits every ancestor on the way down to it.
+  const chain = needsParentSplit(market, selectedCollateral.address) ? getAncestorChain(market, parentMarkets) : [];
+  if (!chain) {
+    return { kind: "off" };
+  }
+  const levels = [...chain].reverse().concat(market);
+  // The router derives every position id from the base collateral: the root's own when it is
+  // loaded, otherwise the configured one, which is what the parent outcome being spent was minted from.
+  const baseCollateral = isChildMarket(levels[0])
+    ? getActivePrimaryCollateral(market.chainId).address
+    : (levels[0].collateralToken as Address);
 
-  if (isChildMarket(market)) {
-    const baseCollateral = getActivePrimaryCollateral(market.chainId).address;
-    if (needsParentSplit(market, selectedCollateral.address)) {
-      if (!isParentMarketOf(market, parentMarket)) {
-        return { kind: "off" };
-      }
-      // The parent's full set is minted so that one of its outcomes can be split again; every
-      // other parent outcome stays in the wallet alongside the child leftovers.
-      splitSteps.push({
-        market: toMarketLike(parentMarket),
-        spendToken: baseCollateral,
-        routerCollateral: baseCollateral,
-        amount: splitAmount,
-        outcomeCount: parentMarket.wrappedTokens.length,
-      });
-      leftoverTokens.unshift(...getLeftovers(parentMarket, Number(market.parentOutcome), splitAmount));
-    }
+  // The rest of every complete set, Invalid included: minted by the splits, never swapped. A level
+  // keeps everything except the outcome the next level is split from; the last keeps everything
+  // except the outcome being sold.
+  const leftoverTokens: CompleteSetLeftover[] = [];
+  const splitSteps: CompleteSetSplitStep[] = [];
+  levels.forEach((level, index) => {
+    const next = levels[index + 1];
+    const spentOutcomeIndex = next ? Number(next.parentOutcome) : outcomeIndex;
+    const parent = levels[index - 1];
     splitSteps.push({
-      market: marketLike,
-      spendToken: market.collateralToken as Address,
+      market: toMarketLike(level),
+      spendToken: level.collateralToken as Address,
       routerCollateral: baseCollateral,
       amount: splitAmount,
-      outcomeCount: market.wrappedTokens.length,
+      outcomeCount: level.wrappedTokens.length,
+      ...(parent ? { spendOutcome: getOutcomeToken(parent, Number(level.parentOutcome)) } : {}),
     });
-  } else {
-    splitSteps.push({
-      market: marketLike,
-      spendToken: market.collateralToken as Address,
-      routerCollateral: market.collateralToken as Address,
-      amount: splitAmount,
-      outcomeCount: market.wrappedTokens.length,
-    });
-  }
+    leftoverTokens.push(...getLeftovers(level, spentOutcomeIndex, splitAmount));
+  });
 
   return {
     kind: "ready",

@@ -3,6 +3,7 @@ import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
 import { summarizeLeftovers } from "@/lib/leftovers";
+import { describeParentMarkets, getSplitStepMarketLabel } from "@/lib/split-steps";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetQuoteResult, Token } from "@seer-pm/sdk";
 import {
@@ -30,8 +31,6 @@ interface SwapTokensConfirmationProps {
   originalAmount: string;
   isTradingCredits: boolean;
   outcomeToken: Token;
-  /** On a child market, the parent outcome this market is conditional on. */
-  parentOutcomeText?: string;
 }
 
 function isCompleteSetSummary(
@@ -75,15 +74,7 @@ function getSavingsMessage(quoteData: CompleteSetQuoteResult): string | undefine
   return undefined;
 }
 
-function CompleteSetBreakdown({
-  quoteData,
-  collateral,
-  parentOutcomeText,
-}: {
-  quoteData: CompleteSetQuoteResult;
-  collateral: Token;
-  parentOutcomeText?: string;
-}) {
+function CompleteSetBreakdown({ quoteData, collateral }: { quoteData: CompleteSetQuoteResult; collateral: Token }) {
   const leg = quoteData.completeSetLeg;
   const savingsMessage = getSavingsMessage(quoteData);
 
@@ -135,38 +126,33 @@ function CompleteSetBreakdown({
     const proceeds = quoteData.value;
     const netCollateral = proceeds - leg.splitAmount;
     const leftovers = leg.leftoverTokens ?? [];
-    // On a child market paid in the base collateral the parent's full set is minted first and the
-    // parent outcome this market hangs off is split again. The step rows name what each split spends.
-    const splitsParentFirst = getSplitSteps(leg).length > 1;
-    const stepOffset = splitsParentFirst ? 1 : 0;
+    // On a child market paid in the base collateral every ancestor's full set is minted first, root
+    // first, and the outcome this market hangs off is split again. One row per split names what it spends.
+    const steps = getSplitSteps(leg);
 
     return (
       <div className="space-y-2 text-[14px] pb-4">
         <p className="text-2xl break-words font-semibold text-purple-primary">{getRouteLabel(quoteData.route)}</p>
-        <div className="flex items-center justify-between gap-2">
-          <span>1. Mint (split{splitsParentFirst ? " parent market" : ""})</span>
-          <span className="text-right">
-            {splitAmount} {collateral.symbol}
-          </span>
-        </div>
-        {splitsParentFirst && (
-          <div className="flex items-center justify-between gap-2">
-            <span>2. Mint (split this market)</span>
+        {steps.map((step, index) => (
+          <div key={step.market.id} className="flex items-center justify-between gap-2">
+            <span>
+              {index + 1}. Mint (split {getSplitStepMarketLabel(steps, index)})
+            </span>
             <span className="text-right">
-              {splitAmount} {parentOutcomeText ?? "parent outcome"}
+              {splitAmount} {step.spendOutcome?.symbol ?? collateral.symbol}
             </span>
           </div>
-        )}
+        ))}
         <div className="flex items-center justify-between gap-2">
-          <span>{2 + stepOffset}. Receive</span>
+          <span>{steps.length + 1}. Receive</span>
           <span className="text-right">
             {splitAmount} {leg.targetOutcomeToken.symbol}
-            {leftovers.length > 0 ? ` + ${summarizeLeftovers(leftovers)}` : ""}
+            {leftovers.length > 0 ? ` + ${summarizeLeftovers(leftovers, leg.market.id)}` : ""}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span>
-            {3 + stepOffset}. Sell {leg.targetOutcomeToken.symbol}
+            {steps.length + 2}. Sell {leg.targetOutcomeToken.symbol}
           </span>
           <span className="text-right">
             {sellAmount} {leg.targetOutcomeToken.symbol}
@@ -178,7 +164,7 @@ function CompleteSetBreakdown({
         {leftovers.length > 0 && (
           <div className="flex items-start justify-between gap-2 font-semibold">
             <span>You keep</span>
-            <LeftoverTokens leftovers={leftovers} className="text-right" />
+            <LeftoverTokens leftovers={leftovers} marketId={leg.market.id} className="text-right" />
           </div>
         )}
         <div className="flex items-center justify-between gap-2 font-semibold">
@@ -192,7 +178,7 @@ function CompleteSetBreakdown({
         </div>
         <p className="text-[13px] text-black-secondary">
           You end up short {sellAmount} {leg.targetOutcomeToken.symbol} and long {splitAmount} of every other outcome
-          {splitsParentFirst ? " of this market and of the parent market" : ""}
+          {steps.length > 1 ? ` of this market and of ${describeParentMarkets(steps)}` : ""}
           {held > 0n ? `, having sold the ${leg.targetOutcomeToken.symbol} you already held` : ""}.
         </p>
       </div>
@@ -251,12 +237,10 @@ function ShowCompleteSetSummary({
   trade,
   quoteData,
   collateral,
-  parentOutcomeText,
 }: {
   trade: AmmTrade;
   quoteData: CompleteSetQuoteResult;
   collateral: Token;
-  parentOutcomeText?: string;
 }) {
   const { maximumSlippage, minimumReceive, maximumSent } = useGetTradeInfo(trade)!;
   const supports7702 = useCheck7702Support();
@@ -284,7 +268,7 @@ function ShowCompleteSetSummary({
   return (
     <>
       <div className="min-w-[400px] min-h-[150px]">
-        <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} parentOutcomeText={parentOutcomeText} />
+        <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} />
       </div>
       <div className="mt-2 space-y-2">
         {!supports7702 && (
@@ -418,7 +402,6 @@ export function SwapTokensConfirmation({
   collateral,
   isTradingCredits,
   outcomeToken,
-  parentOutcomeText,
 }: SwapTokensConfirmationProps) {
   if (!trade) {
     return (
@@ -437,12 +420,7 @@ export function SwapTokensConfirmation({
   return (
     <div className="flex flex-col justify-center items-center">
       {isCompleteSetSummary(quoteData) ? (
-        <ShowCompleteSetSummary
-          trade={trade}
-          quoteData={quoteData}
-          collateral={collateral}
-          parentOutcomeText={parentOutcomeText}
-        />
+        <ShowCompleteSetSummary trade={trade} quoteData={quoteData} collateral={collateral} />
       ) : (
         <ShowSwapSummary
           trade={trade}

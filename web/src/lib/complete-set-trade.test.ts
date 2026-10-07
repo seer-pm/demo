@@ -171,6 +171,7 @@ describe("mintToCover route", () => {
         chainId: 100,
       },
       amount: splitAmount,
+      marketId: zeroAddress,
     }));
     const leg = createMintToCoverLeg({ leftoverTokens });
     const leftoverAddresses = leftoverTokens.map((leftover) => leftover.token.address);

@@ -31,6 +31,8 @@ export const MIN_COMPLETE_SET_SAVINGS_PERCENT = 0.5;
 export interface CompleteSetLeftover {
   token: Token;
   amount: bigint;
+  /** The market whose split mints this token: on a multi-level split the leftovers span every market split. */
+  marketId: Address;
 }
 
 /**
@@ -48,14 +50,20 @@ export interface CompleteSetSplitStep {
   amount: bigint;
   /** Wrapped tokens the split mints, Invalid included. Drives the gas the step is planned with. */
   outcomeCount: number;
+  /**
+   * `spendToken` as an outcome of the market one level up, for display: the step mints a child
+   * market's set out of this parent outcome. Absent on the step that spends the base collateral.
+   */
+  spendOutcome?: Token;
 }
 
 export interface CompleteSetLeg {
   route: "mintSell" | "buyMerge" | "mintToCover";
   splitAmount?: bigint;
   /**
-   * Splits to run before the swap, root market first. Absent on a root-market leg, where the one
-   * split spends `collateralToken` on `market`; see `getSplitSteps`.
+   * Splits to run before the swap, root market first: each one spends the outcome the next market
+   * down hangs off. Absent on a root-market leg, where the one split spends `collateralToken` on
+   * `market`; see `getSplitSteps`.
    */
   splitSteps?: CompleteSetSplitStep[];
   mergeAmount?: bigint;

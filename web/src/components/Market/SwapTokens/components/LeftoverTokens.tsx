@@ -3,14 +3,23 @@ import { displayBalance } from "@/lib/utils";
 import type { CompleteSetLeftover } from "@seer-pm/sdk";
 
 /** The leftovers summary, with the full per-token breakdown one click away. */
-export function LeftoverTokens({ leftovers, className }: { leftovers: CompleteSetLeftover[]; className?: string }) {
+export function LeftoverTokens({
+  leftovers,
+  marketId,
+  className,
+}: {
+  leftovers: CompleteSetLeftover[];
+  /** The market being traded, whose leftovers are told apart from those of its ancestors. */
+  marketId: string;
+  className?: string;
+}) {
   if (leftovers.length === 0) {
     return null;
   }
 
   return (
     <details className={className}>
-      <summary className="cursor-pointer font-bold">{summarizeLeftovers(leftovers)}</summary>
+      <summary className="cursor-pointer font-bold">{summarizeLeftovers(leftovers, marketId)}</summary>
       <ul className="mt-1 pl-4 list-disc space-y-0.5 font-normal">
         {leftovers.map((leftover) => (
           <li key={leftover.token.address}>

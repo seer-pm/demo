@@ -27,6 +27,10 @@ const PARENT_ID = "0x0000000000000000000000000000000000000010" as Address;
 const PARENT_YES = "0x0000000000000000000000000000000000000011" as Address;
 const PARENT_NO = "0x0000000000000000000000000000000000000012" as Address;
 const PARENT_INVALID = "0x0000000000000000000000000000000000000013" as Address;
+const CHILD_ID = "0x0000000000000000000000000000000000000014" as Address;
+const GRANDCHILD_A = "0x0000000000000000000000000000000000000015" as Address;
+const GRANDCHILD_B = "0x0000000000000000000000000000000000000016" as Address;
+const GRANDCHILD_INVALID = "0x0000000000000000000000000000000000000017" as Address;
 
 const createMinimalMarket = (overrides: Partial<Market> = {}): Market =>
   ({
@@ -101,6 +105,19 @@ const createChildMarket = () =>
     collateralToken: PARENT_YES,
     parentMarket: { id: PARENT_ID, conditionId: "0x0", payoutReported: false, payoutNumerators: [] },
     parentOutcome: 0n,
+  });
+
+/** `createChildMarket()` with an id of its own, so that a grandchild can point at it. */
+const createChildMarketWithId = () => createMinimalMarket({ ...createChildMarket(), id: CHILD_ID });
+
+/** A child of `createChildMarketWithId()`, conditional on UP: its collateral is the UP token. */
+const createGrandchildMarket = () =>
+  createMinimalMarket({
+    outcomes: ["A", "B", "Invalid"],
+    wrappedTokens: [GRANDCHILD_A, GRANDCHILD_B, GRANDCHILD_INVALID],
+    collateralToken: UP,
+    parentMarket: { id: CHILD_ID, conditionId: "0x0", payoutReported: false, payoutNumerators: [] },
+    parentOutcome: 1n,
   });
 
 function createSellTrade(amountIn: bigint, tokenIn: Address = UP) {
@@ -200,9 +217,9 @@ describe("isMintToCoverEligible", () => {
   it("accepts a child market sold against the base collateral only once the parent market is loaded", () => {
     const params = { ...baseParams, market: createChildMarket(), selectedCollateral: baseCollateral };
     expect(isMintToCoverEligible(params)).toBe(false);
-    expect(isMintToCoverEligible({ ...params, parentMarket: createParentMarket() })).toBe(true);
+    expect(isMintToCoverEligible({ ...params, parentMarkets: [createParentMarket()] })).toBe(true);
     // A stale parent from another market cannot describe the first split.
-    expect(isMintToCoverEligible({ ...params, parentMarket: createMinimalMarket({ id: DOWN }) })).toBe(false);
+    expect(isMintToCoverEligible({ ...params, parentMarkets: [createMinimalMarket({ id: DOWN })] })).toBe(false);
   });
 
   it("rejects a set too large to split in one transaction, on either level", () => {
@@ -219,7 +236,7 @@ describe("isMintToCoverEligible", () => {
       isMintToCoverEligible({
         ...baseParams,
         market: bigChild,
-        parentMarket: bigParent,
+        parentMarkets: [bigParent],
         selectedCollateral: baseCollateral,
       }),
     ).toBe(true);
@@ -247,7 +264,7 @@ describe("isMintToCoverEligible", () => {
       isMintToCoverEligible({
         ...baseParams,
         market: childOfHuge,
-        parentMarket: hugeParent,
+        parentMarkets: [hugeParent],
         selectedCollateral: baseCollateral,
       }),
     ).toBe(false);
@@ -352,7 +369,7 @@ describe("buildMintToCoverQuote", () => {
     };
     expect(buildMintToCoverQuote(params).kind).toBe("off");
 
-    const status = buildMintToCoverQuote({ ...params, parentMarket });
+    const status = buildMintToCoverQuote({ ...params, parentMarkets: [parentMarket] });
     expect(status.kind).toBe("ready");
     if (status.kind !== "ready") return;
     const leg = status.quote.completeSetLeg!;
@@ -373,6 +390,7 @@ describe("buildMintToCoverQuote", () => {
         routerCollateral: baseCollateral.address,
         amount: splitAmount,
         outcomeCount: 3,
+        spendOutcome: parentYesToken,
       },
     ]);
     // The parent outcome the child hangs off is consumed by the second split; everything else stays.
@@ -382,7 +400,99 @@ describe("buildMintToCoverQuote", () => {
       DOWN,
       INVALID,
     ]);
+    expect(leg.leftoverTokens?.map((leftover) => leftover.marketId)).toEqual([
+      PARENT_ID,
+      PARENT_ID,
+      market.id,
+      market.id,
+    ]);
     expect(leg.leftoverTokens?.every((leftover) => leftover.amount === splitAmount)).toBe(true);
+  });
+
+  it("splits every ancestor, root first, when a grandchild is sold against the base collateral", () => {
+    const market = createGrandchildMarket();
+    const params = {
+      ...baseParams,
+      market,
+      selectedCollateral: baseCollateral,
+      outcomeBalance: 0n,
+      collateralBalance: sellAmount,
+      directQuote: createDirectQuote(sellAmount, {}, GRANDCHILD_B),
+    };
+    // The direct parent alone leaves a hole in the chain: its own set cannot be minted without the root.
+    expect(buildMintToCoverQuote({ ...params, parentMarkets: [createChildMarketWithId()] }).kind).toBe("off");
+    expect(isMintToCoverEligible({ ...params, parentMarkets: [createChildMarketWithId()] })).toBe(false);
+
+    const parentMarkets = [createParentMarket(), createChildMarketWithId()];
+    expect(isMintToCoverEligible({ ...params, parentMarkets })).toBe(true);
+    const status = buildMintToCoverQuote({ ...params, parentMarkets });
+    expect(status.kind).toBe("ready");
+    if (status.kind !== "ready") return;
+    const leg = status.quote.completeSetLeg!;
+    expect(leg.splitSteps).toEqual([
+      {
+        market: { id: PARENT_ID, type: "Generic", chainId: 100 },
+        spendToken: baseCollateral.address,
+        routerCollateral: baseCollateral.address,
+        amount: sellAmount,
+        outcomeCount: 3,
+      },
+      {
+        market: { id: CHILD_ID, type: "Generic", chainId: 100 },
+        spendToken: PARENT_YES,
+        routerCollateral: baseCollateral.address,
+        amount: sellAmount,
+        outcomeCount: 3,
+        spendOutcome: parentYesToken,
+      },
+      {
+        market: { id: market.id, type: "Generic", chainId: 100 },
+        spendToken: UP,
+        routerCollateral: baseCollateral.address,
+        amount: sellAmount,
+        outcomeCount: 3,
+        spendOutcome: { address: UP, symbol: "UP", decimals: 18, chainId: 100 },
+      },
+    ]);
+    // Each level keeps everything but the outcome the next level is split from.
+    expect(leg.leftoverTokens?.map((leftover) => [leftover.marketId, leftover.token.address])).toEqual([
+      [PARENT_ID, PARENT_NO],
+      [PARENT_ID, PARENT_INVALID],
+      [CHILD_ID, DOWN],
+      [CHILD_ID, INVALID],
+      [market.id, GRANDCHILD_A],
+      [market.id, GRANDCHILD_INVALID],
+    ]);
+    expect(leg.leftoverTokens?.every((leftover) => leftover.amount === sellAmount)).toBe(true);
+  });
+
+  it("reports an oversized grandparent as a parent split", () => {
+    const hugeRoot = createCategoricalMarket(MAX_SPLIT_OUTCOMES, {
+      id: PARENT_ID,
+      collateralToken: baseCollateral.address,
+    });
+    const child = createMinimalMarket({
+      id: CHILD_ID,
+      collateralToken: hugeRoot.wrappedTokens[0],
+      parentMarket: { id: PARENT_ID, conditionId: "0x0", payoutReported: false, payoutNumerators: [] },
+      parentOutcome: 0n,
+    });
+    expect(
+      buildMintToCoverQuote({
+        ...baseParams,
+        market: createGrandchildMarket(),
+        parentMarkets: [child, hugeRoot],
+        selectedCollateral: baseCollateral,
+        outcomeBalance: 0n,
+        collateralBalance: sellAmount,
+        directQuote: createDirectQuote(sellAmount, {}, GRANDCHILD_B),
+      }),
+    ).toEqual({
+      kind: "splitTooLarge",
+      outcomeCount: MAX_SPLIT_OUTCOMES + 1,
+      maxOutcomeCount: MAX_SPLIT_OUTCOMES,
+      isParent: true,
+    });
   });
 
   it("reports an oversized split instead of a quote, naming the level", () => {
@@ -398,7 +508,7 @@ describe("buildMintToCoverQuote", () => {
     const status = buildMintToCoverQuote({
       ...baseParams,
       market: child,
-      parentMarket: hugeParent,
+      parentMarkets: [hugeParent],
       selectedCollateral: baseCollateral,
       outcomeIndex: 1,
       outcomeBalance: 0n,

@@ -173,6 +173,7 @@ export function SwapTokensMarket({
     maxSlippage,
     account,
     parentMarket,
+    parentMarkets,
     isFetching,
     sharesToAssets,
     assetsToShares,
@@ -219,7 +220,7 @@ export function SwapTokensMarket({
 
   const mintToCover = useMintToCover({
     market,
-    parentMarket,
+    parentMarkets,
     outcomeIndex,
     selectedCollateral,
     outcomeToken,
@@ -252,7 +253,7 @@ export function SwapTokensMarket({
   const canMintShortfall =
     hasShortfall &&
     collateralBalance >= parsedAmount - balance &&
-    isMintToCoverEligible({ market, parentMarket, outcomeIndex, selectedCollateral, swapType, tradeType, account });
+    isMintToCoverEligible({ market, parentMarkets, outcomeIndex, selectedCollateral, swapType, tradeType, account });
   const canMintShortfallRef = useRef(canMintShortfall);
   canMintShortfallRef.current = canMintShortfall;
 
@@ -307,7 +308,6 @@ export function SwapTokensMarket({
   }, [quoteData, swapType]);
 
   const outcomeText = market.outcomes[outcomeIndex];
-  const parentOutcomeText = parentMarket?.outcomes[Number(market.parentOutcome)];
   // check if current token price higher than 1 (primary) collateral per token
   const isPriceTooHigh =
     market.type === "Generic" &&
@@ -428,7 +428,6 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isTradingCredits={isTradingCreditsCollateral}
             outcomeToken={outcomeToken}
-            parentOutcomeText={parentOutcomeText}
           />
         }
       />
@@ -613,7 +612,7 @@ export function SwapTokensMarket({
               // The card is a fixed height, so this one stays a single summary line; the full
               // breakdown is in the notice below and in the confirmation.
               <p className="text-[12px] text-black-secondary truncate" title={formatLeftoverList(mintToCoverLeftovers)}>
-                + {summarizeLeftovers(mintToCoverLeftovers)}
+                + {summarizeLeftovers(mintToCoverLeftovers, market.id)}
               </p>
             )}
           </div>
@@ -691,12 +690,7 @@ export function SwapTokensMarket({
           />
         </div>
 
-        <MintToCoverNotice
-          status={mintToCover}
-          collateral={selectedCollateral}
-          outcomeText={outcomeText}
-          parentOutcomeText={parentOutcomeText}
-        />
+        <MintToCoverNotice status={mintToCover} collateral={selectedCollateral} outcomeText={outcomeText} />
         {isPriceTooHigh && (
           <Alert type="warning">
             Price exceeds 1 {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol} per share.
