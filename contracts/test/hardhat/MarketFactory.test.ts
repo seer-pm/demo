@@ -309,16 +309,14 @@ describe("MarketFactory", function () {
       expect(Number.parseInt(data.slice(-2), 16)).to.equal(6);
     });
 
-    it("defaults the outcome tokens to 18 decimals when the collateral has none", async function () {
+    it("reverts when the collateral has no decimals", async function () {
       const collateral = await ethers.deployContract("CollateralTokenNoDecimals");
-      const market = await createCategoricalMarket({
-        ...categoricalMarketParams,
-        collateralToken: await collateral.getAddress(),
-      });
-      const [wrapped1155] = await market.wrappedOutcome(0);
-      const token = await ethers.getContractAt("Wrapped1155", wrapped1155);
-
-      expect(await token.decimals()).to.equal(18);
+      await expect(
+        marketFactory.createCategoricalMarket({
+          ...categoricalMarketParams,
+          collateralToken: await collateral.getAddress(),
+        })
+      ).to.be.reverted;
     });
 
     it("reverts if a conditional market does not use the parent's collateral", async function () {

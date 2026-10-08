@@ -431,19 +431,6 @@ contract MarketFactory {
         return conditionId;
     }
 
-    /// @dev Returns the decimals of the collateral token, or 18 when the token does not expose them.
-    /// A Conditional Tokens position is denominated in the collateral's base units, so the wrapped
-    /// outcome token has to use the same decimals to display the same amounts.
-    /// @param collateralToken The collateral token.
-    /// @return The decimals of the outcome tokens.
-    function collateralDecimals(address collateralToken) internal view returns (uint8) {
-        try IERC20(collateralToken).decimals() returns (uint8 decimals) {
-            return decimals;
-        } catch {
-            return 18;
-        }
-    }
-
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.
     /// @param collateralToken The base collateral of the positions.
     /// @param parentCollectionId The parentCollectionId.
@@ -460,7 +447,9 @@ contract MarketFactory {
         string[] memory tokenNames
     ) internal returns (IERC20[] memory wrapped1155, bytes[] memory data) {
         uint256 invalidResultIndex = outcomeSlotCount - 1;
-        uint8 decimals = collateralDecimals(collateralToken);
+        // A Conditional Tokens position is denominated in the collateral's base units, so the wrapped outcome
+        // token has to use the same decimals to display the same amounts.
+        uint8 decimals = IERC20(collateralToken).decimals();
 
         wrapped1155 = new IERC20[](outcomeSlotCount);
         data = new bytes[](outcomeSlotCount);

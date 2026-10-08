@@ -297,19 +297,6 @@ contract QuestionsFactory {
         return string(abi.encodePacked(question, separator, category, separator, lang));
     }
 
-    /// @dev Returns the decimals of the collateral token, or 18 when the token does not expose them.
-    /// Mirrors MarketFactory.collateralDecimals: the token data is part of the wrapper's CREATE2 salt, so the
-    /// ERC20s deployed here are only found by MarketFactory when the decimals match.
-    /// @param collateralToken The collateral token.
-    /// @return The decimals of the outcome tokens.
-    function collateralDecimals(address collateralToken) internal view returns (uint8) {
-        try IERC20(collateralToken).decimals() returns (uint8 decimals) {
-            return decimals;
-        } catch {
-            return 18;
-        }
-    }
-
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.
     /// @notice The INVALID_RESULT outcome (at index outcomeSlotCount - 1) is always deployed, even if not in the [from, to) range.
     /// @param collateralToken The base collateral of the positions.
@@ -331,7 +318,9 @@ contract QuestionsFactory {
         uint256 to
     ) public returns (IERC20[] memory wrapped1155, bytes[] memory data) {
         uint256 invalidResultIndex = outcomeSlotCount - 1;
-        uint8 decimals = collateralDecimals(collateralToken);
+        // The token data is part of the wrapper's CREATE2 salt, so the ERC20s deployed here are only found by
+        // MarketFactory when the decimals match the ones it reads from the collateral.
+        uint8 decimals = IERC20(collateralToken).decimals();
 
         wrapped1155 = new IERC20[](outcomeSlotCount);
         data = new bytes[](outcomeSlotCount);
