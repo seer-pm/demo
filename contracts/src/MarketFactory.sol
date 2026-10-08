@@ -233,8 +233,6 @@ contract MarketFactory {
         InternalMarketConfig memory config
     ) internal returns (address) {
         require(params.collateralToken != address(0), "Missing collateral token");
-        // Reality rejects a timeout of zero or of 365 days and more on its own.
-        require(params.questionTimeout > 0, "Missing question timeout");
 
         (Market.ConditionalTokensParams memory conditionalTokensParams, Market.RealityParams memory realityParams) =
             createNewMarketParams(params, config);

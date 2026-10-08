@@ -255,10 +255,10 @@ describe("MarketFactory", function () {
       ).to.be.revertedWith("Missing collateral token");
     });
 
-    it("reverts without a question timeout", async function () {
+    it("leaves the timeout bounds to Reality", async function () {
       await expect(
         marketFactory.createCategoricalMarket({ ...categoricalMarketParams, questionTimeout: 0 })
-      ).to.be.revertedWith("Missing question timeout");
+      ).to.be.revertedWith("timeout must be positive");
     });
 
     it("asks the Reality question with the market's timeout", async function () {

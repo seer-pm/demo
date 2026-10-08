@@ -434,7 +434,8 @@ contract MarketFactoryTest is BaseTest {
         vm.expectRevert(bytes("Missing collateral token"));
         getCategoricalMarketWithCollateral(MIN_BOND, 2, address(0), QUESTION_TIMEOUT);
 
-        vm.expectRevert(bytes("Missing question timeout"));
+        // the timeout bounds are Reality's
+        vm.expectRevert(bytes("timeout must be positive"));
         getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 0);
     }
 
