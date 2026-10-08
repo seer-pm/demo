@@ -24,6 +24,31 @@ factories deployed before that, listed as `MarketFactoryV1` (and `CirclesMarketF
 Gnosis), have a fixed collateral and a 3.5 day timeout; they keep serving the markets they created.
 A chain without a `MarketFactory` entry still creates its markets on the V1 one.
 
+## Collateral tokens
+
+`MarketFactory` accepts any address with a `decimals()` getter as `collateralToken`; it does not check
+the token's behaviour. The positions are held by Gnosis `ConditionalTokens`, which is deployed and not
+ours to change, and it assumes a plain ERC20: `transfer`/`transferFrom` return a `bool`, move exactly
+the amount requested, and balances do not change on their own. Every position is minted for the amount
+passed in and every merge or redemption pays out of one pooled balance per collateral, with no per-market
+accounting. Known limitations, by token class:
+
+- **No `bool` return** (mainnet USDT, BNB, OMG and other pre-standard tokens): the ABI decoder in
+  `ConditionalTokens.splitPosition` (`src/interaction/conditional-tokens/ConditionalTokens.sol:143`)
+  and in `Router.splitPosition` (`src/Router.sol:40`) reverts on empty return data, so the market can
+  be created and resolved but no outcome token can ever be minted. Dead market, no funds involved.
+- **Fee on transfer** (PAXG, STA-style): through the Router it fails closed, because the Router
+  approves the full amount and the Conditional Tokens `transferFrom` for it reverts. A user who splits
+  on the Conditional Tokens contract directly leaves the pool short by the fee, and the last holder to
+  merge or redeem that collateral receives less than their position.
+- **Rebasing** (stETH, AMPL): a positive rebase accrues to the Conditional Tokens balance with no
+  position that can claim it; a negative rebase leaves the last redeemer with a reverting transfer.
+
+None of these let a third party take funds from someone who did not opt into that market, which is why
+the factory leaves the check to the creator. The app only creates and trades markets over the
+collateral profiles registered in `packages/seer-pm-sdk/src/collateral.ts`; a market created directly
+on the factory over any other token is the creator's responsibility.
+
 ### Gnosis
 
 | Contract | Address |

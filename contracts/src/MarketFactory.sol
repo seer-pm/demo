@@ -33,6 +33,9 @@ contract MarketFactory {
     /// @param openingTime Reality question opening time.
     /// @param tokenNames Name of the ERC20 tokens associated to each outcome.
     /// @param collateralToken Base collateral of the outcome tokens. A conditional market must use the collateral of its parent market.
+    /// Must be a plain ERC20: Conditional Tokens decodes a bool from transfer/transferFrom and mints and pays out the
+    /// exact amount transferred, so a token that returns nothing, charges a fee on transfer or rebases gives a market
+    /// that cannot be entered or that pays its last redeemer short. The factory does not check this (see README).
     /// @param questionTimeout Reality question timeout, in seconds. At least MIN_QUESTION_TIMEOUT.
     struct CreateMarketParams {
         string marketName;
