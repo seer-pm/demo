@@ -255,10 +255,32 @@ describe("MarketFactory", function () {
       ).to.be.revertedWith("Missing collateral token");
     });
 
-    it("leaves the timeout bounds to Reality", async function () {
+    it("rejects a timeout below the minimum", async function () {
       await expect(
-        marketFactory.createCategoricalMarket({ ...categoricalMarketParams, questionTimeout: 0 })
-      ).to.be.revertedWith("timeout must be positive");
+        marketFactory.createCategoricalMarket({
+          ...categoricalMarketParams,
+          questionTimeout: SHORT_QUESTION_TIMEOUT - 1,
+        })
+      ).to.be.revertedWith("Question timeout too short");
+    });
+
+    it("accepts the minimum timeout", async function () {
+      expect(await marketFactory.MIN_QUESTION_TIMEOUT()).to.equal(SHORT_QUESTION_TIMEOUT);
+      await expect(
+        marketFactory.createCategoricalMarket({ ...categoricalMarketParams, questionTimeout: SHORT_QUESTION_TIMEOUT })
+      ).to.not.be.reverted;
+    });
+
+    it("rejects a timeout below the minimum on a pre-asked question", async function () {
+      await expect(
+        marketFactory.askRealityQuestion(
+          "",
+          REALITY_SINGLE_SELECT_TEMPLATE,
+          OPENING_TS,
+          MIN_BOND,
+          SHORT_QUESTION_TIMEOUT - 1
+        )
+      ).to.be.revertedWith("Question timeout too short");
     });
 
     it("asks the Reality question with the market's timeout", async function () {

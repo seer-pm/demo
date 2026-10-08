@@ -33,7 +33,7 @@ contract MarketFactory {
     /// @param openingTime Reality question opening time.
     /// @param tokenNames Name of the ERC20 tokens associated to each outcome.
     /// @param collateralToken Base collateral of the outcome tokens. A conditional market must use the collateral of its parent market.
-    /// @param questionTimeout Reality question timeout, in seconds.
+    /// @param questionTimeout Reality question timeout, in seconds. At least MIN_QUESTION_TIMEOUT.
     struct CreateMarketParams {
         string marketName;
         string[] outcomes;
@@ -69,6 +69,11 @@ contract MarketFactory {
     uint8 internal constant REALITY_SINGLE_SELECT_TEMPLATE = 2;
     /// @dev Template for multi categorical markets.
     uint8 internal constant REALITY_MULTI_SELECT_TEMPLATE = 3;
+
+    /// @dev Minimum Reality question timeout. Arbitration can only be requested while the question is open, so the
+    /// timeout is the window to dispute an answer: a shorter one lets the first answer finalize before anyone can
+    /// counter it or reach the arbitrator.
+    uint32 public constant MIN_QUESTION_TIMEOUT = 1 hours;
 
     /// @dev Arbitrator contract.
     address public immutable arbitrator;
@@ -393,8 +398,8 @@ contract MarketFactory {
     /// @param templateId The Reality template id.
     /// @param openingTime The question opening time.
     /// @param minBond The question min bond.
-    /// @param timeout The question timeout. It is part of the question id, so the same question with another
-    /// timeout is a different Reality question.
+    /// @param timeout The question timeout, at least MIN_QUESTION_TIMEOUT. It is part of the question id, so the
+    /// same question with another timeout is a different Reality question.
     /// @return The question id.
     function askRealityQuestion(
         string memory encodedQuestion,
@@ -403,6 +408,8 @@ contract MarketFactory {
         uint256 minBond,
         uint32 timeout
     ) public returns (bytes32) {
+        require(timeout >= MIN_QUESTION_TIMEOUT, "Question timeout too short");
+
         bytes32 content_hash = keccak256(abi.encodePacked(templateId, openingTime, encodedQuestion));
 
         bytes32 question_id = keccak256(

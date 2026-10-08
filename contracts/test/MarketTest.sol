@@ -434,9 +434,13 @@ contract MarketFactoryTest is BaseTest {
         vm.expectRevert(bytes("Missing collateral token"));
         getCategoricalMarketWithCollateral(MIN_BOND, 2, address(0), QUESTION_TIMEOUT);
 
-        // the timeout bounds are Reality's
-        vm.expectRevert(bytes("timeout must be positive"));
-        getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 0);
+        vm.expectRevert(bytes("Question timeout too short"));
+        getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 1 hours - 1);
+    }
+
+    function test_rejectsShortTimeoutOnPreAsk() public {
+        vm.expectRevert(bytes("Question timeout too short"));
+        marketFactory.askRealityQuestion("", 2, uint32(block.timestamp), MIN_BOND, 0);
     }
 
     function test_encodedQuestions() public {
