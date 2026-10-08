@@ -337,7 +337,11 @@ contract MarketFactory {
     /// wrap positions that only a raw split of that collateral on the parent condition can fund and that
     /// redeem into a raw position instead of the parent token: the Router can neither split, merge nor redeem
     /// such a market, so the collateral has to reproduce the parent's wrapper address.
-    /// The parent is untrusted, but the check only reads it and the wrapper address is deterministic.
+    /// This is a consistency check for honest parents, not a security boundary. Both sides of the comparison come
+    /// from the untrusted parent and the wrapper address is a pure CREATE2 computation, so a contract that mirrors a
+    /// real market's ids and reports the wrapper address of any collateral passes with that collateral. Such a child
+    /// is still consistent with its own positions and holds no one else's funds; anything that relies on the parent
+    /// link (indexers, the UI) has to confirm the parent is a factory market itself. The check only reads the parent.
     /// @param params CreateMarketParams instance.
     /// @param parentCollectionId The collection id of the parent outcome.
     function requireParentCollateral(CreateMarketParams memory params, bytes32 parentCollectionId) internal view {
