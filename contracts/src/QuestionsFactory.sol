@@ -209,27 +209,24 @@ contract QuestionsFactory {
             );
         }
 
-        // MarketFactory.askRealityQuestion is internal, so this contract cannot ask the questions. Asking
-        // Reality directly does not work either: the question id hashes the asker, and it must be
-        // MarketFactory for MarketFactory.create*Market to find the questions already asked.
-        // Uncomment this block once MarketFactory exposes askRealityQuestion.
-        // The questions range is bounded by encodedQuestions.length and the ERC20 range by
-        // outcomeSlotCount, so ask the questions and deploy the ERC20s in separate calls.
-        require(!createQuestions, "Question creation is not supported by MarketFactory");
-        // if (createQuestions) {
-        //     require(from <= to, "from must be <= to");
-        //     require(to <= config.encodedQuestions.length, "to exceeds encodedQuestions length");
-        //
-        //     for (uint256 i = from; i < to; i++) {
-        //         marketFactory.askRealityQuestion(
-        //             config.encodedQuestions[i],
-        //             config.templateId,
-        //             params.openingTime,
-        //             params.minBond,
-        //             params.questionTimeout
-        //         );
-        //     }
-        // }
+        // The questions go through MarketFactory: the Reality question id hashes the asker, so a question asked
+        // by this contract is not the one MarketFactory.create*Market finds already asked.
+        // The questions range is bounded by encodedQuestions.length and the ERC20 range by outcomeSlotCount,
+        // so ask the questions and deploy the ERC20s in separate calls.
+        if (createQuestions) {
+            require(from <= to, "from must be <= to");
+            require(to <= config.encodedQuestions.length, "to exceeds encodedQuestions length");
+
+            for (uint256 i = from; i < to; i++) {
+                marketFactory.askRealityQuestion(
+                    config.encodedQuestions[i],
+                    config.templateId,
+                    params.openingTime,
+                    params.minBond,
+                    params.questionTimeout
+                );
+            }
+        }
 
         // Optionally deploy ERC20 tokens (limited by from/to)
         if (deployERC20) {

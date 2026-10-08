@@ -39,6 +39,7 @@ export const EMPTY_PARENT_COLLECTION_ID = "0x00000000000000000000000000000000000
 export const INVALID_RESULT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 export const ANSWERED_TOO_SOON = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
 
+export const REALITY_UINT_TEMPLATE = 1;
 export const REALITY_SINGLE_SELECT_TEMPLATE = 2;
 
 export const categoricalMarketParams = {

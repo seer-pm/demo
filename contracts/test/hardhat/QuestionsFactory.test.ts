@@ -1,14 +1,15 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { MarketFactory, QuestionsFactory, Wrapped1155Factory } from "../../typechain-types";
-import { SHORT_QUESTION_TIMEOUT, type MarketParams } from "./helpers/constants";
+import { MarketFactory, QuestionsFactory, RealityETH_v3_0, Wrapped1155Factory } from "../../typechain-types";
+import { REALITY_UINT_TEMPLATE, SHORT_QUESTION_TIMEOUT, type MarketParams } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 
 describe("QuestionsFactory", function () {
   let marketFactory: MarketFactory;
   let questionsFactory: QuestionsFactory;
   let wrapped1155Factory: Wrapped1155Factory;
+  let realitio: RealityETH_v3_0;
 
   let categoricalMarketParams: MarketParams;
   let multiScalarMarketParams: MarketParams;
@@ -19,12 +20,14 @@ describe("QuestionsFactory", function () {
       marketFactory: _marketFactory,
       questionsFactory: _questionsFactory,
       wrapped1155Factory: _wrapped1155Factory,
+      realitio: _realitio,
       marketParams: _marketParams,
     } = await loadFixture(marketFactoryDeployFixture);
 
     marketFactory = _marketFactory;
     questionsFactory = _questionsFactory;
     wrapped1155Factory = _wrapped1155Factory;
+    realitio = _realitio;
     categoricalMarketParams = _marketParams.categoricalMarketParams;
     multiScalarMarketParams = _marketParams.multiScalarMarketParams;
   });
@@ -74,9 +77,53 @@ describe("QuestionsFactory", function () {
     }
   });
 
-  it("rejects question creation", async function () {
+  it("pre-asks the questions MarketFactory later finds", async function () {
+    const params = { ...multiScalarMarketParams, questionTimeout: SHORT_QUESTION_TIMEOUT };
+    const expectedQuestionsIds = await Promise.all(
+      params.encodedQuestions.map((encodedQuestion) =>
+        questionsFactory.calculateRealityQuestionId(
+          encodedQuestion,
+          REALITY_UINT_TEMPLATE,
+          params.openingTime,
+          params.minBond,
+          params.questionTimeout,
+        ),
+      ),
+    );
+
+    // one question per batch
+    for (let i = 0; i < expectedQuestionsIds.length; i++) {
+      const trx = await questionsFactory.createMultiScalarMarket(params, i, i + 1, true, false);
+      const receipt = await trx.wait(1);
+      const asked = (await realitio.queryFilter(realitio.filters.LogNewQuestion, receipt?.blockNumber)).map(
+        (event) => event.args[0],
+      );
+      expect(asked).to.deep.equal([expectedQuestionsIds[i]]);
+      expect(await realitio.getTimeout(expectedQuestionsIds[i])).to.equal(SHORT_QUESTION_TIMEOUT);
+    }
+
+    const marketAddress = await marketFactory.createMultiScalarMarket.staticCall(params);
+    const trx = await marketFactory.createMultiScalarMarket(params);
+    const receipt = await trx.wait(1);
+    const market = await ethers.getContractAt("Market", marketAddress);
+
+    expect(await market.questionsIds()).to.deep.equal(expectedQuestionsIds);
+    // the factory reuses the questions instead of asking them again
+    expect(await realitio.queryFilter(realitio.filters.LogNewQuestion, receipt?.blockNumber)).to.have.length(0);
+  });
+
+  it("rejects a questions range past the encoded questions", async function () {
     await expect(
-      questionsFactory.createCategoricalMarket(categoricalMarketParams, 0, 1, true, false),
-    ).to.be.revertedWith("Question creation is not supported by MarketFactory");
+      questionsFactory.createMultiScalarMarket(
+        multiScalarMarketParams,
+        0,
+        multiScalarMarketParams.encodedQuestions.length + 1,
+        true,
+        false,
+      ),
+    ).to.be.revertedWith("to exceeds encodedQuestions length");
+    await expect(questionsFactory.createCategoricalMarket(categoricalMarketParams, 1, 0, true, false)).to.be.revertedWith(
+      "from must be <= to",
+    );
   });
 });
