@@ -283,6 +283,16 @@ describe("MarketFactory", function () {
       ).to.be.revertedWith("Question timeout too short");
     });
 
+    it("rejects a pre-asked question with a template the factory does not use", async function () {
+      const boolTemplate = 0;
+      const datetimeTemplate = 4;
+      for (const templateId of [boolTemplate, datetimeTemplate]) {
+        await expect(
+          marketFactory.askRealityQuestion("", templateId, OPENING_TS, MIN_BOND, QUESTION_TIMEOUT)
+        ).to.be.revertedWith("Invalid template");
+      }
+    });
+
     it("asks the Reality question with the market's timeout", async function () {
       const market = await createCategoricalMarket({
         ...categoricalMarketParams,

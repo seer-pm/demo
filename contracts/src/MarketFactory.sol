@@ -395,10 +395,11 @@ contract MarketFactory {
     /// @dev Asks a question on reality, or returns the id of the question when it is already asked.
     /// Public so the questions of a market can be asked before its creation (QuestionsFactory): the asker is part
     /// of the Reality question id, so a question asked by another contract is a different question. Anyone may
-    /// call it, since the id is a pure function of the parameters and an existing question is reused, so a caller
-    /// cannot produce a question this factory would not ask itself.
+    /// call it: the id is a pure function of the parameters, an existing question is reused, and the template and
+    /// timeout are held to the same bounds as create*Market, so a caller cannot produce a question this factory
+    /// would not ask itself.
     /// @param encodedQuestion The encoded question containing the Reality parameters.
-    /// @param templateId The Reality template id.
+    /// @param templateId The Reality template id, one of the three templates the factory creates markets with.
     /// @param openingTime The question opening time.
     /// @param minBond The question min bond.
     /// @param timeout The question timeout, at least MIN_QUESTION_TIMEOUT. It is part of the question id, so the
@@ -411,6 +412,11 @@ contract MarketFactory {
         uint256 minBond,
         uint32 timeout
     ) public returns (bytes32) {
+        require(
+            templateId == REALITY_UINT_TEMPLATE || templateId == REALITY_SINGLE_SELECT_TEMPLATE
+                || templateId == REALITY_MULTI_SELECT_TEMPLATE,
+            "Invalid template"
+        );
         require(timeout >= MIN_QUESTION_TIMEOUT, "Question timeout too short");
 
         bytes32 content_hash = keccak256(abi.encodePacked(templateId, openingTime, encodedQuestion));
