@@ -324,9 +324,11 @@ contract MarketFactory {
     }
 
     /// @dev Checks that a conditional market uses the collateral of its parent market.
-    /// A conditional market redeems into a parent outcome token, and that token wraps a Conditional Tokens
-    /// position over the parent's base collateral. Outcome tokens deployed over any other collateral would
-    /// wrap positions that no split can fund, so the collateral has to reproduce the parent's wrapper address.
+    /// A conditional market is entered with and redeems into a parent outcome token, which wraps a Conditional
+    /// Tokens position over the parent's base collateral. Outcome tokens deployed over any other collateral
+    /// wrap positions that only a raw split of that collateral on the parent condition can fund and that
+    /// redeem into a raw position instead of the parent token: the Router can neither split, merge nor redeem
+    /// such a market, so the collateral has to reproduce the parent's wrapper address.
     /// The parent is untrusted, but the check only reads it and the wrapper address is deterministic.
     /// @param params CreateMarketParams instance.
     /// @param parentCollectionId The collection id of the parent outcome.
