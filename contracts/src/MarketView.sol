@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import {IERC20} from "./Interfaces.sol";
 import {Market} from "./Market.sol";
+import {RealityProxy} from "./RealityProxy.sol";
 
 interface IConditionalTokens {
     function getCollectionId(
@@ -28,6 +29,10 @@ interface IMarketFactory {
     function realitio() external view returns (IRealityETH_v3_0);
 
     function collateralToken() external view returns (address);
+}
+
+interface IRealityProxy {
+    function realitio() external view returns (IRealityETH_v3_0);
 }
 
 interface IFutarchyProposal {
@@ -302,7 +307,7 @@ contract MarketView {
         questionsInfo.encodedQuestions = new string[](length);
         questionsInfo.questionsIds = new bytes32[](length);
 
-        IRealityETH_v3_0 realitio = marketFactory.realitio();
+        IRealityETH_v3_0 realitio = getRealitio(market, marketFactory);
         for (uint256 i = 0; i < length; i++) {
             questionsInfo.questionsIds[i] = getQuestionId(questionsInfo.baseQuestionsIds[i], realitio);
             questionsInfo.questions[i] = realitio.questions(questionsInfo.questionsIds[i]);
@@ -310,6 +315,18 @@ contract MarketView {
         }
 
         return questionsInfo;
+    }
+
+    /// @dev The Reality instance the market's questions were asked on. It is read from the market's oracle because
+    /// factories on different Reality versions coexist, so the factory passed in may not be the one that created
+    /// the market.
+    function getRealitio(Market market, IMarketFactory marketFactory) internal view returns (IRealityETH_v3_0) {
+        try market.realityProxy() returns (RealityProxy realityProxy) {
+            try IRealityProxy(address(realityProxy)).realitio() returns (IRealityETH_v3_0 realitio) {
+                return realitio;
+            } catch {}
+        } catch {}
+        return marketFactory.realitio();
     }
 
     function getQuestionsIds(Market market) internal view returns (bytes32[] memory) {
