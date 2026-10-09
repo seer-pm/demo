@@ -8,15 +8,9 @@ import { Address } from "viem";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
 import PositionsTable from "./PositionsTable";
-import type { ReviewPosition } from "./portfolio-review-data";
 
-function PositionsTab({
-  account,
-  chainId,
-  reviewData,
-}: { account: Address | undefined; chainId: PortfolioChainId; reviewData?: ReviewPosition[] }) {
-  const { data: livePositions = [], isLoading, error, refetch, isFetching } = usePortfolioPositions(account, chainId);
-  const positions = reviewData ?? livePositions;
+function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: PortfolioChainId }) {
+  const { data: positions = [], isLoading, error, refetch, isFetching } = usePortfolioPositions(account, chainId);
   const [showArchived, setShowArchived] = useState(false);
   const [filterMarketName, setFilterMarketName] = useState("");
 
@@ -28,7 +22,7 @@ function PositionsTab({
     }) ?? [];
 
   const renderTable = () => {
-    if (isLoading && !reviewData) {
+    if (isLoading) {
       return (
         <div aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading positions</span>
@@ -52,10 +46,10 @@ function PositionsTab({
         </Alert>
       );
     }
-    return <PositionsTable account={account} chainId={chainId} data={filteredPositions} review={!!reviewData} />;
+    return <PositionsTable account={account} chainId={chainId} data={filteredPositions} />;
   };
 
-  if (error && !reviewData) {
+  if (error) {
     return (
       <Alert type="error" title="Couldn't load positions">
         <div className="space-y-3">
@@ -97,13 +91,11 @@ function PositionsTab({
       <details className="portfolio-definitions">
         <summary>
           {chainId === "all" ? "Collateral labelled per row" : getActiveCollateralProfile(chainId).primary.symbol} ·
-          Prices, cost, payout and value · How values work
+          Prices and value · How values work
         </summary>
         <p>
-          Average entry is the acquisition price of remaining shares. Cost is remaining cost basis. Traded is gross buys
-          plus sells. If won is gross settlement payout, not profit. Position P&L is value minus cost; return is P&L
-          divided by cost. N/A means the account API does not provide this figure. Each row uses its chain's collateral,
-          never an unlabelled mix of currencies.
+          Price and value are in each chain's collateral (sDAI, sUSDS, and others), not USD. Value is marked at the
+          current pool price, so the price you get when trading may differ.
         </p>
       </details>
       {renderTable()}

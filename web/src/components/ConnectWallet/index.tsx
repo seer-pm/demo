@@ -1,4 +1,3 @@
-import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import Button from "@/components/Form/Button";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import React from "react";
@@ -28,7 +27,7 @@ type ConnectButtonProps = {
 
 const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
   const { open } = useWeb3Modal();
-  return <Button text={DESIGN_PREVIEW ? "Preview mode" : "Connect"} disabled={DESIGN_PREVIEW} title={DESIGN_PREVIEW ? "Read-only design preview. Wallet connections are disabled." : undefined} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
+  return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
 };
 
 type ConnectWallerProps = ConnectButtonProps & {

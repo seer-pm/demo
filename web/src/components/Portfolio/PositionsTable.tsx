@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import type { ReviewPosition } from "./portfolio-review-data";
 
 import { useModal } from "@/hooks/useModal";
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
@@ -7,7 +6,7 @@ import { CloseIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isExecutorRow } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
-import type { PortfolioChainId, SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { MarketStatus } from "@seer-pm/sdk";
 import {
@@ -59,13 +58,11 @@ function PositionsTableInner({
   chainId,
   account,
   showRedeemColumn,
-  review = false,
 }: {
-  data: ReviewPosition[];
+  data: PortfolioPosition[];
   chainId: PortfolioChainId;
   account: Address | undefined;
   showRedeemColumn: boolean;
-  review?: boolean;
 }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
@@ -82,8 +79,8 @@ function PositionsTableInner({
     return n.toFixed(2);
   }
   const singleChainSymbol = chainId === "all" ? null : getActiveCollateralProfile(chainId).primary.symbol;
-  const columns = React.useMemo<ColumnDef<ReviewPosition>[]>(() => {
-    const redeemColumn: ColumnDef<ReviewPosition> = {
+  const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
+    const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",
       cell: (info) => {
         const position = info.row.original;
@@ -162,19 +159,11 @@ function PositionsTableInner({
                 )}
               </span>
               <div>
-                {review ? (
-                  <a
-                    href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-                  >
-                    {position.marketName}
-                  </a>
-                ) : (
-                  <a
-                    href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
-                  >
-                    {position.marketName}
-                  </a>
-                )}
+                <a
+                  href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                >
+                  {position.marketName}
+                </a>
                 <span className="portfolio-outcome">{position.outcome}</span>
                 {showChain && (
                   <small className="portfolio-muted">
@@ -208,17 +197,6 @@ function PositionsTableInner({
         header: "Market / outcome",
       },
 
-      {
-        id: "entry",
-        accessorFn: (row) => row.reviewMetrics?.averageEntry,
-        header: "Avg. entry",
-        cell: (info) =>
-          info.getValue<number>() === undefined ? (
-            <span title="Acquisition cost is not supplied by the portfolio API">N/A</span>
-          ) : (
-            info.getValue<number>().toFixed(4)
-          ),
-      },
       {
         accessorKey: "tokenPrice",
         cell: (info) => {
@@ -272,32 +250,6 @@ function PositionsTableInner({
         cell: (info) => formatSmallNumber(info.getValue<number>()),
       },
       {
-        id: "cost",
-        accessorFn: (row) => row.reviewMetrics?.cost,
-        header: "Cost / traded",
-        cell: (info) => (
-          <>
-            {formatSmallNumber(info.getValue<number>())}
-            <small className="portfolio-secondary">
-              {info.row.original.reviewMetrics
-                ? `${formatSmallNumber(info.row.original.reviewMetrics.traded)} traded`
-                : "Not available"}
-            </small>
-          </>
-        ),
-      },
-      {
-        id: "payout",
-        accessorFn: (row) => row.reviewMetrics?.payout ?? row.reviewPayout,
-        header: "If won",
-        cell: (info) =>
-          info.getValue<number>() === undefined ? (
-            <span title="Payout depends on market settlement rules and is not supplied by this API">N/A</span>
-          ) : (
-            formatSmallNumber(info.getValue<number>())
-          ),
-      },
-      {
         accessorKey: "tokenValue",
         cell: (info) => {
           const position = info.row.original;
@@ -306,46 +258,12 @@ function PositionsTableInner({
             <p className="font-semibold text-[14px] text-center">
               {formatSmallNumber(info.getValue<number>())}
               {symbol}
-              {position.reviewMetrics ? (
-                <>
-                  <small
-                    className={
-                      position.tokenValue - position.reviewMetrics.cost >= 0
-                        ? "portfolio-gain portfolio-secondary"
-                        : "portfolio-loss portfolio-secondary"
-                    }
-                  >
-                    {position.tokenValue >= position.reviewMetrics.cost ? "+" : ""}
-                    {formatSmallNumber(position.tokenValue - position.reviewMetrics.cost)}
-                  </small>
-                  <small
-                    className={
-                      position.tokenValue >= position.reviewMetrics.cost
-                        ? "portfolio-gain portfolio-secondary"
-                        : "portfolio-loss portfolio-secondary"
-                    }
-                  >
-                    {position.reviewMetrics.cost > 0
-                      ? `(${position.tokenValue >= position.reviewMetrics.cost ? "+" : ""}${(((position.tokenValue - position.reviewMetrics.cost) / position.reviewMetrics.cost) * 100).toFixed(2)}%)`
-                      : "Return unavailable"}
-                  </small>
-                </>
-              ) : (
-                <small className="portfolio-secondary" title="Remaining cost basis is not supplied by the API">
-                  P&L unavailable
-                </small>
-              )}
             </p>
           );
         },
-        header: "Value / P&L",
+        header: "Value",
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
-      {
-        id: "profit",
-        accessorFn: (row) => (row.reviewMetrics ? row.tokenValue - row.reviewMetrics.cost : undefined),
-        header: "Profit / loss",
-      },
       {
         id: "details",
         header: "",
@@ -363,7 +281,7 @@ function PositionsTableInner({
         ),
       },
     ];
-  }, [showChain, showRedeemColumn, singleChainSymbol, account, review, expanded]);
+  }, [showChain, showRedeemColumn, singleChainSymbol, account, expanded]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -399,9 +317,6 @@ function PositionsTableInner({
             <option value="tokenValue">Current value</option>
             <option value="marketName">Market name</option>
             <option value="shares">Shares</option>
-            <option value="profit" disabled={!data.some((row) => row.reviewMetrics)}>
-              Profit / loss
-            </option>
           </select>
         </label>
       </div>
@@ -462,22 +377,6 @@ function PositionsTableInner({
                       <td colSpan={row.getVisibleCells().length}>
                         <div className="portfolio-expanded-grid">
                           <span>
-                            Amount traded (buys + sells)
-                            <b>
-                              {row.original.reviewMetrics
-                                ? `${formatSmallNumber(row.original.reviewMetrics.traded)} ${getActiveCollateralProfile(row.original.chainId).primary.symbol}`
-                                : "Not available"}
-                            </b>
-                          </span>
-                          <span>
-                            Gross payout if outcome wins
-                            <b>
-                              {(row.original.reviewMetrics?.payout ?? row.original.reviewPayout) !== undefined
-                                ? `${formatSmallNumber(row.original.reviewMetrics?.payout ?? row.original.reviewPayout)} ${getActiveCollateralProfile(row.original.chainId).primary.symbol}`
-                                : "Depends on settlement rules"}
-                            </b>
-                          </span>
-                          <span>
                             Settlement
                             <b>
                               {row.original.marketStatus === MarketStatus.CLOSED
@@ -510,10 +409,8 @@ export default function PositionsTable({
   data,
   chainId,
   account,
-  review = false,
 }: {
-  review?: boolean;
-  data: ReviewPosition[];
+  data: PortfolioPosition[];
   chainId: PortfolioChainId;
   account: Address | undefined;
 }) {
@@ -527,8 +424,7 @@ export default function PositionsTable({
       data={data}
       chainId={chainId}
       account={account}
-      showRedeemColumn={showRedeemColumn && !review}
-      review={review}
+      showRedeemColumn={showRedeemColumn}
     />
   );
 }

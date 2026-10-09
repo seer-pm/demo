@@ -6,7 +6,6 @@ import { Link } from "@/components/Link";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
 import PortfolioOverview, { type ReviewRange } from "@/components/Portfolio/PortfolioOverview";
-import PortfolioReview from "@/components/Portfolio/PortfolioReview";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { ProfileIdentity } from "@/components/ProfileIdentity";
 import { usePortfolioIdentity } from "@/hooks/portfolio/usePortfolioIdentity";
@@ -14,7 +13,6 @@ import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolio
 import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
-import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual, shortenAddress } from "@/lib/utils";
@@ -212,8 +210,6 @@ function PortfolioPage() {
       </div>
     );
   }
-
-  if (!requestedIdentity && DESIGN_PREVIEW) return <PortfolioReview />;
 
   if (!account || error) {
     return (

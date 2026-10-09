@@ -1,7 +1,6 @@
 import { CopyButton } from "@/components/CopyButton";
 import { Link } from "@/components/Link";
 import { useGlobalState } from "@/hooks/useGlobalState";
-import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import { BarChartIcon, DensitySmallIcon } from "@/lib/icons";
 import { displayBalance } from "@/lib/utils";
 import { PoolInfo, fetchTokenBalance, useMarketPools } from "@seer-pm/react";
@@ -11,8 +10,6 @@ import { useEffect, useState } from "react";
 import { useConfig } from "wagmi";
 import LiquidityBarChart from "./LiquidityBarChart";
 import LiquidityBarChartVertical from "./LiquidityBarChartVertical";
-import OrderBookPreview from "./OrderBookPreview";
-import { BRAZIL_PREVIEW_MARKET } from "./brazilOrderBookPreview";
 
 function PoolTabContent({
   market,
@@ -102,7 +99,7 @@ function PoolTabContent({
   );
 }
 
-function LivePoolTab({
+function PoolTab({
   market,
   outcomeIndex,
 }: {
@@ -182,16 +179,4 @@ function LivePoolTab({
   );
 }
 
-export default function PoolTab(props: { market: Market; outcomeIndex: number }) {
-  const { market, outcomeIndex } = props;
-  const outcome = market.outcomes[outcomeIndex];
-  if (
-    DESIGN_PREVIEW &&
-    market.chainId === 100 &&
-    market.id.toLowerCase() === BRAZIL_PREVIEW_MARKET &&
-    outcome !== "Invalid"
-  ) {
-    return <OrderBookPreview key={outcome} outcome={outcome} />;
-  }
-  return <LivePoolTab {...props} />;
-}
+export default PoolTab;

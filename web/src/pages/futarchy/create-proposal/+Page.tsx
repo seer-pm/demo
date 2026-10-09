@@ -1,4 +1,3 @@
-import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import { Alert } from "@/components/Alert";
 import { MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
@@ -75,12 +74,10 @@ function CreateProposal() {
 
   return (
     <div className="seer-form-page">
-      {!chain && !DESIGN_PREVIEW && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
+      {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
-      {(chain || DESIGN_PREVIEW) && (
+      {chain && (
         <>
-
-
           {activeStep !== FormSteps.PREVIEW && <Steps activeStep={activeStep} />}
 
           {activeStep === FormSteps.OUTCOMES && (

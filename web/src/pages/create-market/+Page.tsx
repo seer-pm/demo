@@ -1,12 +1,10 @@
 import { Alert } from "@/components/Alert";
 import { MarketTypeFormValues, OutcomesFormValues } from "@/components/MarketForm";
-import MarketChatPreview from "@/components/MarketForm/MarketChatPreview";
 import { MarketTypeForm } from "@/components/MarketForm/MarketTypeForm";
 import { OutcomesForm } from "@/components/MarketForm/OutcomesForm";
 import { PreviewForm } from "@/components/MarketForm/PreviewForm";
 import { Steps } from "@/components/Steps";
 import { DEFAULT_CHAIN } from "@/lib/chains";
-import { DESIGN_PREVIEW } from "@/lib/design-preview";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { MarketTypes } from "@seer-pm/sdk";
 import { useEffect, useRef, useState } from "react";
@@ -19,7 +17,7 @@ enum FormSteps {
   PREVIEW = 3,
 }
 
-function ManualCreateMarket() {
+function CreateMarket() {
   const { chain, chainId = DEFAULT_CHAIN } = useAccount();
   const [activeStep, setActiveStep] = useState(FormSteps.MARKET_TYPE);
 
@@ -94,9 +92,9 @@ function ManualCreateMarket() {
 
   return (
     <div className="seer-form-page">
-      {!chain && !DESIGN_PREVIEW && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
+      {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
-      {(chain || DESIGN_PREVIEW) && (
+      {chain && (
         <>
           {activeStep !== FormSteps.PREVIEW && <Steps activeStep={activeStep} />}
 
@@ -131,23 +129,4 @@ function ManualCreateMarket() {
   );
 }
 
-function CreateMarket() {
-  const [manual, setManual] = useState(false);
-  if (!DESIGN_PREVIEW) return <ManualCreateMarket />;
-  return (
-    <>
-      <div hidden={manual}>
-        <MarketChatPreview onManual={() => setManual(true)} />
-      </div>
-      {manual && (
-        <>
-          <button type="button" className="seer-chat-text-button mb-5" onClick={() => setManual(false)}>
-            ← Back to market studio
-          </button>
-          <ManualCreateMarket />
-        </>
-      )}
-    </>
-  );
-}
 export default CreateMarket;

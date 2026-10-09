@@ -1,6 +1,5 @@
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
-import { createConfig, http, fallback } from "wagmi";
-import { DESIGN_PREVIEW } from "./lib/design-preview";
+import { http, fallback } from "wagmi";
 import { type Chain, sepolia } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
 import { SUPPORTED_CHAINS, base, gnosis, hardhat, mainnet, optimism } from "./lib/chains";
@@ -16,7 +15,7 @@ const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886"],
 };
 
-export const connectors = DESIGN_PREVIEW ? [] : [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })];
+export const connectors = [injected(), walletConnect({ projectId: SEER_ENV.VITE_WC_PROJECT_ID!, showQrModal: false })];
 
 /**
  * Reads arrive in bursts (one table row per wallet), and ungrouped each one pays its own round trip.
@@ -28,7 +27,7 @@ const BATCH = { wait: 16, batchSize: 100 } as const;
 
 const rpc = (url?: string) => http(url, { batch: BATCH });
 
-const walletOptions = {
+export const config = defaultWagmiConfig({
   metadata,
   projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
   chains: Object.values(SUPPORTED_CHAINS) as unknown as [Chain, ...Chain[]],
@@ -43,5 +42,4 @@ const walletOptions = {
     [hardhat.id]: rpc(),
   },
   ssr: true,
-};
-export const config = DESIGN_PREVIEW ? createConfig(walletOptions) : defaultWagmiConfig(walletOptions);
+});

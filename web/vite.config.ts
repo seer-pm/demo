@@ -1,4 +1,3 @@
-import { comparisonBridge } from "../scripts/comparison/vite-plugin";
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import vike from "vike/plugin";
@@ -9,7 +8,6 @@ import { cjsInterop } from "vite-plugin-cjs-interop";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    comparisonBridge(),
     react(),
     vike(),
     checker({ typescript: true }),

@@ -1,7 +1,6 @@
 import { configurePublicRpcUrls } from "@seer-pm/sdk";
 import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { base, gnosis, mainnet, optimism } from "viem/chains";
-import { DESIGN_PREVIEW } from "./lib/design-preview";
 import SEER_ENV from "./lib/env";
 import { ARBITRUM_RPC, BASE_RPC, GNOSIS_RPC, MAINNET_RPC, OPTIMISM_RPC, config } from "./wagmiConfig";
 
@@ -19,8 +18,8 @@ if (typeof window !== "undefined") {
 
 createWeb3Modal({
   wagmiConfig: config,
-  projectId: DESIGN_PREVIEW ? "local-design-preview" : SEER_ENV.VITE_WC_PROJECT_ID!,
-  enableAnalytics: !DESIGN_PREVIEW,
+  projectId: SEER_ENV.VITE_WC_PROJECT_ID!,
+  enableAnalytics: true,
   themeVariables: {
     "--w3m-z-index": 1000,
   },

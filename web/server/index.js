@@ -10,7 +10,6 @@
 //  - HatTip (https://github.com/hattipjs/hattip)
 //    - You can use Bati (https://batijs.dev/) to scaffold a Vike + HatTip app. Note that Bati generates apps that use the V1 design (https://vike.dev/migration/v1-design) and Vike packages (https://vike.dev/vike-packages)
 import express from 'express'
-import { designPreviewProxy } from './design-preview.js'
 import compression from 'compression'
 import { renderPage, createDevMiddleware } from 'vike/server'
 import { root } from './root.js'
@@ -46,7 +45,6 @@ async function startServer() {
   // Other middlewares (e.g. some RPC middleware such as Telefunc)
   // Proxy middleware for Netlify functions
   app.all(['/.netlify/*', '/subgraph', '/all-markets-search'], async (req, res) => {
-    if (process.env.VITE_DESIGN_PREVIEW === 'true') return designPreviewProxy(req, res);
     const url = `${functionsOrigin}${req.url}`;
     try {
       const response = await fetch(url, {
