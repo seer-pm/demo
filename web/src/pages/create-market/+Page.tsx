@@ -91,13 +91,11 @@ function CreateMarket() {
   };
 
   return (
-    <div className="w-[924px] max-w-[90%] mx-auto py-[65px] text-center">
+    <div className="seer-form-page">
       {!chain && <Alert type="warning">Connect your wallet to a supported network.</Alert>}
 
       {chain && (
         <>
-          <div className="text-[16px] text-purple-primary mb-[24px]">Create New Market</div>
-
           {activeStep !== FormSteps.PREVIEW && <Steps activeStep={activeStep} />}
 
           {activeStep === FormSteps.MARKET_TYPE && (

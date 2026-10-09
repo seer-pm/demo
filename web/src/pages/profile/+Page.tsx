@@ -356,9 +356,9 @@ export default function AccountPage() {
   return (
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px]">
       <Breadcrumb links={[{ title: "Account" }]} />
-      <h1 className="text-[24px] font-semibold text-base-content">Account</h1>
+      <h2 className="sr-only">Account settings</h2>
 
-      <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)]">
+      <div className="bg-base-100 border border-separator-100 rounded-[16px] shadow-none">
         {!isConnected || !address ? (
           <div className="p-6 sm:p-8">
             <p className="text-[14px] text-black-primary mb-4">

@@ -410,7 +410,7 @@ export function MarketsFilterBox({ setShowFilters }: { setShowFilters: (isShowFi
                         {option.tooltip && (
                           <div className="tooltip">
                             <p className="tooltiptext">{option.tooltip}</p>
-                            <QuestionIcon fill="#9747FF" />
+                            <QuestionIcon fill="#7D33FF" />
                           </div>
                         )}
                       </div>

@@ -1,9 +1,11 @@
 import { Alert } from "@/components/Alert";
 import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
+import ConnectWallet from "@/components/ConnectWallet";
 import { Link } from "@/components/Link";
 import AirdropTab, { AirdropHero } from "@/components/Portfolio/AirdropTab";
 import HistoryTab from "@/components/Portfolio/HistoryTab";
+import PortfolioOverview, { type ReviewRange } from "@/components/Portfolio/PortfolioOverview";
 import PositionsTab from "@/components/Portfolio/PositionsTab";
 import { ProfileIdentity } from "@/components/ProfileIdentity";
 import { usePortfolioIdentity } from "@/hooks/portfolio/usePortfolioIdentity";
@@ -11,8 +13,6 @@ import { usePrefetchPortfolioTabs } from "@/hooks/portfolio/usePrefetchPortfolio
 import { usePublicUser } from "@/hooks/usePublicUser";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { parsePortfolioChainParam } from "@/lib/chains";
-import { SIGNED_TONE_CLASS, formatDeltaPercent, formatUsd, signedTone } from "@/lib/formatUsd";
-import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { queryClient } from "@/lib/query-client";
 import { isTwoStringsEqual, shortenAddress } from "@/lib/utils";
@@ -32,13 +32,6 @@ const TABS = [
 
 type PortfolioTab = (typeof TABS)[number]["id"];
 
-const PNL_PERIODS: { id: PortfolioPnLPeriod; label: string; aria: string; hint: string }[] = [
-  { id: "1d", label: "1D", aria: "Trading P&L last day", hint: "Last day" },
-  { id: "1w", label: "1W", aria: "Trading P&L last week", hint: "Last week" },
-  { id: "1m", label: "1M", aria: "Trading P&L last month", hint: "Last month" },
-  { id: "all", label: "All", aria: "Trading P&L all time", hint: "All time" },
-];
-
 function parsePortfolioTab(raw: string | null): PortfolioTab {
   if (raw === "history" || raw === "airdrop" || raw === "positions") return raw;
   return "positions";
@@ -49,64 +42,7 @@ function parsePnLPeriod(raw: string | null): PortfolioPnLPeriod {
   return "all";
 }
 
-function PortfolioValueVariation({ account, chainId }: { account: Address; chainId: PortfolioChainId }) {
-  const { data, isLoading, error, refetch, isFetching } = usePortfolioValue(account, chainId);
-  const currentPortfolioValue = data?.currentPortfolioValue ?? 0;
-  const delta = data?.delta ?? 0;
-  const tone = signedTone(delta);
-  const percentLabel = formatDeltaPercent(data?.deltaPercent ?? 0);
-
-  if (error) {
-    return (
-      <div>
-        <p className="text-sm font-medium text-black-primary">Current value</p>
-        <p className="text-sm text-signed-down mt-1">Couldn't load current value.</p>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm min-h-11 mt-1 px-3"
-          disabled={isFetching}
-          onClick={() => refetch()}
-        >
-          {isFetching ? "Retrying…" : "Try again"}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <p className="text-sm font-medium text-black-primary">Current value</p>
-      <div aria-live="polite" aria-atomic="true">
-        {isLoading ? (
-          <>
-            <span className="sr-only">Loading current value</span>
-            <div className="mt-2 shimmer-container h-8 w-[220px] max-w-full" aria-hidden />
-          </>
-        ) : (
-          <p className="text-[32px] leading-tight text-base-content font-semibold">
-            {formatUsd(Number(currentPortfolioValue))}
-          </p>
-        )}
-        {isLoading ? (
-          <div className="mt-2 shimmer-container h-5 w-[180px] max-w-full" aria-hidden />
-        ) : tone === "flat" ? (
-          <p className="text-sm text-black-primary mt-1">No value change today</p>
-        ) : (
-          <p className={`${SIGNED_TONE_CLASS[tone]} flex items-center gap-1 mt-1 text-sm`}>
-            <span aria-hidden>
-              {tone === "up" ? <ArrowDropUp fill="currentColor" /> : <ArrowDropDown fill="currentColor" />}
-            </span>
-            {formatUsd(delta, { signed: true })}
-            {percentLabel ? ` (${percentLabel})` : ""} value change today
-          </p>
-        )}
-      </div>
-      <p className="text-sm text-black-primary mt-1">USD · mark-to-market of outcomes and collateral</p>
-    </div>
-  );
-}
-
-function PortfolioPnLHistory({
+function LivePortfolioOverview({
   account,
   chainId,
   period,
@@ -117,67 +53,34 @@ function PortfolioPnLHistory({
   period: PortfolioPnLPeriod;
   onPeriodChange: (period: PortfolioPnLPeriod) => void;
 }) {
-  const { data: plData, isLoading, error, refetch, isFetching } = usePortfolioPnL(account, chainId, period);
-  const pnl = plData?.pnl ?? 0;
-  // The global P/L is a table read, and a miss returns zeros. Showing those as "$0.00" states a
-  // result the refresh job never produced — indistinguishable, to the reader, from a wallet that
-  // genuinely broke even after hundreds of trades.
-  const notComputed = plData?.computed === false;
-  const tone = signedTone(pnl);
-  const periodMeta = PNL_PERIODS.find((p) => p.id === period) ?? PNL_PERIODS.find((p) => p.id === "all")!;
-
+  const value = usePortfolioValue(account, chainId);
+  const pnl = usePortfolioPnL(account, chainId, period);
+  const periods: Record<PortfolioPnLPeriod, ReviewRange> = { "1d": "1D", "1w": "1W", "1m": "1M", all: "All" };
   return (
-    <div className="flex flex-col items-start sm:items-end gap-2 min-w-0">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-medium text-black-primary">Trading P&L</p>
-        <div className="flex flex-wrap gap-2">
-          {PNL_PERIODS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              aria-pressed={period === p.id}
-              aria-label={p.aria}
-              className={`btn btn-sm min-h-11 min-w-11 px-3 ${period === p.id ? "btn-primary" : "btn-ghost border border-separator-100"}`}
-              onClick={() => onPeriodChange(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div aria-live="polite" aria-atomic="true">
-        {isLoading ? (
-          <>
-            <span className="sr-only">Loading trading P&L</span>
-            <div className="shimmer-container h-7 w-[140px]" aria-hidden />
-          </>
-        ) : error ? (
-          <div className="text-right">
-            <p className="text-sm text-signed-down">Couldn't load trading P&L.</p>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm min-h-11 mt-1 px-3"
-              disabled={isFetching}
-              onClick={() => refetch()}
-            >
-              {isFetching ? "Retrying…" : "Try again"}
-            </button>
-          </div>
-        ) : notComputed ? (
-          <p
-            className="text-2xl font-semibold text-black-secondary"
-            title="This wallet has not been included in a P&L refresh yet."
-          >
-            &mdash;
-          </p>
-        ) : (
-          <p className={`text-2xl font-semibold ${SIGNED_TONE_CLASS[tone]}`}>{formatUsd(pnl, { signed: true })}</p>
-        )}
-      </div>
-      <p className="text-sm text-black-primary">
-        {notComputed ? "Not computed for this wallet yet." : periodMeta.hint}
-      </p>
-    </div>
+    <PortfolioOverview
+      value={value.data?.currentPortfolioValue}
+      delta={value.data?.delta}
+      deltaPercent={value.data?.deltaPercent}
+      pnl={pnl.data?.computed === false ? undefined : pnl.data?.pnl}
+      pnlNotComputed={pnl.data?.computed === false}
+      period={periods[period]}
+      onPeriodChange={(range) => onPeriodChange(range.toLowerCase() as PortfolioPnLPeriod)}
+      supported={["1D", "1W", "1M", "All"]}
+      pending={value.isLoading || pnl.isLoading}
+      error={
+        value.error && pnl.error
+          ? "Couldn't load portfolio value or trading P&L."
+          : value.error
+            ? "Couldn't load portfolio value."
+            : pnl.error
+              ? "Couldn't load trading P&L."
+              : undefined
+      }
+      retry={() => {
+        if (value.error) value.refetch();
+        if (pnl.error) pnl.refetch();
+      }}
+    />
   );
 }
 
@@ -321,8 +224,16 @@ function PortfolioPage() {
     return (
       <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
         <Breadcrumb links={[{ title: "Portfolio" }]} />
-        <Alert type="warning" title="Account not found">
-          <p>{error || "Connect your wallet to see this portfolio."}</p>
+        <Alert type={error ? "warning" : "info"} title={error ? "Account not found" : "Your portfolio starts here"}>
+          <p>{error || "Connect your wallet to see positions, trading performance and SEER rewards."}</p>
+          {!error && (
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <ConnectWallet size="large" />
+              <Link to="/leaderboard" className="text-purple-primary text-sm">
+                Explore public portfolios ↗
+              </Link>
+            </div>
+          )}
           {/* A mistyped or renamed @username otherwise dead-ends here; the leaderboard is the one
               place that searches usernames and addresses by substring. */}
           {isUsernameRoute ? (
@@ -338,43 +249,43 @@ function PortfolioPage() {
   }
 
   return (
-    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
-      <Breadcrumb links={[{ title: "Portfolio" }]} />
-      <div className="mt-8 space-y-4">
-        {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
-        <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
+    <div className="container-fluid portfolio-page">
+      <div className="portfolio-page-heading">
+        <div>
+          <h1>{isSelf ? "Your portfolio" : "Portfolio"}</h1>
+          <p>A clearer view of every position.</p>
+        </div>
+        <details className="portfolio-account-details">
+          <summary>Account · {shortenAddress(account)}</summary>
           <ProfileIdentity
             address={account}
             username={username}
             xAccount={publicUser?.xAccount}
             isSelf={isSelf}
             isLoading={isLoading}
-            nameAs="h1"
-          >
-            {/* The one place a user without a username meets the idea, on the page that shows the
-                generated nickname standing in for one. */}
-            {isSelf && !username ? (
-              <Link to={paths.profile()} className="text-sm text-purple-primary hover:underline">
-                Set a username
-              </Link>
-            ) : null}
-            <LinkedExecutors account={account} />
-            {activeTab !== "airdrop" ? <PortfolioValueVariation account={account} chainId={chainId} /> : null}
-          </ProfileIdentity>
-
-          {activeTab === "airdrop" ? (
+            nameAs="h2"
+          />
+          <LinkedExecutors account={account} />
+          {isSelf && !username && <Link to={paths.profile()}>Set a username</Link>}
+        </details>
+      </div>
+      <div className="space-y-4">
+        {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
+        {activeTab === "airdrop" ? (
+          <div className="portfolio-source">
+            <p>Total SEER allocation</p>
             <AirdropHero account={account} />
-          ) : (
-            <PortfolioPnLHistory account={account} chainId={chainId} period={plPeriod} onPeriodChange={setPlPeriod} />
-          )}
-        </div>
+          </div>
+        ) : (
+          <LivePortfolioOverview account={account} chainId={chainId} period={plPeriod} onPeriodChange={setPlPeriod} />
+        )}
       </div>
 
       <div>
         <div
           role="tablist"
           aria-label="Portfolio sections"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[600px] mb-6"
+          className="portfolio-view-tabs"
           onKeyDown={onTabListKeyDown}
         >
           {TABS.map((tab, index) => {

@@ -50,6 +50,8 @@ import { COLORS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;
+  /** The host page already renders the market title and resolution info; skip both so the page keeps a single h1. */
+  embedded?: boolean;
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
@@ -222,7 +224,13 @@ export function PoolTokensInfo({
   );
 }
 
-export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
+export function MarketHeader({
+  market,
+  images,
+  type = "default",
+  outcomesCount = 0,
+  embedded = false,
+}: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
@@ -328,7 +336,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
         <div className="grow min-w-0">
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
-            {type === "default" && market.marketName}
+            {type === "default" && !embedded && <h1 className="seer-market-title">{market.marketName}</h1>}
             {type !== "default" && (
               <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
@@ -353,7 +361,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>
             </p>
           )}
-          {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
+          {embedded ? null : market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
           ) : (
             <>
@@ -373,7 +381,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
       </div>
 
-      {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
+      {!embedded && market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
         <div className="px-[24px] pb-[16px]">
           <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
         </div>
@@ -388,7 +396,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               <p className="tooltiptext !whitespace-pre-wrap w-auto lg:w-[250px] md:w-[400px] ">
                 The market's predicted result based on the current distribution of "UP" and "DOWN" tokens
               </p>
-              <QuestionIcon fill="#9747FF" />
+              <QuestionIcon fill="#7D33FF" />
             </span>
           )}
         </div>
@@ -406,7 +414,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
       )}
 
       {type !== "small" && (
-        <div className="border-t border-separator-100 px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
+        <div className="seer-market-metrics border-t border-separator-100 px-[25px] h-[45px] flex items-center justify-between text-[14px] mt-auto @container">
           <div className="flex items-center gap-4">
             <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" height="100%" />
             <div className="tooltip">
@@ -432,7 +440,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               {(hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0) && (
                 <Popover
                   label="Open interest and liquidity breakdown"
-                  trigger={<QuestionIcon fill="#9747FF" />}
+                  trigger={<QuestionIcon fill="#7D33FF" />}
                   content={
                     <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
                       <p className="text-purple-primary">Open interest:</p>

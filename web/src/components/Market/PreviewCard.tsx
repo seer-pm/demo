@@ -10,7 +10,6 @@ import {
   ExclamationCircleIcon,
   LawBalanceIcon,
   PresentIcon,
-  SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, displayNumber, formatBigNumbers, isUndefined } from "@/lib/utils";
@@ -35,12 +34,14 @@ import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
 import { clientOnly } from "vike-react/clientOnly";
+import { DismissibleDetails } from "../DismissibleDetails";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
+import { rankPreviewOutcomes } from "./previewOutcomeRanking";
 
 const DONUT_SIZE = 56;
 const DONUT_PAD_ANGLE = 2;
@@ -429,8 +430,78 @@ function MarketResult({ market }: { market: Market }) {
   );
 }
 
+function OutcomeRowsShimmer() {
+  return (
+    <div className="seer-outcome-list" aria-busy="true">
+      <span className="sr-only">Loading prices</span>
+      <div className="shimmer-container h-[42px] rounded-[8px]" />
+      <div className="shimmer-container h-[42px] rounded-[8px]" />
+    </div>
+  );
+}
+
+function MarketOutcomeRows({ market }: { market: Market }) {
+  const marketType = getMarketType(market);
+  // The search API fills `odds` asynchronously; an empty list means "still loading", not "no liquidity".
+  if (market.odds.length === 0) {
+    return marketType === MarketTypes.SCALAR ? <ScalarGaugeShimmer /> : <OutcomeRowsShimmer />;
+  }
+  if (marketType === MarketTypes.SCALAR) {
+    const marketEstimate = Number(getMarketEstimate(market.odds, market));
+    if (Number.isNaN(marketEstimate)) return null;
+    return (
+      <ScalarGauge
+        value={marketEstimate}
+        min={displayScalarBound(market.lowerBound)}
+        max={displayScalarBound(market.upperBound)}
+        unit={getMarketUnit(market) || undefined}
+      />
+    );
+  }
+  const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
+  const outcomes = rankPreviewOutcomes(market.outcomes, market.odds, INVALID_RESULT_OUTCOME_TEXT);
+  const binary =
+    outcomes.length === 2 &&
+    outcomes.some((o) => o.name.trim().toLowerCase() === "yes") &&
+    outcomes.some((o) => o.name.trim().toLowerCase() === "no");
+  const link = (name: string) => `${paths.market(market)}?outcome=${encodeURIComponent(name)}`;
+  return (
+    <div className={`seer-outcome-list ${binary ? "seer-binary-actions" : ""}`}>
+      {binary
+        ? outcomes.map(({ name, index, leading }) => (
+            <Link
+              key={index}
+              to={link(name)}
+              className={`seer-binary-action ${leading ? "seer-outcome-leading" : "seer-action-soft"}`}
+              aria-label={`Select ${name} in ${market.marketName}`}
+            >
+              <span>{name}</span>
+              <small>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</small>
+            </Link>
+          ))
+        : outcomes.slice(0, 2).map(({ name, index, leading }) => (
+            <Link
+              key={index}
+              to={link(name)}
+              className={`seer-outcome-row ${leading ? "seer-outcome-leading" : ""}`}
+              aria-label={`Select ${name} in ${market.marketName}`}
+            >
+              <span className="seer-outcome-name" title={name}>
+                {name}
+              </span>
+              <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</strong>
+            </Link>
+          ))}
+      {outcomes.length > 2 && (
+        <Link className="seer-more-outcomes" to={paths.market(market)}>
+          +{outcomes.length - 2} more outcomes
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export function PreviewCard({ market }: { market: Market }) {
-  const outcomesCount = 3;
   const marketStatus = getMarketStatus(market);
   const liquidityUSD = formatBigNumbers(market.liquidityUSD);
   const incentive = formatBigNumbers(market.incentive);
@@ -449,11 +520,11 @@ export function PreviewCard({ market }: { market: Market }) {
   return (
     <div
       className={clsx(
-        "bg-base-100 rounded-[3px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex flex-col",
+        "seer-market-card bg-base-100 text-left flex flex-col",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
-      <div className="h-[100px] @container">
+      <div className="seer-market-card-heading @container">
         <div className={clsx("flex space-x-3 px-4 pt-3")}>
           <Link to={paths.market(market)} className="flex-shrink-0">
             {market.images?.market ? (
@@ -469,7 +540,7 @@ export function PreviewCard({ market }: { market: Market }) {
           <div className="grow min-w-0">
             <Link
               title={market.marketName}
-              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-4"
+              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-2"
               to={paths.market(market)}
             >
               {market.marketName}
@@ -478,133 +549,135 @@ export function PreviewCard({ market }: { market: Market }) {
         </div>
       </div>
 
-      <div className="px-4 h-[90px] overflow-y-auto custom-scrollbar">
+      <div className="seer-market-card-outcomes px-4 custom-scrollbar">
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (
-          <OutcomesInfo
-            market={market}
-            outcomesCount={outcomesCount}
-            images={market.images?.outcomes}
-            marketStatus={marketStatus}
-          />
+          <MarketOutcomeRows market={market} />
         )}
       </div>
 
-      <div className="border-t border-separator-100 px-[16px] h-[36px] flex items-center justify-between w-full">
-        <SeerLogo fill="currentColor" className="text-[#511778] dark:text-white" width="50px" />
-        <div className="flex items-center gap-2">
-          {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0 ? (
-            <Popover
-              label="Open interest and liquidity breakdown"
-              trigger={
-                <span className="text-[12px]">
-                  $
-                  {market.liquidityUSD > 0
-                    ? liquidityUSD
-                    : hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01
-                      ? "?"
-                      : "0.00"}
-                </span>
-              }
-              content={
-                <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
-                  <p className="text-purple-primary">Open interest:</p>
-                  <p className="mx-1">
-                    {displayBalance(market.outcomesSupply, 18, true)}{" "}
-                    {parentMarket
-                      ? (parentCollateral?.symbol ?? "")
-                      : getActivePrimaryCollateral(market.chainId).symbol}{" "}
-                    ({displayNumber(market.openInterestUSD, undefined, true)} $)
-                  </p>
-                  <p className="text-purple-primary">Volume:</p>
-                  <p className="mx-1">
-                    {displayNumber(market.volumeUSD, undefined, true)} $ traded, notional{" "}
-                    {displayNumber(market.volumeNotionalUSD, undefined, true)} $
-                  </p>
-                  <p className="text-purple-primary">Liquidity:</p>
-                  <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
-                </div>
-              }
-            />
-          ) : (
-            <p className="text-[12px]">${liquidityUSD}</p>
-          )}
-          <div className="tooltip">
-            <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
-            {MARKET_TYPES_ICONS[marketType]}
-          </div>
-          {parentMarket && <ConditionalMarketTooltip parentMarket={parentMarket} market={market} />}
-          {market.incentive > 0 && (
-            <div className="tooltip">
-              <p className="tooltiptext">
-                Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
-              </p>
-              <PresentIcon width="16px" />
-            </div>
-          )}
-          <div className="tooltip !flex">
-            <p className="tooltiptext">View contract on explorer</p>
-            <a
-              href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0"
-            >
-              <img
-                alt="network-icon"
-                className="w-[14px] h-[14px] rounded-full"
-                src={NETWORK_ICON_MAPPING[market.chainId]}
-              />
-            </a>
-          </div>
-          {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
-            <Link
-              className={clsx(
-                "tooltip",
-                market.verification.status === "verified" && "text-success-primary",
-                market.verification.status === "verifying" && "text-blue-primary",
-                market.verification.status === "challenged" && "text-warning-primary",
-                market.verification.status === "not_verified" && "text-purple-primary",
-              )}
-              to={
-                market.verification.status === "not_verified"
-                  ? paths.verifyMarket(market.id, market.chainId)
-                  : paths.curateVerifiedList(market.chainId, market.verification.itemID)
-              }
-              {...(market.verification.status === "not_verified"
-                ? {}
-                : { target: "_blank", rel: "noopener noreferrer" })}
-            >
-              {market.verification.status === "verified" && (
-                <>
-                  <CheckCircleIcon />
-                  <div className="tooltiptext">Verified</div>
-                </>
-              )}
-              {market.verification.status === "verifying" && (
-                <>
-                  <ClockIcon />
-                  <div className="tooltiptext">
-                    <p>Verifying</p>
-                    {challengeRemainingTime && <p>Ends in {challengeRemainingTime}</p>}
+      <div className="seer-market-card-footer px-[16px] flex items-center justify-between w-full">
+        <span className="seer-card-volume" title="Market trading volume">
+          ${formatBigNumbers(market.volumeUSD)} Vol.
+        </span>
+        <DismissibleDetails className="seer-card-details">
+          <summary aria-label="Market information">ⓘ</summary>
+          <div className="seer-card-metadata">
+            {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0 ? (
+              <Popover
+                label="Open interest and liquidity breakdown"
+                trigger={
+                  <span className="text-[12px]">
+                    $
+                    {market.liquidityUSD > 0
+                      ? liquidityUSD
+                      : hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01
+                        ? "?"
+                        : "0.00"}
+                  </span>
+                }
+                content={
+                  <div className="overflow-y-auto max-h-[300px] max-w-[400px] text-[12px]">
+                    <p className="text-purple-primary">Open interest:</p>
+                    <p className="mx-1">
+                      {displayBalance(market.outcomesSupply, 18, true)}{" "}
+                      {parentMarket
+                        ? (parentCollateral?.symbol ?? "")
+                        : getActivePrimaryCollateral(market.chainId).symbol}{" "}
+                      ({displayNumber(market.openInterestUSD, undefined, true)} $)
+                    </p>
+                    <p className="text-purple-primary">Volume:</p>
+                    <p className="mx-1">
+                      {displayNumber(market.volumeUSD, undefined, true)} $ traded, notional{" "}
+                      {displayNumber(market.volumeNotionalUSD, undefined, true)} $
+                    </p>
+                    <p className="text-purple-primary">Liquidity:</p>
+                    <PoolTokensInfo market={market} marketStatus={marketStatus} type={"preview"} />
                   </div>
-                </>
-              )}
-              {market.verification.status === "challenged" && (
-                <>
-                  <LawBalanceIcon />
-                  <div className="tooltiptext">Challenged</div>
-                </>
-              )}
-              {market.verification.status === "not_verified" && (
-                <>
-                  <ExclamationCircleIcon width="14" height="14" />
-                  <div className="tooltiptext">Verify it</div>
-                </>
-              )}
-            </Link>
-          )}
+                }
+              />
+            ) : (
+              <p className="text-[12px]">${liquidityUSD}</p>
+            )}
+            <div className="tooltip">
+              <p className="tooltiptext">{MARKET_TYPES_TEXTS[marketType]}</p>
+              {MARKET_TYPES_ICONS[marketType]}
+            </div>
+            {parentMarket && <ConditionalMarketTooltip parentMarket={parentMarket} market={market} />}
+            {market.incentive > 0 && (
+              <div className="tooltip">
+                <p className="tooltiptext">
+                  Reward: <span className="text-purple-primary">{incentive} SEER/day</span>
+                </p>
+                <PresentIcon width="16px" />
+              </div>
+            )}
+            <div className="tooltip !flex">
+              <p className="tooltiptext">View contract on explorer</p>
+              <a
+                href={blockExplorerUrl && `${blockExplorerUrl}/address/${market.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0"
+              >
+                <img
+                  alt="network-icon"
+                  className="w-[14px] h-[14px] rounded-full"
+                  src={NETWORK_ICON_MAPPING[market.chainId]}
+                />
+              </a>
+            </div>
+            {!isUndefined(market.verification) && isVerificationEnabled(market.chainId) && (
+              <Link
+                className={clsx(
+                  "tooltip",
+                  market.verification.status === "verified" && "text-success-primary",
+                  market.verification.status === "verifying" && "text-blue-primary",
+                  market.verification.status === "challenged" && "text-warning-primary",
+                  market.verification.status === "not_verified" && "text-purple-primary",
+                )}
+                to={
+                  market.verification.status === "not_verified"
+                    ? paths.verifyMarket(market.id, market.chainId)
+                    : paths.curateVerifiedList(market.chainId, market.verification.itemID)
+                }
+                {...(market.verification.status === "not_verified"
+                  ? {}
+                  : { target: "_blank", rel: "noopener noreferrer" })}
+              >
+                {market.verification.status === "verified" && (
+                  <>
+                    <CheckCircleIcon />
+                    <div className="tooltiptext">Verified</div>
+                  </>
+                )}
+                {market.verification.status === "verifying" && (
+                  <>
+                    <ClockIcon />
+                    <div className="tooltiptext">
+                      <p>Verifying</p>
+                      {challengeRemainingTime && <p>Ends in {challengeRemainingTime}</p>}
+                    </div>
+                  </>
+                )}
+                {market.verification.status === "challenged" && (
+                  <>
+                    <LawBalanceIcon />
+                    <div className="tooltiptext">Challenged</div>
+                  </>
+                )}
+                {market.verification.status === "not_verified" && (
+                  <>
+                    <ExclamationCircleIcon width="14" height="14" />
+                    <div className="tooltiptext">Verify it</div>
+                  </>
+                )}
+              </Link>
+            )}
+          </div>
+        </DismissibleDetails>
+        <div className="seer-card-save">
           {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
         </div>
       </div>

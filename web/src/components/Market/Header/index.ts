@@ -48,7 +48,7 @@ export const COLORS: Record<MarketStatus, ColorConfig> = {
 
 export const BAR_COLOR = {
   [MarketTypes.CATEGORICAL]: ["#13C0CB", "#FF458C"],
-  [MarketTypes.MULTI_CATEGORICAL]: ["#9747FF", "#24CDFE", "#13C0CB"],
+  [MarketTypes.MULTI_CATEGORICAL]: ["#7D33FF", "#24CDFE", "#13C0CB"],
   [MarketTypes.SCALAR]: ["#FF458C", "#13C0CB"],
-  [MarketTypes.MULTI_SCALAR]: ["#9747FF", "#24CDFE", "#13C0CB"],
+  [MarketTypes.MULTI_SCALAR]: ["#7D33FF", "#24CDFE", "#13C0CB"],
 };

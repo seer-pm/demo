@@ -28,7 +28,7 @@ export function MarketTypeForm({
   } = useFormReturn;
 
   const MARKET_TYPES_OPTIONS = [
-    { value: "", text: "" },
+    { value: "", text: "Choose a market type" },
     { value: MarketTypes.CATEGORICAL, text: "Categorical" },
     { value: MarketTypes.SCALAR, text: "Scalar" },
     { value: MarketTypes.MULTI_CATEGORICAL, text: "Multi Categorical" },
@@ -41,8 +41,9 @@ export function MarketTypeForm({
     <FormProvider {...useFormReturn}>
       <form onSubmit={handleSubmit(goToNextStep)} className="space-y-[32px] md:w-2/3 mx-auto">
         <div>
-          <div className="text-[24px] font-semibold mb-[32px]">Type</div>
+          <h2 className="text-[24px] font-semibold mb-[24px]">What kind of question?</h2>
           <Select
+            aria-label="Market type"
             options={MARKET_TYPES_OPTIONS}
             {...register("marketType", {
               required: "This field is required.",

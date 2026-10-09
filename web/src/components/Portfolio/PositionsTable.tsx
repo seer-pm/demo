@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useModal } from "@/hooks/useModal";
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
 import { NETWORK_ICON_MAPPING } from "@/lib/config";
-import { CloseIcon, ConditionalMarketIcon, QuestionIcon, SubDirArrowRight } from "@/lib/icons";
+import { CloseIcon, ConditionalMarketIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isExecutorRow } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
@@ -22,7 +22,6 @@ import {
 import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
-import { MarketImage } from "../Market/MarketImage";
 import MarketsPagination from "../Market/MarketsPagination";
 import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
@@ -71,6 +70,7 @@ function PositionsTableInner({
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
   const [selectedChainId, setSelectedChainId] = useState<SupportedChain>(chainId === "all" ? DEFAULT_CHAIN : chainId);
   const showChain = chainId === "all";
+  const [expanded, setExpanded] = useState<string>();
   function formatSmallNumber(n: number | undefined) {
     if (typeof n !== "number") return "-";
     if (n === 0) return "0";
@@ -80,7 +80,6 @@ function PositionsTableInner({
 
     return n.toFixed(2);
   }
-  const singleChainSymbol = chainId === "all" ? null : getActiveCollateralProfile(chainId).primary.symbol;
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
     const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",
@@ -150,87 +149,78 @@ function PositionsTableInner({
           const rowChainId = position.chainId;
           const chainName = SUPPORTED_CHAINS[rowChainId as keyof typeof SUPPORTED_CHAINS]?.name;
           return (
-            <div className="w-[100%] flex gap-1">
-              {position.parentMarketId && (
-                <Popover
-                  label="Conditional market. Show the parent market."
-                  trigger={
-                    <span title="Conditional Market">
-                      <ConditionalMarketIcon width="24" fill="#9747ff" />
-                    </span>
-                  }
-                  content={
-                    <p className="text-base-content/70 text-[14px]">
-                      Conditional on{" "}
-                      <a
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline text-purple-primary cursor-pointer hover:underline"
-                        href={`${paths.market(
-                          position.parentMarketId!,
-                          rowChainId,
-                        )}?outcome=${encodeURIComponent(position.parentOutcome!)}`}
-                      >
-                        "{position.parentMarketName}"
-                      </a>{" "}
-                      being <span className="text-base-content">"{position.parentOutcome}"</span>
-                    </p>
-                  }
+            <div className="portfolio-market-cell">
+              <span className="portfolio-market-symbol">
+                <OutcomeImage
+                  image={position.outcomeImage}
+                  title={position.outcome}
+                  isInvalidOutcome={position.isInvalidOutcome}
+                  className="w-full h-full rounded-full object-cover"
                 />
-              )}
-              <div className="min-w-0 w-full text-left">
-                <div className="flex items-center gap-2 min-w-0">
-                  <OutcomeImage
-                    image={position.outcomeImage}
-                    title={position.outcome}
-                    isInvalidOutcome={position.isInvalidOutcome}
-                    className="w-[24px] h-[24px] rounded-full shrink-0"
-                  />
-                  <p className="text-[14px] truncate min-w-0">
-                    <span className="text-purple-primary dark:text-purple-secondary font-semibold">
-                      {formatSmallNumber(position.tokenBalance + (position.lpTokenBalance ?? 0))}{" "}
-                    </span>
-                    <span title={position.outcome}>{position.outcome}</span>
-                  </p>
-                  {showChain && NETWORK_ICON_MAPPING[rowChainId] ? (
-                    <img
-                      alt={chainName ?? String(rowChainId)}
-                      title={chainName}
-                      className="w-4 h-4 rounded-full shrink-0"
-                      src={NETWORK_ICON_MAPPING[rowChainId]}
-                    />
-                  ) : null}
-                  {isExecutorRow(position.sourceWallet, account) ? (
-                    <ExecutorBadge wallet={position.sourceWallet as Address} />
-                  ) : null}
-                </div>
-                {/* Shown whenever the wallet has a pool position, including one the price has moved
-                    out of range: the row would otherwise read as a bare 0 with no explanation. */}
-                {((position.lpTokenBalance ?? 0) > 0 || (position.lpLegs?.length ?? 0) > 0) && (
-                  <p className="mt-1 text-[12px] text-black-secondary">
-                    {formatSmallNumber(position.tokenBalance)} held · {formatSmallNumber(position.lpTokenBalance ?? 0)}{" "}
-                    in LP
-                  </p>
-                )}
+              </span>
+              <div>
                 <a
-                  className="flex gap-2 items-start mt-1 text-[13px] text-base-content hover:underline cursor-pointer min-w-0"
+                  className="portfolio-market-name"
+                  title={position.marketName}
                   href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <span className="flex-shrink-0 mt-0.5" aria-hidden>
-                    <SubDirArrowRight />
-                  </span>
-                  <MarketImage marketAddress={position.marketId} chainId={rowChainId} />
-                  <p title={info.getValue<string>()} className="line-clamp-2 text-left min-w-0">
-                    {info.getValue<string>()}
-                  </p>
+                  {position.marketName}
                 </a>
+                <span className="portfolio-outcome" title={position.outcome}>
+                  {position.outcome}
+                </span>
+                {showChain && (
+                  <small className="portfolio-muted inline-flex items-center gap-1">
+                    {" "}
+                    {NETWORK_ICON_MAPPING[rowChainId] && (
+                      <img alt="" className="w-3 h-3 rounded-full" src={NETWORK_ICON_MAPPING[rowChainId]} />
+                    )}
+                    {chainName} · {getActiveCollateralProfile(rowChainId).primary.symbol}
+                  </small>
+                )}
+                {isExecutorRow(position.sourceWallet, account) && (
+                  <ExecutorBadge wallet={position.sourceWallet as Address} />
+                )}
+                {position.parentMarketId && (
+                  <small className="portfolio-muted block">
+                    <Popover
+                      label="Conditional market. Show the parent market."
+                      trigger={
+                        <span className="inline-flex items-center gap-1" title="Conditional Market">
+                          <ConditionalMarketIcon width="14" fill="currentColor" /> Conditional on{" "}
+                          <span className="underline decoration-dotted">{position.parentOutcome}</span>
+                        </span>
+                      }
+                      content={
+                        <p className="text-base-content/70 text-[14px]">
+                          Conditional on{" "}
+                          <a
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline text-purple-primary cursor-pointer hover:underline"
+                            href={`${paths.market(position.parentMarketId, rowChainId)}?outcome=${encodeURIComponent(position.parentOutcome ?? "")}`}
+                          >
+                            "{position.parentMarketName}"
+                          </a>{" "}
+                          being <span className="text-base-content">"{position.parentOutcome}"</span>
+                        </p>
+                      }
+                    />
+                  </small>
+                )}
+                {((position.lpTokenBalance ?? 0) > 0 || (position.lpLegs?.length ?? 0) > 0) && (
+                  <small className="portfolio-muted block">
+                    {formatSmallNumber(position.tokenBalance)} held · {formatSmallNumber(position.lpTokenBalance ?? 0)}{" "}
+                    in LP
+                  </small>
+                )}
               </div>
             </div>
           );
         },
-        header: "Position",
+        header: "Market / outcome",
       },
 
       {
@@ -239,16 +229,16 @@ function PositionsTableInner({
           const position = info.row.original;
           const symbol = getActiveCollateralProfile(position.chainId).primary.symbol;
           const suffix = showChain ? ` ${symbol}` : "";
-          if (position.redeemedPrice) {
+          if (position.marketStatus === MarketStatus.CLOSED && Number.isFinite(position.redeemedPrice)) {
             return (
               <div className="font-semibold text-[14px] flex items-center gap-2 justify-center">
                 <p>
-                  {formatSmallNumber(position.redeemedPrice)}
+                  {position.redeemedPrice.toFixed(4)}
                   {suffix}
                 </p>
                 <span className="tooltip">
                   <p className="tooltiptext !whitespace-pre-wrap w-[120px]">Redeem price</p>
-                  <QuestionIcon fill="#9747FF" />
+                  <QuestionIcon fill="#7D33FF" />
                 </span>
               </div>
             );
@@ -264,21 +254,27 @@ function PositionsTableInner({
                   <p className="tooltiptext !whitespace-pre-wrap w-[300px]">
                     = relative price to parent outcome &times; parent's {symbol} price
                   </p>
-                  <QuestionIcon fill="#9747FF" />
+                  <QuestionIcon fill="#7D33FF" />
                 </span>
               </div>
             );
           }
           return (
             <p className="font-semibold text-[14px] text-center">
-              {formatSmallNumber(info.getValue<number>())}
+              {Number.isFinite(info.getValue<number>()) ? formatSmallNumber(info.getValue<number>()) : "N/A"}
               {suffix}
             </p>
           );
         },
-        header: singleChainSymbol ? `Price (${singleChainSymbol})` : "Price",
+        header: "Now",
       },
 
+      {
+        id: "shares",
+        accessorFn: (row) => row.tokenBalance + (row.lpTokenBalance ?? 0),
+        header: "Shares",
+        cell: (info) => formatSmallNumber(info.getValue<number>()),
+      },
       {
         accessorKey: "tokenValue",
         cell: (info) => {
@@ -291,11 +287,27 @@ function PositionsTableInner({
             </p>
           );
         },
-        header: singleChainSymbol ? `Value (${singleChainSymbol})` : "Value",
+        header: "Value",
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
+      {
+        id: "details",
+        header: "",
+        enableSorting: false,
+        cell: (info) => (
+          <button
+            className="portfolio-expand"
+            type="button"
+            aria-label={`${expanded === info.row.id ? "Hide" : "Show"} ${info.row.original.outcome} details`}
+            aria-expanded={expanded === info.row.id}
+            onClick={() => setExpanded(expanded === info.row.id ? undefined : info.row.id)}
+          >
+            {expanded === info.row.id ? "−" : "+"}
+          </button>
+        ),
+      },
     ];
-  }, [showChain, showRedeemColumn, singleChainSymbol, account]);
+  }, [showChain, showRedeemColumn, account, expanded]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -303,15 +315,15 @@ function PositionsTableInner({
   const table = useReactTable({
     columns,
     data,
+    getRowId: (row) => `${row.chainId}:${row.tokenId}:${row.sourceWallet ?? "owner"}`,
+    state: { pagination },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
     enableMultiSort: true,
-    state: {
-      pagination,
-    },
     initialState: {
+      // Owners get redeemable positions first: that is the row with an action to take.
       sorting: showRedeemColumn
         ? [
             { id: "marketStatus", desc: false },
@@ -323,7 +335,33 @@ function PositionsTableInner({
 
   return (
     <>
-      <div className="w-full overflow-x-auto mb-6">
+      <div className="portfolio-table-tools">
+        <label>
+          Sort by{" "}
+          <select
+            aria-label="Sort positions"
+            value={table.getState().sorting[0]?.id ?? "tokenValue"}
+            onChange={(event) => {
+              const id = event.target.value;
+              table.setSorting(
+                id === "marketStatus"
+                  ? [
+                      { id, desc: false },
+                      { id: "tokenValue", desc: true },
+                    ]
+                  : [{ id, desc: id !== "marketName" }],
+              );
+              table.setPageIndex(0);
+            }}
+          >
+            {showRedeemColumn && <option value="marketStatus">Redeemable first</option>}
+            <option value="tokenValue">Current value</option>
+            <option value="marketName">Market name</option>
+            <option value="shares">Shares</option>
+          </select>
+        </label>
+      </div>
+      <section className="w-full overflow-x-auto mb-6" aria-label="Position details" tabIndex={0}>
         {showRedeemColumn && (
           <Modal
             title="Redeem"
@@ -348,23 +386,7 @@ function PositionsTableInner({
             className="[&_.btn-primary]:w-full"
           />
         )}
-        <table className="simple-table table-fixed">
-          <colgroup>
-            {showRedeemColumn ? (
-              <>
-                <col style={{ width: "46%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "24%" }} />
-              </>
-            ) : (
-              <>
-                <col style={{ width: "52%" }} />
-                <col style={{ width: "24%" }} />
-                <col style={{ width: "24%" }} />
-              </>
-            )}
-          </colgroup>
+        <table className="simple-table portfolio-positions-table">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -381,25 +403,45 @@ function PositionsTableInner({
           <tbody>
             {table.getRowModel().rows.map((row) => {
               return (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => {
-                    return (
-                      <td className={cell.column.id === "marketName" ? "text-left" : "text-center"} key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                <React.Fragment key={row.id}>
+                  <tr>
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <td className={cell.column.id === "marketName" ? "text-left" : "text-center"} key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {expanded === row.id && (
+                    <tr className="portfolio-expanded-row">
+                      <td colSpan={row.getVisibleCells().length}>
+                        <div className="portfolio-expanded-grid">
+                          <span>
+                            Settlement
+                            <b>
+                              {row.original.marketStatus === MarketStatus.CLOSED
+                                ? "Resolved"
+                                : "Open · not yet redeemable"}
+                            </b>
+                          </span>
+                        </div>
                       </td>
-                    );
-                  })}
-                </tr>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
-      </div>
-      <MarketsPagination
-        pageCount={table.getPageCount()}
-        handlePageClick={({ selected }) => table.setPageIndex(selected)}
-        page={table.getState().pagination.pageIndex + 1}
-      />
+      </section>
+      {table.getPageCount() > 1 && (
+        <MarketsPagination
+          pageCount={table.getPageCount()}
+          handlePageClick={({ selected }) => table.setPageIndex(selected)}
+          page={table.getState().pagination.pageIndex + 1}
+        />
+      )}
     </>
   );
 }

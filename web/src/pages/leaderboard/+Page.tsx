@@ -1,4 +1,3 @@
-import Breadcrumb from "@/components/Breadcrumb";
 import { ChainFilterChips } from "@/components/ChainFilterChips";
 import { EnsBadge } from "@/components/EnsBadge";
 import { TraderScoreBadge, type TraderScoreBreakdown } from "@/components/TraderScoreBadge";
@@ -279,7 +278,7 @@ function SortableHeader({
         <button
           type="button"
           className={clsx(
-            "inline-flex items-center justify-end gap-1 min-h-11 font-semibold rounded-[1px] hover:text-base-content",
+            "inline-flex items-center justify-end gap-1 min-h-11 font-semibold rounded-[16px] hover:text-base-content",
             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary",
             info ? "" : "w-full",
             active ? "text-base-content" : "text-black-secondary",
@@ -447,30 +446,30 @@ function LeaderboardPage() {
     clsx("btn btn-sm", active ? "btn-primary" : "btn-ghost border border-separator-100");
 
   return (
-    <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[32px]">
-      <Breadcrumb links={[{ title: "Leaderboard" }]} />
-
+    <div className="container-fluid seer-leaderboard space-y-4">
       <div className="space-y-2">
-        <h1 className="text-[28px] lg:text-[36px] font-semibold text-base-content">Profit &amp; Loss Leaderboard</h1>
-        <p className="text-black-secondary max-w-2xl">
-          Rankings of wallets by trading P/L in USD. <strong>All</strong> covers every Seer market on a chain (including
-          markets not assigned to an app). App filters scope to that app&apos;s configured markets; Deepfunding and
-          Foresight also offer per-market boards.
-        </p>
-        <p className="text-black-secondary max-w-2xl">
-          <strong className="font-semibold text-base-content">Trader Score</strong> rates each wallet 0–100 on returns,
-          profit factor, hit rate edge, loss burn and breadth across the markets it traded, shrunk toward the middle
-          when it traded few of them.{" "}
-          <a
-            className="text-purple-primary hover:underline"
-            href={paths.leaderboardGuide()}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            How it works
-          </a>
-          .
-        </p>
+        <details className="seer-methodology">
+          <summary>How rankings and trader scores work</summary>
+          <p className="text-black-secondary max-w-2xl">
+            Rankings of wallets by trading P/L in USD. <strong>All</strong> covers every Seer market on a chain
+            (including markets not assigned to an app). App filters scope to that app&apos;s configured markets;
+            Deepfunding and Foresight also offer per-market boards.
+          </p>
+          <p className="text-black-secondary max-w-2xl">
+            <strong className="font-semibold text-base-content">Trader Score</strong> rates each wallet 0–100 on
+            returns, profit factor, hit rate edge, loss burn and breadth across the markets it traded, shrunk toward the
+            middle when it traded few of them.{" "}
+            <a
+              className="text-purple-primary hover:underline"
+              href={paths.leaderboardGuide()}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              How it works
+            </a>
+            .
+          </p>
+        </details>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -565,7 +564,7 @@ function LeaderboardPage() {
       {filtersOpen ? (
         <div
           id="leaderboard-filters-panel"
-          className="bg-base-100 border border-separator-100 rounded-[1px] p-4 space-y-4"
+          className="bg-base-100 border border-separator-100 rounded-[16px] p-4 space-y-4"
         >
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-sm text-black-secondary mr-1">App</span>
@@ -641,12 +640,12 @@ function LeaderboardPage() {
       ) : null}
 
       {!hasMarketsForSelection ? (
-        <div className="bg-base-100 border border-separator-100 rounded-[1px] p-6 text-black-secondary">
+        <div className="bg-base-100 border border-separator-100 rounded-[16px] p-6 text-black-secondary">
           No markets are available for this app
           {effectiveChainId === "all" ? "" : " on this chain"} yet. Try another app or chain filter.
         </div>
       ) : (
-        <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] overflow-x-auto">
+        <div className="bg-base-100 border border-separator-100 rounded-[16px] shadow-none overflow-x-auto">
           {query.error && rows.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-separator-100">
               <p className="text-sm text-error">{(query.error as Error).message || "Failed to refresh leaderboard"}</p>

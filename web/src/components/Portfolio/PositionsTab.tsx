@@ -1,6 +1,7 @@
 import { SearchIcon } from "@/lib/icons";
 import { isTextInString } from "@/lib/utils";
 import { usePortfolioPositions } from "@seer-pm/react";
+import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import type { PortfolioChainId } from "@seer-pm/sdk";
 import { useState } from "react";
 import { Address } from "viem";
@@ -10,13 +11,14 @@ import PositionsTable from "./PositionsTable";
 
 function PositionsTab({ account, chainId }: { account: Address | undefined; chainId: PortfolioChainId }) {
   const { data: positions = [], isLoading, error, refetch, isFetching } = usePortfolioPositions(account, chainId);
+  const [showArchived, setShowArchived] = useState(false);
   const [filterMarketName, setFilterMarketName] = useState("");
 
   const filteredPositions =
     positions.filter((position) => {
       const isMatchName = isTextInString(filterMarketName, position.marketName);
       const isMatchOutcome = isTextInString(filterMarketName, position.outcome);
-      return isMatchName || isMatchOutcome;
+      return (isMatchName || isMatchOutcome) && (showArchived || !position.isWorthless);
     }) ?? [];
 
   const renderTable = () => {
@@ -66,8 +68,8 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
   }
 
   return (
-    <div>
-      <div className="grow mb-6">
+    <div className="portfolio-positions">
+      <div className="portfolio-position-search">
         <label className="sr-only" htmlFor="positions-search">
           Search by market or outcome
         </label>
@@ -82,10 +84,28 @@ function PositionsTab({ account, chainId }: { account: Address | undefined; chai
           onChange={(event) => setFilterMarketName(event.target.value)}
         />
       </div>
-      <p className="text-sm text-black-primary mb-4">
-        Price and Value in the table are in each chain's collateral (sDAI, sUSDS, and others), not USD.
-      </p>
+      <label className="portfolio-archived">
+        <input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />{" "}
+        Show archived
+      </label>
+      <details className="portfolio-definitions">
+        <summary>
+          {chainId === "all" ? "Collateral labelled per row" : getActiveCollateralProfile(chainId).primary.symbol} ·
+          Prices and value · How values work
+        </summary>
+        <p>
+          Price and value are in each chain's collateral (sDAI, sUSDS, and others), not USD. Value is marked at the
+          current pool price, so the price you get when trading may differ.
+        </p>
+      </details>
       {renderTable()}
+      <div className="portfolio-results">
+        <span>
+          {filteredPositions.length} of {positions.length} positions
+          {showArchived ? " · including archived where supplied" : ""}
+        </span>
+        <span>Marked value · execution price may differ</span>
+      </div>
     </div>
   );
 }

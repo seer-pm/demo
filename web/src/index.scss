@@ -5,7 +5,7 @@
 
 /* increase root specificity */
 :root:root {
-  --rounded-btn: 3px;
+  --rounded-btn: 10px;
 
   /* Color variables in OKLCH format for alpha support */
   --blue-primary: 78.99% 0.143 224.17; /* #24CDFE */
@@ -13,11 +13,11 @@
   --blue-medium: 95.5% 0.012 255.5; /* #EAF1FF */
   --blue-light: 98.5% 0.006 255.5; /* #F8FAFF */
 
-  --purple-primary: 59.81% 0.254 298.01; /* #9747FF */
-  --purple-secondary: 72.91% 0.161 297.06; /* #B38FFF */
+  --purple-primary: 55.17400% 0.2708327 291.03070; /* #7D33FF */
+  --purple-secondary: 71.88306% 0.1680717 297.37621; /* #B18AFF */
   --purple-medium: 98.34% 0.01 305.41; /* #FBF8FF */
   --purple-light: 99.5% 0.005 305.41; /* #FDFBFF */
-  --purple-dark: 32.5% 0.18 305; /* #59097E */
+  --purple-dark: 19.39745% 0.0338783 288.20722; /* #141223 */
 
   --black: 0% 0 0; /* #000000 */
   --black-primary: 23.5% 0 0; /* #333333 */
@@ -165,7 +165,7 @@ body {
 
 /* Card component classes */
 .card {
-  @apply bg-base-100 border rounded-[3px] border-separator-100;
+  @apply bg-base-100 border rounded-[16px] border-separator-100;
 }
 
 .card-active {
@@ -345,7 +345,7 @@ body {
     animation: modal-pop 0.2s ease-out;
   }
   .modal-box {
-    --rounded-box: 0;
+    --rounded-box: 16px;
     max-width: 620px;
   }
 }
@@ -382,7 +382,7 @@ body {
 }
 
 .dropdown-content {
-  @apply shadow bg-base-100 rounded-[3px] text-base-content text-[16px];
+  @apply shadow bg-base-100 rounded-[12px] text-base-content text-[16px];
 }
 
 /* CHECKBOX */
@@ -527,7 +527,7 @@ body {
 
   & .react-datepicker__day--in-range,
   .react-datepicker__day--in-selecting-range {
-    background-color: #9747ff54;
+    background-color: #7D33FF54;
     color: white;
   }
 

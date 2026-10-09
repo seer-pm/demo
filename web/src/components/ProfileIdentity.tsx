@@ -23,10 +23,8 @@ import type { Address } from "viem";
  * lookup never answers. An ENS name that arrives late upgrades the label in place, which is the
  * trade-off `resolveDisplayName` already documents.
  *
- * `nameAs` exists because the person is the subject of `/portfolio` (an `h1`) but only supporting
- * detail on `/profile`, where the page's own heading is "Account". Rendering a person's name as a
- * heading on a page it does not title puts it in the screen-reader outline as a peer of the
- * section headings around it.
+ * `nameAs` follows the surrounding page hierarchy: portfolio identity is a section heading,
+ * while account identity is supporting text.
  */
 export function ProfileIdentity({
   address,
@@ -45,7 +43,7 @@ export function ProfileIdentity({
   isSelf?: boolean;
   /** Whether the caller's username lookup is still in flight. */
   isLoading?: boolean;
-  nameAs?: "h1" | "p";
+  nameAs?: "h1" | "h2" | "p";
   children?: ReactNode;
   className?: string;
 }) {

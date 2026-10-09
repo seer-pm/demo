@@ -71,10 +71,12 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
             : "0%";
 
           return (
-            <div
+            <button
+              type="button"
+              aria-pressed={isVisible}
               key={`item-${index}`}
               onClick={() => onToggleOutcome(outcome.name)}
-              className="flex items-center justify-center gap-1.5 px-2 py-1 rounded cursor-pointer text-xs whitespace-nowrap transition-colors hover:bg-gray-50"
+              className="seer-chart-legend-item flex items-center justify-center gap-1.5 px-2 py-1 rounded cursor-pointer text-xs whitespace-nowrap"
             >
               <div
                 className="w-2 h-2 rounded-full flex-shrink-0"
@@ -85,7 +87,7 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
               />
               <span className="truncate max-w-[200px]">{outcome.name}</span>
               <span className="text-base-content">{formattedValue}</span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -95,6 +97,7 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
         {/* Left arrow button */}
         <button
           type="button"
+          aria-label="Previous outcomes"
           onClick={scrollLeft}
           disabled={!canScrollLeft}
           className={clsx(
@@ -108,6 +111,7 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
         {/* Right arrow button */}
         <button
           type="button"
+          aria-label="Next outcomes"
           onClick={scrollRight}
           disabled={!canScrollRight}
           className={clsx(
