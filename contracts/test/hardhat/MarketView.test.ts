@@ -4,7 +4,7 @@ import { ethers, network } from "hardhat";
 import {
   MarketFactory,
   MarketView,
-  RealityETH_v3_0,
+  RealityETH_v3_2,
 } from "../../typechain-types";
 import {
   ANSWERED_TOO_SOON,
@@ -21,7 +21,7 @@ describe("MarketView", function () {
   let marketFactory: MarketFactory;
   let arbitrator: string;
   let marketView: MarketView;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
 
   beforeEach(async function () {
     await network.provider.send("evm_setAutomine", [true]);

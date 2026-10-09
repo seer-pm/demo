@@ -23,7 +23,8 @@ contract BaseTest is Test {
 
     // gnosis addresses
     address internal arbitrator = address(0xe40DD83a262da3f56976038F1554Fe541Fa75ecd);
-    address internal realitio = address(0xE78996A233895bE74a66F451f1019cA9734205cc);
+    // RealityETH 3.2
+    address internal realitio = address(0xEb51d9d9717906c981C57af09C4a3449eF30705b);
     address internal conditionalTokens = address(0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce);
     address internal collateralToken = address(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
     address internal wrapped1155Factory = address(0xD194319D1804C1051DD21Ba1Dc931cA72410B79f);
@@ -92,7 +93,7 @@ contract BaseTest is Test {
                     outcomeType: outcomeType,
                     parentOutcome: parentOutcome,
                     parentMarket: parentMarket,
-                    category: "technology",
+                    description: "SEC approval counts.",
                     lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
@@ -123,7 +124,7 @@ contract BaseTest is Test {
                     outcomeType: outcomeType,
                     parentOutcome: 0,
                     parentMarket: address(0),
-                    category: "misc",
+                    description: "Official sources only.",
                     lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
@@ -163,7 +164,7 @@ contract BaseTest is Test {
                     outcomeType: outcomeType,
                     parentOutcome: parentOutcome,
                     parentMarket: parentMarket,
-                    category: "misc",
+                    description: "Official sources only.",
                     lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
@@ -194,7 +195,7 @@ contract BaseTest is Test {
                     outcomeType: outcomeType,
                     parentOutcome: 0,
                     parentMarket: address(0),
-                    category: "misc",
+                    description: "Official sources only.",
                     lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,

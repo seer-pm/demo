@@ -6,7 +6,7 @@ import {
   GnosisRouter,
   ISavingsXDai,
   MarketFactory,
-  RealityETH_v3_0,
+  RealityETH_v3_2,
   RealityProxy,
 } from "../../typechain-types";
 import {
@@ -26,7 +26,7 @@ describe("GnosisRouter", function () {
   let conditionalTokens: ConditionalTokens;
   let realityProxy: RealityProxy;
   let gnosisRouter: GnosisRouter;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
   let sDAI: ISavingsXDai;
 
   async function createMarketAndSplitPosition() {

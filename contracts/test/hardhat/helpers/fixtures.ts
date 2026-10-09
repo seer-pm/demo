@@ -8,7 +8,7 @@ export async function marketFactoryDeployFixture(customCollateralToken?: IERC20)
 
   //skip arbitrator
   const arbitrator = "0x0000000000000000000000000000000000000000";
-  const realitio = await ethers.deployContract("RealityETH_v3_0");
+  const realitio = await ethers.deployContract("RealityETH_v3_2");
   const wrapped1155Factory = await ethers.deployContract(
     "src/interaction/1155-to-20/Wrapped1155Factory.sol:Wrapped1155Factory",
   );
