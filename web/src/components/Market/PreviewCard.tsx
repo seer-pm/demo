@@ -34,6 +34,7 @@ import clsx from "clsx";
 import { useMemo } from "react";
 import { formatUnits } from "viem";
 import { clientOnly } from "vike-react/clientOnly";
+import { DismissibleDetails } from "../DismissibleDetails";
 import { Link } from "../Link";
 import Popover from "../Popover";
 import { BAR_COLOR, COLORS } from "./Header";
@@ -560,7 +561,7 @@ export function PreviewCard({ market }: { market: Market }) {
         <span className="seer-card-volume" title="Market trading volume">
           ${formatBigNumbers(market.volumeUSD)} Vol.
         </span>
-        <details className="seer-card-details">
+        <DismissibleDetails className="seer-card-details">
           <summary aria-label="Market information">ⓘ</summary>
           <div className="seer-card-metadata">
             {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0 ? (
@@ -675,7 +676,7 @@ export function PreviewCard({ market }: { market: Market }) {
               </Link>
             )}
           </div>
-        </details>
+        </DismissibleDetails>
         <div className="seer-card-save">
           {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
         </div>
