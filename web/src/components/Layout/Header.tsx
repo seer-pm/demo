@@ -273,7 +273,7 @@ export default function Header() {
             id: "policies-dropdown",
             type: "nested_links",
             title: "Policies",
-            icon: <DownArrow />,
+            icon: <DownArrow fill="currentColor" />,
             children: [
               {
                 id: "verified-policy",
@@ -297,7 +297,7 @@ export default function Header() {
             id: "app-dropdown",
             type: "nested_links",
             title: "App",
-            icon: <DownArrow />,
+            icon: <DownArrow fill="currentColor" />,
             children: [
               appLink("futarchy", "futarchy", "Futarchy", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
@@ -416,7 +416,7 @@ export default function Header() {
                   <ThemeToggleButton
                     iconFill="currentColor"
                     iconSize="20"
-                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                   />
                 ),
               },

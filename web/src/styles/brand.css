@@ -655,6 +655,14 @@ button:focus-visible {
 .seer-header .dropdown > button svg {
   fill: currentColor;
 }
+/* The header takes the page colour in both themes, so the badge cannot assume a dark backdrop. */
+.seer-account-badge {
+  background: var(--seer-accent-soft);
+  color: var(--seer-brand-purple);
+}
+:root[data-theme="dark"] .seer-account-badge {
+  color: #c4a7ff;
+}
 .seer-methodology {
   font-size: 13px;
   color: var(--seer-muted);
