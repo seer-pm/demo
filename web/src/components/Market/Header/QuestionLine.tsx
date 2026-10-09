@@ -18,6 +18,7 @@ import {
   isFinalized,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
+import type { Address } from "viem";
 import { COLORS } from "./index.ts";
 
 function AnswerColumn({
@@ -60,12 +61,16 @@ function AnswerColumn({
   );
 }
 
-function RealityLink({ chainId, questionId }: { chainId: SupportedChain; questionId: `0x${string}` }) {
+function RealityLink({
+  chainId,
+  questionId,
+  factory,
+}: { chainId: SupportedChain; questionId: `0x${string}`; factory: Address | undefined }) {
   return (
     <>
       <a
         className="text-purple-primary flex items-center"
-        href={getRealityLink(chainId, questionId)}
+        href={getRealityLink(chainId, questionId, factory)}
         target="_blank"
         rel="noreferrer"
       >
@@ -135,6 +140,7 @@ function ExecuteActions({
         templateId: market.templateId,
         encodedQuestion: market.encodedQuestions[questionIndex],
         chainId: market.chainId,
+        factory: market.factory,
       });
     };
   };
@@ -217,7 +223,7 @@ export function QuestionLine({
 
         <div className="text-black-medium">|</div>
         <div className="flex items-center space-x-2">
-          <RealityLink chainId={market.chainId} questionId={question.id} />
+          <RealityLink chainId={market.chainId} questionId={question.id} factory={market.factory} />
         </div>
         <div className="text-black-medium">|</div>
         <DisputeLink questionId={question.id} chainId={market.chainId} />
@@ -297,7 +303,7 @@ export function QuestionLine({
         <>
           <div className="text-black-medium">|</div>
           <div className="flex items-center space-x-2">
-            <RealityLink chainId={market.chainId} questionId={question.id} />
+            <RealityLink chainId={market.chainId} questionId={question.id} factory={market.factory} />
           </div>
         </>
       )}

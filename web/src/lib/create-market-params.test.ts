@@ -4,6 +4,8 @@ import {
   MAX_QUESTION_TIMEOUT,
   MarketTypes,
   TOKENS_BY_CHAIN,
+  decodeQuestion,
+  encodeQuestionText,
   getActivePrimaryCollateral,
   getCreateMarketExecution,
   getCreateMarketParams,
@@ -93,11 +95,46 @@ describe("getCreateMarketExecution factory target", () => {
     expect(() => getCreateMarketExecution(baseProps({ collateralToken: GNOSIS_SDAI }))).not.toThrow();
   });
 
+  it.skipIf(hasNewFactory)("refuses a description on a V1 factory, whose Reality has no description", () => {
+    expect(() => getCreateMarketExecution(baseProps({ description: "Per the official forecast." }))).toThrow(
+      /per-market params/,
+    );
+    const decoded = decodeFunctionData({ abi: marketFactoryV1Abi, data: getCreateMarketExecution(baseProps()).data });
+    const [params] = decoded.args as unknown as [Record<string, unknown>];
+    expect(params.category).toBe("misc");
+  });
+
+  it.skipIf(!hasNewFactory)("encodes the description for the new factory", () => {
+    const execution = getCreateMarketExecution(baseProps({ description: 'Counts "rain" over 1mm.' }));
+    const decoded = decodeFunctionData({ abi: marketFactoryAbi, data: execution.data });
+    const [params] = decoded.args as unknown as [Record<string, unknown>];
+    expect(params.description).toBe('Counts \\"rain\\" over 1mm.');
+  });
+
   it.skipIf(!hasNewFactory)("encodes the collateral and timeout for the new factory", () => {
     const execution = getCreateMarketExecution(baseProps({ collateralToken: GNOSIS_XDAI, questionTimeout: 3600 }));
     const decoded = decodeFunctionData({ abi: marketFactoryAbi, data: execution.data });
     const [params] = decoded.args as unknown as [Record<string, unknown>];
     expect(params.collateralToken).toBe(GNOSIS_XDAI);
     expect(params.questionTimeout).toBe(3600);
+  });
+});
+
+describe("Reality question description", () => {
+  it("escapes the description into the question text and decodes it back", () => {
+    const description = 'Line one with "quotes".\nLine two \\ backslash.';
+    const encoded = encodeQuestionText("single-select", "Will it rain?", ["Yes", "No"], description, "en_US");
+    // Reality pastes the field into the template's JSON, so the result must parse
+    const [title, outcomes, field, lang] = encoded.split("\u241f");
+    expect(() =>
+      JSON.parse(`{"title": "${title}", "outcomes": [${outcomes}], "description": "${field}", "lang": "${lang}"}`),
+    ).not.toThrow();
+    expect(decodeQuestion(encoded).description).toBe(description);
+  });
+
+  it("drops the field delimiter so the description cannot split the question", () => {
+    const encoded = encodeQuestionText("uint", "How much?", [], "a\u241fb", "en_US");
+    expect(encoded.split("\u241f")).toHaveLength(3);
+    expect(decodeQuestion(encoded).description).toBe("ab");
   });
 });

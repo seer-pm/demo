@@ -1,10 +1,10 @@
 import { sepolia } from "@/lib/chains.ts";
 import type { Config } from "@netlify/functions";
 import type { Question, SupportedChain } from "@seer-pm/sdk";
-import { realityAddress } from "@seer-pm/sdk/contracts/reality";
+import { realityAddress, realityV3_2Address } from "@seer-pm/sdk/contracts/reality";
 import { decodeQuestion, getAnswerText, getRealityLink, isScalarBoundInWei } from "@seer-pm/sdk/reality";
 import { createClient } from "@supabase/supabase-js";
-import { parseAbiItem } from "viem";
+import { type Address, isAddressEqual, parseAbiItem, zeroAddress } from "viem";
 import { getBlockNumber, getLogs } from "viem/actions";
 import { chainIds, getPublicClientByChainId } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
@@ -23,6 +23,7 @@ type MarketFromQuestion = {
   answer: `0x${string}`;
   outcomes: string[];
   templateId: string;
+  factory: Address | undefined;
 };
 
 async function sendTelegramMessage(botToken: string, chatId: string, message: string) {
@@ -81,6 +82,7 @@ async function getMarketsFromQuestions(
             answer: questionIdToAnswerMap[question.question.id],
             outcomes: market.subgraph_data.outcomes,
             templateId: market.subgraph_data.templateId,
+            factory: market.subgraph_data.factory,
           });
         }
       }
@@ -104,7 +106,10 @@ async function getNewAnswerEvents(chainId: SupportedChain, fromBlock: bigint) {
   // Listen for RealityETH LogNewAnswer events
   console.log(`[Network ${chainId}] Searching new answer events from block ${fromBlock.toString()}`);
   const newAnswerLogs = await getLogs(getPublicClientByChainId(chainId), {
-    address: realityAddress[chainId],
+    // Markets ask on RealityETH 3.0 or 3.2 depending on their factory
+    address: [realityAddress[chainId], realityV3_2Address[chainId]].filter(
+      (address) => !isAddressEqual(address, zeroAddress),
+    ),
     event: REALITY_LOG_NEW_ANSWER_EVENT,
     fromBlock,
     toBlock: "latest",
@@ -144,7 +149,7 @@ async function processChain(chainId: SupportedChain, botToken: string) {
 
         return `Question: ${decodedQuestion.question}\n
 Answer: ${getAnswerText(question, data.outcomes, Number(data.templateId))}\n
-<a href="${getRealityLink(chainId, data.question.id)}">Check on Reality</a>\n
+<a href="${getRealityLink(chainId, data.question.id, data.factory)}">Check on Reality</a>\n
 <a href="https://app.seer.pm/markets/${chainId}/${data.url}">Check on Seer</a>`;
       });
 

@@ -1,7 +1,7 @@
 import type { SupportedChain } from "@seer-pm/sdk";
 import { realityGraphQLClient } from "@seer-pm/sdk/subgraph";
 import { type QuestionsQueryQuery, getSdk as getRealitySdk } from "@seer-pm/sdk/subgraph/reality";
-import type { Address } from "viem";
+import { type Address, getAddress } from "viem";
 
 type ClaimQuestion = QuestionsQueryQuery["questions"][0];
 
@@ -15,7 +15,14 @@ interface ClaimableItem {
   history_hashes: `0x${string}`[];
 }
 
-export async function getRealityClaimArgs(account: `0x${string}`, chainId: SupportedChain) {
+/**
+ * Claimable bonds per Reality contract. A chain has more than one Reality instance (3.0 and 3.2), and each claim
+ * has to go to the contract that holds the question.
+ */
+export async function getRealityClaimArgs(
+  account: `0x${string}`,
+  chainId: SupportedChain,
+): Promise<Map<Address, ClaimableItem>> {
   const sdk = getRealitySdk(realityGraphQLClient(chainId)!);
   // TODO: paginate claims if the user has more than 1000 claims
 
@@ -42,11 +49,17 @@ export async function getRealityClaimArgs(account: `0x${string}`, chainId: Suppo
     answerFinalizedTimestamp: String(now),
   });
 
-  const claimableItems = questions
-    .map((q) => possibleClaimableItems(q, account))
-    .filter((qi): qi is ClaimableItem => qi !== false);
+  const itemsByContract = new Map<Address, ClaimableItem[]>();
+  for (const question of questions) {
+    const item = possibleClaimableItems(question, account);
+    if (item === false) {
+      continue;
+    }
+    const contract = getAddress(question.contract);
+    itemsByContract.set(contract, [...(itemsByContract.get(contract) ?? []), item]);
+  }
 
-  return mergeClaimableItems(claimableItems);
+  return new Map([...itemsByContract].map(([contract, items]) => [contract, mergeClaimableItems(items)]));
 }
 
 function mergeClaimableItems(claimableItems: ClaimableItem[]): ClaimableItem {

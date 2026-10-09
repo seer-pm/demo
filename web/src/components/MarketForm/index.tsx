@@ -59,6 +59,7 @@ export type MarketTypeFormValues = {
 
 export type OutcomesFormValues = {
   market: string;
+  description: string; // Reality question description, for factories that ask on RealityETH 3.2
   image: File | "";
   outcomes: { value: string; token: string; image: File | "" }[]; // for categorical and multi scalar markets
   collateralToken1: Address | ""; // for futarchy markets

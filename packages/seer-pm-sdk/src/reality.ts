@@ -1,6 +1,7 @@
-import { formatEther, hexToNumber, numberToHex } from "viem";
-import type { Hex } from "viem";
-import { realityAddress } from "../generated/contracts/reality";
+import { formatEther, hexToNumber, isAddressEqual, numberToHex, zeroAddress } from "viem";
+import type { Address, Hex } from "viem";
+import { marketFactoryAddress } from "../generated/contracts/market-factory";
+import { realityAddress, realityV3_2Address } from "../generated/contracts/reality";
 import type { SupportedChain } from "./chains";
 import type { Question } from "./market-types";
 import type { Market } from "./market-types";
@@ -87,8 +88,30 @@ export function getQuestionStatus(question: Question): MarketStatus {
   return MarketStatus.CLOSED;
 }
 
-export function getRealityLink(chainId: SupportedChain, questionId: `0x${string}`): string {
-  const address = realityAddress[chainId as keyof typeof realityAddress];
+/**
+ * Whether the market's questions live on RealityETH 3.2, whose templates carry a description where 3.0 had a
+ * category. Only the MarketFactory with per-market params asks on 3.2; every other factory asks on 3.0.
+ */
+export function isRealityV3_2Market(chainId: SupportedChain, factory: Address | undefined): boolean {
+  const v2Factory = (marketFactoryAddress as Partial<Record<number, Address>>)[chainId];
+  const v3_2 = (realityV3_2Address as Partial<Record<number, Address>>)[chainId];
+  return !!factory && !!v2Factory && !!v3_2 && !isAddressEqual(v3_2, zeroAddress) && isAddressEqual(factory, v2Factory);
+}
+
+/** The RealityETH instance a market's questions were asked on. */
+export function getRealityAddress(chainId: SupportedChain, factory: Address | undefined): Address {
+  if (isRealityV3_2Market(chainId, factory)) {
+    return (realityV3_2Address as Record<number, Address>)[chainId];
+  }
+  return (realityAddress as Record<number, Address>)[chainId];
+}
+
+export function getRealityLink(
+  chainId: SupportedChain,
+  questionId: `0x${string}`,
+  factory: Address | undefined,
+): string {
+  const address = getRealityAddress(chainId, factory);
   return `https://reality.eth.limo/app/#!/network/${chainId}/question/${address}-${questionId}`;
 }
 
@@ -96,11 +119,19 @@ export function encodeOutcomes(outcomes: string[]): string {
   return JSON.stringify(outcomes).replace(/^\[/, "").replace(/\]$/, "");
 }
 
+/**
+ * Prepares a description for the Reality question text. Reality pastes it into the template's JSON as is, so it
+ * is JSON-escaped, and the field delimiter (U+241F) is removed because it would split the question.
+ */
+export function encodeDescription(description: string): string {
+  return escapeJson(description.replace(/\u241f/g, "").trim());
+}
+
 export function encodeQuestionText(
   qtype: "bool" | "single-select" | "multiple-select" | "uint" | "datetime",
   txt: string,
   outcomes: string[],
-  category: string,
+  description: string,
   lang?: string,
 ): string {
   let qText = JSON.stringify(txt).replace(/^"|"$/g, "");
@@ -108,14 +139,31 @@ export function encodeQuestionText(
   if (qtype === "single-select" || qtype === "multiple-select") {
     qText = qText + delim + encodeOutcomes(outcomes);
   }
-  qText = qText + delim + category + delim + (typeof lang === "undefined" || lang === "" ? "en_US" : lang);
+  qText =
+    qText +
+    delim +
+    encodeDescription(description) +
+    delim +
+    (typeof lang === "undefined" || lang === "" ? "en_US" : lang);
   return qText;
 }
 
+function decodeJsonString(txt: string): string {
+  try {
+    return JSON.parse(`"${txt}"`);
+  } catch {
+    return unescapeJson(txt);
+  }
+}
+
+/**
+ * Splits a Reality question text into its fields. The third field is the description on RealityETH 3.2 and the
+ * category on 3.0 (see `isRealityV3_2Market`).
+ */
 export function decodeQuestion(encodedQuestion: string): {
   question: string;
   outcomes: string[] | undefined;
-  category: string;
+  description: string;
   lang: string;
 } {
   const delim = "\u241f";
@@ -124,26 +172,34 @@ export function decodeQuestion(encodedQuestion: string): {
   let question: string;
   let outcomes: string[] | undefined;
   let _outcomes: string;
-  let category: string;
+  let description: string;
   let lang: string;
 
   if (parts.length === 4) {
-    [question, _outcomes, category, lang] = parts;
+    [question, _outcomes, description, lang] = parts;
     try {
       outcomes = JSON.parse(`[${unescapeJson(_outcomes)}]`);
     } catch {
       outcomes = undefined;
     }
   } else {
-    [question, category, lang] = parts;
+    [question, description, lang] = parts;
   }
 
   return {
     question: unescapeJson(question),
     outcomes,
-    category,
+    description: decodeJsonString(description ?? ""),
     lang,
   };
+}
+
+/** The description the market's creator wrote, or `undefined` when there is none or the market is on RealityETH 3.0. */
+export function getMarketDescription(market: Market): string | undefined {
+  if (!isRealityV3_2Market(market.chainId, market.factory) || market.encodedQuestions.length === 0) {
+    return undefined;
+  }
+  return decodeQuestion(market.encodedQuestions[0]).description || undefined;
 }
 
 export function decodeOutcomes(market: Market, question: Question): string[] {

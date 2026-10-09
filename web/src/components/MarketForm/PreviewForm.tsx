@@ -17,9 +17,10 @@ import type { SupportedChain } from "@seer-pm/sdk";
 import {
   INVALID_RESULT_OUTCOME_TEXT,
   MARKET_CATEGORIES,
-  MISC_CATEGORY,
   Market,
   MarketTypes,
+  canCreateMarketWithDescription,
+  getActiveCollateralProfileName,
   getMarketName,
   getNewMarketFromLogs,
   getNewProposalFromLogs,
@@ -287,6 +288,10 @@ export function PreviewForm({
   });
 
   const outcomes = outcomesValues.outcomes.map((o) => o.value);
+  const description =
+    !isFutarchyMarket && canCreateMarketWithDescription(chainId, getActiveCollateralProfileName())
+      ? outcomesValues.description.trim()
+      : "";
 
   const openingTime = Math.round(Date.now() / 1000 - 1);
   const questionTimeout = getQuestionTimeoutSeconds(outcomesValues);
@@ -308,7 +313,7 @@ export function PreviewForm({
       lowerBound: parseEther(String(outcomesValues.lowerBound.value)),
       upperBound: parseEther(String(outcomesValues.upperBound.value)),
       unit: outcomesValues.unit,
-      category: MISC_CATEGORY,
+      description,
       openingTime,
       questionTimeout,
       chainId,
@@ -415,7 +420,12 @@ export function PreviewForm({
           parentOutcome={BigInt(parentOutcomeIndex)}
           chainId={chainId}
         />
-        <MarketHeader market={dummyMarket} images={images === false ? undefined : images.url} type="preview" />
+        <MarketHeader
+          market={dummyMarket}
+          images={images === false ? undefined : images.url}
+          type="preview"
+          description={description}
+        />
         <div className="text-left flex items-center gap-2 flex-wrap">
           Categories:{" "}
           {MARKET_CATEGORIES.map((category) => {

@@ -131,6 +131,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       outcome: formatOutcome(getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound))),
       currentBond: currentBond,
       chainId: market.chainId,
+      factory: market.factory,
     });
     closeModal();
   };
@@ -235,7 +236,7 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
           This market is not resolved yet. You can provide an answer to the{" "}
           <a
             className="text-purple-primary"
-            href={getRealityLink(market.chainId, question.id)}
+            href={getRealityLink(market.chainId, question.id, market.factory)}
             target="_blank"
             rel="noreferrer"
           >

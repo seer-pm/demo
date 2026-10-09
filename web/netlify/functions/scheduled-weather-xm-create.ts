@@ -1,7 +1,7 @@
 import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk/collateral";
-import { DEFAULT_QUESTION_TIMEOUT, WEATHER_CATEGORY, getCreateMarketExecution } from "@seer-pm/sdk/create-market";
+import { DEFAULT_QUESTION_TIMEOUT, getCreateMarketExecution } from "@seer-pm/sdk/create-market";
 import { MarketTypes } from "@seer-pm/sdk/market";
 import { createClient } from "@supabase/supabase-js";
 import { type PrivateKeyAccount, parseEther, zeroAddress } from "viem";
@@ -122,7 +122,6 @@ async function createMarketForCity(
     lowerBound: parseEther(String(lowerBound)),
     upperBound: parseEther(String(upperBound)),
     unit: "K",
-    category: WEATHER_CATEGORY,
     openingTime,
     chainId,
     collateralToken1: "",

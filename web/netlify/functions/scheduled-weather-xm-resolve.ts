@@ -1,6 +1,7 @@
 import type { Config } from "@netlify/functions";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { realityAbi, realityAddress } from "@seer-pm/sdk/contracts/reality";
+import { realityAbi } from "@seer-pm/sdk/contracts/reality";
+import { getRealityAddress } from "@seer-pm/sdk/reality";
 import { createClient } from "@supabase/supabase-js";
 import { type PrivateKeyAccount, numberToHex, parseEther } from "viem";
 import { type Address, privateKeyToAccount } from "viem/accounts";
@@ -94,7 +95,7 @@ async function resolveMarketForCity(
 
   const simulation = await simulateContract(publicClient, {
     account,
-    address: realityAddress[data.chain_id as SupportedChain],
+    address: getRealityAddress(data.chain_id as SupportedChain, subgraphData.factory),
     functionName: "submitAnswer",
     abi: realityAbi,
     args: [questionId, answer, maxPrevious],
@@ -109,31 +110,33 @@ async function resolveMarketForCity(
 }
 
 async function claimRealityBonds(account: PrivateKeyAccount, chainId: SupportedChain) {
-  const claimArgs = await getRealityClaimArgs(account.address, chainId);
-
-  if (claimArgs.total === 0n) {
-    return;
-  }
+  const claimArgsByContract = await getRealityClaimArgs(account.address, chainId);
 
   const publicClient = getPublicClientByChainId(chainId);
   const walletClient = getWalletClientForNetwork(account, chainId);
 
-  const simulation = await simulateContract(publicClient, {
-    account,
-    address: realityAddress[chainId],
-    functionName: "claimMultipleAndWithdrawBalance",
-    abi: realityAbi,
-    args: [
-      claimArgs.question_ids,
-      claimArgs.answer_lengths,
-      claimArgs.history_hashes,
-      claimArgs.answerers,
-      claimArgs.bonds,
-      claimArgs.answers,
-    ],
-  });
+  for (const [contract, claimArgs] of claimArgsByContract) {
+    if (claimArgs.total === 0n) {
+      continue;
+    }
 
-  const txHash = await writeContract(walletClient, simulation.request);
+    const simulation = await simulateContract(publicClient, {
+      account,
+      address: contract,
+      functionName: "claimMultipleAndWithdrawBalance",
+      abi: realityAbi,
+      args: [
+        claimArgs.question_ids,
+        claimArgs.answer_lengths,
+        claimArgs.history_hashes,
+        claimArgs.answerers,
+        claimArgs.bonds,
+        claimArgs.answers,
+      ],
+    });
+
+    await writeContract(walletClient, simulation.request);
+  }
 }
 
 export default async () => {

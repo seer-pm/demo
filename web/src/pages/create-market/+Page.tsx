@@ -33,6 +33,7 @@ function CreateMarket() {
     mode: "all",
     defaultValues: {
       market: "",
+      description: "",
       outcomes: [
         { value: "", token: "", image: "" },
         { value: "", token: "", image: "" },

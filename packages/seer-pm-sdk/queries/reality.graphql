@@ -25,6 +25,7 @@ query QuestionsQuery($questionIds: [Bytes!], $answerFinalizedTimestamp: BigInt!)
     orderBy: answerFinalizedTimestamp
     orderDirection: desc
   ) {
+    contract
     questionId
     historyHash
     currentAnswer

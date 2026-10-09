@@ -59,7 +59,7 @@ function MarketCheck({ id, chainId }: { id: Address; chainId: SupportedChain }) 
           {market.questions.map((question) => (
             <div key={question.id}>
               <a
-                href={getRealityLink(chainId, question.id)}
+                href={getRealityLink(chainId, question.id, market.factory)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-primary"

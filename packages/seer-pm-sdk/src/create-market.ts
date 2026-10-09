@@ -12,7 +12,7 @@ import {
 import { DEFAULT_COLLATERAL_PROFILE, getActiveCollateralProfileName, getActivePrimaryCollateral } from "./collateral";
 import type { Execution } from "./execution";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";
-import { escapeJson } from "./reality";
+import { encodeDescription, escapeJson } from "./reality";
 
 /** Reality question timeout a market gets unless one is given: 3.5 days. */
 export const DEFAULT_QUESTION_TIMEOUT = 60 * 60 * 24 * 3.5;
@@ -46,8 +46,11 @@ export interface CreateMarketProps<TChainId extends number = number> {
   upperBound?: bigint;
   /** Scalar / multi scalar: unit (e.g. "°C"). Default `""`. */
   unit?: string;
-  /** Reality.eth category (e.g. "politics", "weather"). Default `MISC_CATEGORY`. */
-  category?: string;
+  /**
+   * Reality question description, shown below the title on Reality. Default `""`. Only the MarketFactory with
+   * per-market params takes one, because it asks on RealityETH 3.2.
+   */
+  description?: string;
   /**
    * Base collateral of the outcome tokens. Default: the active profile's primary collateral.
    * A conditional market must use the collateral of its parent market, or the factory reverts.
@@ -75,7 +78,7 @@ const DEFAULT_KEYS = [
   "lowerBound",
   "upperBound",
   "unit",
-  "category",
+  "description",
   "questionTimeout",
 ] as const;
 
@@ -89,7 +92,7 @@ const CREATE_MARKET_DEFAULTS: Pick<CreateMarketPropsFull<number>, (typeof DEFAUL
   lowerBound: 0n,
   upperBound: 0n,
   unit: "",
-  category: "misc",
+  description: "",
   questionTimeout: DEFAULT_QUESTION_TIMEOUT,
 };
 
@@ -99,7 +102,6 @@ function withCreateMarketDefaults<TChainId extends number = number>(
   return {
     ...CREATE_MARKET_DEFAULTS,
     ...props,
-    category: props.category ?? "misc",
     // chain-dependent, so it cannot sit in the static defaults
     collateralToken: props.collateralToken ?? getActivePrimaryCollateral(props.chainId).address,
     questionTimeout: props.questionTimeout ?? DEFAULT_QUESTION_TIMEOUT,
@@ -173,7 +175,7 @@ export function getCreateMarketParams<TChainId extends number = number>(
     parentMarket: p.parentMarket,
     parentOutcome: p.parentOutcome,
     lang: "en_US",
-    category: p.category || MISC_CATEGORY,
+    description: encodeDescription(p.description),
     outcomes: outcomes.map(escapeJson),
     tokenNames: getTokenNames(p.tokenNames, outcomes),
     lowerBound: p.lowerBound,
@@ -266,6 +268,11 @@ export function getCreateMarketTarget(chainId: number, collateralProfile: string
   return { address: getFactoryAddress(chainId, collateralProfile, MARKET_FACTORY_KEY), v1: true };
 }
 
+/** Whether a new market on `chainId` can carry a Reality description (the factory asks on RealityETH 3.2). */
+export function canCreateMarketWithDescription(chainId: number, collateralProfile: string): boolean {
+  return !getCreateMarketTarget(chainId, collateralProfile).v1;
+}
+
 export function getMarketFactoryAddress(chainId: number, collateralProfile: string): Address {
   return getCreateMarketTarget(chainId, collateralProfile).address;
 }
@@ -345,12 +352,23 @@ export function getCreateMarketExecution<TChainId extends number = number>(
   let data: `0x${string}`;
   if (target.v1) {
     const primary = getActivePrimaryCollateral(p.chainId).address;
-    if (!isAddressEqual(params.collateralToken, primary) || params.questionTimeout !== DEFAULT_QUESTION_TIMEOUT) {
+    if (
+      !isAddressEqual(params.collateralToken, primary) ||
+      params.questionTimeout !== DEFAULT_QUESTION_TIMEOUT ||
+      params.description !== ""
+    ) {
       throw new Error(
-        `A custom collateral or question timeout needs the MarketFactory with per-market params, which chain ${p.chainId} does not have yet`,
+        `A custom collateral, question timeout or description needs the MarketFactory with per-market params, which chain ${p.chainId} does not have yet`,
       );
     }
-    const { collateralToken: _collateralToken, questionTimeout: _questionTimeout, ...v1Params } = params;
+    const {
+      collateralToken: _collateralToken,
+      questionTimeout: _questionTimeout,
+      description: _description,
+      ...rest
+    } = params;
+    // RealityETH 3.0, which the V1 factory asks on, has a category where 3.2 has a description
+    const v1Params = { ...rest, category: MISC_CATEGORY };
     data = encodeFunctionData({ abi: marketFactoryV1Abi, functionName, args: [v1Params] });
   } else {
     data = encodeFunctionData({ abi: marketFactoryAbi, functionName, args: [params] });

@@ -102,6 +102,19 @@
     },
     {
       "inputs": [],
+      "name": "MIN_QUESTION_TIMEOUT",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "allMarkets",
       "outputs": [
         {
@@ -124,6 +137,45 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "encodedQuestion",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "templateId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint32",
+          "name": "openingTime",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minBond",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint32",
+          "name": "timeout",
+          "type": "uint32"
+        }
+      ],
+      "name": "askRealityQuestion",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -180,7 +232,7 @@
             },
             {
               "internalType": "string",
-              "name": "category",
+              "name": "description",
               "type": "string"
             },
             {
@@ -281,7 +333,7 @@
             },
             {
               "internalType": "string",
-              "name": "category",
+              "name": "description",
               "type": "string"
             },
             {
@@ -382,7 +434,7 @@
             },
             {
               "internalType": "string",
-              "name": "category",
+              "name": "description",
               "type": "string"
             },
             {
@@ -483,7 +535,7 @@
             },
             {
               "internalType": "string",
-              "name": "category",
+              "name": "description",
               "type": "string"
             },
             {

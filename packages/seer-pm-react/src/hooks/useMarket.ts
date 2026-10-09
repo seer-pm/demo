@@ -37,14 +37,18 @@ export function useGraphMarket(marketId: Address, chainId: SupportedChain) {
   });
 }
 
-function useOnChainMarket(marketId: Address, chainId: SupportedChain) {
+/**
+ * @param factory The factory that created the market, when known. MarketView reads the market's questions from
+ * the Reality instance of the factory it is given, and factories on RealityETH 3.0 and 3.2 coexist.
+ */
+function useOnChainMarket(marketId: Address, chainId: SupportedChain, factory?: Address) {
   const config = useConfig();
   return useQuery<Market | undefined, Error>({
-    queryKey: ["useMarket", "useOnChainMarket", marketId.toLowerCase(), chainId] as const,
+    queryKey: ["useMarket", "useOnChainMarket", marketId.toLowerCase(), chainId, factory?.toLowerCase()] as const,
     enabled: !!marketId && marketId !== zeroAddress,
     queryFn: async () => {
-      // MarketView only needs the factory for markets that do not store their collateral, so either one works
       const factoryAddress =
+        factory ??
         (marketFactoryAddress as Partial<Record<number, Address>>)[chainId] ??
         (marketFactoryV1Address as Partial<Record<number, Address>>)[chainId];
       if (!factoryAddress) return undefined;
@@ -84,7 +88,7 @@ export function useMarket(marketId: Address, chainId: SupportedChain) {
  * Overrides the market's question data with fresh on-chain data (e.g. best_answer, reopened status).
  */
 export function useMarketQuestions(market: Market | undefined, chainId: SupportedChain) {
-  const { data: onChainMarket } = useOnChainMarket(market?.id ?? zeroAddress, chainId);
+  const { data: onChainMarket } = useOnChainMarket(market?.id ?? zeroAddress, chainId, market?.factory);
 
   return useMemo(() => {
     if (market === undefined || onChainMarket === undefined) {

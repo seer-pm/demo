@@ -31,6 +31,7 @@ import {
   SupportedChain,
   displayScalarBound,
   getCollateralByIndex,
+  getMarketDescription,
   getMarketEstimate,
   getMarketPoolsPairs,
   getMarketStatus,
@@ -54,6 +55,33 @@ interface MarketHeaderProps {
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
+  /** Shown instead of the one read from the market's Reality question (the create-market preview has none yet). */
+  description?: string;
+}
+
+/** Long enough for a couple of sentences; anything longer is collapsed behind "Show more". */
+const DESCRIPTION_PREVIEW_LENGTH = 280;
+
+function MarketDescription({ description }: { description: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = description.length > DESCRIPTION_PREVIEW_LENGTH;
+
+  return (
+    <div className="text-[14px] text-black-secondary my-2">
+      <p className="whitespace-pre-line break-words">
+        {isLong && !expanded ? `${description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…` : description}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          className="text-purple-primary hover:underline mt-1"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 function MarketPnL({
@@ -223,7 +251,13 @@ export function PoolTokensInfo({
   );
 }
 
-export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
+export function MarketHeader({
+  market,
+  images,
+  type = "default",
+  outcomesCount = 0,
+  description: descriptionOverride,
+}: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: marketCollateral } = useTokenInfo(
@@ -251,6 +285,8 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
   const firstQuestion = market.questions[0];
 
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
+
+  const description = type === "small" ? undefined : (descriptionOverride ?? getMarketDescription(market));
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   const hasBalance = market.poolBalance.some(
@@ -336,6 +372,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>
             )}
           </div>
+          {description && <MarketDescription description={description} />}
           {parentMarket && type !== "default" && (
             <p className="text-[14px] my-2">
               Conditional on{" "}

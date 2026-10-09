@@ -2,22 +2,28 @@ import { queryClient } from "@/lib/query-client";
 import { toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { Question } from "@seer-pm/sdk";
-import { writeRealityReopenQuestion } from "@seer-pm/sdk/contracts/reality";
+import { Question, getRealityAddress } from "@seer-pm/sdk";
+import { realityAbi } from "@seer-pm/sdk/contracts/reality";
 import { useMutation } from "@tanstack/react-query";
-import { TransactionReceipt } from "viem";
+import { writeContract } from "@wagmi/core";
+import type { Address, TransactionReceipt } from "viem";
 
 interface ResolveMarketProps {
   question: Question;
   templateId: bigint;
   encodedQuestion: string;
   chainId: SupportedChain;
+  /** Factory that created the market, which decides the Reality instance its questions live on. */
+  factory: Address | undefined;
 }
 
 async function reopenQuestion(props: ResolveMarketProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
     () => {
-      return writeRealityReopenQuestion(config, {
+      return writeContract(config, {
+        address: getRealityAddress(props.chainId, props.factory),
+        abi: realityAbi,
+        functionName: "reopenQuestion",
         args: [
           props.templateId,
           props.encodedQuestion,

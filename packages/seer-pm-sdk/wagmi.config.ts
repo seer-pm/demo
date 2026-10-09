@@ -81,7 +81,7 @@ const getConfig = async (): Promise<Config[]> => {
 
   const contractsMapping: Record<string, string[]> = {
     curate: ["LightGeneralizedTCR"],
-    reality: ["Reality"],
+    reality: ["Reality", "RealityV3_2"],
     arbitrators: [
       "RealitioForeignArbitrationProxyWithAppeals",
       "RealitioForeignProxyOptimism",

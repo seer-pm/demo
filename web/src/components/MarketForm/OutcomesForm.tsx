@@ -4,7 +4,7 @@ import { PlusCircleIcon, PolicyIcon } from "@/lib/icons";
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
 import { useTokensInfo } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { MarketTypes, hasOutcomes } from "@seer-pm/sdk";
+import { MarketTypes, canCreateMarketWithDescription, getActiveCollateralProfileName, hasOutcomes } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
 import { generateTokenName, getMarketName, getQuestionParts } from "@seer-pm/sdk";
 import { useEffect, useRef, useState } from "react";
@@ -14,10 +14,14 @@ import { FormStepProps, FormWithNextStep, FormWithPrevStep, OutcomesFormValues }
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
 import Input from "../Form/Input";
+import Textarea from "../Form/Textarea";
 import { ButtonsWrapper } from "./ButtonsWrapper";
 import { CSVUpload } from "./CSVUpload";
 import { QuestionTimeoutField } from "./QuestionTimeoutField";
 import { SearchToken, TokenListItem } from "./SearchToken";
+
+/** Reality stores the description in calldata and event logs, so a long one makes the market cost more gas. */
+const DESCRIPTION_MAX_LENGTH = 2000;
 
 function getActualTokenName(field: FieldPath<OutcomesFormValues>, formValues: OutcomesFormValues): string {
   if (field.includes("outcomes")) {
@@ -543,6 +547,8 @@ export function OutcomesForm({
   }, []);
 
   const marketHasOutcomes = hasOutcomes(marketType);
+  const canHaveDescription =
+    !isFutarchyMarket && canCreateMarketWithDescription(chainId, getActiveCollateralProfileName());
 
   return (
     <FormProvider {...useFormReturn}>
@@ -576,6 +582,23 @@ export function OutcomesForm({
                   : ""
               }
             />
+            {canHaveDescription && (
+              <div className="mt-[24px]">
+                <div className="text-[16px] font-semibold mb-[10px]">Description (optional)</div>
+                <Textarea
+                  {...register("description", {
+                    maxLength: {
+                      value: DESCRIPTION_MAX_LENGTH,
+                      message: `Use at most ${DESCRIPTION_MAX_LENGTH} characters.`,
+                    },
+                  })}
+                  rows={4}
+                  className="w-full"
+                  useFormReturn={useFormReturn}
+                  helpText="Resolution details for the people answering on Reality: sources, edge cases, what counts. It is stored with the question and cannot be changed later."
+                />
+              </div>
+            )}
             {isFutarchyMarket && (
               <>
                 <div className="mt-4">

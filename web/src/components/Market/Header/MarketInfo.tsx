@@ -35,7 +35,11 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModa
 
         {market.questions.length === 1 ? (
           <div>
-            <a href={getRealityLink(market.chainId, market.questions[0].id)} target="_blank" rel="noreferrer">
+            <a
+              href={getRealityLink(market.chainId, market.questions[0].id, market.factory)}
+              target="_blank"
+              rel="noreferrer"
+            >
               Resolution opening at {getOpeningTime(market)}
             </a>
           </div>
@@ -49,7 +53,7 @@ function MarketQuestionsStatus({ market, marketStatus, isPreview, openAnswerModa
                     {market.questions.map((question, i) => (
                       <div key={question.id}>
                         <a
-                          href={getRealityLink(market.chainId, question.id)}
+                          href={getRealityLink(market.chainId, question.id, market.factory)}
                           target="_blank"
                           rel="noreferrer"
                           className="hover:underline"
