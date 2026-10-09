@@ -66,6 +66,29 @@ describe("MarketView", function () {
         await market.encodedQuestions(0)
       );
     });
+
+    it("returns the base collateral of a conditional market", async function () {
+      await marketFactory.createCategoricalMarket(categoricalMarketParams);
+      const [parentAddress] = await marketFactory.allMarkets();
+      const parent = await ethers.getContractAt("Market", parentAddress);
+
+      await marketFactory.createScalarMarket({
+        ...scalarMarketParams,
+        parentMarket: parentAddress,
+        parentOutcome: 1,
+      });
+      const [, childAddress] = await marketFactory.allMarkets();
+
+      const parentInfo = await marketView.getMarket(marketFactory, parentAddress);
+      expect(parentInfo.collateralToken).to.equal(categoricalMarketParams.collateralToken);
+      expect(parentInfo.baseCollateralToken).to.equal(categoricalMarketParams.collateralToken);
+
+      // entered with the parent outcome token, settled in the root collateral
+      const childInfo = await marketView.getMarket(marketFactory, childAddress);
+      const [parentWrapped] = await parent.wrappedOutcome(1);
+      expect(childInfo.collateralToken).to.equal(parentWrapped);
+      expect(childInfo.baseCollateralToken).to.equal(categoricalMarketParams.collateralToken);
+    });
   });
 
   describe("getMarkets", function () {

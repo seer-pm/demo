@@ -37,6 +37,37 @@ contract MarketViewTest is BaseTest {
         assertEq(marketView.getMarkets(2, IMarketFactory(address(marketFactory))).length, 2);
     }
 
+    function test_marketViewBaseCollateral() public {
+        MarketView marketView = new MarketView();
+        IMarketFactory factory = IMarketFactory(address(marketFactory));
+
+        Market parent = getCategoricalMarket(MIN_BOND, 2);
+        Market child = getCategoricalMarket(MIN_BOND, 3, 0, address(parent));
+        Market grandchild = getCategoricalMarket(MIN_BOND, 2, 1, address(child));
+
+        MarketView.MarketInfo memory parentInfo = marketView.getMarket(factory, parent);
+        assertEq(parentInfo.collateralToken, collateralToken);
+        assertEq(parentInfo.baseCollateralToken, collateralToken);
+
+        // a conditional market is entered with the parent outcome token but settles in the root collateral
+        MarketView.MarketInfo memory childInfo = marketView.getMarket(factory, child);
+        (IERC20 parentWrapped,) = parent.wrappedOutcome(0);
+        assertEq(childInfo.collateralToken, address(parentWrapped));
+        assertEq(childInfo.baseCollateralToken, collateralToken);
+
+        MarketView.MarketInfo memory grandchildInfo = marketView.getMarket(factory, grandchild);
+        (IERC20 childWrapped,) = child.wrappedOutcome(1);
+        assertEq(grandchildInfo.collateralToken, address(childWrapped));
+        assertEq(grandchildInfo.baseCollateralToken, collateralToken);
+
+        // a market from a fixed-collateral factory does not store its collateral: the factory answers
+        IMarketFactory factoryV1 = IMarketFactory(0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1);
+        Market marketV1 = Market(factoryV1.allMarkets()[0]);
+        MarketView.MarketInfo memory v1Info = marketView.getMarket(factoryV1, marketV1);
+        assertEq(v1Info.collateralToken, factoryV1.collateralToken());
+        assertEq(v1Info.baseCollateralToken, factoryV1.collateralToken());
+    }
+
     function test_marketViewParentOutcomes() public {
         MarketView marketView = new MarketView();
 

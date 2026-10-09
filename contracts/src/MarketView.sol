@@ -85,7 +85,12 @@ contract MarketView {
         string[] outcomes;
         ParentMarketInfo parentMarket;
         uint256 parentOutcome;
+        /// @dev What the market is entered with: its base collateral on a root market, the parent outcome token on
+        /// a conditional one. address(0) on a Futarchy proposal.
         address collateralToken;
+        /// @dev The base collateral of the market's conditional chain: what the Router splits, merges and redeems
+        /// against at any depth. address(0) on a Futarchy proposal.
+        address baseCollateralToken;
         address[] wrappedTokens;
         uint256 outcomesSupply;
         uint256 lowerBound;
@@ -123,6 +128,7 @@ contract MarketView {
             parentMarket: getParentMarketInfo(market, marketFactory.conditionalTokens()),
             parentOutcome: market.parentOutcome(),
             collateralToken: getCollateralToken(market, marketFactory),
+            baseCollateralToken: getBaseCollateralToken(market, marketFactory),
             wrappedTokens: wrappedTokens,
             outcomesSupply: IERC20(wrappedTokens[0]).totalSupply(),
             lowerBound: getLowerBound(market),
@@ -182,23 +188,28 @@ contract MarketView {
         address parentMarket = market.parentMarket();
 
         if (parentMarket == address(0)) {
-            try market.collateralToken() returns (address collateralToken) {
-                // generic market with its own collateral
-                return collateralToken;
-            } catch {}
-
-            try marketFactory.collateralToken() returns (address collateralToken) {
-                // generic market from a factory with a fixed collateral
-                return collateralToken;
-            } catch {
-                // futarchy market
-                return address(0);
-            }
+            return getBaseCollateralToken(market, marketFactory);
         }
 
         try Market(parentMarket).wrappedOutcome(market.parentOutcome()) returns (IERC20 wrapped1155, bytes memory) {
             // generic market
             return address(wrapped1155);
+        } catch {
+            // futarchy market
+            return address(0);
+        }
+    }
+
+    function getBaseCollateralToken(Market market, IMarketFactory marketFactory) internal view returns (address) {
+        // A market that stores its collateral stores the one of its root at any depth: the factory only creates a
+        // conditional market over the collateral of its parent.
+        try market.collateralToken() returns (address collateralToken) {
+            return collateralToken;
+        } catch {}
+
+        // A fixed-collateral factory deploys every market, root or conditional, over its own collateral.
+        try marketFactory.collateralToken() returns (address collateralToken) {
+            return collateralToken;
         } catch {
             // futarchy market
             return address(0);
