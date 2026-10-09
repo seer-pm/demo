@@ -11,7 +11,9 @@ export function Steps({ activeStep }: { activeStep: number }) {
           data-content={step < activeStep ? "✓" : undefined}
           key={step}
           aria-current={step === activeStep ? "step" : undefined}
-        >{step === 1 ? "Market type" : "Details"}</li>
+        >
+          {step === 1 ? "Market type" : "Details"}
+        </li>
       ))}
     </ul>
   );

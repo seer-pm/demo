@@ -1,5 +1,5 @@
-import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
 import { Alert } from "@/components/Alert";
+import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";

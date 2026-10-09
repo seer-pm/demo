@@ -39,13 +39,7 @@ function MetricGroup({
   accent?: boolean;
 }) {
   return (
-    <section
-      className={
-        accent
-          ? "seer-reward-panel seer-reward-panel-accent"
-          : "seer-reward-panel"
-      }
-    >
+    <section className={accent ? "seer-reward-panel seer-reward-panel-accent" : "seer-reward-panel"}>
       <h3 className={`text-sm font-semibold ${accent ? "text-purple-primary" : "text-base-content"}`}>{title}</h3>
       <p className="text-sm text-black-primary mt-1 mb-4 max-w-prose">{description}</p>
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">{children}</dl>
