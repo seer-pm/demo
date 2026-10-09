@@ -17,7 +17,9 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.0.sol
+// https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/flat/RealityETH-3.2.sol
+// RealityETH 3.0 has the same ABI: the two versions differ only in the text of the templates their constructors
+// create, so the Futarchy contracts on 3.0 use this interface too.
 interface IRealityETH_v3_0 {
     function askQuestionWithMinBond(
         uint256 template_id,

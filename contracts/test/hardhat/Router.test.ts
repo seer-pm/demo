@@ -7,7 +7,7 @@ import {
   ConditionalTokens,
   Market,
   MarketFactory,
-  RealityETH_v3_0,
+  RealityETH_v3_2,
   RealityProxy,
   Router,
 } from "../../typechain-types";
@@ -30,7 +30,7 @@ describe("Router", function () {
   let realityProxy: RealityProxy;
   let router: Router;
   let conditionalRouter: ConditionalRouter;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
 
   async function createMarketAndSplitPosition(splitPosition = true) {
     // first need to create a market to create outcome tokens

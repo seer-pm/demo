@@ -25,7 +25,7 @@ contract MarketFactory {
     /// @param outcomeType Used to build the Reality question on multi scalar markets.
     /// @param parentOutcome conditional outcome to use (optional).
     /// @param parentMarket conditional market to use (optional). UNTRUSTED.
-    /// @param category Reality question category.
+    /// @param description Reality question description, shown below the title. Empty for none.
     /// @param lang Reality question language.
     /// @param lowerBound Lower bound, only used for scalar markets.
     /// @param upperBound Upper bound, only used for scalar markets.
@@ -45,7 +45,7 @@ contract MarketFactory {
         string outcomeType;
         uint256 parentOutcome;
         address parentMarket;
-        string category;
+        string description;
         string lang;
         uint256 lowerBound;
         uint256 upperBound;
@@ -143,7 +143,7 @@ contract MarketFactory {
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] =
-            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
+            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.description, params.lang);
 
         return createMarket(
             params,
@@ -165,7 +165,7 @@ contract MarketFactory {
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] =
-            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
+            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.description, params.lang);
 
         return createMarket(
             params,
@@ -189,7 +189,7 @@ contract MarketFactory {
         require(params.outcomes.length == 2, "Outcomes count must be 2");
 
         string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(params.marketName, params.category, params.lang);
+        encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(params.marketName, params.description, params.lang);
 
         return createMarket(
             params,
@@ -214,7 +214,7 @@ contract MarketFactory {
         for (uint256 i = 0; i < params.outcomes.length; i++) {
             encodedQuestions[i] = encodeRealityQuestionWithoutOutcomes(
                 string(abi.encodePacked(params.questionStart, params.outcomes[i], params.questionEnd)),
-                params.category,
+                params.description,
                 params.lang
             );
         }
@@ -356,17 +356,17 @@ contract MarketFactory {
         );
     }
 
-    /// @dev Encodes the question, outcomes, category and language following the Reality structure.
+    /// @dev Encodes the question, outcomes, description and language following the Reality structure.
     /// If any parameter has a special character like quotes, it must be properly escaped.
     /// @param question The question text.
     /// @param outcomes[] The question outcomes.
-    /// @param category The question category.
+    /// @param description The question description.
     /// @param lang The question language.
     /// @return The encoded question.
     function encodeRealityQuestionWithOutcomes(
         string memory question,
         string[] calldata outcomes,
-        string memory category,
+        string memory description,
         string memory lang
     ) internal pure returns (string memory) {
         bytes memory separator = abi.encodePacked(unicode"\u241f");
@@ -377,23 +377,23 @@ contract MarketFactory {
             encodedOutcomes = abi.encodePacked(encodedOutcomes, ',"', outcomes[i], '"');
         }
 
-        return string(abi.encodePacked(question, separator, encodedOutcomes, separator, category, separator, lang));
+        return string(abi.encodePacked(question, separator, encodedOutcomes, separator, description, separator, lang));
     }
 
-    /// @dev Encodes the question, category and language following the Reality structure.
+    /// @dev Encodes the question, description and language following the Reality structure.
     /// If any parameter has a special character like quotes, it must be properly escaped.
     /// @param question The question text.
-    /// @param category The question category.
+    /// @param description The question description.
     /// @param lang The question language.
     /// @return The encoded question.
     function encodeRealityQuestionWithoutOutcomes(
         string memory question,
-        string memory category,
+        string memory description,
         string memory lang
     ) internal pure returns (string memory) {
         bytes memory separator = abi.encodePacked(unicode"\u241f");
 
-        return string(abi.encodePacked(question, separator, category, separator, lang));
+        return string(abi.encodePacked(question, separator, description, separator, lang));
     }
 
     /// @dev Asks a question on reality, or returns the id of the question when it is already asked.

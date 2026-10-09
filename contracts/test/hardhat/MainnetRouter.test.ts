@@ -8,7 +8,7 @@ import {
   ISavingsDaiTest,
   MainnetRouter,
   MarketFactory,
-  RealityETH_v3_0,
+  RealityETH_v3_2,
   RealityProxy,
 } from "../../typechain-types";
 import {
@@ -30,7 +30,7 @@ describe("MainnetRouter", function () {
   let conditionalTokens: ConditionalTokens;
   let realityProxy: RealityProxy;
   let mainnetRouter: MainnetRouter;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
   let DAI: IERC20;
   let sDAI: ISavingsDaiTest;
   let owner: HardhatEthersSigner;

@@ -12,7 +12,11 @@ const deployRealityProxy: DeployFunction = async (hre: HardhatRuntimeEnvironment
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const conditionalTokens = await deployments.get("ConditionalTokens");
-  const reality = await deployments.get("Reality");
+  // RealityETH 3.2: its templates carry a description where 3.0 had a category.
+  const reality = await deployments.get("RealityV3_2");
+  if (BigInt(reality.address) === 0n) {
+    throw new Error(`No RealityETH 3.2 address for chainId ${chainId} in deployments/<network>/RealityV3_2.json`);
+  }
 
   await deploy("RealityProxy", {
     from: deployer,

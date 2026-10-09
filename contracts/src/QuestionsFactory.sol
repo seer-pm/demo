@@ -71,7 +71,7 @@ contract QuestionsFactory {
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] =
-            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
+            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.description, params.lang);
 
         createNewMarketParams(
             params,
@@ -101,7 +101,7 @@ contract QuestionsFactory {
 
         string[] memory encodedQuestions = new string[](1);
         encodedQuestions[0] =
-            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.category, params.lang);
+            encodeRealityQuestionWithOutcomes(params.marketName, params.outcomes, params.description, params.lang);
 
         createNewMarketParams(
             params,
@@ -133,7 +133,7 @@ contract QuestionsFactory {
         require(params.outcomes.length == 2, "Outcomes count must be 2");
 
         string[] memory encodedQuestions = new string[](1);
-        encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(params.marketName, params.category, params.lang);
+        encodedQuestions[0] = encodeRealityQuestionWithoutOutcomes(params.marketName, params.description, params.lang);
 
         createNewMarketParams(
             params,
@@ -166,7 +166,7 @@ contract QuestionsFactory {
         for (uint256 j = 0; j < params.outcomes.length; j++) {
             encodedQuestions[j] = encodeRealityQuestionWithoutOutcomes(
                 string(abi.encodePacked(params.questionStart, params.outcomes[j], params.questionEnd)),
-                params.category,
+                params.description,
                 params.lang
             );
         }
@@ -257,17 +257,17 @@ contract QuestionsFactory {
         }
     }
 
-    /// @dev Encodes the question, outcomes, category and language following the Reality structure.
+    /// @dev Encodes the question, outcomes, description and language following the Reality structure.
     /// If any parameter has a special character like quotes, it must be properly escaped.
     /// @param question The question text.
     /// @param outcomes[] The question outcomes.
-    /// @param category The question category.
+    /// @param description The question description.
     /// @param lang The question language.
     /// @return The encoded question.
     function encodeRealityQuestionWithOutcomes(
         string memory question,
         string[] calldata outcomes,
-        string memory category,
+        string memory description,
         string memory lang
     ) internal pure returns (string memory) {
         bytes memory separator = abi.encodePacked(unicode"\u241f");
@@ -278,23 +278,23 @@ contract QuestionsFactory {
             encodedOutcomes = abi.encodePacked(encodedOutcomes, ',"', outcomes[i], '"');
         }
 
-        return string(abi.encodePacked(question, separator, encodedOutcomes, separator, category, separator, lang));
+        return string(abi.encodePacked(question, separator, encodedOutcomes, separator, description, separator, lang));
     }
 
-    /// @dev Encodes the question, category and language following the Reality structure.
+    /// @dev Encodes the question, description and language following the Reality structure.
     /// If any parameter has a special character like quotes, it must be properly escaped.
     /// @param question The question text.
-    /// @param category The question category.
+    /// @param description The question description.
     /// @param lang The question language.
     /// @return The encoded question.
     function encodeRealityQuestionWithoutOutcomes(
         string memory question,
-        string memory category,
+        string memory description,
         string memory lang
     ) internal pure returns (string memory) {
         bytes memory separator = abi.encodePacked(unicode"\u241f");
 
-        return string(abi.encodePacked(question, separator, category, separator, lang));
+        return string(abi.encodePacked(question, separator, description, separator, lang));
     }
 
     /// @dev Wraps the ERC1155 outcome tokens to ERC20. The INVALID_RESULT outcome is always called SER-INVALID.

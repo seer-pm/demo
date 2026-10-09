@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { MarketFactory, QuestionsFactory, RealityETH_v3_0, Wrapped1155Factory } from "../../typechain-types";
+import { MarketFactory, QuestionsFactory, RealityETH_v3_2, Wrapped1155Factory } from "../../typechain-types";
 import { REALITY_UINT_TEMPLATE, SHORT_QUESTION_TIMEOUT, type MarketParams } from "./helpers/constants";
 import { marketFactoryDeployFixture } from "./helpers/fixtures";
 
@@ -9,7 +9,7 @@ describe("QuestionsFactory", function () {
   let marketFactory: MarketFactory;
   let questionsFactory: QuestionsFactory;
   let wrapped1155Factory: Wrapped1155Factory;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
 
   let categoricalMarketParams: MarketParams;
   let multiScalarMarketParams: MarketParams;

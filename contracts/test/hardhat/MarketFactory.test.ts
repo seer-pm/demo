@@ -1,7 +1,7 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { ConditionalTokens, MarketFactory, RealityETH_v3_0, Wrapped1155Factory } from "../../typechain-types";
+import { ConditionalTokens, MarketFactory, RealityETH_v3_2, Wrapped1155Factory } from "../../typechain-types";
 import {
   ETH_BALANCE,
   MIN_BOND,
@@ -15,7 +15,7 @@ import { marketFactoryDeployFixture } from "./helpers/fixtures";
 
 describe("MarketFactory", function () {
   let marketFactory: MarketFactory;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
   let arbitrator: string;
   let conditionalTokens: ConditionalTokens;
   let wrapped1155Factory: Wrapped1155Factory;
@@ -291,6 +291,20 @@ describe("MarketFactory", function () {
           marketFactory.askRealityQuestion("", templateId, OPENING_TS, MIN_BOND, QUESTION_TIMEOUT)
         ).to.be.revertedWith("Invalid template");
       }
+    });
+
+    it("puts the description in the template's description slot", async function () {
+      const market = await createCategoricalMarket(categoricalMarketParams);
+      const [questionId] = await market.questionsIds();
+
+      const [question] = await realitio.queryFilter(realitio.filters.LogNewQuestion(questionId));
+      expect(question.args.template_id).to.equal(REALITY_SINGLE_SELECT_TEMPLATE);
+      expect(question.args.question).to.equal(categoricalMarketParams.encodedQuestions[0]);
+
+      const [template] = await realitio.queryFilter(realitio.filters.LogNewTemplate(REALITY_SINGLE_SELECT_TEMPLATE));
+      expect(template.args.question_text).to.equal(
+        '{"title": "%s", "type": "single-select", "outcomes": [%s], "description": "%s", "lang": "%s"}'
+      );
     });
 
     it("asks the Reality question with the market's timeout", async function () {

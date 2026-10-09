@@ -13,7 +13,7 @@ describe("Market", function () {
     await network.provider.send("evm_setAutomine", [true]);
 
     const conditionalTokens = await ethers.deployContract("ConditionalTokens");
-    const realitio = await ethers.deployContract("RealityETH_v3_0");
+    const realitio = await ethers.deployContract("RealityETH_v3_2");
 
     realityProxy = await (await ethers.getContractFactory("RealityProxy")).deploy(conditionalTokens, realitio);
 

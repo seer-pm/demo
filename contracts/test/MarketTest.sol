@@ -358,7 +358,7 @@ contract MarketFactoryTest is BaseTest {
                     outcomeType: "",
                     parentOutcome: 0,
                     parentMarket: address(0),
-                    category: "misc",
+                    description: "Official sources only.",
                     lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
@@ -382,7 +382,7 @@ contract MarketFactoryTest is BaseTest {
                     outcomeType: "candidate",
                     parentOutcome: 0,
                     parentMarket: address(0),
-                    category: "misc",
+                    description: "Official sources only.",
                     lang: "en_US",
                     outcomes: outcomes,
                     tokenNames: tokenNames,
@@ -463,7 +463,7 @@ contract MarketFactoryTest is BaseTest {
 
         assertEq(
             getEncodedQuestion(entries, 0),
-            unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"OUTCOME_0","OUTCOME_1"␟technology␟en_US'
+            unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"OUTCOME_0","OUTCOME_1"␟SEC approval counts.␟en_US'
         );
 
         // multi categorical market
@@ -473,7 +473,7 @@ contract MarketFactoryTest is BaseTest {
 
         assertEq(
             getEncodedQuestion(entries, 0),
-            unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"OUTCOME_0","OUTCOME_1","OUTCOME_2"␟misc␟en_US'
+            unicode'Will Ethereum ETF launch before Feb 29, 2024?␟"OUTCOME_0","OUTCOME_1","OUTCOME_2"␟Official sources only.␟en_US'
         );
 
         // scalar market
@@ -481,15 +481,22 @@ contract MarketFactoryTest is BaseTest {
         getScalarMarket(MIN_BOND, 2);
         entries = vm.getRecordedLogs();
 
-        assertEq(getEncodedQuestion(entries, 0), unicode"What will be ETH price on Feb 29, 2024?␟misc␟en_US");
+        assertEq(
+            getEncodedQuestion(entries, 0),
+            unicode"What will be ETH price on Feb 29, 2024?␟Official sources only.␟en_US"
+        );
 
         // multi scalar market
         vm.recordLogs();
         getMultiScalarMarket(MIN_BOND, 2);
         entries = vm.getRecordedLogs();
 
-        assertEq(getEncodedQuestion(entries, 0), unicode"How many votes will OUTCOME_0 get?␟misc␟en_US");
+        assertEq(
+            getEncodedQuestion(entries, 0), unicode"How many votes will OUTCOME_0 get?␟Official sources only.␟en_US"
+        );
 
-        assertEq(getEncodedQuestion(entries, 1), unicode"How many votes will OUTCOME_1 get?␟misc␟en_US");
+        assertEq(
+            getEncodedQuestion(entries, 1), unicode"How many votes will OUTCOME_1 get?␟Official sources only.␟en_US"
+        );
     }
 }

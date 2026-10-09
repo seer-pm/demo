@@ -4,7 +4,7 @@ import { ethers, network } from "hardhat";
 import {
   ConditionalTokens,
   MarketFactory,
-  RealityETH_v3_0,
+  RealityETH_v3_2,
   RealityProxy,
 } from "../../typechain-types";
 import {
@@ -20,7 +20,7 @@ import { getBitMaskDecimal } from "./helpers/utils";
 describe("RealityProxy", function () {
   let marketFactory: MarketFactory;
   let conditionalTokens: ConditionalTokens;
-  let realitio: RealityETH_v3_0;
+  let realitio: RealityETH_v3_2;
   let realityProxy: RealityProxy;
 
   let categoricalMarketParams: MarketParams;
