@@ -59,6 +59,30 @@ describe("MarketView", function () {
         await market.encodedQuestions(0)
       );
     });
+
+    it("reads the questions from the market's Reality, whatever factory it is given", async function () {
+      const conditionalTokens = await marketFactory.conditionalTokens();
+      const otherRealitio = await ethers.deployContract("RealityETH_v3_0");
+      const otherFactory = await (await ethers.getContractFactory("MarketFactory")).deploy(
+        await ethers.deployContract("Market"),
+        arbitrator,
+        otherRealitio,
+        await marketFactory.wrapped1155Factory(),
+        conditionalTokens,
+        await marketFactory.collateralToken(),
+        await (await ethers.getContractFactory("RealityProxy")).deploy(conditionalTokens, otherRealitio),
+        QUESTION_TIMEOUT
+      );
+
+      await marketFactory.createCategoricalMarket(categoricalMarketParams);
+      const [marketAddress] = await marketFactory.allMarkets();
+      const market = await ethers.getContractAt("Market", marketAddress);
+      const [questionId] = await market.questionsIds();
+
+      const marketInfo = await marketView.getMarket(otherFactory, marketAddress);
+      expect(marketInfo.questions[0].timeout).to.equal(await realitio.getTimeout(questionId));
+      expect(marketInfo.questions[0].timeout).to.not.equal(0);
+    });
   });
 
   describe("getMarkets", function () {
