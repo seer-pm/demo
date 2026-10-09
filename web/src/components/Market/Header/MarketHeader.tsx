@@ -50,6 +50,8 @@ import { COLORS } from "./index.ts";
 
 interface MarketHeaderProps {
   market: Market;
+  /** The host page already renders the market title and resolution info; skip both so the page keeps a single h1. */
+  embedded?: boolean;
   images?: { market: string; outcomes: string[] };
   type?: "default" | "preview" | "small";
   outcomesCount?: number;
@@ -222,7 +224,13 @@ export function PoolTokensInfo({
   );
 }
 
-export function MarketHeader({ market, images, type = "default", outcomesCount = 0 }: MarketHeaderProps) {
+export function MarketHeader({
+  market,
+  images,
+  type = "default",
+  outcomesCount = 0,
+  embedded = false,
+}: MarketHeaderProps) {
   const { address } = useAccount();
   const { data: parentMarket } = useMarket(market.parentMarket.id, market.chainId);
   const { data: parentCollateral } = useTokenInfo(
@@ -328,7 +336,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
         <div className="grow min-w-0">
           <div className={clsx("font-semibold mb-1 text-[16px] break-words", type === "default" && "lg:text-[24px]")}>
-            {type === "default" && <h1 className="seer-market-title">{market.marketName}</h1>}
+            {type === "default" && !embedded && <h1 className="seer-market-title">{market.marketName}</h1>}
             {type !== "default" && (
               <Link className="hover:underline" to={paths.market(market)}>
                 {market.marketName}
@@ -353,7 +361,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
               </Link>
             </p>
           )}
-          {market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
+          {embedded ? null : market.questions.length === 1 || marketStatus === MarketStatus.NOT_OPEN ? (
             <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
           ) : (
             <>
@@ -373,7 +381,7 @@ export function MarketHeader({ market, images, type = "default", outcomesCount =
         </div>
       </div>
 
-      {market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
+      {!embedded && market.questions.length > 1 && marketStatus !== MarketStatus.NOT_OPEN && showMarketInfo && (
         <div className="px-[24px] pb-[16px]">
           <MarketInfo market={market} marketStatus={marketStatus} isPreview={false} />
         </div>

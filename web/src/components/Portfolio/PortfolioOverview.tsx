@@ -1,3 +1,4 @@
+import { formatDeltaPercent, signedTone } from "@/lib/formatUsd";
 import { useId, useState } from "react";
 
 const REVIEW_RANGES = ["1D", "1W", "1M", "1Y", "YTD", "All"] as const;
@@ -123,6 +124,7 @@ export default function PortfolioOverview({
   positionsValue,
   available,
   pnl,
+  pnlNotComputed = false,
   period,
   onPeriodChange,
   series,
@@ -137,6 +139,8 @@ export default function PortfolioOverview({
   positionsValue?: number;
   available?: number;
   pnl?: number;
+  /** The P&L job has not produced a figure for this wallet yet. Distinct from a failed request, which is `error`. */
+  pnlNotComputed?: boolean;
   period: ReviewRange;
   onPeriodChange: (period: ReviewRange) => void;
   series?: PerformanceSeries;
@@ -147,6 +151,8 @@ export default function PortfolioOverview({
 }) {
   const [inspection, setInspection] = useState<{ value: number; date?: string }>();
   const displayPnl = inspection?.value ?? pnl;
+  const deltaTone = delta === undefined ? undefined : signedTone(delta);
+  const deltaPercentLabel = deltaPercent === undefined ? undefined : formatDeltaPercent(deltaPercent);
   return (
     <section className="portfolio-overview" aria-label="Portfolio overview" aria-busy={pending}>
       <div className="portfolio-balance">
@@ -154,10 +160,11 @@ export default function PortfolioOverview({
           Portfolio value <small>USD</small>
         </p>
         <div className="portfolio-total">{pending ? "Loading…" : value === undefined ? "Unavailable" : usd(value)}</div>
-        {delta !== undefined && (
-          <p className={delta < 0 ? "portfolio-loss" : "portfolio-gain"}>
-            {usd(delta, true)} {deltaPercent !== undefined && `(${deltaPercent.toFixed(2)}%)`}{" "}
-            <span className="portfolio-muted">today</span>
+        {deltaTone === "flat" && <p className="portfolio-muted">No value change today</p>}
+        {delta !== undefined && deltaTone !== "flat" && (
+          <p className={deltaTone === "down" ? "portfolio-loss" : "portfolio-gain"}>
+            {usd(delta, true)}
+            {deltaPercentLabel ? ` (${deltaPercentLabel})` : ""} <span className="portfolio-muted">today</span>
           </p>
         )}
         <dl className="portfolio-breakdown">
@@ -179,7 +186,15 @@ export default function PortfolioOverview({
             <p
               className={`portfolio-pnl ${displayPnl !== undefined && displayPnl < 0 ? "portfolio-loss" : "portfolio-gain"}`}
             >
-              {pending ? "Loading…" : displayPnl === undefined ? "Not available" : usd(displayPnl, true)}
+              {pending ? (
+                "Loading…"
+              ) : pnlNotComputed ? (
+                <span title="The P&L refresh job has not processed this wallet yet">Not computed yet</span>
+              ) : displayPnl === undefined ? (
+                "Not available"
+              ) : (
+                usd(displayPnl, true)
+              )}
             </p>
             <p className="portfolio-muted">{inspection?.date ?? (period === "All" ? "All time" : period)} · USD</p>
           </div>

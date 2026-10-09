@@ -141,10 +141,13 @@ function MarketPage() {
     return () => observer.disconnect();
   }, [isMobile, market?.id]);
 
-  const requestedOutcomeIndex = requestedOutcome ? market?.outcomes.indexOf(requestedOutcome) : 0;
+  // A valid ?outcome= wins over the default top-odds selection, so links from the portfolio and from
+  // parent markets land on the outcome they name.
+  const requestedOutcomeIndex = requestedOutcome ? (market?.outcomes.indexOf(requestedOutcome) ?? -1) : -1;
+  const hasRequestedOutcome = requestedOutcomeIndex >= 0;
   useEffect(() => {
-    if (requestedOutcomeIndex !== undefined) setOutcomeIndex(Math.max(0, requestedOutcomeIndex));
-  }, [idOrSlug, requestedOutcome, requestedOutcomeIndex]);
+    if (hasRequestedOutcome) setOutcomeIndex(requestedOutcomeIndex);
+  }, [idOrSlug, hasRequestedOutcome, requestedOutcomeIndex]);
 
   market = useMarketQuestions(market, chainId);
 
@@ -259,6 +262,7 @@ function MarketPage() {
             <section className="event-outcomes" aria-label="Market outcomes">
               <Outcomes
                 compact
+                autoSelectTopOutcome={!hasRequestedOutcome}
                 market={market}
                 images={market?.images?.outcomes}
                 activeOutcome={outcomeIndex}

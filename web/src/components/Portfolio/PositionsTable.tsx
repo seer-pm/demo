@@ -2,7 +2,8 @@ import React, { useState } from "react";
 
 import { useModal } from "@/hooks/useModal";
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@/lib/chains";
-import { CloseIcon, QuestionIcon } from "@/lib/icons";
+import { NETWORK_ICON_MAPPING } from "@/lib/config";
+import { CloseIcon, ConditionalMarketIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isExecutorRow } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
@@ -22,6 +23,7 @@ import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import MarketsPagination from "../Market/MarketsPagination";
+import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
 import Popover from "../Popover";
 import { ExecutorBadge } from "./ExecutorBadge";
@@ -78,7 +80,6 @@ function PositionsTableInner({
 
     return n.toFixed(2);
   }
-  const singleChainSymbol = chainId === "all" ? null : getActiveCollateralProfile(chainId).primary.symbol;
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
     const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",
@@ -149,25 +150,33 @@ function PositionsTableInner({
           const chainName = SUPPORTED_CHAINS[rowChainId as keyof typeof SUPPORTED_CHAINS]?.name;
           return (
             <div className="portfolio-market-cell">
-              <span className="portfolio-market-symbol" aria-hidden="true">
-                {position.outcomeImage ? (
-                  <img src={position.outcomeImage} alt="" className="w-full h-full rounded-full object-cover" />
-                ) : position.tokenIndex === 0 ? (
-                  "ϟ"
-                ) : (
-                  "◎"
-                )}
+              <span className="portfolio-market-symbol">
+                <OutcomeImage
+                  image={position.outcomeImage}
+                  title={position.outcome}
+                  isInvalidOutcome={position.isInvalidOutcome}
+                  className="w-full h-full rounded-full object-cover"
+                />
               </span>
               <div>
                 <a
+                  className="portfolio-market-name"
+                  title={position.marketName}
                   href={`${paths.market(position.marketId, rowChainId)}?outcome=${encodeURIComponent(position.outcome)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   {position.marketName}
                 </a>
-                <span className="portfolio-outcome">{position.outcome}</span>
+                <span className="portfolio-outcome" title={position.outcome}>
+                  {position.outcome}
+                </span>
                 {showChain && (
-                  <small className="portfolio-muted">
+                  <small className="portfolio-muted inline-flex items-center gap-1">
                     {" "}
+                    {NETWORK_ICON_MAPPING[rowChainId] && (
+                      <img alt="" className="w-3 h-3 rounded-full" src={NETWORK_ICON_MAPPING[rowChainId]} />
+                    )}
                     {chainName} · {getActiveCollateralProfile(rowChainId).primary.symbol}
                   </small>
                 )}
@@ -176,12 +185,29 @@ function PositionsTableInner({
                 )}
                 {position.parentMarketId && (
                   <small className="portfolio-muted block">
-                    Conditional on{" "}
-                    <a
-                      href={`${paths.market(position.parentMarketId, rowChainId)}?outcome=${encodeURIComponent(position.parentOutcome ?? "")}`}
-                    >
-                      {position.parentOutcome}
-                    </a>
+                    <Popover
+                      label="Conditional market. Show the parent market."
+                      trigger={
+                        <span className="inline-flex items-center gap-1" title="Conditional Market">
+                          <ConditionalMarketIcon width="14" fill="currentColor" /> Conditional on{" "}
+                          <span className="underline decoration-dotted">{position.parentOutcome}</span>
+                        </span>
+                      }
+                      content={
+                        <p className="text-base-content/70 text-[14px]">
+                          Conditional on{" "}
+                          <a
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline text-purple-primary cursor-pointer hover:underline"
+                            href={`${paths.market(position.parentMarketId, rowChainId)}?outcome=${encodeURIComponent(position.parentOutcome ?? "")}`}
+                          >
+                            "{position.parentMarketName}"
+                          </a>{" "}
+                          being <span className="text-base-content">"{position.parentOutcome}"</span>
+                        </p>
+                      }
+                    />
                   </small>
                 )}
                 {((position.lpTokenBalance ?? 0) > 0 || (position.lpLegs?.length ?? 0) > 0) && (
@@ -235,7 +261,7 @@ function PositionsTableInner({
           }
           return (
             <p className="font-semibold text-[14px] text-center">
-              {Number.isFinite(info.getValue<number>()) ? info.getValue<number>().toFixed(4) : "N/A"}
+              {Number.isFinite(info.getValue<number>()) ? formatSmallNumber(info.getValue<number>()) : "N/A"}
               {suffix}
             </p>
           );
@@ -281,7 +307,7 @@ function PositionsTableInner({
         ),
       },
     ];
-  }, [showChain, showRedeemColumn, singleChainSymbol, account, expanded]);
+  }, [showChain, showRedeemColumn, account, expanded]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -290,14 +316,20 @@ function PositionsTableInner({
     columns,
     data,
     getRowId: (row) => `${row.chainId}:${row.tokenId}:${row.sourceWallet ?? "owner"}`,
-    state: { pagination, columnVisibility: { profit: false } },
+    state: { pagination },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
     enableMultiSort: true,
     initialState: {
-      sorting: [{ id: "tokenValue", desc: true }],
+      // Owners get redeemable positions first: that is the row with an action to take.
+      sorting: showRedeemColumn
+        ? [
+            { id: "marketStatus", desc: false },
+            { id: "tokenValue", desc: true },
+          ]
+        : [{ id: "tokenValue", desc: true }],
     },
   });
 
@@ -310,10 +342,19 @@ function PositionsTableInner({
             aria-label="Sort positions"
             value={table.getState().sorting[0]?.id ?? "tokenValue"}
             onChange={(event) => {
-              table.setSorting([{ id: event.target.value, desc: event.target.value !== "marketName" }]);
+              const id = event.target.value;
+              table.setSorting(
+                id === "marketStatus"
+                  ? [
+                      { id, desc: false },
+                      { id: "tokenValue", desc: true },
+                    ]
+                  : [{ id, desc: id !== "marketName" }],
+              );
               table.setPageIndex(0);
             }}
           >
+            {showRedeemColumn && <option value="marketStatus">Redeemable first</option>}
             <option value="tokenValue">Current value</option>
             <option value="marketName">Market name</option>
             <option value="shares">Shares</option>

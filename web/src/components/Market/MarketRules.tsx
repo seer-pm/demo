@@ -39,7 +39,7 @@ export function MarketRules({ market }: { market: Market }) {
       </div>
       <details className="event-technical-details">
         <summary>Additional market details</summary>
-        <MarketHeader market={market} images={market.images} />
+        <MarketHeader market={market} images={market.images} embedded />
       </details>
     </section>
   );

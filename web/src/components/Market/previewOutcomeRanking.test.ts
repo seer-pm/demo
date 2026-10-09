@@ -17,10 +17,11 @@ it("brings a leader outside the first two outcomes into view with its original t
 it("handles missing data and equal leaders without picking an arbitrary favourite", () => {
   expect(rankPreviewOutcomes(["A", "B"], [null, Number.NaN], "Invalid").some((r) => r.leading)).toBe(false);
   expect(rankPreviewOutcomes(["A", "B", "C"], [40, 40, 20], "Invalid").map((r) => r.leading)).toEqual([
-    true,
-    true,
+    false,
+    false,
     false,
   ]);
+  expect(rankPreviewOutcomes(["Yes", "No"], [50, 50], "Invalid").some((r) => r.leading)).toBe(false);
 });
 
 it("keeps Yes first regardless of source order, whitespace or changing prices", () => {

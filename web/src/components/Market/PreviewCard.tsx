@@ -429,8 +429,35 @@ function MarketResult({ market }: { market: Market }) {
   );
 }
 
+function OutcomeRowsShimmer() {
+  return (
+    <div className="seer-outcome-list" aria-busy="true">
+      <span className="sr-only">Loading prices</span>
+      <div className="shimmer-container h-[42px] rounded-[8px]" />
+      <div className="shimmer-container h-[42px] rounded-[8px]" />
+    </div>
+  );
+}
+
 function MarketOutcomeRows({ market }: { market: Market }) {
-  const odds = getMarketType(market) === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
+  const marketType = getMarketType(market);
+  // The search API fills `odds` asynchronously; an empty list means "still loading", not "no liquidity".
+  if (market.odds.length === 0) {
+    return marketType === MarketTypes.SCALAR ? <ScalarGaugeShimmer /> : <OutcomeRowsShimmer />;
+  }
+  if (marketType === MarketTypes.SCALAR) {
+    const marketEstimate = Number(getMarketEstimate(market.odds, market));
+    if (Number.isNaN(marketEstimate)) return null;
+    return (
+      <ScalarGauge
+        value={marketEstimate}
+        min={displayScalarBound(market.lowerBound)}
+        max={displayScalarBound(market.upperBound)}
+        unit={getMarketUnit(market) || undefined}
+      />
+    );
+  }
+  const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
   const outcomes = rankPreviewOutcomes(market.outcomes, market.odds, INVALID_RESULT_OUTCOME_TEXT);
   const binary =
     outcomes.length === 2 &&

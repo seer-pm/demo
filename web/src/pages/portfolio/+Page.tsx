@@ -62,14 +62,23 @@ function LivePortfolioOverview({
       delta={value.data?.delta}
       deltaPercent={value.data?.deltaPercent}
       pnl={pnl.data?.computed === false ? undefined : pnl.data?.pnl}
+      pnlNotComputed={pnl.data?.computed === false}
       period={periods[period]}
       onPeriodChange={(range) => onPeriodChange(range.toLowerCase() as PortfolioPnLPeriod)}
       supported={["1D", "1W", "1M", "All"]}
       pending={value.isLoading || pnl.isLoading}
-      error={value.error || pnl.error ? "Couldn't load portfolio performance." : undefined}
+      error={
+        value.error && pnl.error
+          ? "Couldn't load portfolio value or trading P&L."
+          : value.error
+            ? "Couldn't load portfolio value."
+            : pnl.error
+              ? "Couldn't load trading P&L."
+              : undefined
+      }
       retry={() => {
-        value.refetch();
-        pnl.refetch();
+        if (value.error) value.refetch();
+        if (pnl.error) pnl.refetch();
       }}
     />
   );

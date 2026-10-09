@@ -47,10 +47,24 @@ import { OutcomeImage } from "./OutcomeImage";
 
 interface OutcomesProps {
   compact?: boolean;
+  /** Off when the page already selected an outcome (for example from `?outcome=`), so the top-odds default does not override it. */
+  autoSelectTopOutcome?: boolean;
   market: Market;
   images?: string[];
   activeOutcome: number;
   onOutcomeChange: (i: number, openDrawer: boolean) => void;
+}
+
+function scalarRedeemTooltip(market: Market, outcomeIndex: number) {
+  const primarySymbol = getActivePrimaryCollateral(market.chainId).symbol;
+  const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
+  if (outcomeIndex === 1) {
+    return `Redeem for (${primarySymbol} per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;
+  }
+  if (outcomeIndex === 0) {
+    return `Redeem for (${primarySymbol} per token):\nAnswer ≥ ${upperBound}: 0\nAnswer within [${lowerBound}-${upperBound}]: (${upperBound}-answer)/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 1`;
+  }
+  return "";
 }
 
 function poolRewardsInfo(pool: PoolInfo) {
@@ -324,18 +338,6 @@ function OutcomeDetails({
 
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
 
-  const getTooltipContent = (market: Market, outcomeIndex: number) => {
-    const primarySymbol = getActivePrimaryCollateral(market.chainId).symbol;
-    const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
-    if (outcomeIndex === 1) {
-      return `Redeem for (${primarySymbol} per token):\nAnswer ≥ ${upperBound}: 1\nAnswer within [${lowerBound}-${upperBound}]: (answer-${lowerBound})/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 0`;
-    }
-    if (outcomeIndex === 0) {
-      return `Redeem for (${primarySymbol} per token):\nAnswer ≥ ${upperBound}: 0\nAnswer within [${lowerBound}-${upperBound}]: (${upperBound}-answer)/(${upperBound}-${lowerBound})\nAnswer ≤ ${lowerBound}: 1`;
-    }
-    return "";
-  };
-
   const _isInvalidOutcome = isInvalidOutcome(market, outcomeIndex);
 
   return (
@@ -358,7 +360,7 @@ function OutcomeDetails({
           {getMarketType(market) === MarketTypes.SCALAR && outcomeIndex !== market.wrappedTokens.length - 1 && (
             <span className="tooltip">
               <p className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
-                {getTooltipContent(market, outcomeIndex)}
+                {scalarRedeemTooltip(market, outcomeIndex)}
               </p>
               <QuestionIcon fill="#7D33FF" />
             </span>
@@ -436,6 +438,131 @@ function OutcomeDetails({
   );
 }
 
+function CompactOutcomeRow({
+  market,
+  marketStatus,
+  outcomeIndex,
+  images,
+  pools,
+  odd,
+  isLoadingOdds,
+  isActive,
+  expanded,
+  openLiquidityModal,
+  onSelect,
+  onToggleDetails,
+}: {
+  market: Market;
+  marketStatus?: MarketStatus;
+  outcomeIndex: number;
+  images?: string[];
+  pools: PoolInfo[][];
+  odd: number | null | undefined;
+  isLoadingOdds: boolean;
+  isActive: boolean;
+  expanded: boolean;
+  openLiquidityModal?: () => void;
+  onSelect: () => void;
+  onToggleDetails: () => void;
+}) {
+  const { address } = useAccount();
+  const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
+  const { data: winningOutcomes } = useWinningOutcomes(market, marketStatus);
+  const { data: tokensInfo = [] } = useTokensInfo(market.wrappedTokens, market.chainId);
+  const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
+  const invalid = isInvalidOutcome(market, outcomeIndex);
+  const isScalar = getMarketType(market) === MarketTypes.SCALAR;
+  const detailsId = `pool-details-${market.id}-${outcomeIndex}`;
+  const balance = balances && balances[outcomeIndex] > 0n ? displayBalance(balances[outcomeIndex], 18, true) : null;
+  return (
+    <article className={`event-outcome-row ${isActive ? "is-selected" : ""}`}>
+      <div className="event-outcome-top">
+        <button type="button" className="event-outcome-disclosure" aria-pressed={isActive} onClick={onSelect}>
+          <span className="event-outcome-avatar">
+            <OutcomeImage
+              image={images?.[outcomeIndex]}
+              isInvalidOutcome={invalid}
+              title={market.outcomes[outcomeIndex]}
+            />
+          </span>
+          <span className="event-outcome-name">
+            <strong>
+              {invalid ? "Invalid resolution" : market.outcomes[outcomeIndex]}
+              {isScalar &&
+                outcomeIndex <= 1 &&
+                ` [${displayScalarBound(market.lowerBound)},${displayScalarBound(market.upperBound)}]`}
+              {isScalar && outcomeIndex !== market.wrappedTokens.length - 1 && (
+                <span className="tooltip ml-1">
+                  <span className="tooltiptext !whitespace-pre-wrap w-[250px] md:w-[400px] !text-left">
+                    {scalarRedeemTooltip(market, outcomeIndex)}
+                  </span>
+                  <QuestionIcon fill="#7D33FF" />
+                </span>
+              )}
+              {winningOutcomes?.[outcomeIndex] === true && (
+                <CheckCircleIcon className="text-success-primary inline-block ml-1" />
+              )}
+            </strong>
+            <small>
+              {invalid
+                ? "Applies if the market resolves as invalid"
+                : balance
+                  ? `You hold ${balance} ${tokensInfo?.[outcomeIndex]?.symbol ?? ""}`
+                  : null}
+            </small>
+          </span>
+          <span className="event-outcome-price">
+            {isLoadingOdds ? (
+              <Spinner />
+            ) : (
+              <>
+                <DisplayOdds odd={odd} marketType={getMarketType(market)} />
+                {!invalid && <MultiScalarEstimate market={market} odds={odd} />}
+              </>
+            )}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="event-outcome-chevron"
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          aria-label={expanded ? "Hide order book" : "Show order book"}
+          onClick={onToggleDetails}
+        >
+          {expanded ? "−" : "+"}
+        </button>
+      </div>
+      {expanded && (
+        <div className="event-outcome-inline-actions">
+          <a
+            href={blockExplorerUrl && `${blockExplorerUrl}/token/${market.wrappedTokens[outcomeIndex]}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View {tokensInfo?.[outcomeIndex]?.symbol ?? "token"} on {SUPPORTED_CHAINS?.[market.chainId]?.name} ↗
+          </a>
+          <AddLiquidityLinks
+            market={market}
+            outcomeIndex={outcomeIndex}
+            pools={pools}
+            openLiquidityModal={openLiquidityModal}
+          />
+          <Link
+            to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[outcomeIndex])}`}
+            className="text-purple-primary"
+          >
+            New conditional market ↗
+          </Link>
+        </div>
+      )}
+      <div id={detailsId} hidden={!expanded}>
+        {expanded && <OutcomeActivePanel market={market} outcomeIndex={outcomeIndex} />}
+      </div>
+    </article>
+  );
+}
+
 function MultiScalarEstimate({
   market,
   odds,
@@ -460,7 +587,14 @@ function MultiScalarEstimate({
   );
 }
 
-export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compact = false }: OutcomesProps) {
+export function Outcomes({
+  market,
+  images,
+  activeOutcome,
+  onOutcomeChange,
+  compact = false,
+  autoSelectTopOutcome = true,
+}: OutcomesProps) {
   const { data: odds = [], isLoading } = useMarketOdds(market, true);
   const { data: pools = [] } = useMarketPools(market);
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
@@ -468,29 +602,22 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
 
   const hasInitializedRef = useRef(false);
-  const [openPoolDetails, setOpenPoolDetails] = useState<Set<number>>(() => new Set());
-  const togglePoolDetails = (index: number) => {
-    setOpenPoolDetails((previous) => {
-      const next = new Set(previous);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
+  // One order book at a time: each panel loads tick data and a chart, so opening a second one
+  // closes the first instead of stacking them.
+  const [openPoolDetails, setOpenPoolDetails] = useState<number | null>(null);
+  const togglePoolDetails = (index: number) => setOpenPoolDetails((previous) => (previous === index ? null : index));
 
   useEffect(() => {
-    if (indexesOrderedByOdds && !hasInitializedRef.current) {
-      const i = indexesOrderedByOdds[0];
-      onOutcomeChange(i, false);
-      hasInitializedRef.current = true;
-    }
-  }, [indexesOrderedByOdds, onOutcomeChange]);
+    if (!autoSelectTopOutcome || hasInitializedRef.current || !indexesOrderedByOdds) return;
+    onOutcomeChange(indexesOrderedByOdds[0], false);
+    hasInitializedRef.current = true;
+  }, [autoSelectTopOutcome, indexesOrderedByOdds, onOutcomeChange]);
 
   return (
     <div>
       <div className={compact ? "event-outcome-heading" : "text-[16px] font-semibold mb-[24px]"}>
         <h2>Outcomes</h2>
-        {compact && <span>Select to inspect depth · Trade to place an order</span>}
+        {compact && <span>Select an outcome to trade it. Expand a row for its order book.</span>}
       </div>
       <div className="space-y-3">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
@@ -499,69 +626,22 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
           const isActive = activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2);
           if (compact && market.type === "Generic") {
-            const expanded = openPoolDetails.has(i);
             return (
-              <article className={`event-outcome-row ${isActive ? "is-selected" : ""}`} key={market.wrappedTokens[i]}>
-                <div className="event-outcome-top">
-                  <button
-                    type="button"
-                    className="event-outcome-disclosure"
-                    aria-expanded={expanded}
-                    aria-controls={`pool-details-${market.id}-${i}`}
-                    onClick={() => {
-                      onOutcomeChange(i, false);
-                      togglePoolDetails(i);
-                    }}
-                  >
-                    <span className="event-outcome-avatar">
-                      <OutcomeImage
-                        image={images?.[i]}
-                        isInvalidOutcome={isInvalidOutcome(market, i)}
-                        title={market.outcomes[i]}
-                      />
-                    </span>
-                    <span className="event-outcome-name">
-                      <strong>{isInvalidOutcome(market, i) ? "Invalid resolution" : market.outcomes[i]}</strong>
-                      <small>
-                        {isInvalidOutcome(market, i)
-                          ? "Applies if the market resolves as invalid"
-                          : expanded
-                            ? "Hide order book"
-                            : "Order book & liquidity"}
-                      </small>
-                    </span>
-                    <span className="event-outcome-price">
-                      <DisplayOdds odd={odds[i]} marketType={getMarketType(market)} />
-                    </span>
-                    <span className="event-outcome-chevron" aria-hidden="true">
-                      {expanded ? "−" : "+"}
-                    </span>
-                  </button>
-                  {expanded && (
-                    <div className="event-outcome-inline-actions">
-                      <AddLiquidityLinks
-                        market={market}
-                        outcomeIndex={i}
-                        pools={pools}
-                        openLiquidityModal={openModalCallback}
-                      />
-                      <Link
-                        to={`/create-market?parentMarket=${market.id}&parentOutcome=${encodeURIComponent(market.outcomes[i])}`}
-                        className="text-purple-primary"
-                      >
-                        New conditional market ↗
-                      </Link>
-                    </div>
-                  )}
-                </div>
-                <div id={`pool-details-${market.id}-${i}`} hidden={!expanded}>
-                  {expanded && (
-                    <>
-                      <OutcomeActivePanel market={market} outcomeIndex={i} />
-                    </>
-                  )}
-                </div>
-              </article>
+              <CompactOutcomeRow
+                key={market.wrappedTokens[i]}
+                market={market}
+                marketStatus={marketStatus}
+                outcomeIndex={i}
+                images={images}
+                pools={pools}
+                odd={odds[i]}
+                isLoadingOdds={isLoading}
+                isActive={isActive}
+                expanded={openPoolDetails === i}
+                openLiquidityModal={openModalCallback}
+                onSelect={() => onOutcomeChange(i, true)}
+                onToggleDetails={() => togglePoolDetails(i)}
+              />
             );
           }
           return (
@@ -569,12 +649,8 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
               <div
                 onClick={(e) => {
                   if ((e.target as HTMLElement).closest?.("a, button, select, textarea")) return;
-                  if (market.type === "Generic") {
-                    onOutcomeChange(i, false);
-                    togglePoolDetails(i);
-                  } else {
-                    onOutcomeChange(i, true);
-                  }
+                  onOutcomeChange(i, true);
+                  setOpenPoolDetails(null);
                 }}
                 className={clsx(
                   "flex flex-row justify-between p-[12px] lg:p-[24px] shadow-sm cursor-pointer",
@@ -591,7 +667,7 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
                     pools={pools}
                     loopIndex={j}
                     images={images}
-                    isPoolDetailsOpen={openPoolDetails.has(i)}
+                    isPoolDetailsOpen={openPoolDetails === i}
                     onTogglePoolDetails={() => togglePoolDetails(i)}
                   />
                 ) : (
@@ -646,8 +722,8 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange, compa
                   />
                 </div>
               </div>
-              <div id={`pool-details-${market.id}-${i}`} hidden={!openPoolDetails.has(i)}>
-                {openPoolDetails.has(i) && <OutcomeActivePanel market={market} outcomeIndex={i} />}
+              <div id={`pool-details-${market.id}-${i}`} hidden={openPoolDetails !== i}>
+                {openPoolDetails === i && <OutcomeActivePanel market={market} outcomeIndex={i} />}
               </div>
             </div>
           );

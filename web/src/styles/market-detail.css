@@ -416,7 +416,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding-right: 16px;
+  padding-right: 8px;
 }
 .event-outcome-disclosure {
   display: flex;
@@ -465,7 +465,16 @@
 }
 .event-outcome-chevron {
   color: var(--seer-muted);
-  width: 14px;
+  min-width: 40px;
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 18px;
+}
+.event-outcome-chevron:hover {
+  background: var(--seer-surface-raised);
+  color: var(--seer-text);
 }
 .event-trade-outcome {
   border-radius: 8px;
@@ -1025,12 +1034,6 @@
   font-size: 13px;
 }
 
-.event-outcome-top {
-  flex-wrap: wrap;
-}
-.event-outcome-disclosure {
-  flex-basis: 100%;
-}
 .event-outcome-inline-actions {
   display: flex;
   gap: 10px;
