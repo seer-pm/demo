@@ -69,7 +69,14 @@ export type Market = MarketOffChainFields & {
   type: "Generic" | "Futarchy";
   marketName: string;
   outcomes: readonly string[];
+  /** What the market is entered with: its base collateral on a root market, the parent outcome token on a conditional one. */
   collateralToken: Address;
+  /**
+   * The base collateral of the market's conditional chain: what the Router splits, merges and redeems against at
+   * any depth. Set on markets read through MarketView; the indexer does not carry it yet, so a market loaded from
+   * the subgraph leaves it undefined and the base collateral is read on-chain instead.
+   */
+  baseCollateralToken?: Address;
   collateralToken1: Address;
   collateralToken2: Address;
   wrappedTokens: Address[];

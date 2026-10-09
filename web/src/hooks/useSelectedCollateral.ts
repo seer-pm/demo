@@ -49,18 +49,27 @@ export function useSelectedCollateral(market: Market, useAltCollateral: boolean)
 
 /**
  * The base collateral of the market's conditional chain: what the Router splits, merges and redeems
- * against. Markets created by a V1 factory do not expose it and were all created on the active
- * profile's primary, so that is the fallback when the call reverts.
+ * against. MarketView resolves it for every market, V1 ones included; a market loaded from the
+ * subgraph does not carry it, so it is read from the market itself. Markets created by a V1 factory
+ * do not expose it either and were all created on the active profile's primary, so that is the
+ * fallback when the call reverts.
  */
 export function useBaseCollateral(market: Market): Address {
+  // MarketView reports address(0) on a Futarchy proposal, which has no base collateral
+  const baseCollateralToken =
+    market.baseCollateralToken && market.baseCollateralToken !== zeroAddress ? market.baseCollateralToken : undefined;
   const { data: collateralToken } = useReadContract({
     abi: marketAbi,
     address: market.id,
     functionName: "collateralToken",
     chainId: market.chainId,
-    query: { enabled: market.type === "Generic", retry: false, staleTime: Number.POSITIVE_INFINITY },
+    query: {
+      enabled: market.type === "Generic" && !baseCollateralToken,
+      retry: false,
+      staleTime: Number.POSITIVE_INFINITY,
+    },
   });
-  return collateralToken ?? getActivePrimaryCollateral(market.chainId).address;
+  return baseCollateralToken ?? collateralToken ?? getActivePrimaryCollateral(market.chainId).address;
 }
 
 export function getSplitMergeRedeemCollateral(
