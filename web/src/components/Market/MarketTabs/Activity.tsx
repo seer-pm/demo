@@ -1,6 +1,7 @@
 import { Alert } from "@/components/Alert";
 import { DisplayName } from "@/components/DisplayName";
 import { Link } from "@/components/Link";
+import MarketsPagination from "@/components/Market/MarketsPagination";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
@@ -10,13 +11,17 @@ import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { TransactionData } from "@seer-pm/sdk";
 import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Address, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 
 interface ActivityProps {
   market: Market;
 }
+
+// The backend returns the activity of about the last 100 transactions in one response, so paging
+// happens on the client. 20 rows keeps the tab readable without burying the pager below the fold.
+const ITEMS_PER_PAGE = 20;
 
 function activityTypeClass(type: TransactionData["type"]): string {
   if (type === "bought") return "text-success-primary";
@@ -70,6 +75,22 @@ export default function Activity({ market }: ActivityProps) {
       }),
     [data, isFilteringMyActivity, address],
   );
+  const [page, setPage] = useState(1);
+  const pageCount = Math.ceil(rows.length / ITEMS_PER_PAGE);
+  const pagedRows = rows.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    // The filtered list is a different list, so a page index from the unfiltered one is meaningless.
+    setPage(1);
+  }, [isFilteringMyActivity]);
+
+  useEffect(() => {
+    // A refetch can shrink the list below the current page, which would render an empty table.
+    if (pageCount > 0 && page > pageCount) {
+      setPage(1);
+    }
+  }, [page, pageCount]);
+
   if (isLoading) {
     return <div className="shimmer-container w-full h-[50px]"></div>;
   }
@@ -108,7 +129,7 @@ export default function Activity({ market }: ActivityProps) {
               <col style={{ width: "30%" }} />
             </colgroup>
             <tbody>
-              {rows.map((row) => {
+              {pagedRows.map((row) => {
                 const tokenIndex = row.outcomeToken
                   ? market.wrappedTokens.findIndex((w) => isTwoStringsEqual(w, row.outcomeToken as Address))
                   : -1;
@@ -168,6 +189,13 @@ export default function Activity({ market }: ActivityProps) {
             </tbody>
           </table>
         </div>
+      )}
+      {rows.length > ITEMS_PER_PAGE && (
+        <MarketsPagination
+          pageCount={pageCount}
+          page={page}
+          handlePageClick={({ selected }) => setPage(selected + 1)}
+        />
       )}
     </div>
   );
