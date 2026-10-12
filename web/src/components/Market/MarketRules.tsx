@@ -1,5 +1,4 @@
 import { type Market, decodeQuestion, getMarketStatus, getRealityLink } from "@seer-pm/sdk";
-import { MarketHeader } from "./Header/MarketHeader";
 import { MarketInfo } from "./Header/MarketInfo";
 
 export function MarketRules({ market }: { market: Market }) {
@@ -37,10 +36,6 @@ export function MarketRules({ market }: { market: Market }) {
       <div className="event-resolution-status">
         <MarketInfo market={market} marketStatus={getMarketStatus(market)} isPreview={false} />
       </div>
-      <details className="event-technical-details">
-        <summary>Additional market details</summary>
-        <MarketHeader market={market} images={market.images} embedded />
-      </details>
     </section>
   );
 }

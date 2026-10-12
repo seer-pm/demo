@@ -316,7 +316,50 @@
   font-size: 12px;
   font-weight: 500;
 }
-.event-metrics a {
+.event-metrics > span a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: inherit;
+  border-radius: 4px;
+}
+.event-metrics > span a:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.event-metrics > span a:focus-visible {
+  outline: 2px solid var(--seer-brand-purple);
+  outline-offset: 3px;
+}
+.event-metrics > span a > span {
+  font-size: 10px;
+  color: var(--seer-muted);
+}
+/* Values that carry an icon centre it on the text instead of the row baseline. */
+.event-metric-type strong,
+.event-metric-verification strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.event-metric-type svg,
+.event-metric-verification svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.event-metric-pnl[data-sign="up"] strong {
+  color: oklch(var(--success-primary));
+}
+.event-metric-pnl[data-sign="down"] strong {
+  color: oklch(var(--error-primary));
+}
+.event-metric-pnl .loading {
+  width: 12px;
+  height: 12px;
+  align-self: center;
+}
+.event-metrics > .event-metrics-rules {
   margin-left: auto;
   color: var(--seer-muted);
   font-size: 11px;
@@ -510,31 +553,6 @@
   grid-column: 1;
   min-width: 0;
 }
-.event-rules {
-  scroll-margin-top: 100px;
-  margin-bottom: 24px;
-  border: 1px solid var(--seer-border);
-  border-radius: 14px;
-  background: var(--seer-surface);
-}
-.event-rules summary {
-  cursor: pointer;
-  padding: 20px;
-}
-.event-rules summary > :first-child {
-  font-size: 15px;
-  font-weight: 500;
-}
-.event-rules summary > :last-child {
-  display: block;
-  font-size: 11px;
-  color: var(--seer-muted);
-  margin: 6px 0 0 18px;
-}
-.event-rules .card {
-  box-shadow: none;
-  border: 0;
-}
 [data-theme="dark"] .event-trade-outcome,
 [data-theme="dark"] .event-kicker > :last-child {
   color: #c9acff;
@@ -563,7 +581,7 @@
   .event-metrics {
     gap: 14px;
   }
-  .event-metrics a {
+  .event-metrics > .event-metrics-rules {
     margin-left: 0;
   }
   .event-chart-summary {
@@ -1001,14 +1019,6 @@
 }
 .event-resolution-status {
   padding-block: 16px;
-}
-.event-technical-details > summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--seer-muted);
-}
-.event-technical-details > .card {
-  margin-top: 16px;
 }
 .event-token-tools .card {
   border: 0;
