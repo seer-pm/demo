@@ -449,8 +449,7 @@ function CompactOutcomeRow({
   isActive,
   expanded,
   openLiquidityModal,
-  onSelect,
-  onToggleDetails,
+  onActivate,
 }: {
   market: Market;
   marketStatus?: MarketStatus;
@@ -462,8 +461,8 @@ function CompactOutcomeRow({
   isActive: boolean;
   expanded: boolean;
   openLiquidityModal?: () => void;
-  onSelect: () => void;
-  onToggleDetails: () => void;
+  /** The whole bar is the control: it selects the outcome and toggles its order book. */
+  onActivate: () => void;
 }) {
   const { address } = useAccount();
   const { data: balances } = useTokenBalances(address, market.wrappedTokens, market.chainId);
@@ -477,7 +476,14 @@ function CompactOutcomeRow({
   return (
     <article className={`event-outcome-row ${isActive ? "is-selected" : ""}`}>
       <div className="event-outcome-top">
-        <button type="button" className="event-outcome-disclosure" aria-pressed={isActive} onClick={onSelect}>
+        <button
+          type="button"
+          className="event-outcome-disclosure"
+          aria-pressed={isActive}
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          onClick={onActivate}
+        >
           <span className="event-outcome-avatar">
             <OutcomeImage
               image={images?.[outcomeIndex]}
@@ -508,7 +514,9 @@ function CompactOutcomeRow({
                 ? "Applies if the market resolves as invalid"
                 : balance
                   ? `You hold ${balance} ${tokensInfo?.[outcomeIndex]?.symbol ?? ""}`
-                  : null}
+                  : expanded
+                    ? "Hide order book"
+                    : "Order book & liquidity"}
             </small>
           </span>
           <span className="event-outcome-price">
@@ -521,16 +529,9 @@ function CompactOutcomeRow({
               </>
             )}
           </span>
-        </button>
-        <button
-          type="button"
-          className="event-outcome-chevron"
-          aria-expanded={expanded}
-          aria-controls={detailsId}
-          aria-label={expanded ? "Hide order book" : "Show order book"}
-          onClick={onToggleDetails}
-        >
-          {expanded ? "−" : "+"}
+          <span className="event-outcome-chevron" aria-hidden="true">
+            {expanded ? "−" : "+"}
+          </span>
         </button>
       </div>
       {expanded && (
@@ -617,7 +618,7 @@ export function Outcomes({
     <div>
       <div className={compact ? "event-outcome-heading" : "text-[16px] font-semibold mb-[24px]"}>
         <h2>Outcomes</h2>
-        {compact && <span>Select an outcome to trade it. Expand a row for its order book.</span>}
+        {compact && <span>Select an outcome to trade it and see its order book.</span>}
       </div>
       <div className="space-y-3">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
@@ -639,8 +640,10 @@ export function Outcomes({
                 isActive={isActive}
                 expanded={openPoolDetails === i}
                 openLiquidityModal={openModalCallback}
-                onSelect={() => onOutcomeChange(i, true)}
-                onToggleDetails={() => togglePoolDetails(i)}
+                onActivate={() => {
+                  onOutcomeChange(i, false);
+                  togglePoolDetails(i);
+                }}
               />
             );
           }

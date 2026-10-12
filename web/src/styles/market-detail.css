@@ -416,7 +416,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding-right: 8px;
+  padding-right: 16px;
 }
 .event-outcome-disclosure {
   display: flex;
@@ -465,16 +465,8 @@
 }
 .event-outcome-chevron {
   color: var(--seer-muted);
-  min-width: 40px;
-  min-height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
+  width: 14px;
   font-size: 18px;
-}
-.event-outcome-chevron:hover {
-  background: var(--seer-surface-raised);
-  color: var(--seer-text);
 }
 .event-trade-outcome {
   border-radius: 8px;
