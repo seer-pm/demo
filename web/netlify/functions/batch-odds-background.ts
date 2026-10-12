@@ -58,26 +58,37 @@ export default async () => {
     // getAllMarketPools drops a chain whose fetch failed, and the markets of that chain then read as
     // having no pools. Volume is a lifetime figure, so a run that saw no pools keeps the stored value
     // instead of writing a zero.
+    // A bulk upsert sends the union of every row's keys, and PostgREST fills a key a row lacks with
+    // NULL. Each upsert therefore carries rows of one shape: the volume columns go out only in the
+    // batch of markets that have pools.
     const marketsWithPools = new Set(pools.map((pool) => `${pool.chainId}-${pool.market.id}`));
-    const { error: errorLiquidity } = await supabase.from("markets").upsert(
-      markets.map((market) => ({
-        id: market.id,
-        chain_id: market.chainId,
-        liquidity: liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0,
-        max_liquidity: Math.max(liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0, market.maxLiquidity ?? 0),
-        pool_balance: liquidityToMarketMapping[market.id]?.poolBalance || [],
-        updated_at: new Date(),
-        open_interest_usd:
-          Number(formatUnits(market.outcomesSupply, 18)) *
-          (liquidityToMarketMapping[market.id]?.collateralPriceInUSD ?? 0),
-        ...(marketsWithPools.has(`${market.chainId}-${market.id}`) && {
-          volume_usd: liquidityToMarketMapping[market.id]?.volumeUSD ?? 0,
-          volume_notional_usd: liquidityToMarketMapping[market.id]?.volumeNotionalUSD ?? 0,
-        }),
+    const liquidityRow = (market: (typeof markets)[number]) => ({
+      id: market.id,
+      chain_id: market.chainId,
+      liquidity: liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0,
+      max_liquidity: Math.max(liquidityToMarketMapping[market.id]?.totalLiquidity ?? 0, market.maxLiquidity ?? 0),
+      pool_balance: liquidityToMarketMapping[market.id]?.poolBalance || [],
+      updated_at: new Date(),
+      open_interest_usd:
+        Number(formatUnits(market.outcomesSupply, 18)) *
+        (liquidityToMarketMapping[market.id]?.collateralPriceInUSD ?? 0),
+    });
+    const pooledMarkets = markets.filter((market) => marketsWithPools.has(`${market.chainId}-${market.id}`));
+    const unpooledMarkets = markets.filter((market) => !marketsWithPools.has(`${market.chainId}-${market.id}`));
+    const liquidityBatches = [
+      pooledMarkets.map((market) => ({
+        ...liquidityRow(market),
+        volume_usd: liquidityToMarketMapping[market.id]?.volumeUSD ?? 0,
+        volume_notional_usd: liquidityToMarketMapping[market.id]?.volumeNotionalUSD ?? 0,
       })),
-    );
-    if (errorLiquidity) {
-      console.error(errorLiquidity.message);
+      unpooledMarkets.map(liquidityRow),
+    ];
+    for (const rows of liquidityBatches) {
+      if (!rows.length) continue;
+      const { error: errorLiquidity } = await supabase.from("markets").upsert(rows);
+      if (errorLiquidity) {
+        console.error(errorLiquidity.message);
+      }
     }
     // update odds for each market
     console.log("fetching odds...");
