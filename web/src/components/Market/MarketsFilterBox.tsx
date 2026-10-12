@@ -20,15 +20,7 @@ import Button from "../Form/Button";
 import FormError from "../Form/FormError";
 import Input from "../Form/Input";
 import Toggle from "../Form/Toggle";
-
-const ORDER_OPTIONS = [
-  { value: "default", text: "Default", tooltip: "Verification Status -> Liquidity" },
-  { value: "liquidityUSD", text: "Liquidity" },
-  { value: "volumeUSD", text: "Volume" },
-  { value: "outcomesSupply", text: "Open Interest" },
-  { value: "openingTs", text: "Opening Date" },
-  { value: "creationDate", text: "Creation Date" },
-];
+import { ORDER_OPTIONS } from "./marketOrderOptions";
 
 const VERIFY_STATUS_OPTIONS = [
   { value: "", text: "All" },

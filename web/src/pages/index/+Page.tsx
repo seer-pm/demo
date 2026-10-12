@@ -1,5 +1,6 @@
 import { Alert } from "@/components/Alert";
 import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
+import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
@@ -120,7 +121,10 @@ function PageContent({ params }: { params: UseMarketsProps }) {
   return (
     <div className="seer-home">
       <div className="container-fluid seer-home-controls">
-        <MarketCategoryNav />
+        <div className="seer-home-toolbar">
+          <MarketCategoryNav />
+          <MarketsFilter />
+        </div>
       </div>
 
       <div className="container-fluid seer-market-results">

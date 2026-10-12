@@ -12,6 +12,7 @@ import {
   EthIcon,
   Menu,
   PersonAdd,
+  PlusCircleIcon,
   PolicyIcon,
   QuestionIcon,
 } from "@/lib/icons";
@@ -31,8 +32,8 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
-import { MarketsFilter } from "../Market/MarketsFilter";
 import { BrandLockup } from "./BrandLockup";
+import { HeaderSearch } from "./HeaderSearch";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import { UseSmartAccountToggle } from "./UseSmartAccountToggle";
 
@@ -162,7 +163,6 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean, pathname: strin
 export default function Header() {
   const { urlParsed } = usePageContext();
   const { isConnected } = useAccount();
-  const isHome = urlParsed.pathname === "/";
   const { balance, isFetching, symbol, chainId } = useWalletBalance();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topOffset, setTopOffset] = useState(0);
@@ -257,6 +257,15 @@ export default function Header() {
       </button>
     );
 
+    // Creating a market is the rare task next to trading, so the link is secondary in weight and
+    // sits in one fixed slot, just before the wallet cluster, on every route.
+    const createMarket = (
+      <Link to="/create-market" className="seer-global-create">
+        <PlusCircleIcon width={18} />
+        Create market
+      </Link>
+    );
+
     const items: NavItem[] = [
       {
         id: "container-1",
@@ -312,6 +321,7 @@ export default function Header() {
         type: "container",
         className: isMobile ? "space-y-[24px] mt-5" : "seer-account-nav",
         children: [
+          ...(isMobile ? [] : [{ id: "create-market-desktop", type: "custom" as const, element: createMarket }]),
           { id: "connect-wallet", type: "custom", element: <ConnectWallet isMobile={isMobile} /> },
           {
             id: "container-connected",
@@ -443,7 +453,7 @@ export default function Header() {
   };
 
   return (
-    <header id="header" className={`seer-header ${isHome ? "seer-discovery-header" : ""}`}>
+    <header id="header" className="seer-header">
       <Modal
         title="Deposit"
         className="w-[400px]"
@@ -456,14 +466,8 @@ export default function Header() {
             <BrandLockup />
           </Link>
         </div>
-        {isHome && <MarketsFilter mode="search" />}
+        <HeaderSearch />
         {buildAndRender(mobileOpen)}
-        {isHome && <MarketsFilter mode="actions" />}
-        {!isHome && (
-          <Link to="/create-market" className="seer-global-create">
-            + Create Market
-          </Link>
-        )}
         <div className="seer-mobile-actions">
           <ThemeToggleButton iconFill="currentColor" />
           <button
