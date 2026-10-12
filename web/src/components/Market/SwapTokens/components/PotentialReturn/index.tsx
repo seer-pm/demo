@@ -81,7 +81,7 @@ export function PotentialReturn({
             market resolves to {outcomeText}
             {redeemsThroughParent ? " and every market in its parent chain resolves to the required outcome" : ""}.
           </p>
-          <QuestionIcon fill="#9747FF" />
+          <QuestionIcon fill="#7D33FF" />
         </span>
       </div>
       <PotentialReturnResult

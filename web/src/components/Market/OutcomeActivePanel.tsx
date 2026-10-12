@@ -2,7 +2,7 @@ import MarketChart from "@/components/Market/MarketChart/MarketChart";
 import PoolTab from "@/components/Market/PoolDetails/PoolTab";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 type ActiveTab = "liquidity" | "chart";
 
@@ -15,37 +15,9 @@ export function OutcomeActivePanel({
 }) {
   const isScalar = getMarketType(market) === MarketTypes.SCALAR;
   const [activeTab, setActiveTab] = useState<ActiveTab>("liquidity");
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [maxHeight, setMaxHeight] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-
-    const syncHeight = () => setMaxHeight(el.scrollHeight);
-    syncHeight();
-
-    const observer = new ResizeObserver(syncHeight);
-    observer.observe(el);
-
-    const frame = requestAnimationFrame(() => setIsOpen(true));
-
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, []);
-
   return (
-    <div
-      className="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out border-t border-purple-primary rounded-b-[3px] bg-base-100"
-      style={{
-        maxHeight: isOpen ? maxHeight : 0,
-        opacity: isOpen ? 1 : 0,
-      }}
-    >
-      <div ref={contentRef}>
+    <div className="border-t border-purple-primary rounded-b-[3px] bg-base-100">
+      <div>
         {!isScalar && (
           <div
             role="tablist"
@@ -54,6 +26,7 @@ export function OutcomeActivePanel({
             <button
               type="button"
               role="tab"
+              aria-selected={activeTab === "liquidity"}
               className={clsx("tab", activeTab === "liquidity" && "tab-active")}
               onClick={() => setActiveTab("liquidity")}
             >
@@ -62,6 +35,7 @@ export function OutcomeActivePanel({
             <button
               type="button"
               role="tab"
+              aria-selected={activeTab === "chart"}
               className={clsx("tab", activeTab === "chart" && "tab-active")}
               onClick={() => setActiveTab("chart")}
             >
@@ -71,7 +45,7 @@ export function OutcomeActivePanel({
         )}
         <div className="p-4">
           {activeTab === "liquidity" || isScalar ? (
-            <div className="max-h-[600px] overflow-y-auto">
+            <div>
               <PoolTab market={market} outcomeIndex={outcomeIndex} />
             </div>
           ) : (

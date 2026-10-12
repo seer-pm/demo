@@ -58,16 +58,13 @@ const AccountDisplay: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const { chain } = useAccount();
   return (
     <div
-      className={clsx(
-        "inline-flex gap-2 text-[14px] rounded-[300px] px-[16px] h-[32px] cursor-pointer hover:opacity-90",
-        isMobile ? "bg-blue-medium text-purple-primary" : "bg-[#FFFFFF1F] text-white",
-      )}
+      className="seer-account-badge inline-flex gap-2 text-[14px] rounded-[300px] px-[16px] h-[32px] cursor-pointer hover:opacity-90"
       onClick={() => open({ view: "Account" })}
     >
       <div className={clsx("gap-2 items-center", isMobile ? "flex" : "hidden xl:flex")}>
         <div className={clsx("w-[8px] h-[8px] rounded-full", chain ? "bg-success-primary" : "bg-error-primary")}></div>
       </div>
-      <div className={clsx("flex space-x-2 items-center", isMobile ? "text-purple-primary" : " text-white")}>
+      <div className="flex space-x-2 items-center">
         <AddressOrName />
       </div>
     </div>

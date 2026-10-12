@@ -1,17 +1,20 @@
 import { Alert } from "@/components/Alert";
+import "@/styles/market-detail.css";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
+import { BrandRibbon } from "@/components/Layout/BrandStreak";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
-import { MarketHeader } from "@/components/Market/Header/MarketHeader";
 import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";
-import MarketChart from "@/components/Market/MarketChart/MarketChart";
+import { MarketOverview } from "@/components/Market/MarketOverview";
+import { MarketRules } from "@/components/Market/MarketRules";
 import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import { useChildMarketSwapCollateral } from "@/hooks/trade/useChildMarketSwapCollateral";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
+import { useSearchParams } from "@/hooks/useSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
@@ -102,6 +105,8 @@ function SwapWidget({
 
 function MarketPage() {
   const { routeParams } = usePageContext();
+  const [marketSearchParams] = useSearchParams();
+  const requestedOutcome = marketSearchParams.get("outcome");
   const { address: account, chainId: connectedChainId } = useAccount();
   const { isPending: isSwitchPending } = useSwitchChain();
   // Guard: only one auto-switch attempt per market (per chainId). Never reset when on correct chain
@@ -112,6 +117,8 @@ function MarketPage() {
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const isMobile = useIsSmallScreen(1200);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
   const [drawerTabs, setDrawerTabs] = useState<React.ReactNode>(null);
 
   // Auto-switch to the market's chain when the wallet is connected but on a different chain.
@@ -130,6 +137,25 @@ function MarketPage() {
     isLoading: isMarketLoading,
     isPlaceholderData,
   } = useMarket(idOrSlug, chainId);
+  useEffect(() => {
+    const header = document.querySelector(".seer-header");
+    if (!header || !market) return;
+    const updateTicketTop = () => {
+      workspaceRef.current?.style.setProperty("--event-ticket-top", `${header.getBoundingClientRect().height + 12}px`);
+    };
+    const observer = new ResizeObserver(updateTicketTop);
+    observer.observe(header);
+    updateTicketTop();
+    return () => observer.disconnect();
+  }, [isMobile, market?.id]);
+
+  // A valid ?outcome= wins over the default top-odds selection, so links from the portfolio and from
+  // parent markets land on the outcome they name.
+  const requestedOutcomeIndex = requestedOutcome ? (market?.outcomes.indexOf(requestedOutcome) ?? -1) : -1;
+  const hasRequestedOutcome = requestedOutcomeIndex >= 0;
+  useEffect(() => {
+    if (hasRequestedOutcome) setOutcomeIndex(requestedOutcomeIndex);
+  }, [idOrSlug, hasRequestedOutcome, requestedOutcomeIndex]);
 
   market = useMarketQuestions(market, chainId);
 
@@ -190,7 +216,7 @@ function MarketPage() {
   const reliableMarket = isMarketReliable(market);
 
   return (
-    <div className="container-fluid py-10">
+    <div className="container-fluid py-10 seer-market-detail">
       <div className="space-y-5">
         <Breadcrumb links={[{ title: "Market" }]} />
         {marketStatus !== MarketStatus.CLOSED && !isOfficialMarketFactory(market.factory, market.chainId) && (
@@ -228,7 +254,6 @@ function MarketPage() {
           chainId={chainId}
         />
 
-        <MarketHeader market={market} images={market.images} />
         {!reliableMarket && (
           <Alert
             type="error"
@@ -237,34 +262,52 @@ function MarketPage() {
             It could lead to the market being resolved to an invalid or unexpected outcome. Proceed with caution.
           </Alert>
         )}
-        <div className="grid grid-cols-1 [@media(min-width:1200px)]:grid-cols-12 gap-x-4 gap-y-10">
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 h-fit space-y-8">
-            <MarketChart market={market} />
+        <BrandRibbon />
+        <div className="event-workspace" ref={workspaceRef}>
+          <div className="event-main">
+            <MarketOverview market={market} selected={outcomeIndex} />
 
-            <Outcomes
-              market={market}
-              images={market?.images?.outcomes}
-              activeOutcome={outcomeIndex}
-              onOutcomeChange={onOutcomeChange}
-            />
+            <section className="event-outcomes" aria-label="Market outcomes">
+              <Outcomes
+                compact
+                autoSelectTopOutcome={!hasRequestedOutcome}
+                market={market}
+                images={market?.images?.outcomes}
+                activeOutcome={outcomeIndex}
+                onOutcomeChange={onOutcomeChange}
+              />
+            </section>
           </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-4 space-y-5 [@media(min-width:1200px)]:row-span-2 h-fit [@media(min-width:1200px)]:sticky [@media(min-width:1200px)]:top-2">
+          <aside
+            className="event-ticket-column"
+            aria-label="Trade outcome and token tools"
+            tabIndex={isMobile ? undefined : 0}
+          >
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
-              <>
+              <div className="seer-market-trade">
+                <div className="seer-trade-heading">
+                  <span>Trade outcome</span>
+                  <span>SEER</span>
+                </div>
                 <SwapWidget
                   market={market}
                   outcomeIndex={outcomeIndex}
                   images={market?.images?.outcomes}
                   onOutcomeChange={onOutcomeChange}
                 />
-                <ConditionalTokenActions market={market} account={account} outcomeIndex={outcomeIndex} />
-              </>
+                <section className="event-token-tools" aria-label="Mint, merge and redeem">
+                  <ConditionalTokenActions expanded market={market} account={account} outcomeIndex={outcomeIndex} />
+                </section>
+              </div>
             )}
             <MajorEvents market={market} />
-          </div>
-          <div className="col-span-1 [@media(min-width:1200px)]:col-span-8 space-y-16 [@media(min-width:1200px)]:row-span-2">
-            <MarketTabs market={market} />
+          </aside>
+          <div className="event-secondary">
+            <MarketRules market={market} />
+            <section className="seer-market-discussion" aria-label="Market activity">
+              <MarketTabs market={market} />
+            </section>
           </div>
         </div>
         {/* Mobile Drawer */}

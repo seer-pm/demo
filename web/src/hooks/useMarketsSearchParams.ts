@@ -5,6 +5,15 @@ type MarketsOrderBy = NonNullable<FetchMarketParams["orderBy"]>;
 
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const categoryList = searchParams.getAll("category");
+  const setCategory = (value: string) => {
+    setSearchParams((params) => {
+      params.delete("category");
+      if (value) params.set("category", value);
+      params.set("page", "1");
+      return params;
+    });
+  };
   const marketName = searchParams.get("marketName") ?? undefined;
   const marketStatusList =
     searchParams.getAll("marketStatus").length === 0
@@ -180,6 +189,8 @@ function useMarketsSearchParams() {
   };
 
   return {
+    categoryList,
+    setCategory,
     marketName,
     marketStatusList,
     verificationStatusList,
@@ -209,6 +220,7 @@ function useMarketsSearchParams() {
     setMinLiquidity,
 
     hasFilters:
+      categoryList.length ||
       verificationStatusList?.length ||
       marketStatusList?.length ||
       chainsList?.length ||

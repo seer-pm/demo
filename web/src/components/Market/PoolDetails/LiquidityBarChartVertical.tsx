@@ -8,6 +8,7 @@ import { Market } from "@seer-pm/sdk";
 import { tickToPrice } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
+import { cumulativeCostRows } from "./cumulativeCostRows";
 
 export default function LiquidityBarChartVertical({
   market,
@@ -26,7 +27,7 @@ export default function LiquidityBarChartVertical({
   const { data: ticksByPool, isLoading, isError } = useTicksData(market, outcomeTokenIndex);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { priceList, sellBarsData, buyBarsData, sellLineData, buyLineData } = getLiquidityChartData(
+  const { priceList, sellBarsData, buyBarsData } = getLiquidityChartData(
     poolInfo,
     ticksByPool?.[id]?.ticks?.filter((tick) => Number(tick.liquidityNet) > 0)?.length ? ticksByPool?.[id]?.ticks : [],
     isShowToken0Price,
@@ -35,54 +36,25 @@ export default function LiquidityBarChartVertical({
   );
 
   const rows = (() => {
-    const sellBars = sellBarsData
-      .filter((x) => x[1] > 0)
-      .reverse()
-      .map((data, index) => {
-        const currentPriceIndex = data[0] - 0.5;
-        const currentLineIndex = data[0] * 2;
-        return {
-          id: `sell-${index}`,
-          side: "sell",
-          price: priceList[currentPriceIndex],
-          shares: data[1],
-          total: sellLineData[currentLineIndex][1],
-          pct: sellLineData[currentLineIndex][1]
-            ? sellLineData[currentLineIndex][1] /
-              Math.max(...(sellLineData.map((x) => x[1]).filter((x) => x) as number[]))
-            : 0,
-        };
-      });
-    const buyBars = buyBarsData
-      .filter((x) => x[1] > 0)
-      .reverse()
-      .map((data, index) => {
-        const currentPriceIndex = data[0] - 0.5;
-        const currentLineIndex = data[0] * 2;
-        return {
-          id: `buy-${index}`,
-          side: "buy",
-          price: priceList[currentPriceIndex],
-          shares: data[1],
-          total: buyLineData[currentLineIndex][1],
-          pct: buyLineData[currentLineIndex][1]
-            ? buyLineData[currentLineIndex][1] /
-              Math.max(...(buyLineData.map((x) => x[1]).filter((x) => x) as number[]))
-            : 0,
-        };
-      });
-    return sellBars
-      .concat([
-        {
-          id: "current",
-          side: "mid",
-          price: currentOutcomePrice,
-          shares: 0,
-          total: 0,
-          pct: 0,
-        },
-      ])
-      .concat(buyBars);
+    const levels = (bars: number[][]) =>
+      bars.map(([index, shares]) => ({
+        price: Number(priceList[index - 0.5]),
+        shares,
+      }));
+    const sellBars = cumulativeCostRows(levels(sellBarsData), "sell");
+    const buyBars = cumulativeCostRows(levels(buyBarsData), "buy");
+    return [
+      ...sellBars,
+      {
+        id: "current",
+        side: "mid",
+        price: Number(currentOutcomePrice),
+        shares: 0,
+        total: 0,
+        pct: 0,
+      },
+      ...buyBars,
+    ];
   })();
 
   useEffect(() => {
@@ -92,7 +64,7 @@ export default function LiquidityBarChartVertical({
     if (containerRef.current) {
       containerRef.current.scrollTop = rowHeight * index;
     }
-  }, [containerRef.current, sellBarsData]);
+  }, [id, tick, ticksByPool]);
 
   if (isError) {
     return (
@@ -111,10 +83,16 @@ export default function LiquidityBarChartVertical({
   }
   return (
     <div className="overflow-hidden">
+      <p className="text-xs text-base-content/60 py-2">Cumulative cost · Estimated pool depth, excluding fees</p>
       <div className="py-3 border-t border-b border-black-secondary grid grid-cols-12 gap-0 bg-gray-50 text-xs font-medium text-base-content pr-4">
-        <div className="col-span-6"></div>
+        <div className="col-span-6 pl-2">PRICE</div>
         <div className="col-span-3 text-center text-black-secondary font-semibold">SHARES</div>
-        <div className="col-span-3 text-center text-black-secondary font-semibold">TOTAL</div>
+        <div
+          className="col-span-3 text-center text-black-secondary font-semibold"
+          title="Running sum of price × shares from the best price. Pool-depth estimate, excluding fees."
+        >
+          TOTAL ({isShowToken0Price ? poolInfo.token1Symbol : poolInfo.token0Symbol})
+        </div>
       </div>
 
       <div ref={containerRef} className="overflow-y-auto h-[380px]">
@@ -146,7 +124,7 @@ export default function LiquidityBarChartVertical({
                     )}
                   >
                     {r.side === "mid" && "Last: "}
-                    {r.price}
+                    {Number(r.price).toFixed(4)}
                   </p>
                 </div>
               </div>

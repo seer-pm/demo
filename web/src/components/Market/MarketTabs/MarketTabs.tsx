@@ -22,25 +22,24 @@ export default function MarketTabs({ market }: { market: Market }) {
   useMarketHolders(market);
 
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"comments" | "conditionalMarkets" | "topHolders" | "activity">("comments");
+  const [activeTab, setActiveTab] = useState<"conditionalMarkets" | "topHolders" | "activity">("activity");
   return (
     <div>
+      <section className="event-comments" aria-labelledby="market-comments-heading">
+        <header>
+          <h2 id="market-comments-heading">Comments</h2>
+          <p>Share a source, ask a question, or add your perspective.</p>
+        </header>
+        <Comments market={market} fallback={<CommentsFallback />} />
+      </section>
       <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] ${activeTab === "comments" && "tab-active"}`}
-          onClick={() => setActiveTab("comments")}
-        >
-          Comments
-        </button>
         <button
           type="button"
           role="tab"
           className={`tab text-[16px] whitespace-nowrap ${activeTab === "conditionalMarkets" && "tab-active"}`}
           onClick={() => setActiveTab("conditionalMarkets")}
         >
-          Related Conditional Markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
+          Related markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
         </button>
         <button
           type="button"
@@ -59,7 +58,7 @@ export default function MarketTabs({ market }: { market: Market }) {
           Activity
         </button>
       </div>
-      {activeTab === "comments" && <Comments market={market} fallback={<CommentsFallback />} />}
+
       {activeTab === "conditionalMarkets" && (
         <RelatedMarkets market={market} setRelatedMarketsCount={(count: number) => setRelatedMarketsCount(count)} />
       )}
