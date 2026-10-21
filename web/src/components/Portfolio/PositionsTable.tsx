@@ -7,7 +7,7 @@ import { CloseIcon, ConditionalMarketIcon, QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isExecutorRow } from "@/lib/utils";
 import { useMarket } from "@seer-pm/react";
-import type { PortfolioChainId, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
+import type { PortfolioChainId, PortfolioCostBasisRow, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { getActiveCollateralProfile } from "@seer-pm/sdk";
 import { MarketStatus } from "@seer-pm/sdk";
 import {
@@ -28,6 +28,13 @@ import { RedeemForm } from "../Market/RedeemForm";
 import Popover from "../Popover";
 import { ExecutorBadge } from "./ExecutorBadge";
 import { SortableColumnHeader } from "./SortableColumnHeader";
+import {
+  type CostBasisLookup,
+  MARKET_PNL_PERIOD_LABEL,
+  type MarketPnlLookup,
+  costBasisKey,
+  marketPnlKey,
+} from "./marketPnl";
 
 function RedeemModalContent({
   account,
@@ -55,16 +62,59 @@ function RedeemModalContent({
   );
 }
 
+function ExpandedBasis({
+  entry,
+  chainId,
+}: {
+  entry: { basis: PortfolioCostBasisRow } | undefined;
+  chainId: SupportedChain;
+}) {
+  if (!entry) return null;
+  const symbol = getActiveCollateralProfile(chainId).primary.symbol;
+  const { realized, totalBought, totalSold, evenSplit } = entry.basis;
+  const format = (n: number) => (Math.abs(n) < 0.01 ? n.toFixed(6).replace(/\.?0+$/, "") : n.toFixed(2));
+  // Float residue from a closed round trip must not read as a signed loss.
+  const realizedLabel = format(Math.abs(realized));
+  const flat = realizedLabel === "0";
+  return (
+    <>
+      <span>
+        Realized on this outcome
+        <b className={flat ? "" : realized < 0 ? "portfolio-loss" : "portfolio-gain"}>
+          {flat ? "" : realized < 0 ? "−" : "+"}
+          {realizedLabel} {symbol}
+        </b>
+      </span>
+      <span>
+        Bought / sold, all time
+        <b>
+          {format(totalBought)} / {format(totalSold)} {symbol}
+        </b>
+      </span>
+      {evenSplit && (
+        <span>
+          Note
+          <b>A split with no pool price was spread evenly across outcomes</b>
+        </span>
+      )}
+    </>
+  );
+}
+
 function PositionsTableInner({
   data,
   chainId,
   account,
   showRedeemColumn,
+  marketPnl,
+  costBasis,
 }: {
   data: PortfolioPosition[];
   chainId: PortfolioChainId;
   account: Address | undefined;
   showRedeemColumn: boolean;
+  marketPnl: MarketPnlLookup;
+  costBasis: CostBasisLookup;
 }) {
   const { Modal, openModal, closeModal } = useModal("redeem-modal");
   const [selectedMarketId, setSelectedMarketId] = useState<Address>(zeroAddress);
@@ -80,7 +130,75 @@ function PositionsTableInner({
 
     return n.toFixed(2);
   }
+  const shares = (row: PortfolioPosition) => row.tokenBalance + (row.lpTokenBalance ?? 0);
+  /**
+   * The position's basis, when it can be shown. Cost follows the live share count at the stored
+   * average, so a trade made after the last refresh moves the cost with the shares instead of
+   * leaving the two out of step.
+   */
+  const basisOf = (row: PortfolioPosition) => {
+    const wallet = row.sourceWallet ?? account;
+    const basis = wallet ? costBasis.byKey.get(costBasisKey(row.chainId, row.tokenId, wallet)) : undefined;
+    if (!basis || basis.lpTouched || basis.averageCost === undefined) return undefined;
+    const cost = basis.averageCost * shares(row);
+    return { basis, averageCost: basis.averageCost, cost, positionPnl: row.tokenValue - cost };
+  };
   const columns = React.useMemo<ColumnDef<PortfolioPosition>[]>(() => {
+    const periodLabel = MARKET_PNL_PERIOD_LABEL[marketPnl.period];
+    // The figures belong to the wallet that holds the row: an executor's trades are stored under
+    // the executor, so a lookup on the viewed account would show the owner's own trades on it.
+    const marketFigures = (row: PortfolioPosition) => {
+      const wallet = row.sourceWallet ?? account;
+      return wallet ? marketPnl.byKey.get(marketPnlKey(row.chainId, row.marketId, wallet)) : undefined;
+    };
+    const unavailable = (title: string, label = "-") => (
+      <span className="portfolio-muted" title={title}>
+        {label}
+      </span>
+    );
+    const marketFigureCell = (row: PortfolioPosition, value: number | undefined, signed: boolean) => {
+      if (marketPnl.error) return unavailable(marketPnl.error);
+      if (!marketPnl.loaded) return unavailable("Loading", "…");
+      if (marketPnl.notComputed)
+        return unavailable("The P/L refresh job has not processed this wallet yet", "Not computed");
+      if (value === undefined) return unavailable(`No trades on this market in the ${periodLabel} window`);
+      const symbol = showChain ? ` ${getActiveCollateralProfile(row.chainId).primary.symbol}` : "";
+      const magnitude = formatSmallNumber(Math.abs(value));
+      // A value that rounds to nothing is shown as a plain zero: a signed "+0" claims a direction
+      // the displayed digits cannot support.
+      if (!signed || magnitude === "0") {
+        return (
+          <p className={`font-semibold text-[14px] text-center${magnitude === "0" ? " portfolio-muted" : ""}`}>
+            {magnitude}
+            {symbol}
+          </p>
+        );
+      }
+      return (
+        <p className={`font-semibold text-[14px] text-center ${value < 0 ? "portfolio-loss" : "portfolio-gain"}`}>
+          {value < 0 ? "−" : "+"}
+          {magnitude}
+          {symbol}
+        </p>
+      );
+    };
+    const basisUnavailable = (row: PortfolioPosition) => {
+      if (costBasis.error) return unavailable(costBasis.error);
+      if (!costBasis.loaded) return unavailable("Loading", "…");
+      if (costBasis.notComputed)
+        return unavailable("The P/L refresh job has not processed this wallet yet", "Not computed");
+      const wallet = row.sourceWallet ?? account;
+      const basis = wallet ? costBasis.byKey.get(costBasisKey(row.chainId, row.tokenId, wallet)) : undefined;
+      if (basis?.lpTouched)
+        return unavailable("This position went through a liquidity pool; cost basis is not tracked for it yet");
+      return unavailable("No acquisition history found for this position");
+    };
+    const approxMark = (row: PortfolioPosition) =>
+      basisOf(row)?.basis.approximate ? (
+        <span title="Approximate: an acquisition event could not be pinned down" className="portfolio-muted">
+          ≈
+        </span>
+      ) : null;
     const redeemColumn: ColumnDef<PortfolioPosition> = {
       accessorKey: "marketStatus",
       cell: (info) => {
@@ -224,6 +342,25 @@ function PositionsTableInner({
       },
 
       {
+        id: "entry",
+        accessorFn: (row) => basisOf(row)?.averageCost,
+        sortUndefined: "last",
+        header: "Avg. entry",
+        cell: (info) => {
+          const row = info.row.original;
+          const entry = basisOf(row);
+          if (!entry) return basisUnavailable(row);
+          const symbol = showChain ? ` ${getActiveCollateralProfile(row.chainId).primary.symbol}` : "";
+          return (
+            <p className="font-semibold text-[14px] text-center">
+              {approxMark(row)}
+              {formatSmallNumber(entry.averageCost)}
+              {symbol}
+            </p>
+          );
+        },
+      },
+      {
         accessorKey: "tokenPrice",
         cell: (info) => {
           const position = info.row.original;
@@ -276,18 +413,74 @@ function PositionsTableInner({
         cell: (info) => formatSmallNumber(info.getValue<number>()),
       },
       {
-        accessorKey: "tokenValue",
+        id: "cost",
+        accessorFn: (row) => basisOf(row)?.cost,
+        sortUndefined: "last",
+        header: "Cost",
         cell: (info) => {
-          const position = info.row.original;
-          const symbol = showChain ? ` ${getActiveCollateralProfile(position.chainId).primary.symbol}` : "";
+          const row = info.row.original;
+          const entry = basisOf(row);
+          if (!entry) return basisUnavailable(row);
+          const symbol = showChain ? ` ${getActiveCollateralProfile(row.chainId).primary.symbol}` : "";
           return (
             <p className="font-semibold text-[14px] text-center">
-              {formatSmallNumber(info.getValue<number>())}
+              {approxMark(row)}
+              {formatSmallNumber(entry.cost)}
               {symbol}
             </p>
           );
         },
-        header: "Value",
+      },
+      {
+        accessorKey: "tokenValue",
+        cell: (info) => {
+          const position = info.row.original;
+          const symbol = showChain ? ` ${getActiveCollateralProfile(position.chainId).primary.symbol}` : "";
+          const entry = basisOf(position);
+          const pnl = entry?.positionPnl;
+          const magnitude = pnl === undefined ? undefined : formatSmallNumber(Math.abs(pnl));
+          const flat = magnitude === "0";
+          const tone = pnl === undefined || flat ? "portfolio-muted" : pnl < 0 ? "portfolio-loss" : "portfolio-gain";
+          const sign = pnl !== undefined && pnl < 0 ? "−" : "+";
+          const returnPct =
+            entry && pnl !== undefined && entry.cost > 0 && !flat
+              ? ` (${sign}${((Math.abs(pnl) / entry.cost) * 100).toFixed(2)}%)`
+              : "";
+          return (
+            <p className="font-semibold text-[14px] text-center">
+              {formatSmallNumber(info.getValue<number>())}
+              {symbol}
+              {entry && magnitude !== undefined && (
+                <small className={`block font-normal ${tone}`}>
+                  {approxMark(position)}
+                  {flat ? "0" : `${sign}${magnitude}`}
+                  {returnPct}
+                </small>
+              )}
+            </p>
+          );
+        },
+        header: "Value / P&L",
+      },
+      {
+        id: "positionPnl",
+        accessorFn: (row) => basisOf(row)?.positionPnl,
+        sortUndefined: "last",
+        header: "Position P/L",
+      },
+      {
+        id: "traded",
+        accessorFn: (row) => marketFigures(row)?.volume,
+        sortUndefined: "last",
+        header: `Traded · ${periodLabel}`,
+        cell: (info) => marketFigureCell(info.row.original, info.getValue<number | undefined>(), false),
+      },
+      {
+        id: "pnl",
+        accessorFn: (row) => marketFigures(row)?.pnl,
+        sortUndefined: "last",
+        header: `Market P/L · ${periodLabel}`,
+        cell: (info) => marketFigureCell(info.row.original, info.getValue<number | undefined>(), true),
       },
       ...(showRedeemColumn ? [redeemColumn] : []),
       {
@@ -307,7 +500,7 @@ function PositionsTableInner({
         ),
       },
     ];
-  }, [showChain, showRedeemColumn, account, expanded]);
+  }, [showChain, showRedeemColumn, account, expanded, marketPnl, costBasis]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -316,7 +509,8 @@ function PositionsTableInner({
     columns,
     data,
     getRowId: (row) => `${row.chainId}:${row.tokenId}:${row.sourceWallet ?? "owner"}`,
-    state: { pagination },
+    // `positionPnl` exists to sort by; the figure itself is shown under Value.
+    state: { pagination, columnVisibility: { positionPnl: false } },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -358,6 +552,10 @@ function PositionsTableInner({
             <option value="tokenValue">Current value</option>
             <option value="marketName">Market name</option>
             <option value="shares">Shares</option>
+            <option value="positionPnl">Position P/L</option>
+            <option value="entry">Avg. entry</option>
+            <option value="traded">Traded</option>
+            <option value="pnl">Market P/L</option>
           </select>
         </label>
       </div>
@@ -425,6 +623,20 @@ function PositionsTableInner({
                                 : "Open · not yet redeemable"}
                             </b>
                           </span>
+                          {isAddressEqual(
+                            row.original.collateralToken,
+                            getActiveCollateralProfile(row.original.chainId).primary.address,
+                          ) && (
+                            <span>
+                              If this outcome wins
+                              <b>
+                                {formatSmallNumber(shares(row.original))}{" "}
+                                {getActiveCollateralProfile(row.original.chainId).primary.symbol}
+                                <small className="portfolio-muted"> · categorical payout of 1 per share</small>
+                              </b>
+                            </span>
+                          )}
+                          <ExpandedBasis entry={basisOf(row.original)} chainId={row.original.chainId} />
                         </div>
                       </td>
                     </tr>
@@ -450,10 +662,14 @@ export default function PositionsTable({
   data,
   chainId,
   account,
+  marketPnl,
+  costBasis,
 }: {
   data: PortfolioPosition[];
   chainId: PortfolioChainId;
   account: Address | undefined;
+  marketPnl: MarketPnlLookup;
+  costBasis: CostBasisLookup;
 }) {
   const { address: connectedAddress } = useAccount();
   const showRedeemColumn =
@@ -466,6 +682,8 @@ export default function PositionsTable({
       chainId={chainId}
       account={account}
       showRedeemColumn={showRedeemColumn}
+      marketPnl={marketPnl}
+      costBasis={costBasis}
     />
   );
 }

@@ -26,6 +26,7 @@ multi-statement scripts in one, so run those statements individually.
 | `AIRDROP_RESEED.md` | Runbook for replacing the contents of `airdrops` after the calculation fixes in `fix/airdrop-calculation`. Not SQL to apply — a sequence to follow, including the ordering constraint around the daily scheduled function. |
 | `get_airdrop_summary_by_user.sql` | Aggregates a user's whole airdrop history into one row for `get-airdrop-data-by-user`. |
 | `pnl_market_leaderboard.sql` | Per-market P/L: `pnl_market_leaderboard` (source of truth), `pnl_market_daily_delta` (sparse daily cashflow, so the window roll adds one day instead of replaying), and the refresh cursor. `pnl_leaderboard` becomes the derived read model. |
+| `pnl_token_basis.sql` | Per-token cost basis: `pnl_token_basis`, one row per (chain, wallet, outcome token) with weighted-average cost, realized P/L and the `lp_touched` / `approximate` / `even_split` flags. Written by the P/L refresh job (`utils/costBasisCompute.ts`), read by the portfolio Positions table. Refresh writes require `SUPABASE_API_KEY` = **service_role**. |
 | `pnl_leaderboard.sql` | Table + indexes + refresh cursor table. Also carries the trader-score sufficient statistics (`scored_market_count`, `winning_market_count`, `gross_profit_usd`, `gross_loss_usd`, `best_market_pnl_usd`, `scored_capital_usd`); the score itself is derived at read time, never stored. Those six columns hold an *owner's* statistics: for a wallet trading through a TradeExecutor, they are gathered over the combined book and written on the owner's row, and the executor's row carries zeros (its other columns stay its own). Refresh writes require `SUPABASE_API_KEY` = **service_role** (`anon` is SELECT-only). Public reads go through the Netlify `get-pnl-leaderboard` function (rollup in TS). |
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `users_username.sql` | Adds the optional unique wallet-linked username column and validation constraints. |
@@ -84,6 +85,11 @@ drop function if exists public.pnl_leaderboard_all_chains_rank(text, text, text)
    wallet pass all query tables that do not exist until it is applied. Safe to re-run; if you
    applied an earlier copy, the re-run picks up the `market_id` column the MTM sweep's scan cursor
    needs (`alter table ... add column if not exists`).
+
+4. `pnl_token_basis.sql`: **required before deploying the cost-basis refresh.** The global P/L
+   refresh writes token costs to this table before updating the wallet-level leaderboard. If the
+   table is missing, that wallet's refresh fails. Apply the SQL first; existing wallets acquire
+   cost-basis rows as the refresh reaches them.
 
 ## Apply for usernames
 

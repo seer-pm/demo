@@ -30,6 +30,7 @@ import {
   deriveLeaderboardRows,
   deriveOwnerGroupRows,
 } from "./pnlMarketRows";
+import { type PnlTokenBasisInsert, buildTokenBasisRows } from "./pnlTokenBasisRows";
 import { PORTFOLIO_PL_PERIODS, computePortfolioPlAllPeriods } from "./portfolioPlCompute";
 import {
   type CandidateScanResult,
@@ -443,6 +444,8 @@ export type RefreshAppChainResult = {
   marketCount?: number;
   /** Rows written to `pnl_market_leaderboard` (global job only). */
   marketRowsUpserted: number;
+  /** Rows written to `pnl_token_basis` (global job only). */
+  tokenBasisRowsUpserted: number;
   /** Owner groups walked this run; equals `processed` on chains without TradeExecutors. */
   ownerGroups: number;
 };
@@ -561,6 +564,46 @@ async function upsertMarketRows(
 }
 
 /**
+ * `pnl_token_basis` rows for one wallet, then a sweep of whatever this pass did not rewrite: a
+ * token the wallet no longer has any history for (a market dropped from the key set) must not keep
+ * a stale entry price.
+ */
+async function upsertTokenBasisRows(
+  supabase: SupabaseClient<Database>,
+  address: string,
+  rows: PnlTokenBasisInsert[],
+  chainId: number,
+  writtenAt: string,
+): Promise<number> {
+  if (rows.length > 0) {
+    const { data, error, count } = await supabase
+      .from("pnl_token_basis")
+      .upsert(rows, { onConflict: "chain_id,address,token_id", count: "exact" })
+      .select("token_id");
+    if (error) {
+      throw new Error(`pnl-token-basis upsert failed ${address}: ${error.message}`);
+    }
+    const written = data ?? [];
+    if (count === 0 || written.length !== rows.length) {
+      throw new FatalLeaderboardUpsertError(
+        `pnl-token-basis: upsert wrote ${written.length}/${rows.length} rows for ${address} (count=${count}); check SUPABASE_API_KEY is service_role and the table exists`,
+      );
+    }
+  }
+
+  const { error: sweepError } = await supabase
+    .from("pnl_token_basis")
+    .delete()
+    .eq("chain_id", chainId)
+    .eq("address", address.toLowerCase())
+    .lt("updated_at", writtenAt);
+  if (sweepError) {
+    throw new Error(`pnl-token-basis: superseded-row sweep failed ${address}: ${sweepError.message}`);
+  }
+  return rows.length;
+}
+
+/**
  * Materialized scopes a single global pass now covers on one chain: `all`, plus every app board
  * whose markets live there. Allowlists are expanded parent→child once per chain, not per wallet.
  */
@@ -621,6 +664,7 @@ export async function refreshPnlLeaderboardForAppChain(
       scope: isGlobal ? "global" : "markets",
       marketCount: scopedMarketIds?.length,
       marketRowsUpserted: 0,
+      tokenBasisRowsUpserted: 0,
       ownerGroups: 0,
     };
   }
@@ -686,6 +730,7 @@ export async function refreshPnlLeaderboardForAppChain(
   let upserted = 0;
   let failures = 0;
   let marketRowsUpserted = 0;
+  let tokenBasisRowsUpserted = 0;
   const endTime = Math.floor(Date.now() / 1000);
   // Only the protocol-wide job writes per-market rows: it is the one scope that covers every market
   // on the chain, so app jobs would write partial duplicates of the same (wallet, market) rows.
@@ -713,6 +758,11 @@ export async function refreshPnlLeaderboardForAppChain(
       const computedMembers: { address: string; byMarketPeriod: Record<PortfolioPlPeriod, MarketPeriodBucket[]> }[] =
         [];
       let groupFailed = false;
+      // Cost basis follows the tokens between an owner and its executors: the owner is folded
+      // first (members are canonical-first), and the averages it records for hand-overs feed the
+      // executors' folds through `handoffs`.
+      const identityWallets = new Set(group.members.map((member) => member.address.toLowerCase()));
+      const handoffs = new Map<string, number>();
 
       for (const member of group.members) {
         // Checked per member, not only per group: `mapPool` claims a whole group at a time, and a
@@ -730,6 +780,7 @@ export async function refreshPnlLeaderboardForAppChain(
             collateralProfile: DEFAULT_COLLATERAL_PROFILE,
             primaryCollateral,
             withMarketBreakdown: writeMarketRows,
+            withCostBasis: writeMarketRows ? { identityWallets, handoffs } : undefined,
           });
           if (!computed) {
             failures += 1;
@@ -767,6 +818,33 @@ export async function refreshPnlLeaderboardForAppChain(
               chainId,
               marketWrittenAt,
             );
+          }
+
+          if (computed.costBasis) {
+            for (const [key, average] of computed.costBasis.handoffs) handoffs.set(key, average);
+            const basisWrittenAt = new Date().toISOString();
+            const basisRows = buildTokenBasisRows({
+              account: member.address,
+              chainId,
+              tokens: computed.costBasis.tokens,
+              writtenAt: basisWrittenAt,
+            });
+            tokenBasisRowsUpserted += await upsertTokenBasisRows(
+              supabase,
+              member.address,
+              basisRows,
+              chainId,
+              basisWrittenAt,
+            );
+            const { stats } = computed.costBasis;
+            if (
+              stats.swapsUnmapped ||
+              stats.redeemsUnresolved ||
+              stats.reconciliationMisses ||
+              stats.priceLookupsSkipped
+            ) {
+              console.log(`pnl-leaderboard cost-basis ${member.address} ${JSON.stringify(stats)}`);
+            }
           }
 
           if (deriveScopes && computed.byMarketPeriod) {
@@ -882,6 +960,7 @@ export async function refreshPnlLeaderboardForAppChain(
     scope: isGlobal ? "global" : "markets",
     marketCount: scopedMarketIds?.length,
     marketRowsUpserted,
+    tokenBasisRowsUpserted,
     ownerGroups: groups.length,
   };
 }

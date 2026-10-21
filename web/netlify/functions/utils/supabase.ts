@@ -673,6 +673,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      pnl_token_basis: {
+        Row: {
+          address: string;
+          approximate: boolean;
+          average_cost: number | null;
+          chain_id: number;
+          cost: number;
+          even_split: boolean;
+          last_event_at: number | null;
+          lp_touched: boolean;
+          market_id: string;
+          quantity: number;
+          realized: number;
+          token_id: string;
+          token_index: number;
+          total_bought: number;
+          total_sold: number;
+          updated_at: string;
+        };
+        Insert: {
+          address: string;
+          approximate?: boolean;
+          average_cost?: number | null;
+          chain_id: number;
+          cost?: number;
+          even_split?: boolean;
+          last_event_at?: number | null;
+          lp_touched?: boolean;
+          market_id: string;
+          quantity?: number;
+          realized?: number;
+          token_id: string;
+          token_index: number;
+          total_bought?: number;
+          total_sold?: number;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string;
+          approximate?: boolean;
+          average_cost?: number | null;
+          chain_id?: number;
+          cost?: number;
+          even_split?: boolean;
+          last_event_at?: number | null;
+          lp_touched?: boolean;
+          market_id?: string;
+          quantity?: number;
+          realized?: number;
+          token_id?: string;
+          token_index?: number;
+          total_bought?: number;
+          total_sold?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       pnl_market_daily_delta: {
         Row: {
           address: string;

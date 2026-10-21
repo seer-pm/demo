@@ -61,6 +61,8 @@ function LivePortfolioOverview({
       value={value.data?.currentPortfolioValue}
       delta={value.data?.delta}
       deltaPercent={value.data?.deltaPercent}
+      positionsValue={value.data?.positionsValue}
+      available={value.data?.availableBalance}
       pnl={pnl.data?.computed === false ? undefined : pnl.data?.pnl}
       pnlNotComputed={pnl.data?.computed === false}
       period={periods[period]}
@@ -312,7 +314,7 @@ function PortfolioPage() {
         </div>
         <div role="tabpanel" id={activeTabMeta.panelId} aria-labelledby={`portfolio-tab-${activeTab}`}>
           <h2 className="sr-only">{activeTabMeta.label}</h2>
-          {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} />}
+          {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} period={plPeriod} />}
           {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
           {activeTab === "airdrop" && <AirdropTab account={account} />}
         </div>

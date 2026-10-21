@@ -462,6 +462,76 @@ export async function fetchRouterPrimaryCollateralTransfers(
   return out;
 }
 
+export type OutcomeTransferRow = {
+  from: Address;
+  to: Address;
+  /** Outcome token address, lowercased. */
+  token: Address;
+  /** Market the token belongs to, lowercased; absent when the indexer did not resolve it. */
+  marketId?: Address;
+  valueWei: bigint;
+  timestamp: number;
+  logIndex: number;
+  transactionHash: string;
+  /** A router was party to the transfer: a split, merge or redeem leg rather than a hand-over. */
+  involvesRouter: boolean;
+};
+
+/** Pages of 1000 rows; a wallet past this many outcome transfers is not folded exactly. */
+export const OUTCOME_TRANSFERS_MAX_PAGES = 20;
+
+/**
+ * Every outcome-token ERC20 transfer the wallet sent or received up to `endTime`, oldest first.
+ *
+ * This is the one indexed view that names both counterparties and the amount, which is what tells
+ * a hand-over between wallets from a swap or router leg, and what says which outcome tokens a
+ * redeem burned (the `ConditionalEvent` only carries the payout). Returns `truncated: true` when
+ * the page cap was hit; the rows before it are still complete and in order.
+ */
+export async function fetchOutcomeTransfersForAccount(
+  account: Address,
+  chainId: SupportedChain,
+  endTime: number,
+): Promise<{ rows: OutcomeTransferRow[]; truncated: boolean }> {
+  const sdk = seerEnvioSdk(chainId);
+  const accountLc = account.toLowerCase();
+  const rows: OutcomeTransferRow[] = [];
+  let offset = 0;
+  for (let page = 0; ; page++) {
+    if (page >= OUTCOME_TRANSFERS_MAX_PAGES) {
+      return { rows, truncated: true };
+    }
+    const { Transfer: batch } = await sdk.GetTransfers({
+      limit: PAGE,
+      offset,
+      orderBy: [{ timestamp: Order_By.Asc }, { logIndex: Order_By.Asc }],
+      where: {
+        chainId: { _eq: String(chainId) },
+        kind: { _eq: "outcome" },
+        timestamp: { _lte: String(endTime) },
+        _or: [{ from: { _eq: accountLc } }, { to: { _eq: accountLc } }],
+      },
+    });
+    for (const row of batch) {
+      if (!row.token?.id) continue;
+      rows.push({
+        from: row.from.toLowerCase() as Address,
+        to: row.to.toLowerCase() as Address,
+        token: row.token.id.toLowerCase() as Address,
+        marketId: row.market?.address ? (row.market.address.toLowerCase() as Address) : undefined,
+        valueWei: BigInt(row.value),
+        timestamp: Number(row.timestamp),
+        logIndex: Number(row.logIndex),
+        transactionHash: row.transactionHash,
+        involvesRouter: Boolean(row.involvesRouter),
+      });
+    }
+    if (batch.length < PAGE) break;
+    offset += PAGE;
+  }
+  return { rows, truncated: false };
+}
+
 /**
  * Cumulative user↔router primary collateral (human units) at each startTime and at endTime.
  *

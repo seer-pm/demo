@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { type Address, formatUnits, zeroAddress } from "viem";
 import { buildPortfolioPositionsFromBalances, outcomePriceInputsForPositions } from "./buildPortfolioPositions";
 import { getPublicClientByChainId } from "./config";
+import { type CostBasisResult, computeCostBasis } from "./costBasisCompute";
 import { supportsLiquidityAttribution } from "./dexLiquidityPositions";
 import { getHistoryTokensPricesForPortfolio } from "./dexPoolHourPrices";
 import { computeLpPrimaryCollateralNetOutForPeriodsFromEvents } from "./lpPrimaryCollateralFlow";
@@ -40,6 +41,7 @@ import {
   fetchAccountActivity,
   fetchConditionalEventsForAccountWidened,
   fetchMarketIdsFromAccountTransfers,
+  fetchOutcomeTransfersForAccount,
   fetchRouterPrimaryCollateralTransfers,
   fetchTokenBalances,
   fetchTokenBalancesAtEods,
@@ -384,6 +386,13 @@ export type ComputePortfolioPlAllPeriodsArgs = {
    * global path does not otherwise fetch. `byPeriod` is unaffected either way.
    */
   withMarketBreakdown?: boolean;
+  /**
+   * Also fold the wallet's cost basis per outcome token (global path only). Needs the same
+   * `ConditionalEvent`s as the market breakdown plus the wallet's outcome transfers, and the
+   * identity's wallets to tell a hand-over from an external transfer. `handoffs` carries the
+   * averages an earlier member of the identity recorded for tokens it sent this wallet.
+   */
+  withCostBasis?: { identityWallets: ReadonlySet<string>; handoffs?: ReadonlyMap<string, number> };
 };
 
 export type PortfolioPlComputed = {
@@ -395,6 +404,8 @@ export type PortfolioPlComputed = {
   timings?: ComputePhaseTimings;
   debugPayload?: Record<string, unknown>;
   markets: Market[];
+  /** Present only when `withCostBasis` was requested. */
+  costBasis?: CostBasisResult;
 };
 
 /**
@@ -657,7 +668,8 @@ export async function computePortfolioPlAllPeriods(
   );
 
   const wantsMarketBreakdown = args.withMarketBreakdown === true;
-  const wantsScopedEvents = (isMarketScoped || wantsMarketBreakdown) && markets.length > 0;
+  const wantsCostBasis = args.withCostBasis !== undefined && !isMarketScoped;
+  const wantsScopedEvents = (isMarketScoped || wantsMarketBreakdown || wantsCostBasis) && markets.length > 0;
 
   // Both consumers below scan the same paginated `GetTransfers` history with identical arguments,
   // and on the global path with a market breakdown — the leaderboard refresh, once per wallet —
@@ -910,5 +922,29 @@ export async function computePortfolioPlAllPeriods(
       })
     : undefined;
 
-  return { startTimeByPeriod, byPeriod, byMarketPeriod, debugPayload, markets, timings };
+  let costBasis: CostBasisResult | undefined;
+  if (wantsCostBasis && args.withCostBasis) {
+    const transfers = await timed(timings, "outcomeTransfers", () =>
+      fetchOutcomeTransfersForAccount(account, chainId, endTime),
+    );
+    costBasis = await timed(timings, "costBasis", () =>
+      computeCostBasis({
+        supabase,
+        account,
+        chainId,
+        markets: priceInputs.markets.length > 0 ? priceInputs.markets : markets,
+        swaps: dexEvents?.swaps ?? [],
+        mints: dexEvents?.mints ?? [],
+        burns: dexEvents?.burns ?? [],
+        conditionalEvents,
+        transfers,
+        holdings,
+        primaryCollateral,
+        identityWallets: args.withCostBasis!.identityWallets,
+        handoffs: args.withCostBasis!.handoffs,
+      }),
+    );
+  }
+
+  return { startTimeByPeriod, byPeriod, byMarketPeriod, debugPayload, markets, timings, costBasis };
 }
