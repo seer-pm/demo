@@ -363,6 +363,8 @@ export {
   fetchPortfolioPositions,
   fetchPortfolioValue,
   fetchPortfolioPnL,
+  fetchPortfolioMarketPnL,
+  fetchPortfolioCostBasis,
 } from "./portfolio-fetch";
 export type {
   PortfolioChainId,
@@ -370,6 +372,10 @@ export type {
   PortfolioPosition,
   PortfolioPnLPeriod,
   PortfolioPnLData,
+  PortfolioMarketPnLRow,
+  PortfolioMarketPnLResponse,
+  PortfolioCostBasisRow,
+  PortfolioCostBasisResponse,
   PortfolioValueApiResponse,
   TransactionData,
 } from "./portfolio-types";

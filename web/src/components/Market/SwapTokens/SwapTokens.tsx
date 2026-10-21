@@ -57,7 +57,7 @@ export function SwapTokens({
   ];
 
   return (
-    <div className="space-y-5 bg-base-100 p-[24px] shadow-md">
+    <div className="seer-swap-widget space-y-5 bg-base-100 p-[24px] shadow-md">
       <div className="flex items-center space-x-[12px]">
         <div className="flex-shrink-0">
           <OutcomeImage image={outcomeImage} isInvalidOutcome={isInvalidOutcome} title={outcomeText} />

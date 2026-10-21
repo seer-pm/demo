@@ -69,7 +69,7 @@ function MarketCategories({ market }: { market: Market }) {
                 <button className="fill-purple-primary group tooltip" onClick={() => setEdit(false)} type="button">
                   <p className="tooltiptext">Cancel</p>
                   <div className="group-hover:opacity-80">
-                    <CloseIcon fill="#9747ff" width="20px" />
+                    <CloseIcon fill="#7D33FF" width="20px" />
                   </div>
                 </button>
               </div>

@@ -14,7 +14,7 @@ export default function TradeCollateralPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-2">Trade Collateral</h1>
+      <h2 className="text-xl font-semibold mb-2">Swap collateral</h2>
       <p className="text-base-content/70 mb-6">
         Swap between collateral tokens to fund your positions.
         <br />

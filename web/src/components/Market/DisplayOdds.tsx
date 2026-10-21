@@ -12,13 +12,12 @@ export function DisplayOdds({
   if (!isOdd(odd)) {
     return (
       <div className="flex space-x-2 items-center">
-        <div>NA</div>
+        <span className="text-xs font-medium tracking-normal">Price unavailable</span>
         <Tooltip
-          trigger={<QuestionIcon fill="#9747FF" />}
+          trigger={<QuestionIcon fill="#7D33FF" />}
           content={
             <div>
-              The odds cannot be displayed because the outcome's current price is far above 1. This typically happens
-              when there is insufficient liquidity in the market.
+              A reliable price is not available for this outcome. This can happen when there is insufficient liquidity.
             </div>
           }
         />

@@ -1,8 +1,13 @@
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import type { PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
+import type { CollateralProfile, PortfolioPosition, SupportedChain } from "@seer-pm/sdk";
 import { DEFAULT_COLLATERAL_PROFILE } from "@seer-pm/sdk/collateral";
 import { createClient } from "@supabase/supabase-js";
 import { type Address, isAddress } from "viem";
+import {
+  availableCollateralTokens,
+  fetchAvailableCollateralHoldings,
+  sumAvailableCollateralUsd,
+} from "./utils/availableCollateral";
 import { outcomePriceInputsForPositions } from "./utils/buildPortfolioPositions";
 import { getDexScreenerPriceUSD } from "./utils/common";
 import { getHistoryTokensPricesForPortfolio } from "./utils/dexPoolHourPrices";
@@ -17,12 +22,16 @@ import type { Database } from "./utils/supabase";
 const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, process.env.SUPABASE_API_KEY!);
 
 /**
- * Portfolio value + ~24h mark-to-market change — how this endpoint works (important assumptions)
+ * Portfolio value + ~24h mark-to-market change: how this endpoint works (important assumptions)
  *
- * What we value (`currentPortfolioValue` / `historyPortfolioValue`)
- * - We value **outcome-token positions only** (same shape as `get-portfolio`, including Futarchy).
- *   `get-portfolio-pl` is Generic-only and is not the same bag.
- * - We intentionally **do not** include “idle” primary collateral in wallet in these totals.
+ * What we value
+ * - `positionsValue` / `historyPortfolioValue` cover **outcome-token positions only** (same shape as
+ *   `get-portfolio`, including Futarchy). `get-portfolio-pl` is Generic-only and is not the same bag.
+ * - `availableBalance` is the idle collateral the account (and its executors) could trade with right now:
+ *   the profile primary plus every token the swap widget accepts as payment (xDAI and wxDAI on Gnosis,
+ *   DAI on mainnet, USDS and USDC on Optimism and Base). See `utils/availableCollateral.ts`.
+ * - `currentPortfolioValue` = `positionsValue` + `availableBalance`, so it matches the card's
+ *   "Positions + collateral" reading.
  *
  * Prices
  * - Current outcome prices are read from the pools at request time (`onchainOutcomePrices`); the historical
@@ -42,12 +51,16 @@ const supabase = createClient<Database>(process.env.SUPABASE_PROJECT_URL!, proce
  *   portfolio have moved purely from price between `historyTimestamp` and now?”.
  *
  * Response shape
- * - `currentPortfolioValue`, `historyPortfolioValue`, `historyTimestamp`, `unit: "USD"`.
- * - `delta` = `currentPortfolioValue - historyPortfolioValue`; `deltaPercent` = `delta / historyPortfolioValue` (0 if undefined/NaN).
+ * - `currentPortfolioValue`, `positionsValue`, `availableBalance`, `historyPortfolioValue`, `historyTimestamp`,
+ *   `unit: "USD"`.
+ * - `delta` = `positionsValue - historyPortfolioValue`; `deltaPercent` = `delta / historyPortfolioValue` (0 if
+ *   undefined/NaN). Idle collateral stays out of the delta: it does not move with outcome prices, and adding it
+ *   to one side only would turn a deposit into a fake gain.
  */
 
 type ValueUsd = {
-  currentPortfolioValue: number;
+  positionsValue: number;
+  availableBalance: number;
   historyPortfolioValue: number;
   historyTimestamp: number;
 };
@@ -55,22 +68,27 @@ type ValueUsd = {
 async function portfolioValueUsdForChain(args: {
   positions: PortfolioPosition[];
   chainId: SupportedChain;
-  primaryCollateral: Address;
+  wallets: Address[];
+  profile: CollateralProfile;
   historyTimestamp: number;
 }): Promise<ValueUsd | null> {
-  const { positions, chainId, primaryCollateral, historyTimestamp } = args;
+  const { positions, chainId, wallets, profile, historyTimestamp } = args;
+  const primaryCollateral = profile.primary.address;
 
   // The same token batch prices both ends. Handing the historical side bare positions instead would
   // price every conditional at 0 there while the current side chains it through its parent, and the
   // delta would then be the difference between two incompatible answers rather than a price move.
   const priceInputs = await outcomePriceInputsForPositions(positions, chainId);
-  const historyPrices = await getHistoryTokensPricesForPortfolio(
-    supabase,
-    priceInputs.tokens,
-    chainId,
-    historyTimestamp,
-    settledPayoutRatios(priceInputs.markets, historyTimestamp),
-  );
+  const [historyPrices, holdings] = await Promise.all([
+    getHistoryTokensPricesForPortfolio(
+      supabase,
+      priceInputs.tokens,
+      chainId,
+      historyTimestamp,
+      settledPayoutRatios(priceInputs.markets, historyTimestamp),
+    ),
+    fetchAvailableCollateralHoldings(chainId, wallets, availableCollateralTokens(profile)),
+  ]);
 
   const currentNative = sumPortfolioValueCurrent(positions);
   const historyNative = sumPortfolioValueAtReference(positions, historyPrices, historyTimestamp);
@@ -81,13 +99,14 @@ async function portfolioValueUsdForChain(args: {
   }
 
   return {
-    currentPortfolioValue: currentNative * priceUsd,
+    positionsValue: currentNative * priceUsd,
+    availableBalance: sumAvailableCollateralUsd(holdings, profile.primary, priceUsd),
     historyPortfolioValue: historyNative * priceUsd,
     historyTimestamp,
   };
 }
 
-function jsonUsd(body: ValueUsd & { delta: number; deltaPercent: number }) {
+function jsonUsd(body: ValueUsd & { currentPortfolioValue: number; delta: number; deltaPercent: number }) {
   return JSON.stringify({ ...body, unit: "USD" as const });
 }
 
@@ -129,7 +148,7 @@ export default async (req: Request) => {
         ? (Object.values(SUPPORTED_CHAINS).map((c) => c.id) as SupportedChain[])
         : [chainParsed.chainId as SupportedChain];
 
-    const resolvedChains: (ResolvedChain & { primaryCollateral: Address })[] = [];
+    const resolvedChains: (ResolvedChain & { profile: CollateralProfile })[] = [];
     for (const chainId of chainIds) {
       const collateralResolved = parseCollateralProfileQueryParam(chainId, profileParam);
       if ("error" in collateralResolved) {
@@ -139,7 +158,7 @@ export default async (req: Request) => {
       resolvedChains.push({
         chainId,
         profileName: collateralResolved.profileName,
-        primaryCollateral: collateralResolved.primaryCollateral.address,
+        profile: collateralResolved.profile,
       });
     }
     if (resolvedChains.length === 0) {
@@ -163,11 +182,12 @@ export default async (req: Request) => {
     });
 
     const parts = await Promise.all(
-      resolvedChains.map(({ chainId, primaryCollateral }) =>
+      resolvedChains.map(({ chainId, profile }) =>
         portfolioValueUsdForChain({
           positions: filterPositionsByChain(positions, chainId),
           chainId,
-          primaryCollateral,
+          wallets: identity.walletsForChain(chainId),
+          profile,
           historyTimestamp,
         }),
       ),
@@ -180,15 +200,18 @@ export default async (req: Request) => {
       });
     }
 
-    const currentPortfolioValue = ok.reduce((s, p) => s + p.currentPortfolioValue, 0);
+    const positionsValue = ok.reduce((s, p) => s + p.positionsValue, 0);
+    const availableBalance = ok.reduce((s, p) => s + p.availableBalance, 0);
     const historyPortfolioValue = ok.reduce((s, p) => s + p.historyPortfolioValue, 0);
-    const delta = currentPortfolioValue - historyPortfolioValue;
+    const delta = positionsValue - historyPortfolioValue;
     const ratio = delta / historyPortfolioValue;
     const deltaPercent = Number.isFinite(ratio) ? ratio * 100 : 0;
 
     return new Response(
       jsonUsd({
-        currentPortfolioValue,
+        currentPortfolioValue: positionsValue + availableBalance,
+        positionsValue,
+        availableBalance,
         historyPortfolioValue,
         historyTimestamp,
         delta,

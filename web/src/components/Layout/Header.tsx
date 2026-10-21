@@ -12,9 +12,9 @@ import {
   EthIcon,
   Menu,
   PersonAdd,
+  PlusCircleIcon,
   PolicyIcon,
   QuestionIcon,
-  SeerLogo,
 } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance } from "@/lib/utils";
@@ -32,6 +32,8 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
+import { BrandLockup } from "./BrandLockup";
+import { HeaderSearch } from "./HeaderSearch";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import { UseSmartAccountToggle } from "./UseSmartAccountToggle";
 
@@ -61,9 +63,9 @@ function BetaWarning() {
     setVisible(false);
   };
   return (
-    <div className="bg-[#40055B] text-white text-[12px] py-[8px] px-[30px] flex items-center justify-center gap-2">
+    <div className="seer-beta">
       <span>Note that this is a Beta version and can still be unstable</span>
-      <button type="button" className="hover:opacity-80" onClick={dismiss}>
+      <button type="button" aria-label="Dismiss beta notice" className="hover:opacity-80" onClick={dismiss}>
         <CloseCircleOutlineIcon width={12} height={12} fill="white" />
       </button>
     </div>
@@ -100,7 +102,7 @@ const appLink = (id: string, key: keyof typeof paths, label: string, isMobile: b
 
 // ── Renderer ──────────────────────────────────────────────────────────────────
 
-function useNavRenderer(isMobile: boolean, isConnected: boolean) {
+function useNavRenderer(isMobile: boolean, isConnected: boolean, pathname: string) {
   function render(item: NavItem): ReactElement | null {
     const renderChildren = () => item.children?.map(render);
     switch (item.type) {
@@ -114,6 +116,11 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean) {
         return (
           <Link
             key={item.id}
+            aria-current={
+              item.url && (pathname === item.url || (item.url !== "/" && pathname.startsWith(`${item.url}/`)))
+                ? "page"
+                : undefined
+            }
             to={item.url ?? ""}
             className={
               item.className ?? (isMobile ? "hover:font-semibold block" : "whitespace-nowrap hover:opacity-85 py-3")
@@ -169,21 +176,25 @@ export default function Header() {
   };
 
   useEffect(() => {
-    if (mobileOpen) setMobileOpen(false);
+    setMobileOpen(false);
+    document.body.classList.remove("overflow-hidden");
   }, [urlParsed.pathname]);
   useEffect(() => {
     const updateTop = () => {
       if (navRef.current) {
         const rect = navRef.current.getBoundingClientRect();
-        const scrollY = window.scrollY || window.pageYOffset;
-        const menuPos = rect.top + rect.height + scrollY;
+        const menuPos = rect.top + rect.height;
 
         // Set the top offset for menu relative to navbar
         setTopOffset(menuPos);
       }
     };
 
-    // update top offset for menu if header dom changes
+    updateTop();
+    window.addEventListener("resize", updateTop);
+    window.addEventListener("scroll", updateTop);
+
+    // Menu offset follows the sticky header.
     const observer = new MutationObserver(updateTop);
     const header = document.getElementById("header");
     if (header) {
@@ -194,12 +205,18 @@ export default function Header() {
       });
     }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateTop);
+      window.removeEventListener("scroll", updateTop);
+      document.body.classList.remove("overflow-hidden");
+    };
   }, []);
 
   useEffect(() => {
     function handleResize() {
       setMobileOpen(false);
+      document.body.classList.remove("overflow-hidden");
     }
 
     window.addEventListener("resize", handleResize);
@@ -210,7 +227,7 @@ export default function Header() {
   const buildAndRender = (isMobile: boolean) => {
     const nestedLinkClassName = getNestedLinkClassName(isMobile);
     const profileMenuLinkClassName = clsx(nestedLinkClassName, !isMobile && "text-[14px] w-full");
-    const render = useNavRenderer(isMobile, isConnected);
+    const render = useNavRenderer(isMobile, isConnected, urlParsed.pathname);
 
     const deposit = isMobile ? (
       <Button type="button" text="Deposit" onClick={openModal} />
@@ -240,22 +257,32 @@ export default function Header() {
       </button>
     );
 
+    // Creating a market is the rare task next to trading, so the link is secondary in weight and
+    // sits in one fixed slot, just before the wallet cluster, on every route.
+    const createMarket = (
+      <Link to="/create-market" className="seer-global-create">
+        <PlusCircleIcon width={18} />
+        Create market
+      </Link>
+    );
+
     const items: NavItem[] = [
       {
         id: "container-1",
         type: "container",
-        className: isMobile
-          ? "space-y-[24px]"
-          : "hidden [@media(min-width:900px)]:menu-horizontal ml-[16%] [@media(min-width:1000px)]:ml-[25%] [@media(min-width:1200px)]:!ml-[0] text-[16px] space-x-[24px]",
+        className: isMobile ? "space-y-[24px]" : "seer-primary-nav",
         children: [
           { id: "market", type: "link", url: "/", title: "Markets" },
+          { id: "portfolio-main", type: "link", url: "/portfolio", title: "Portfolio" },
           { id: "leaderboard", type: "link", url: "/leaderboard", title: "Leaderboard" },
-          { id: "create-market", type: "link", url: "/create-market", title: "Create Market" },
+          ...(isMobile
+            ? [{ id: "create-market", type: "link" as const, url: "/create-market", title: "Create Market" }]
+            : []),
           {
             id: "policies-dropdown",
             type: "nested_links",
             title: "Policies",
-            icon: <DownArrow />,
+            icon: <DownArrow fill="currentColor" />,
             children: [
               {
                 id: "verified-policy",
@@ -279,7 +306,7 @@ export default function Header() {
             id: "app-dropdown",
             type: "nested_links",
             title: "App",
-            icon: <DownArrow />,
+            icon: <DownArrow fill="currentColor" />,
             children: [
               appLink("futarchy", "futarchy", "Futarchy", isMobile),
               appLink("deepfund", "deepfund", "Deepfunding", isMobile),
@@ -292,10 +319,9 @@ export default function Header() {
       {
         id: "container-2",
         type: "container",
-        className: isMobile
-          ? "space-y-[24px] mt-5"
-          : "hidden [@media(min-width:900px)]:menu-horizontal gap-2 absolute right-[12px]",
+        className: isMobile ? "space-y-[24px] mt-5" : "seer-account-nav",
         children: [
+          ...(isMobile ? [] : [{ id: "create-market-desktop", type: "custom" as const, element: createMarket }]),
           { id: "connect-wallet", type: "custom", element: <ConnectWallet isMobile={isMobile} /> },
           {
             id: "container-connected",
@@ -394,13 +420,13 @@ export default function Header() {
                 type: "custom",
                 element: isMobile ? (
                   <div className="py-[16px]">
-                    <ThemeToggleButton iconFill="#9747FF" iconSize="17" showLabel />
+                    <ThemeToggleButton iconFill="currentColor" iconSize="17" showLabel />
                   </div>
                 ) : (
                   <ThemeToggleButton
-                    iconFill="white"
+                    iconFill="currentColor"
                     iconSize="20"
-                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                   />
                 ),
               },
@@ -427,25 +453,29 @@ export default function Header() {
   };
 
   return (
-    <header id="header" className="bg-purple-dark">
+    <header id="header" className="seer-header">
       <Modal
         title="Deposit"
         className="w-[400px]"
         content={<DepositGuide closeModal={closeModal} chainId={chainId} balance={balance} symbol={symbol ?? ""} />}
       />
       <BetaWarning />
-      <nav
-        ref={navRef}
-        className="navbar container-fluid text-white gap-4 flex items-center justify-start [@media(min-width:1200px)]:justify-center relative"
-      >
-        <div className="absolute left-[24px] lg:left-[12px]">
-          <Link className="text-white hover:opacity-85" to="/">
-            <SeerLogo width="99.2px" height="46px" />
+      <nav ref={navRef} className="navbar container-fluid seer-navbar">
+        <div className="seer-home-link">
+          <Link aria-label="Seer home" className="hover:opacity-85" to="/">
+            <BrandLockup />
           </Link>
         </div>
+        <HeaderSearch />
         {buildAndRender(mobileOpen)}
-        <div className="[@media(min-width:900px)]:hidden ml-auto">
-          <button type="button" onClick={toggle}>
+        <div className="seer-mobile-actions">
+          <ThemeToggleButton iconFill="currentColor" />
+          <button
+            type="button"
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={mobileOpen}
+            onClick={toggle}
+          >
             {mobileOpen ? <CloseIcon /> : <Menu />}
           </button>
         </div>

@@ -66,7 +66,13 @@ export interface PortfolioPosition {
 }
 
 export type PortfolioValueApiResponse = {
+  /** `positionsValue` + `availableBalance`. */
   currentPortfolioValue: number;
+  /** Outcome-token positions at current pool prices. */
+  positionsValue: number;
+  /** Idle collateral the account could trade with: the primary plus every token the swap widget accepts. */
+  availableBalance: number;
+  /** `positionsValue` priced one day ago; `delta` compares the two, so idle collateral never shows as a move. */
   historyPortfolioValue: number;
   historyTimestamp: number;
   delta: number;
@@ -94,6 +100,81 @@ export type PortfolioPnLData = {
   computed?: boolean;
   /** Present on the global (leaderboard) path; values are USD. Market-scoped live compute omits this (native collateral). */
   unit?: "USD";
+};
+
+/**
+ * One wallet's P/L and traded volume on one market over a period, from `pnl_market_leaderboard`.
+ *
+ * `pnl` and `volume` are in the native collateral of `chainId`; the USD figures are converted at
+ * the spot price of the refresh that wrote the row. `marketId` is the child market on conditional
+ * markets, which is also what a `PortfolioPosition` carries, so the two match on the triple
+ * (`chainId`, `marketId`, `address`). `address` is the wallet that traded: an executor's rows stay
+ * under the executor, never merged into its owner.
+ */
+export type PortfolioMarketPnLRow = {
+  chainId: number;
+  marketId: Address;
+  address: Address;
+  pnl: number;
+  pnlUsd: number;
+  /** Gross swap notional over the window; priced 1/N on conditional markets. */
+  volume: number;
+  volumeUsd: number;
+  capitalDeployed: number;
+  collateralPriceUsd: number;
+  /** The wallet swapped on this market inside the window; false when only the valuation moved. */
+  traded: boolean;
+  updatedAt: string;
+};
+
+/**
+ * Weighted-average cost basis of one wallet's position in one outcome token, from `pnl_token_basis`.
+ *
+ * Costs are in the native primary collateral of `chainId`. A conditional market's token carries the
+ * cost inherited from the parent outcome that paid for it, so it is in primary as well. `address`
+ * is the wallet holding the tokens (an executor's rows stay under the executor), which is what a
+ * `PortfolioPosition.sourceWallet` names, so the two match on (`chainId`, `tokenId`, `address`).
+ */
+export type PortfolioCostBasisRow = {
+  chainId: number;
+  address: Address;
+  tokenId: Address;
+  marketId: Address;
+  tokenIndex: number;
+  /** Tokens the fold believes the wallet holds; compare with the live balance before trusting it. */
+  quantity: number;
+  /** Remaining cost of `quantity`. */
+  cost: number;
+  /** `cost / quantity`; absent with no position. */
+  averageCost?: number;
+  /** Collateral gained or lost on completed round trips (sales, merges, redeems). */
+  realized: number;
+  totalBought: number;
+  totalSold: number;
+  /** The token entered or left an AMM position: show no entry price. */
+  lpTouched: boolean;
+  /** The fold hit a gap (missed event, unattributed redeem, balance mismatch): show as approximate. */
+  approximate: boolean;
+  /** Some split that minted the token had no pool price and was spread 1/N. */
+  evenSplit: boolean;
+  lastEventAt?: number;
+  updatedAt: string;
+};
+
+export type PortfolioCostBasisResponse = {
+  /** False when the refresh job has no row for the wallet set at all. */
+  computed: boolean;
+  rows: PortfolioCostBasisRow[];
+};
+
+export type PortfolioMarketPnLResponse = {
+  period: PortfolioPnLPeriod;
+  /**
+   * False when the refresh job has no row for the wallet set. Market rows are sparse (all-zero
+   * buckets are not written), so an empty `rows` on its own does not mean "never computed".
+   */
+  computed: boolean;
+  rows: PortfolioMarketPnLRow[];
 };
 
 /** Portfolio / activity transaction row (split, merge, redeem, swap, LP). */
