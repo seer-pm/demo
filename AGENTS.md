@@ -75,12 +75,14 @@ config, so it falls back to a static server.
 Workaround, from `web/`, overriding just the two paths that double up:
 
 ```bash
-npx netlify dev -f netlify/functions -c "node ./server" --target-port 3000 -p 8888
+npx netlify-cli@27.4.2 dev -f netlify/functions -c "node ./server" --target-port 3000 -p 8888
 ```
 
 Functions then serve at `http://localhost:8888/.netlify/functions/<name>`, with project env vars
 injected from the linked site. Notes:
 
+- Keep the CLI version pinned. CLI `27.14.0` crashes on requests without `Content-Type` with
+  `TypeError: argument string is required` in `serveRedirect`; `27.4.2` handles these requests.
 - A `*-background` function returns **202 immediately** and runs async — the result (and any auth
   rejection) only shows up in the dev server log, not in the HTTP response.
 - Functions import `@seer-pm/sdk` through the package `exports` map, i.e. through `dist/`. Build it
