@@ -8,6 +8,7 @@ import {
   ClockIcon,
   ConditionalMarketIcon,
   ExclamationCircleIcon,
+  InfoCircleIcon,
   LawBalanceIcon,
   PresentIcon,
 } from "@/lib/icons";
@@ -32,7 +33,7 @@ import {
 import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
-import { formatUnits, zeroAddress } from "viem";
+import { formatUnits, isAddress, zeroAddress } from "viem";
 import { clientOnly } from "vike-react/clientOnly";
 import { DismissibleDetails } from "../DismissibleDetails";
 import { Link } from "../Link";
@@ -41,7 +42,7 @@ import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
-import { MARKET_SIGNAL_LABELS } from "./marketPresentation";
+import { MARKET_SIGNAL_DESCRIPTIONS, formatResolutionDate, getResolutionOpening } from "./marketPresentation";
 import { rankPreviewOutcomes } from "./previewOutcomeRanking";
 
 const DONUT_SIZE = 56;
@@ -51,6 +52,13 @@ const GAUGE_STROKE_WIDTH = 6;
 const GAUGE_KNOB_RADIUS = 4;
 const GAUGE_DISPLAY_HEIGHT = 74;
 const GAUGE_COLOR = "#B38FFF";
+
+const PREVIEW_SIGNAL_LABELS: Record<MarketTypes, string> = {
+  [MarketTypes.CATEGORICAL]: "Estimated probability",
+  [MarketTypes.SCALAR]: "Numeric estimate",
+  [MarketTypes.MULTI_CATEGORICAL]: "Expected payout share",
+  [MarketTypes.MULTI_SCALAR]: "Expected value share",
+};
 
 type OutcomeSegment = {
   outcome: string;
@@ -452,7 +460,6 @@ function MarketOutcomeRows({ market }: { market: Market }) {
     if (Number.isNaN(marketEstimate)) return null;
     return (
       <div className="seer-scalar-estimate">
-        <span>Market estimate</span>
         <ScalarGauge
           value={marketEstimate}
           min={displayScalarBound(market.lowerBound)}
@@ -464,38 +471,25 @@ function MarketOutcomeRows({ market }: { market: Market }) {
   }
   const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
   const outcomes = rankPreviewOutcomes(market.outcomes, market.odds, INVALID_RESULT_OUTCOME_TEXT);
-  const binary =
-    outcomes.length === 2 &&
-    outcomes.some((o) => o.name.trim().toLowerCase() === "yes") &&
-    outcomes.some((o) => o.name.trim().toLowerCase() === "no");
   const link = (name: string) => `${paths.market(market)}?outcome=${encodeURIComponent(name)}`;
   return (
-    <div className={`seer-outcome-list ${binary ? "seer-binary-actions" : ""}`}>
-      {binary
-        ? outcomes.map(({ name, index, leading }) => (
-            <Link
-              key={index}
-              to={link(name)}
-              className={`seer-binary-action ${leading ? "seer-outcome-leading" : "seer-action-soft"}`}
-              aria-label={`Select ${name} in ${market.marketName}`}
-            >
-              <span>{name}</span>
-              <small>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</small>
-            </Link>
-          ))
-        : outcomes.slice(0, 2).map(({ name, index, leading }) => (
-            <Link
-              key={index}
-              to={link(name)}
-              className={`seer-outcome-row ${leading ? "seer-outcome-leading" : ""}`}
-              aria-label={`Select ${name} in ${market.marketName}`}
-            >
-              <span className="seer-outcome-name" title={name}>
-                {name}
-              </span>
-              <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</strong>
-            </Link>
-          ))}
+    <div className="seer-outcome-list">
+      {outcomes.slice(0, 2).map(({ name, index, leading }) => (
+        <Link
+          key={index}
+          to={link(name)}
+          className={`seer-outcome-row ${leading ? "seer-outcome-leading" : ""}`}
+          aria-label={`View ${name} in ${market.marketName}`}
+        >
+          <span
+            className="seer-outcome-fill"
+            aria-hidden="true"
+            style={{ width: `${isOdd(market.odds[index]) ? Math.max(0, Math.min(100, odds[index] ?? 0)) : 0}%` }}
+          />
+          <span className="seer-outcome-name">{name}</span>
+          <strong>{isOdd(market.odds[index]) ? formatOutcomePercent(odds[index] ?? 0) : "N/A"}</strong>
+        </Link>
+      ))}
       {outcomes.length > 2 && (
         <Link className="seer-more-outcomes" to={paths.market(market)}>
           +{outcomes.length - 2} more outcomes
@@ -518,13 +512,16 @@ export function PreviewCard({ market }: { market: Market }) {
   const colors = marketStatus && COLORS[marketStatus];
   const network = SUPPORTED_CHAINS[market.chainId]?.name;
   const isConditional = market.parentMarket.id.toLowerCase() !== zeroAddress;
+  const parentOutcome = parentMarket?.outcomes[Number(market.parentOutcome)];
+  const resolutionOpening = getResolutionOpening(market);
+  const creator = market.creator && market.creator.toLowerCase() !== zeroAddress ? market.creator : undefined;
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   const hasBalance = market.poolBalance.some(
     (pool) => (pool?.token0?.balance ?? 0) > 0.01 || (pool?.token1.balance ?? 0) > 0.01,
   );
   return (
-    <div
+    <article
       className={clsx(
         "seer-market-card bg-base-100 text-left flex flex-col",
         market.id === "0x000" ? "pointer-events-none" : "",
@@ -532,45 +529,68 @@ export function PreviewCard({ market }: { market: Market }) {
     >
       <div className="seer-market-card-heading @container">
         <div className={clsx("flex space-x-3 px-4 pt-3")}>
-          <Link to={paths.market(market)} className="flex-shrink-0">
+          <Link to={paths.market(market)} className="flex-shrink-0" tabIndex={-1} aria-hidden="true">
             {market.images?.market ? (
               <img
                 src={market.images.market}
-                alt={market.marketName}
+                alt=""
                 className="aspect-square rounded-full @[340px]:w-[38px] @[315px]:w-[35px] w-[32px]"
               />
             ) : (
               <div className="aspect-square rounded-full bg-purple-primary w-[38px]"></div>
             )}
           </Link>
-          <div className="grow min-w-0">
-            <Link
-              title={market.marketName}
-              className="hover:underline font-semibold @[340px]:text-[14px] @[315px]:text-[13px] text-[12px] line-clamp-2"
-              to={paths.market(market)}
-            >
-              {market.marketName}
-            </Link>
-          </div>
+          <h2 className="seer-card-question grow min-w-0">
+            <Link to={paths.market(market)}>{market.marketName}</Link>
+          </h2>
         </div>
-        <div className="seer-card-context">
-          <span>{network}</span>
-          <span title={MARKET_TYPES_TEXTS[marketType]}>{MARKET_SIGNAL_LABELS[marketType]}</span>
-          {isConditional && (
-            <span
-              title={
-                parentMarket
-                  ? `Conditional on ${parentMarket.marketName}: ${parentMarket.outcomes[Number(market.parentOutcome)]}`
-                  : undefined
-              }
-            >
-              Conditional
+        <div className="seer-card-provenance">
+          {creator && (
+            <span>
+              Created by{" "}
+              {isAddress(creator) ? (
+                <Link to={paths.portfolio(creator)} title={creator}>
+                  {creator.slice(0, 6)}…{creator.slice(-4)}
+                </Link>
+              ) : (
+                creator
+              )}
             </span>
           )}
+          <span>{network}</span>
         </div>
+        {isConditional && (
+          <Link
+            className="seer-card-condition"
+            to={parentMarket ? paths.market(parentMarket) : paths.market(market.parentMarket.id, market.chainId)}
+          >
+            {parentMarket && parentOutcome ? (
+              <>If “{parentMarket.marketName}” resolves to <strong>“{parentOutcome}”</strong></>
+            ) : (
+              "Conditional forecast. View condition"
+            )}
+          </Link>
+        )}
+        {resolutionOpening && (
+          <p className="seer-card-resolution">
+            Resolution opens{" "}
+            <time dateTime={new Date(resolutionOpening * 1000).toISOString()}>
+              {formatResolutionDate(resolutionOpening)}
+            </time>
+          </p>
+        )}
       </div>
 
       <div className="seer-market-card-outcomes px-4 custom-scrollbar">
+        <div className="seer-card-signal">
+          <span>{PREVIEW_SIGNAL_LABELS[marketType]}</span>
+          <Popover
+            label={`How to read this ${PREVIEW_SIGNAL_LABELS[marketType].toLowerCase()}`}
+            trigger={<InfoCircleIcon width="16" height="16" />}
+            content={<p className="seer-signal-help">{MARKET_SIGNAL_DESCRIPTIONS[marketType]}</p>}
+            width={300}
+          />
+        </div>
         {marketStatus === MarketStatus.CLOSED ? (
           <MarketResult market={market} />
         ) : (
@@ -582,8 +602,11 @@ export function PreviewCard({ market }: { market: Market }) {
         <span className="seer-card-volume" title="Market trading volume">
           ${formatBigNumbers(market.volumeUSD)} volume
         </span>
+        <Link className="seer-card-rules" to={`${paths.market(market)}#event-rules`}>
+          Rules
+        </Link>
         <DismissibleDetails className="seer-card-details">
-          <summary aria-label="Market information">ⓘ</summary>
+          <summary aria-label="Market information"><InfoCircleIcon width="16" height="16" /></summary>
           <div className="seer-card-metadata">
             {hasBalance || Number(formatUnits(market.outcomesSupply, 18)) > 0.01 || market.volumeUSD > 0 ? (
               <Popover
@@ -702,6 +725,6 @@ export function PreviewCard({ market }: { market: Market }) {
           {market.id !== "0x000" && <MarketFavorite market={market} colorClassName={colors?.text} />}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

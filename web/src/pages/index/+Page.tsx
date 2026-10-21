@@ -1,6 +1,5 @@
 import { Alert } from "@/components/Alert";
 import { AppliedMarketFilters } from "@/components/Market/AppliedMarketFilters";
-import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
@@ -109,6 +108,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
     refetch,
     pagination: { pageCount, handlePageClick, page },
   } = useSortAndFilterResults(results);
+  const marketCount = data.count ?? data.markets.length;
 
   const queryClient = useQueryClient();
 
@@ -124,7 +124,19 @@ function PageContent({ params }: { params: UseMarketsProps }) {
     <div className="seer-home">
       <div className="container-fluid seer-home-controls">
         <div className="seer-home-toolbar">
-          <MarketCategoryNav />
+          <div className="seer-home-heading">
+            <div className="seer-home-title">
+              <h1>Markets</h1>
+              <output className="seer-home-status">
+                {isPending
+                  ? "Loading markets…"
+                  : isError
+                    ? "Feed unavailable"
+                    : `${marketCount.toLocaleString()} ${marketCount === 1 ? "market" : "markets"}${marketName ? " found" : ""}`}
+              </output>
+            </div>
+            <p>Explore questions and compare market forecasts.</p>
+          </div>
           <MarketsFilter />
         </div>
         <AppliedMarketFilters />
@@ -132,7 +144,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
 
       <div className="container-fluid seer-market-results">
         {isPending && (
-          <div className="seer-market-grid">
+          <div className="seer-market-grid" aria-busy="true" aria-label="Loading markets">
             <div className="shimmer-container h-[225px]"></div>
             <div className="shimmer-container h-[225px]"></div>
             <div className="shimmer-container h-[225px]"></div>
@@ -151,7 +163,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
         {!isPending && !isError && data.markets.length === 0 && (
           <div className="seer-empty-state">
             <h2>No markets found</h2>
-            <p>Try another category or adjust your search and filters.</p>
+            <p>Try a different search or adjust your filters.</p>
             {(hasFilters || marketName) && (
               <div className="seer-empty-actions">
                 {hasFilters && (

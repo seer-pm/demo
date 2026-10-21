@@ -1,0 +1,314 @@
+/* Questions and their conditions carry the meaning of the forecast. */
+.seer-home-controls {
+  padding-top: 24px;
+}
+.seer-home-toolbar {
+  padding-top: 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.seer-home-heading h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+  line-height: 1.25;
+}
+.seer-home-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+.seer-home-heading p {
+  margin-top: 5px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--seer-muted);
+}
+.seer-home-status {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--seer-muted);
+}
+.seer-home .seer-market-results {
+  padding-top: 20px;
+}
+.seer-home .seer-market-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.seer-market-card {
+  border: 1px solid var(--seer-border);
+  border-radius: 12px;
+}
+.seer-market-card-heading {
+  min-height: 0;
+  padding: 16px 16px 12px;
+}
+.seer-market-card-heading > div {
+  padding: 0;
+}
+.seer-market-card-heading img,
+.seer-market-card-heading .bg-purple-primary {
+  width: 40px;
+  height: 40px;
+}
+.seer-main .seer-card-question {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.seer-card-question a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.seer-card-provenance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 10px;
+  color: var(--seer-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.seer-card-provenance a:hover {
+  color: var(--seer-accent-text);
+  text-decoration: underline;
+}
+.seer-card-condition {
+  display: block;
+  margin-top: 10px;
+  color: var(--seer-accent-text);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.seer-card-condition:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.seer-card-resolution {
+  margin-top: 6px;
+  color: var(--seer-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.seer-market-card-outcomes {
+  padding: 0 16px 16px;
+  min-height: 0;
+}
+.seer-card-signal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  margin-bottom: 8px;
+  color: var(--seer-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.seer-card-signal > button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -6px -10px -6px 0;
+  border-radius: 8px;
+}
+.seer-card-signal > button:hover {
+  color: var(--seer-accent-text);
+}
+.seer-card-signal svg path,
+.seer-card-details svg path {
+  fill: currentColor;
+}
+.seer-signal-help {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--seer-text);
+}
+.seer-market-card .seer-outcome-row,
+.seer-market-card .seer-outcome-leading {
+  position: relative;
+  overflow: hidden;
+  min-height: 48px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--seer-surface-raised);
+  color: var(--seer-text);
+  font-size: 13px;
+}
+.seer-outcome-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--seer-border) 55%, transparent);
+  pointer-events: none;
+}
+.seer-outcome-leading .seer-outcome-fill {
+  background: var(--seer-accent-soft);
+}
+.seer-outcome-row .seer-outcome-name,
+.seer-outcome-row strong {
+  position: relative;
+}
+.seer-outcome-row .seer-outcome-name {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.seer-outcome-row strong {
+  flex: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+.seer-outcome-leading strong {
+  color: var(--seer-accent-text);
+}
+.seer-market-card .seer-outcome-row:hover {
+  background: var(--seer-accent-soft);
+}
+.seer-more-outcomes {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  font-size: 12px;
+  color: var(--seer-accent-text);
+}
+.seer-market-card-footer {
+  min-height: 60px;
+  padding: 6px 16px;
+  gap: 4px;
+  border-top: 1px solid var(--seer-border);
+}
+.seer-card-rules,
+.seer-card-details > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--seer-muted);
+  font-size: 12px;
+}
+.seer-card-rules:hover,
+.seer-card-details > summary:hover {
+  background: var(--seer-surface-raised);
+  color: var(--seer-accent-text);
+}
+.seer-header-search > .relative {
+  width: 100%;
+}
+.seer-beta {
+  min-height: 44px;
+  padding-block: 0;
+  background: var(--seer-surface-raised);
+  border-bottom: 1px solid var(--seer-border);
+  color: var(--seer-muted);
+  font-size: 12px;
+}
+.seer-beta button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: none;
+}
+.seer-beta svg {
+  width: 16px;
+  height: 16px;
+}
+.seer-beta svg path {
+  fill: currentColor;
+}
+.seer-mobile-actions > button,
+.seer-header-theme,
+.seer-account-nav > ul > .dropdown > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+.seer-mobile-menu-content {
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 16px 24px 32px;
+}
+.seer-mobile-menu {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  height: auto;
+}
+.seer-mobile-menu-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.seer-mobile-menu-heading h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+.seer-mobile-nav-group > summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 44px;
+}
+.seer-mobile-nav-group > ul {
+  padding-left: 16px;
+}
+@media (max-width: 1279px) {
+  .seer-header .seer-navbar {
+    padding-block: 8px;
+    row-gap: 8px;
+  }
+}
+@media (max-width: 1099px) {
+  .seer-home .seer-market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .seer-home-toolbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .seer-home-heading {
+    width: 100%;
+  }
+  .seer-home-heading h1 {
+    font-size: 24px;
+  }
+  .seer-home-heading p {
+    display: none;
+  }
+  .seer-home-controls {
+    padding-top: 16px;
+  }
+  .seer-market-toolbar {
+    flex: 1;
+  }
+  .seer-home .seer-market-results {
+    padding-top: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .seer-home .seer-market-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}

@@ -516,40 +516,12 @@ button:focus-visible {
   position: relative;
   padding-top: 20px;
 }
-.seer-home-toolbar > .seer-categories {
-  flex: 1 1 0;
-  min-width: 0;
-}
 .seer-filter-panel {
   position: absolute;
   top: calc(100% + 12px);
   left: 0;
   width: 100%;
   z-index: 25;
-}
-.seer-categories {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-.seer-categories button {
-  flex: none;
-  min-height: 36px;
-  padding: 8px 16px;
-  border-radius: 7px;
-  font-size: 12px;
-  color: var(--seer-muted);
-  white-space: nowrap;
-}
-.seer-categories button:hover {
-  background: var(--seer-accent-soft);
-  color: var(--seer-text);
-}
-.seer-categories button[aria-pressed="true"] {
-  background: var(--seer-brand-purple);
-  color: white;
 }
 .seer-market-results {
   padding-top: 26px;
@@ -814,9 +786,6 @@ button:focus-visible {
     flex-wrap: wrap;
     gap: 12px;
   }
-  .seer-home-toolbar > .seer-categories {
-    flex-basis: 100%;
-  }
   .seer-market-toolbar {
     width: 100%;
   }
@@ -827,11 +796,6 @@ button:focus-visible {
   }
   .seer-sort select {
     flex: none;
-  }
-  .seer-categories {
-    margin-inline: -20px;
-    padding-inline: 20px;
-    gap: 2px;
   }
   .seer-market-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -951,14 +915,6 @@ button:focus-visible {
 /* Homepage geometry follows the supplied light and dark reference layouts. */
 .seer-home-controls {
   padding-top: 0;
-}
-.seer-categories {
-  gap: 12px;
-}
-.seer-categories button {
-  min-height: 32px;
-  padding: 6px 14px;
-  border-radius: 4px;
 }
 .seer-market-grid {
   gap: 16px;
@@ -1352,7 +1308,7 @@ input, textarea {
   .seer-filter-button { flex: none; min-width: 100px; }
 }
 @media (hover: none) and (pointer: coarse) {
-  .seer-categories button, .seer-sort, .seer-filter-button, .seer-filter-chip,
+  .seer-sort, .seer-filter-button, .seer-filter-chip,
   .seer-clear-filters, .seer-filter-option, .seer-filter-advanced summary { min-height: 44px; }
   .seer-card-details > summary { display: grid; place-items: center; min-width: 44px; min-height: 44px; }
 }

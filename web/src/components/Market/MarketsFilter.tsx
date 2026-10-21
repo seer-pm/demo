@@ -7,7 +7,7 @@ import { ORDER_OPTIONS } from "./marketOrderOptions";
 
 /**
  * Sort and Filter for the market list. They refine one list, so they sit in that list's toolbar
- * rather than in the global header, next to the category chips that refine the same list.
+ * rather than in the global header.
  */
 export function MarketsFilter() {
   const {
@@ -23,8 +23,8 @@ export function MarketsFilter() {
     showFutarchyMarkets,
     minLiquidity,
   } = useMarketsSearchParams();
-  // Categories show on the chips and the sort order on its own control, so the count covers only
-  // what is hidden inside the panel. That is what the user cannot otherwise see is applied.
+  // The count covers restrictions inside this panel. Search, category restrictions and the
+  // sort order have their own visible controls or removable chips.
   const activeFilters = [
     verificationStatusList?.length,
     marketStatusList?.length,
@@ -89,6 +89,8 @@ export function MarketsFilter() {
           <span>Sort</span>
           <select
             aria-label="Sort markets by"
+            aria-describedby={!orderBy ? "market-default-ranking" : undefined}
+            title={ORDER_OPTIONS.find((option) => option.value === (orderBy ?? "default"))?.tooltip}
             value={orderBy ?? "default"}
             onChange={(event) => setOrderBy(event.target.value as Parameters<typeof setOrderBy>[0])}
           >
@@ -98,6 +100,11 @@ export function MarketsFilter() {
               </option>
             ))}
           </select>
+          {!orderBy && (
+            <span id="market-default-ranking" className="sr-only">
+              {ORDER_OPTIONS[0].tooltip}
+            </span>
+          )}
         </label>
         <button
           type="button"

@@ -26,7 +26,7 @@ import {
   getActiveCollateralProfileName,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { Fragment, ReactElement, useEffect, useRef, useState } from "react";
+import { Fragment, ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { gnosis } from "viem/chains";
 import { usePageContext } from "vike-react/usePageContext";
 import { useAccount } from "wagmi";
@@ -64,7 +64,7 @@ function BetaWarning() {
   };
   return (
     <div className="seer-beta">
-      <span>Note that this is a Beta version and can still be unstable</span>
+      <span>Beta version. Some features may be unstable.</span>
       <button type="button" aria-label="Dismiss beta notice" className="hover:opacity-80" onClick={dismiss}>
         <CloseCircleOutlineIcon width={12} height={12} fill="white" />
       </button>
@@ -80,6 +80,7 @@ type NavItem = {
   type: NavItemType;
   url?: string;
   title?: string;
+  label?: string;
   icon?: ReactElement;
   element?: ReactElement;
   className?: string;
@@ -133,18 +134,23 @@ function useNavRenderer(isMobile: boolean, isConnected: boolean, pathname: strin
         return <Fragment key={item.id}>{item.element}</Fragment>;
       case "nested_links":
         return isMobile ? (
-          <div key={item.id} className={item.className}>
-            {item.element ?? <p className="font-semibold text-[16px]">{item.title}</p>}
+          <details key={item.id} className={clsx("seer-mobile-nav-group", item.className)}>
+            <summary>{item.element ?? item.title ?? item.label}</summary>
             <ul>{renderChildren()}</ul>
-          </div>
+          </details>
         ) : (
           <div key={item.id} className={item.className ?? "dropdown dropdown-end"}>
             {item.element ?? (
-              <button type="button" tabIndex={0} className="flex items-center space-x-2 hover:opacity-85 py-3">
+              <button
+                type="button"
+                tabIndex={0}
+                aria-label={item.label}
+                className="flex items-center space-x-2 hover:opacity-85 py-3"
+              >
                 <span>{item.title}</span> {item.icon}
               </button>
             )}
-            <ul tabIndex={0} className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal">
+            <ul className="dropdown-content z-20 w-[248px] [&_svg]:text-purple-primary font-normal">
               {renderChildren()}
             </ul>
           </div>
@@ -167,6 +173,8 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topOffset, setTopOffset] = useState(0);
   const navRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDialogElement>(null);
+  const mobileToggleRef = useRef<HTMLButtonElement>(null);
   const { Modal, openModal, closeModal } = useModal("deposit-modal", true);
 
   const toggle = () => {
@@ -174,6 +182,40 @@ export default function Header() {
     document.body.classList.toggle("overflow-hidden", next);
     setMobileOpen(next);
   };
+  const closeNavigation = useCallback(() => {
+    setMobileOpen(false);
+    document.body.classList.remove("overflow-hidden");
+    mobileToggleRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const menu = mobileMenuRef.current;
+    menu?.querySelector<HTMLElement>("button, a[href]")?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (!menu?.contains(event.target as Node) && event.target !== mobileToggleRef.current) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeNavigation();
+      }
+      if (event.key !== "Tab" || !menu?.contains(event.target as Node)) return;
+      const controls = Array.from(
+        menu.querySelectorAll<HTMLElement>("a[href], button, input, select, summary, [tabindex='0']"),
+      ).filter((element) => !element.hasAttribute("disabled") && element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen, closeNavigation]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -305,7 +347,7 @@ export default function Header() {
           {
             id: "app-dropdown",
             type: "nested_links",
-            title: "App",
+            title: "Apps",
             icon: <DownArrow fill="currentColor" />,
             children: [
               appLink("futarchy", "futarchy", "Futarchy", isMobile),
@@ -379,6 +421,7 @@ export default function Header() {
               {
                 id: "information",
                 type: "nested_links",
+                label: "Help and guides",
                 icon: <QuestionIcon />,
                 children: [
                   {
@@ -426,7 +469,7 @@ export default function Header() {
                   <ThemeToggleButton
                     iconFill="currentColor"
                     iconSize="20"
-                    className="flex items-center justify-center w-[32px] h-[32px] rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    className="seer-header-theme"
                   />
                 ),
               },
@@ -438,15 +481,25 @@ export default function Header() {
     const renderedItems = items.map((item) => <Fragment key={item.id}>{render(item)}</Fragment>);
     if (isMobile) {
       return (
-        <div
+        <dialog
+          ref={mobileMenuRef}
+          id="seer-mobile-navigation"
+          open
+          aria-modal="true"
+          aria-label="Navigation"
           style={{ top: `${topOffset}px` }}
-          className="bg-base-100 text-base-content fixed left-0 right-0 bottom-0 w-full block z-[100] overflow-y-auto"
+          className="seer-mobile-menu bg-base-100 text-base-content fixed left-0 right-0 bottom-0 w-full block z-[100] overflow-y-auto"
         >
-          <div className="px-[24px] py-[48px]">
-            <div className="text-[24px] font-semibold mb-[32px]">Explore</div>
+          <div className="seer-mobile-menu-content">
+            <div className="seer-mobile-menu-heading">
+              <h2>Explore</h2>
+              <button type="button" className="seer-icon-button" aria-label="Close menu" onClick={closeNavigation}>
+                <CloseIcon fill="currentColor" />
+              </button>
+            </div>
             {renderedItems}
           </div>
-        </div>
+        </dialog>
       );
     }
     return renderedItems;
@@ -471,9 +524,11 @@ export default function Header() {
         <div className="seer-mobile-actions">
           <ThemeToggleButton iconFill="currentColor" />
           <button
+            ref={mobileToggleRef}
             type="button"
             aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={mobileOpen}
+            aria-controls={mobileOpen ? "seer-mobile-navigation" : undefined}
             onClick={toggle}
           >
             {mobileOpen ? <CloseIcon /> : <Menu />}
