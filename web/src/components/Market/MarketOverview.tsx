@@ -9,11 +9,14 @@ import { formatBigNumbers, isUndefined } from "@/lib/utils";
 import { useMarketOdds, usePortfolioPnL } from "@seer-pm/react";
 import {
   MARKET_TYPES_DESCRIPTION,
-  MARKET_TYPES_TEXTS,
   type Market,
+  MarketStatus,
+  MarketTypes,
   STATUS_TEXTS,
+  getMarketEstimate,
   getMarketStatus,
   getMarketType,
+  getRealityLink,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
@@ -23,6 +26,13 @@ import { DisplayOdds } from "./DisplayOdds";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import MarketChart from "./MarketChart/MarketChart";
+import {
+  MARKET_SIGNAL_DESCRIPTIONS,
+  MARKET_SIGNAL_LABELS,
+  MARKET_STATUS_LABELS,
+  formatResolutionDate,
+  getResolutionOpening,
+} from "./marketPresentation";
 
 function MarketPnLMetric({ account, market }: { account: Address; market: Market }) {
   const { data: marketPnL, isLoading } = usePortfolioPnL(account, market.chainId, "all", market.id);
@@ -87,9 +97,9 @@ function VerificationMetric({ market }: { market: Market }) {
       >
         <strong
           className={clsx(
-            status === "verified" && "text-success-primary",
-            status === "verifying" && "text-blue-primary",
-            status === "challenged" && "text-warning-primary",
+            status === "verified" && "text-signed-up",
+            status === "verifying" && "seer-status-information",
+            status === "challenged" && "seer-status-warning",
             status === "not_verified" && "text-purple-primary",
           )}
         >
@@ -110,20 +120,26 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
   const marketType = getMarketType(market);
   const chain = SUPPORTED_CHAINS[market.chainId];
   const explorerUrl = chain?.blockExplorers?.default?.url;
+  const resolutionOpening = getResolutionOpening(market);
+  const creator = market.creator && market.creator.toLowerCase() !== zeroAddress ? market.creator : undefined;
+  const estimate = marketType === MarketTypes.SCALAR ? getMarketEstimate(odds, market, true) : undefined;
   // P/L is keyed to the market a wallet traded on; a child market's trades settle through the parent
   // outcome token, so it has no standalone figure to show.
   const hasOwnPnL = market.parentMarket.id.toLowerCase() === zeroAddress;
   return (
     <section className="event-overview" aria-label="Event overview">
       <header className="event-heading">
-        <div className="event-kicker">
-          <span>SEER MARKETS</span>
-          <span>{status ? STATUS_TEXTS[status](market.liquidityUSD > 0) : "Market"}</span>
-        </div>
         <div className="event-title-row">
           {market.images?.market && <img src={market.images.market} alt="" />}
           <h1>{market.marketName}</h1>
           <MarketFavorite market={market} iconWidth="20" />
+        </div>
+        <div className="event-status">
+          {status === MarketStatus.NOT_OPEN
+            ? STATUS_TEXTS[status](market.liquidityUSD > 0)
+            : status
+              ? MARKET_STATUS_LABELS[status]
+              : "Market"}
         </div>
         <div className="event-metrics">
           <span>
@@ -139,7 +155,7 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
             <small>Type</small>
             <strong>
               {MARKET_TYPES_ICONS[marketType]}
-              {MARKET_TYPES_TEXTS[marketType]}
+              {MARKET_SIGNAL_LABELS[marketType]}
             </strong>
           </span>
           <span>
@@ -163,6 +179,40 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
             Rules & settlement ↗
           </a>
         </div>
+        <div className="event-provenance">
+          {creator && (
+            <span>
+              Created by{" "}
+              {explorerUrl ? (
+                <a href={`${explorerUrl}/address/${creator}`} target="_blank" rel="noopener noreferrer" title={creator}>
+                  {creator.slice(0, 6)}…{creator.slice(-4)}
+                  <span className="sr-only"> (view creator on block explorer)</span>
+                </a>
+              ) : (
+                <span title={creator}>
+                  {creator.slice(0, 6)}…{creator.slice(-4)}
+                </span>
+              )}
+            </span>
+          )}
+          <span>
+            {resolutionOpening ? (
+              <>
+                Resolution opens{" "}
+                <time dateTime={new Date(resolutionOpening * 1000).toISOString()}>
+                  {formatResolutionDate(resolutionOpening)}
+                </time>
+              </>
+            ) : (
+              "Resolution dates vary by outcome"
+            )}
+          </span>
+          {market.questions[0] && (
+            <a href={getRealityLink(market.chainId, market.questions[0].id)} target="_blank" rel="noopener noreferrer">
+              Resolution on Reality.eth ↗
+            </a>
+          )}
+        </div>
       </header>
       <div className="event-chart-summary">
         <div>
@@ -181,6 +231,14 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
           Selected outcome
         </button>
       </div>
+      <p className="event-signal-explanation">
+        {estimate && estimate !== "NA" && (
+          <>
+            <strong>Market estimate: {estimate}.</strong>{" "}
+          </>
+        )}
+        {MARKET_SIGNAL_DESCRIPTIONS[marketType]}
+      </p>
       <MarketChart market={market} outcomeIndex={chartFocus ? selected : undefined} />
     </section>
   );

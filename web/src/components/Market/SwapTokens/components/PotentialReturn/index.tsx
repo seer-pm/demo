@@ -63,7 +63,7 @@ export function PotentialReturn({
   }
 
   return (
-    <div className="flex justify-between text-[#828282] text-[14px]">
+    <div className="flex justify-between text-black-secondary-fg text-[14px]">
       <div className="flex items-center gap-2 relative">
         Potential return{" "}
         <span className="tooltip">

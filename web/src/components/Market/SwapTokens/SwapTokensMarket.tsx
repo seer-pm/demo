@@ -608,7 +608,7 @@ export function SwapTokensMarket({
         </div>
         {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
         <div className="space-y-1">
-          <div className="flex justify-between text-[#828282] text-[14px]">
+          <div className="flex justify-between text-black-secondary-fg text-[14px]">
             Avg price
             {quoteIsLoading || isFetching ? (
               <div className="shimmer-container ml-2 w-[100px]" />
@@ -638,7 +638,7 @@ export function SwapTokensMarket({
           </div>
 
           {!!limitPriceFromVolume && (
-            <div className="flex justify-between text-[#828282] text-[14px]">
+            <div className="flex justify-between text-black-secondary-fg text-[14px]">
               Price after {swapType}
               {quoteIsLoading || isFetching ? (
                 <div className="shimmer-container ml-2 w-[100px]" />

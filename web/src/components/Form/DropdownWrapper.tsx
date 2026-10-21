@@ -9,16 +9,29 @@ type DropdownWrapperProps = {
   setIsOpen: (isOpen: boolean) => void;
   direction?: "left" | "right" | "auto";
   className?: string;
+  contentId?: string;
   offset?: { top: number; left: number; right: number };
 };
 
 const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((props, ref) => {
-  const { className, children, content, offset, direction = "left", isOpen, setIsOpen } = props;
+  const { className, children, content, offset, direction = "left", isOpen, setIsOpen, contentId } = props;
   const [actualDirection, setActualDirection] = useState<"left" | "right">("left");
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, right: 0 });
   const [isPositioned, setIsPositioned] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setIsOpen(false);
+      triggerRef.current?.querySelector<HTMLElement>("button, [tabindex]")?.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, setIsOpen]);
+
   useEffect(() => {
     const updateDropdownPosition = () => {
       if (triggerRef.current && contentRef.current) {
@@ -86,13 +99,38 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
 
   return (
     <div>
-      <div className="flex" ref={triggerRef} onClick={() => setIsOpen(!isOpen)}>
+      <div
+        className="flex"
+        ref={triggerRef}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(event) => {
+          // A portalled disclosure keeps its keyboard order next to its trigger.
+          if (!contentId || !isOpen || event.key !== "Tab" || event.shiftKey) return;
+          const first = contentRef.current?.querySelector<HTMLElement>("button, input, a[href], [tabindex='0']");
+          if (!first) return;
+          event.preventDefault();
+          first.focus({ preventScroll: true });
+        }}
+      >
         {children}
       </div>
 
       {isOpen &&
         createPortal(
           <div
+            id={contentId}
+            onKeyDown={(event) => {
+              if (!contentId || event.key !== "Tab") return;
+              const controls = contentRef.current?.querySelectorAll<HTMLElement>(
+                "button, input, a[href], [tabindex='0']",
+              );
+              if (!controls?.length) return;
+              const boundary = event.shiftKey ? controls[0] : controls[controls.length - 1];
+              if (document.activeElement !== boundary) return;
+              if (event.shiftKey) event.preventDefault();
+              setIsOpen(false);
+              triggerRef.current?.querySelector<HTMLElement>("button, [tabindex]")?.focus();
+            }}
             ref={(node) => {
               // Combine refs
               if (typeof ref === "function") {

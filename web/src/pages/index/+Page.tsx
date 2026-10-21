@@ -1,4 +1,5 @@
 import { Alert } from "@/components/Alert";
+import { AppliedMarketFilters } from "@/components/Market/AppliedMarketFilters";
 import { MarketCategoryNav } from "@/components/Market/MarketCategoryNav";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
 import MarketsPagination from "@/components/Market/MarketsPagination";
@@ -99,6 +100,7 @@ async function preLoadNextPage(params: UseMarketsProps, queryClient: QueryClient
 }
 
 function PageContent({ params }: { params: UseMarketsProps }) {
+  const { hasFilters, clearFilters, marketName, setMarketName } = useMarketsSearchParams();
   const results = useMarkets(params);
   const {
     data,
@@ -125,6 +127,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
           <MarketCategoryNav />
           <MarketsFilter />
         </div>
+        <AppliedMarketFilters />
       </div>
 
       <div className="container-fluid seer-market-results">
@@ -149,6 +152,20 @@ function PageContent({ params }: { params: UseMarketsProps }) {
           <div className="seer-empty-state">
             <h2>No markets found</h2>
             <p>Try another category or adjust your search and filters.</p>
+            {(hasFilters || marketName) && (
+              <div className="seer-empty-actions">
+                {hasFilters && (
+                  <button type="button" className="btn btn-primary" onClick={clearFilters}>
+                    Clear filters
+                  </button>
+                )}
+                {marketName && (
+                  <button type="button" className="btn btn-ghost" onClick={() => setMarketName("")}>
+                    Clear search
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 

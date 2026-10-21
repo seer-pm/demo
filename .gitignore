@@ -1,6 +1,7 @@
 node_modules
 # Local Netlify folder
 .netlify
+.impeccable/
 .yarn/*
 !.yarn/cache
 !.yarn/patches

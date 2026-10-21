@@ -42,7 +42,7 @@ export function PotentialReturnResult({
   );
 
   return (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
+    <span className={clsx(returnPercentage >= 0 ? "text-signed-up" : "text-signed-down", "text-right")}>
       {potentialReturn.toFixed(2)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
       %)
     </span>

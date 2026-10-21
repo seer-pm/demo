@@ -43,7 +43,7 @@ export default function ScalarForecastChecker({
   const renderReturnPerToken = (returnPercentage: number, returnPerToken: number) => (
     <span
       className={clsx(
-        returnPercentage !== 0 && (returnPercentage > 0 ? "text-success-primary" : "text-error-primary"),
+        returnPercentage !== 0 && (returnPercentage > 0 ? "text-signed-up" : "text-signed-down"),
         "text-right",
       )}
     >
@@ -54,7 +54,7 @@ export default function ScalarForecastChecker({
     </span>
   );
   const renderPotentialReturn = (returnPercentage: number, potentialReturn: number) => (
-    <span className={clsx(returnPercentage >= 0 ? "text-success-primary" : "text-error-primary", "text-right")}>
+    <span className={clsx(returnPercentage >= 0 ? "text-signed-up" : "text-signed-down", "text-right")}>
       {potentialReturn.toFixed(3)} {selectedCollateral.symbol} ({returnPercentage.toFixed(2)}
       %)
     </span>
@@ -361,7 +361,7 @@ export default function ScalarForecastChecker({
           <p
             className={clsx(
               "w-[35%] text-right",
-              data[1].returnPercentage >= 0 ? "text-success-primary" : "text-error-primary",
+              data[1].returnPercentage >= 0 ? "text-signed-up" : "text-signed-down",
             )}
           >
             UP
@@ -369,7 +369,7 @@ export default function ScalarForecastChecker({
           <p
             className={clsx(
               "w-[35%] text-right",
-              data[0].returnPercentage >= 0 ? "text-success-primary" : "text-error-primary",
+              data[0].returnPercentage >= 0 ? "text-signed-up" : "text-signed-down",
             )}
           >
             DOWN
@@ -393,7 +393,7 @@ export default function ScalarForecastChecker({
       <ReactECharts option={option} key={bestReturnIndex} style={{ height: "250px" }} />
       <div className="flex items-center flex-col">
         <p className="font-semibold mb-2">Best return for your forecast</p>
-        <p className="text-success-primary">
+        <p className="text-signed-up">
           Buy {market.outcomes[bestReturnIndex]}{" "}
           {renderPotentialReturn(data[bestReturnIndex].returnPercentage, data[bestReturnIndex].potentialReturn)}
         </p>

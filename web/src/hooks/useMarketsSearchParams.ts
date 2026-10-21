@@ -3,6 +3,27 @@ import { FetchMarketParams, MarketStatus, VerificationStatus } from "@seer-pm/sd
 
 type MarketsOrderBy = NonNullable<FetchMarketParams["orderBy"]>;
 
+export interface MarketFilterUpdate {
+  marketStatusList?: MarketStatus[];
+  verificationStatusList?: VerificationStatus[];
+  chainsList?: string[];
+  showConditionalMarkets: boolean;
+  showMarketsWithRewards: boolean;
+  showFutarchyMarkets: boolean;
+  minLiquidity: number;
+}
+
+const FILTER_KEYS = [
+  "category",
+  "marketStatus",
+  "verificationStatus",
+  "chains",
+  "conditionalMarkets",
+  "rewardsMarkets",
+  "type",
+  "minLiquidity",
+] as const;
+
 function useMarketsSearchParams() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryList = searchParams.getAll("category");
@@ -188,6 +209,40 @@ function useMarketsSearchParams() {
     });
   };
 
+  const applyFilters = (filters: MarketFilterUpdate) => {
+    setSearchParams((params) => {
+      for (const [key, values] of [
+        ["marketStatus", filters.marketStatusList],
+        ["verificationStatus", filters.verificationStatusList],
+        ["chains", filters.chainsList],
+      ] as const) {
+        params.delete(key);
+        for (const value of values ?? []) params.append(key, value);
+      }
+      for (const [key, enabled] of [
+        ["conditionalMarkets", filters.showConditionalMarkets],
+        ["rewardsMarkets", filters.showMarketsWithRewards],
+      ] as const) {
+        params.delete(key);
+        if (enabled) params.set(key, "true");
+      }
+      params.delete("type");
+      if (filters.showFutarchyMarkets) params.set("type", "Futarchy");
+      params.delete("minLiquidity");
+      if (filters.minLiquidity > 0) params.set("minLiquidity", String(filters.minLiquidity));
+      params.set("page", "1");
+      return params;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchParams((params) => {
+      for (const key of FILTER_KEYS) params.delete(key);
+      params.set("page", "1");
+      return params;
+    });
+  };
+
   return {
     categoryList,
     setCategory,
@@ -218,13 +273,14 @@ function useMarketsSearchParams() {
     toggleShowFutarchyMarkets,
     setOrderDirection,
     setMinLiquidity,
+    applyFilters,
+    clearFilters,
 
     hasFilters:
       categoryList.length ||
       verificationStatusList?.length ||
       marketStatusList?.length ||
       chainsList?.length ||
-      orderBy ||
       showConditionalMarkets ||
       showMarketsWithRewards ||
       showFutarchyMarkets ||

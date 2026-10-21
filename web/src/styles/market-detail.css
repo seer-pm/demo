@@ -261,22 +261,8 @@
   z-index: -1;
   pointer-events: none;
 }
-.event-kicker {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 10px;
-  letter-spacing: .12em;
-  color: var(--seer-muted);
-  margin-bottom: 22px;
-}
-.event-kicker > :last-child {
-  color: var(--seer-brand-purple);
-  letter-spacing: 0;
-  border-radius: 20px;
-  background: var(--seer-accent-soft);
-  padding: 5px 9px;
-}
+
+
 .event-title-row {
   display: flex;
   align-items: flex-start;
@@ -381,10 +367,10 @@
   margin-top: 4px;
 }
 .event-selected-odds {
-  color: #a275ef;
+  color: var(--seer-accent-text);
   font-size: 42px;
   font-weight: 500;
-  letter-spacing: -.05em;
+  letter-spacing: -.025em;
   line-height: 1;
 }
 .event-chart-switch {
@@ -553,9 +539,8 @@
   grid-column: 1;
   min-width: 0;
 }
-[data-theme="dark"] .event-trade-outcome,
-[data-theme="dark"] .event-kicker > :last-child {
-  color: #c9acff;
+[data-theme="dark"] .event-trade-outcome {
+  color: var(--seer-accent-text);
 }
 @media (max-width: 1199px) {
   .event-workspace {
@@ -629,9 +614,7 @@
   .event-heading {
     padding: 16px 20px 0;
   }
-  .event-kicker {
-    margin-bottom: 10px;
-  }
+
   .event-title-row {
     gap: 12px;
   }
@@ -729,9 +712,7 @@
   .event-heading {
     padding-top: 10px;
   }
-  .event-kicker {
-    margin-bottom: 6px;
-  }
+
   .event-metrics {
     padding-block: 8px;
   }
@@ -863,15 +844,9 @@
   .event-heading {
     padding-top: 10px;
   }
-  .event-kicker {
-    margin-bottom: 5px;
-  }
-  .event-kicker > :first-child {
-    display: none;
-  }
-  .event-kicker > :last-child {
-    padding: 2px 7px;
-  }
+
+
+
   .event-title-row h1 {
     font-size: 23px;
   }
@@ -920,12 +895,12 @@
   margin: 0 !important;
   transform: translateX(-50%);
   color: #7d33ff;
-  opacity: 0.16;
+  opacity: 0.08;
   pointer-events: none;
 }
 [data-theme="dark"] .event-brand-ribbon {
   color: #a275ef;
-  opacity: 0.2;
+  opacity: 0.12;
 }
 .event-comments {
   margin-bottom: 28px;
@@ -954,15 +929,15 @@
   display: none;
 }
 
-/* Translucent analysis surfaces reveal the full-scale motif without competing with chart data. */
+/* Nearly opaque reading surfaces keep the brand motif outside the data hierarchy. */
 .event-overview {
-  background: color-mix(in srgb, var(--seer-surface) 45%, transparent);
+  background: color-mix(in srgb, var(--seer-surface) 94%, transparent);
 }
 .event-overview .seer-market-chart {
   background: transparent;
 }
 .event-outcome-row {
-  background: color-mix(in srgb, var(--seer-surface) 85%, transparent);
+  background: color-mix(in srgb, var(--seer-surface) 98%, transparent);
 }
 
 .event-outcome-top {
@@ -1059,4 +1034,55 @@
   .event-outcome-inline-actions {
     padding-left: 12px;
   }
+}
+
+.event-status {
+  display: inline-flex;
+  margin-top: 10px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  color: var(--seer-accent-text);
+  background: var(--seer-accent-soft);
+  font-size: 12px;
+}
+.event-provenance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding-block: 10px;
+  font-size: 12px;
+  color: var(--seer-muted);
+  line-height: 1.5;
+}
+.event-provenance a { color: var(--seer-accent-text); text-underline-offset: 3px; }
+.event-provenance a:hover { text-decoration: underline; }
+.event-provenance time { color: var(--seer-text); }
+.event-signal-explanation {
+  padding: 8px 28px 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--seer-muted);
+}
+.event-signal-explanation strong { color: var(--seer-text); font-weight: 600; }
+.event-metrics small, .event-metrics > .event-metrics-rules, .event-selected-label { font-size: 12px; }
+.event-chart-switch button { font-size: 12px; min-height: 36px; }
+.event-overview .seer-chart-legend-item { font-size: 12px; min-height: 32px; }
+.event-outcome-name small { font-size: 12px; }
+.event-rules-readable { background: var(--seer-page); }
+@media (min-width: 1200px) {
+  .event-signal-explanation { padding-inline: 20px; }
+  .event-status { margin-top: 6px; }
+}
+@media (max-width: 700px) {
+  .event-heading { padding: 20px 18px 0; }
+  .event-title-row { gap: 12px; }
+  .event-title-row h1 { font-size: 24px; line-height: 1.25; }
+  .event-title-row > img { width: 40px; height: 40px; }
+  .event-metrics { gap: 10px 18px; padding-block: 14px; }
+  .event-provenance { gap: 6px 14px; }
+  .event-signal-explanation { padding-inline: 18px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .event-chart-switch button, .seer-chart-controls .pill-button,
+  .event-overview .seer-chart-legend-item { min-height: 44px; }
 }

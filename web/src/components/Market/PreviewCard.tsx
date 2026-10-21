@@ -32,7 +32,7 @@ import {
 import { MARKET_TYPES_TEXTS } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useMemo } from "react";
-import { formatUnits } from "viem";
+import { formatUnits, zeroAddress } from "viem";
 import { clientOnly } from "vike-react/clientOnly";
 import { DismissibleDetails } from "../DismissibleDetails";
 import { Link } from "../Link";
@@ -41,6 +41,7 @@ import { BAR_COLOR, COLORS } from "./Header";
 import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import { PoolTokensInfo } from "./Header/MarketHeader";
+import { MARKET_SIGNAL_LABELS } from "./marketPresentation";
 import { rankPreviewOutcomes } from "./previewOutcomeRanking";
 
 const DONUT_SIZE = 56;
@@ -204,11 +205,11 @@ function ScalarGauge({
           <circle cx={knobPos.x} cy={knobPos.y} r={GAUGE_KNOB_RADIUS} fill={color} stroke="white" strokeWidth={2} />
         </svg>
         <div className="absolute inset-x-0 bottom-[18%] text-center pointer-events-none">
-          <p className="font-semibold text-[14px] text-base-content leading-tight">{value.toLocaleString()}</p>
-          {unit && <p className="text-[9px] text-black-secondary uppercase leading-tight">{unit}</p>}
+          <p className="font-semibold text-[16px] text-base-content leading-tight">{value.toLocaleString()}</p>
+          {unit && <p className="text-[11px] text-black-secondary-fg leading-tight">{unit}</p>}
         </div>
       </div>
-      <div className="flex justify-between text-[9px] text-black-secondary px-0.5 leading-tight">
+      <div className="flex justify-between text-[11px] text-black-secondary-fg px-0.5 leading-tight">
         <span>{min.toLocaleString()}</span>
         <span>{max.toLocaleString()}</span>
       </div>
@@ -450,12 +451,15 @@ function MarketOutcomeRows({ market }: { market: Market }) {
     const marketEstimate = Number(getMarketEstimate(market.odds, market));
     if (Number.isNaN(marketEstimate)) return null;
     return (
-      <ScalarGauge
-        value={marketEstimate}
-        min={displayScalarBound(market.lowerBound)}
-        max={displayScalarBound(market.upperBound)}
-        unit={getMarketUnit(market) || undefined}
-      />
+      <div className="seer-scalar-estimate">
+        <span>Market estimate</span>
+        <ScalarGauge
+          value={marketEstimate}
+          min={displayScalarBound(market.lowerBound)}
+          max={displayScalarBound(market.upperBound)}
+          unit={getMarketUnit(market) || undefined}
+        />
+      </div>
     );
   }
   const odds = marketType === MarketTypes.MULTI_CATEGORICAL ? market.odds : rescaleOdds(market.odds);
@@ -512,6 +516,8 @@ export function PreviewCard({ market }: { market: Market }) {
   );
   const marketType = getMarketType(market);
   const colors = marketStatus && COLORS[marketStatus];
+  const network = SUPPORTED_CHAINS[market.chainId]?.name;
+  const isConditional = market.parentMarket.id.toLowerCase() !== zeroAddress;
   const challengeRemainingTime = useMemo(() => getChallengeRemainingTime(market), [market.verification?.status]);
   const blockExplorerUrl = SUPPORTED_CHAINS?.[market.chainId]?.blockExplorers?.default?.url;
   const hasBalance = market.poolBalance.some(
@@ -547,6 +553,21 @@ export function PreviewCard({ market }: { market: Market }) {
             </Link>
           </div>
         </div>
+        <div className="seer-card-context">
+          <span>{network}</span>
+          <span title={MARKET_TYPES_TEXTS[marketType]}>{MARKET_SIGNAL_LABELS[marketType]}</span>
+          {isConditional && (
+            <span
+              title={
+                parentMarket
+                  ? `Conditional on ${parentMarket.marketName}: ${parentMarket.outcomes[Number(market.parentOutcome)]}`
+                  : undefined
+              }
+            >
+              Conditional
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="seer-market-card-outcomes px-4 custom-scrollbar">
@@ -559,7 +580,7 @@ export function PreviewCard({ market }: { market: Market }) {
 
       <div className="seer-market-card-footer px-[16px] flex items-center justify-between w-full">
         <span className="seer-card-volume" title="Market trading volume">
-          ${formatBigNumbers(market.volumeUSD)} Vol.
+          ${formatBigNumbers(market.volumeUSD)} volume
         </span>
         <DismissibleDetails className="seer-card-details">
           <summary aria-label="Market information">ⓘ</summary>

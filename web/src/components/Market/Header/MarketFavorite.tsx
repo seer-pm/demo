@@ -14,12 +14,12 @@ import { isAccessTokenExpired } from "@/lib/utils";
 import { checkWalletConnectCallback } from "@/lib/wallet";
 import { Market } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 function MarketFavorite({
   market,
   colorClassName,
-  iconWidth = "14",
+  iconWidth = "16",
 }: {
   market: Market;
   colorClassName?: string;
@@ -32,6 +32,7 @@ function MarketFavorite({
   const updateCollectionItem = useUpdateCollectionItem();
   const [input, setInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const collectionPanelId = useId();
   const { data: collectionsMarkets = [] } = useAllCollectionsMarkets();
   let { data: collections = [] } = useGetCollections();
   collections = [{ id: "default", name: "Default", url: "default" }, ...collections];
@@ -77,6 +78,7 @@ function MarketFavorite({
         }
       />
       <DropdownWrapper
+        contentId={collectionPanelId}
         direction="auto"
         isOpen={isOpen}
         setIsOpen={setIsOpen}
@@ -151,19 +153,16 @@ function MarketFavorite({
           </>
         }
       >
-        {isFavorite ? (
-          <div className="tooltip cursor-pointer">
-            <p className="tooltiptext">Remove from collection</p>
-            <StarFilled width={iconWidth} />
-          </div>
-        ) : (
-          <div className={clsx(colorClassName, "tooltip cursor-pointer")}>
-            <p className="tooltiptext">
-              {isAccountConnectedAndSignedIn ? "Add to collection" : "Sign in to add to collection"}
-            </p>
-            <StarOutlined width={iconWidth} />
-          </div>
-        )}
+        <button
+          type="button"
+          className={clsx("seer-favorite-button", colorClassName)}
+          aria-label={`${isFavorite ? "Manage collections for" : "Save to a collection:"} ${market.marketName}`}
+          aria-expanded={isOpen}
+          aria-controls={isOpen ? collectionPanelId : undefined}
+          title={isFavorite ? "Manage collections" : "Save to a collection"}
+        >
+          {isFavorite ? <StarFilled width={iconWidth} /> : <StarOutlined width={iconWidth} fill="currentColor" />}
+        </button>
       </DropdownWrapper>
     </>
   );
