@@ -4,8 +4,8 @@ import Button from "@/components/Form/Button";
 import DropdownWrapper from "@/components/Form/DropdownWrapper";
 import Input from "@/components/Form/Input";
 import { Link } from "@/components/Link";
-import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
+import { Pagination } from "@/components/Pagination";
 import { useCollectionMarkets } from "@/hooks/collections/useCollectionMarkets";
 import { useCreateCollection } from "@/hooks/collections/useCreateCollection";
 import { useDeleteCollection } from "@/hooks/collections/useDeleteCollection";
@@ -26,7 +26,7 @@ import { paths } from "@/lib/paths";
 import { isAccessTokenExpired, isTwoStringsEqual } from "@/lib/utils";
 import { checkWalletConnectCallback } from "@/lib/wallet";
 import clsx from "clsx";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
@@ -67,11 +67,8 @@ function CollectionsPage() {
   const { data: collectionMarkets } = useCollectionMarkets(id === "default" ? "" : id);
   const params = useMarketsSearchParams();
   const results = useMarkets({ ...params, marketIds: collectionMarkets, disabled: !collectionMarkets?.length });
-  const {
-    data,
-    isLoading,
-    pagination: { pageCount, handlePageClick, page },
-  } = useSortAndFilterResults(results);
+  const { data, isLoading, pagination } = useSortAndFilterResults(results);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const {
     Modal: AddCollectionModal,
     openModal: openAddCollectionModal,
@@ -273,12 +270,22 @@ function CollectionsPage() {
 
       {!isLoading && data.markets.length === 0 && <Alert type="warning">No markets in this collection.</Alert>}
 
-      <div className="mb-8 grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5">
-        {data.markets.map((market) => (
-          <PreviewCard key={market.id} market={market} />
-        ))}
+      <div>
+        <div
+          ref={resultsRef}
+          className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[1000px]:grid-cols-3 min-[1350px]:grid-cols-4 gap-5"
+        >
+          {data.markets.map((market) => (
+            <PreviewCard key={market.id} market={market} />
+          ))}
+        </div>
+        <Pagination
+          {...pagination}
+          itemLabel={{ one: "market", other: "markets" }}
+          label="Collection pages"
+          resultsRef={resultsRef}
+        />
       </div>
-      <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
     </div>
   );
 }

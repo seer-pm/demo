@@ -19,7 +19,7 @@ import {
 import { format } from "date-fns";
 import { Address, parseUnits } from "viem";
 import { MarketImage } from "../Market/MarketImage";
-import MarketsPagination from "../Market/MarketsPagination";
+import { Pagination } from "../Pagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 import { ExecutorBadge } from "./ExecutorBadge";
 import { SortableColumnHeader } from "./SortableColumnHeader";
@@ -245,6 +245,7 @@ export default function HistoryTable({
     pageIndex: 0,
     pageSize: 10,
   });
+  const tableRef = React.useRef<HTMLDivElement>(null);
   const table = useReactTable({
     columns,
     data,
@@ -259,7 +260,7 @@ export default function HistoryTable({
 
   return (
     <>
-      <div className="w-full overflow-x-auto mb-6">
+      <div className="w-full overflow-x-auto" ref={tableRef}>
         <table className="simple-table">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -287,10 +288,15 @@ export default function HistoryTable({
           </tbody>
         </table>
       </div>
-      <MarketsPagination
-        pageCount={table.getPageCount()}
-        handlePageClick={({ selected }) => table.setPageIndex(selected)}
+      <Pagination
         page={table.getState().pagination.pageIndex + 1}
+        pageCount={table.getPageCount()}
+        onPageChange={(page) => table.setPageIndex(page - 1)}
+        itemCount={table.getPrePaginationRowModel().rows.length}
+        pageSize={table.getState().pagination.pageSize}
+        itemLabel={{ one: "transaction", other: "transactions" }}
+        label="History pages"
+        resultsRef={tableRef}
       />
     </>
   );

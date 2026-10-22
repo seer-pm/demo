@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import vike from "vike/plugin";
 import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
-import { cjsInterop } from "vite-plugin-cjs-interop";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,9 +10,6 @@ export default defineConfig({
     react(),
     vike(),
     checker({ typescript: true }),
-    cjsInterop({
-      dependencies: ["react-paginate"],
-    }),
   ],
   define: {
     global: "window",

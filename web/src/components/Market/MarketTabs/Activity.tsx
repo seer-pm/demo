@@ -1,7 +1,7 @@
 import { Alert } from "@/components/Alert";
 import { DisplayName } from "@/components/DisplayName";
 import { Link } from "@/components/Link";
-import MarketsPagination from "@/components/Market/MarketsPagination";
+import { Pagination } from "@/components/Pagination";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { ExternalLinkIcon } from "@/lib/icons";
@@ -11,7 +11,7 @@ import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
 import type { TransactionData } from "@seer-pm/sdk";
 import { format } from "date-fns";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Address, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 
@@ -76,6 +76,7 @@ export default function Activity({ market }: ActivityProps) {
     [data, isFilteringMyActivity, address],
   );
   const [page, setPage] = useState(1);
+  const listRef = useRef<HTMLDivElement>(null);
   const pageCount = Math.ceil(rows.length / ITEMS_PER_PAGE);
   const pagedRows = rows.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
@@ -122,7 +123,7 @@ export default function Activity({ market }: ActivityProps) {
           {isFilteringMyActivity ? "No recent activity for your account" : "No recent activity"}
         </Alert>
       ) : (
-        <div className="w-full overflow-x-auto mb-6">
+        <div className="w-full overflow-x-auto" ref={listRef}>
           <table className="simple-table table-fixed">
             <colgroup>
               <col style={{ width: "70%" }} />
@@ -190,13 +191,16 @@ export default function Activity({ market }: ActivityProps) {
           </table>
         </div>
       )}
-      {rows.length > ITEMS_PER_PAGE && (
-        <MarketsPagination
-          pageCount={pageCount}
-          page={page}
-          handlePageClick={({ selected }) => setPage(selected + 1)}
-        />
-      )}
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPageChange={setPage}
+        itemCount={rows.length}
+        pageSize={ITEMS_PER_PAGE}
+        itemLabel={{ one: "transaction", other: "transactions" }}
+        label="Activity pages"
+        resultsRef={listRef}
+      />
     </div>
   );
 }

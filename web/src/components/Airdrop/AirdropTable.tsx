@@ -17,7 +17,7 @@ import clsx from "clsx";
 import { Address } from "viem";
 import { navigate } from "vike/client/router";
 import { MarketImage } from "../Market/MarketImage";
-import MarketsPagination from "../Market/MarketsPagination";
+import { Pagination } from "../Pagination";
 import TextOverflowTooltip from "../TextOverflowTooltip";
 
 export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo[]; chainId: SupportedChain }) {
@@ -74,6 +74,7 @@ export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo
     pageIndex: 0,
     pageSize: 10,
   });
+  const tableRef = React.useRef<HTMLDivElement>(null);
   const table = useReactTable({
     columns,
     data,
@@ -88,7 +89,7 @@ export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo
 
   return (
     <>
-      <div className="w-full overflow-x-auto mb-6">
+      <div className="w-full overflow-x-auto" ref={tableRef}>
         <table className="simple-table">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -162,10 +163,15 @@ export default function AirdropTable({ data, chainId }: { data: AirdropTokenInfo
           </tbody>
         </table>
       </div>
-      <MarketsPagination
-        pageCount={table.getPageCount()}
-        handlePageClick={({ selected }) => table.setPageIndex(selected)}
+      <Pagination
         page={table.getState().pagination.pageIndex + 1}
+        pageCount={table.getPageCount()}
+        onPageChange={(page) => table.setPageIndex(page - 1)}
+        itemCount={table.getPrePaginationRowModel().rows.length}
+        pageSize={table.getState().pagination.pageSize}
+        itemLabel={{ one: "token", other: "tokens" }}
+        label="Airdrop pages"
+        resultsRef={tableRef}
       />
     </>
   );

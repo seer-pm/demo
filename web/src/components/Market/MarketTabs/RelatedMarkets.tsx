@@ -1,10 +1,10 @@
 import { Alert } from "@/components/Alert";
-import MarketsPagination from "@/components/Market/MarketsPagination";
+import { Pagination } from "@/components/Pagination";
 import { useRelatedMarkets } from "@/hooks/useRelatedMarkets";
 import { getGraphMarketQueryFn, getUseGraphMarketKey, useMarket } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zeroAddress } from "viem";
 import { MarketHeader } from "../Header/MarketHeader";
 
@@ -104,6 +104,7 @@ export function RelatedMarkets({
 }: RelatedMarketsProps & { setRelatedMarketsCount: (count: number) => void }) {
   const { data: markets = [], isPending } = useRelatedMarkets(market);
   const [page, setPage] = useState(1);
+  const listRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const ITEMS_PER_PAGE = 5;
 
@@ -161,19 +162,24 @@ export function RelatedMarkets({
       {filteredMarkets.length === 0 ? (
         <Alert type="warning">No markets found for the searched outcome.</Alert>
       ) : (
-        <>
-          {pagedMarkets.map((market) => (
-            <RelatedMarket market={market} key={market.id} />
-          ))}
+        <div>
+          <div className="space-y-3" ref={listRef}>
+            {pagedMarkets.map((market) => (
+              <RelatedMarket market={market} key={market.id} />
+            ))}
+          </div>
 
-          {filteredMarkets.length > ITEMS_PER_PAGE && (
-            <MarketsPagination
-              pageCount={pageCount}
-              page={page}
-              handlePageClick={({ selected }) => setPage(selected + 1)}
-            />
-          )}
-        </>
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            itemCount={filteredMarkets.length}
+            pageSize={ITEMS_PER_PAGE}
+            itemLabel={{ one: "market", other: "markets" }}
+            label="Related market pages"
+            resultsRef={listRef}
+          />
+        </div>
       )}
     </div>
   );

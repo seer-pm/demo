@@ -1434,3 +1434,160 @@ input, textarea {
   .seer-clear-filters, .seer-filter-option, .seer-filter-advanced summary { min-height: 44px; }
   .seer-card-details > summary { display: grid; place-items: center; min-width: 44px; min-height: 44px; }
 }
+
+/* Pagination closes the list it pages through: a hairline, the range on the left, pages on the right.
+   It sizes itself to its container, because the same control sits under the full-width market grid
+   and inside the narrow market tabs. */
+.seer-pagination {
+  container-type: inline-size;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--seer-border);
+}
+.seer-pagination-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.seer-pagination-summary {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--seer-muted);
+  font-variant-numeric: tabular-nums;
+}
+.seer-pagination-summary strong {
+  font-weight: 500;
+  color: var(--seer-text);
+}
+/* The page buttons already say which page is current, so the summary gives the range instead. */
+.seer-pagination-position:not(:only-child) {
+  display: none;
+}
+.seer-pagination-controls,
+.seer-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.seer-pagination-page,
+.seer-pagination-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 36px;
+  height: 36px;
+  padding-inline: 8px;
+  border-radius: var(--seer-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--seer-muted);
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+.seer-pagination-step {
+  color: var(--seer-text);
+}
+.seer-pagination-page:hover:not([aria-current]),
+.seer-pagination-step:hover:not(:disabled) {
+  background: var(--seer-surface-raised);
+  color: var(--seer-text);
+}
+.seer-pagination-page[aria-current="page"] {
+  background: var(--seer-accent-soft);
+  color: var(--seer-accent-text);
+  font-weight: 600;
+  cursor: default;
+}
+.seer-pagination-step:disabled {
+  color: var(--seer-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.seer-pagination-page:focus-visible,
+.seer-pagination-step:focus-visible {
+  outline-offset: 1px;
+}
+.seer-pagination-gap {
+  width: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--seer-muted);
+  user-select: none;
+}
+/* The list receives focus after a page change so reading resumes at its first item. It is not a
+   control, so it shows no focus ring. */
+[data-pagination-results]:focus {
+  outline: none;
+}
+/* Below this width seven page buttons no longer fit beside the range, and each would shrink under a
+   comfortable thumb target. The control becomes previous, position, next. */
+@container (max-width: 579px) {
+  .seer-pagination-inner {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 12px;
+  }
+  .seer-pagination-controls {
+    display: contents;
+  }
+  .seer-pagination-pages {
+    display: none;
+  }
+  .seer-pagination-summary {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .seer-pagination-position,
+  .seer-pagination-position:not(:only-child) {
+    display: block;
+    font-size: 14px;
+    color: var(--seer-text);
+  }
+  .seer-pagination-position strong {
+    font-weight: 600;
+  }
+  .seer-pagination-range {
+    font-size: 12px;
+  }
+  .seer-pagination-step {
+    grid-row: 1;
+    width: 44px;
+    height: 44px;
+    background: var(--seer-accent-soft);
+    color: var(--seer-accent-text);
+  }
+  .seer-pagination-step:first-child {
+    grid-column: 1;
+  }
+  .seer-pagination-step:last-child {
+    grid-column: 3;
+  }
+  .seer-pagination-step:hover:not(:disabled) {
+    background: var(--seer-accent-soft);
+    color: var(--seer-accent-text);
+  }
+  .seer-pagination-step:disabled {
+    background: var(--seer-surface-raised);
+  }
+}
+@media (hover: none) and (pointer: coarse) {
+  .seer-pagination-page,
+  .seer-pagination-step {
+    min-width: 44px;
+    height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seer-pagination-page,
+  .seer-pagination-step {
+    transition: none;
+  }
+}

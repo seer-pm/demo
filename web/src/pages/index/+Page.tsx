@@ -1,8 +1,8 @@
 import { Alert } from "@/components/Alert";
 import { AppliedMarketFilters } from "@/components/Market/AppliedMarketFilters";
 import { MarketsFilter } from "@/components/Market/MarketsFilter";
-import MarketsPagination from "@/components/Market/MarketsPagination";
 import { PreviewCard } from "@/components/Market/PreviewCard";
+import { Pagination } from "@/components/Pagination";
 import useMarketsSearchParams from "@/hooks/useMarketsSearchParams";
 import { useSortAndFilterResults } from "@/hooks/useSortAndFilterResults";
 import { getAppUrl } from "@/lib/utils";
@@ -15,7 +15,7 @@ import {
 } from "@seer-pm/react";
 import type { FetchMarketParams, Market, PoolHourDatasSets } from "@seer-pm/sdk";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Address } from "viem";
 import { navigate } from "vike/client/router";
 
@@ -101,16 +101,11 @@ async function preLoadNextPage(params: UseMarketsProps, queryClient: QueryClient
 function PageContent({ params }: { params: UseMarketsProps }) {
   const { hasFilters, clearFilters, marketName, setMarketName } = useMarketsSearchParams();
   const results = useMarkets(params);
-  const {
-    data,
-    isPending,
-    isError,
-    refetch,
-    pagination: { pageCount, handlePageClick, page },
-  } = useSortAndFilterResults(results);
+  const { data, isPending, isError, refetch, pagination } = useSortAndFilterResults(results);
   const marketCount = data.count ?? data.markets.length;
 
   const queryClient = useQueryClient();
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     preLoadMarkets(data.markets, queryClient);
@@ -142,7 +137,7 @@ function PageContent({ params }: { params: UseMarketsProps }) {
         <AppliedMarketFilters />
       </div>
 
-      <div className="container-fluid seer-market-results">
+      <div className="container-fluid seer-market-results" ref={resultsRef}>
         {isPending && (
           <div className="seer-market-grid" aria-busy="true" aria-label="Loading markets">
             <div className="shimmer-container h-[225px]"></div>
@@ -181,12 +176,17 @@ function PageContent({ params }: { params: UseMarketsProps }) {
           </div>
         )}
 
-        <div className="mb-8 seer-market-grid">
+        <div className="seer-market-grid">
           {data.markets.map((market) => (
             <PreviewCard key={`${market.id}_${market.chainId}`} market={market} />
           ))}
         </div>
-        <MarketsPagination pageCount={pageCount} handlePageClick={handlePageClick} page={page} />
+        <Pagination
+          {...pagination}
+          itemLabel={{ one: "market", other: "markets" }}
+          label="Market pages"
+          resultsRef={resultsRef}
+        />
       </div>
     </div>
   );

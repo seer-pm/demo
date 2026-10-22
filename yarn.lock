@@ -3557,22 +3557,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@isaacs/balanced-match@npm:^4.0.1":
-  version: 4.0.1
-  resolution: "@isaacs/balanced-match@npm:4.0.1"
-  checksum: 10c0/7da011805b259ec5c955f01cee903da72ad97c5e6f01ca96197267d3f33103d5b2f8a1af192140f3aa64526c593c8d098ae366c2b11f7f17645d12387c2fd420
-  languageName: node
-  linkType: hard
-
-"@isaacs/brace-expansion@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "@isaacs/brace-expansion@npm:5.0.0"
-  dependencies:
-    "@isaacs/balanced-match": "npm:^4.0.1"
-  checksum: 10c0/b4d4812f4be53afc2c5b6c545001ff7a4659af68d4484804e9d514e183d20269bb81def8682c01a22b17c4d6aed14292c8494f7d2ac664e547101c1a905aa977
-  languageName: node
-  linkType: hard
-
 "@isaacs/cliui@npm:^8.0.2":
   version: 8.0.2
   resolution: "@isaacs/cliui@npm:8.0.2"
@@ -5014,69 +4998,6 @@ __metadata:
     "@metamask/abi-utils": "npm:^2.0.4"
     ethereum-cryptography: "npm:^3.0.0"
   checksum: 10c0/380a4437cc49cd675f81642bdf4c340744f5181de4fa407478bb02e2a186d90f80fcbadf09c7d956be902bcb06f9d435d99c1f0a2f189ef917810a0612a34984
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-darwin-arm64@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-darwin-arm64@npm:0.36.0"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-darwin-x64@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-darwin-x64@npm:0.36.0"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-linux-arm64-gnu@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-linux-arm64-gnu@npm:0.36.0"
-  conditions: os=linux & cpu=arm64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-linux-arm64-musl@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-linux-arm64-musl@npm:0.36.0"
-  conditions: os=linux & cpu=arm64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-linux-x64-gnu@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-linux-x64-gnu@npm:0.36.0"
-  conditions: os=linux & cpu=x64 & libc=glibc
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-linux-x64-musl@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-linux-x64-musl@npm:0.36.0"
-  conditions: os=linux & cpu=x64 & libc=musl
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-win32-arm64-msvc@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-win32-arm64-msvc@npm:0.36.0"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@oxc-parser/binding-win32-x64-msvc@npm:0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-parser/binding-win32-x64-msvc@npm:0.36.0"
-  conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@oxc-project/types@npm:^0.36.0":
-  version: 0.36.0
-  resolution: "@oxc-project/types@npm:0.36.0"
-  checksum: 10c0/5fc5fd2af25da93e574ab69be819ba691fc881ed27a532867ae133100b82713535c6ece6ff8eeaf7f2bf0f7b3ccd89206902e4cf240b75aa877334e2d628cf24
   languageName: node
   linkType: hard
 
@@ -6651,7 +6572,6 @@ __metadata:
     react-easy-crop: "npm:^5.0.7"
     react-hook-form: "npm:^7.49.3"
     react-markdown: "npm:^9.0.1"
-    react-paginate: "npm:^8.2.0"
     react-toastify: "npm:^10.0.4"
     sass: "npm:^1.71.1"
     sirv: "npm:^3.0.0"
@@ -6665,7 +6585,6 @@ __metadata:
     vike-react: "npm:^0.6.3"
     vite: "npm:^6.0.0"
     vite-plugin-checker: "npm:^0.6.4"
-    vite-plugin-cjs-interop: "npm:^2.1.4"
     vite-tsconfig-paths: "npm:^5.1.4"
     vitest: "npm:3.1.4"
     wagmi: "npm:2.17.5"
@@ -16654,15 +16573,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^10.0.1":
-  version: 10.0.3
-  resolution: "minimatch@npm:10.0.3"
-  dependencies:
-    "@isaacs/brace-expansion": "npm:^5.0.0"
-  checksum: 10c0/e43e4a905c5d70ac4cec8530ceaeccb9c544b1ba8ac45238e2a78121a01c17ff0c373346472d221872563204eabe929ad02669bb575cb1f0cc30facab369f70f
-  languageName: node
-  linkType: hard
-
 "minimatch@npm:^10.2.2":
   version: 10.2.4
   resolution: "minimatch@npm:10.2.4"
@@ -17673,40 +17583,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"oxc-parser@npm:^0.36.0":
-  version: 0.36.0
-  resolution: "oxc-parser@npm:0.36.0"
-  dependencies:
-    "@oxc-parser/binding-darwin-arm64": "npm:0.36.0"
-    "@oxc-parser/binding-darwin-x64": "npm:0.36.0"
-    "@oxc-parser/binding-linux-arm64-gnu": "npm:0.36.0"
-    "@oxc-parser/binding-linux-arm64-musl": "npm:0.36.0"
-    "@oxc-parser/binding-linux-x64-gnu": "npm:0.36.0"
-    "@oxc-parser/binding-linux-x64-musl": "npm:0.36.0"
-    "@oxc-parser/binding-win32-arm64-msvc": "npm:0.36.0"
-    "@oxc-parser/binding-win32-x64-msvc": "npm:0.36.0"
-    "@oxc-project/types": "npm:^0.36.0"
-  dependenciesMeta:
-    "@oxc-parser/binding-darwin-arm64":
-      optional: true
-    "@oxc-parser/binding-darwin-x64":
-      optional: true
-    "@oxc-parser/binding-linux-arm64-gnu":
-      optional: true
-    "@oxc-parser/binding-linux-arm64-musl":
-      optional: true
-    "@oxc-parser/binding-linux-x64-gnu":
-      optional: true
-    "@oxc-parser/binding-linux-x64-musl":
-      optional: true
-    "@oxc-parser/binding-win32-arm64-msvc":
-      optional: true
-    "@oxc-parser/binding-win32-x64-msvc":
-      optional: true
-  checksum: 10c0/7cc9cb102eb5aa89e7d5229b3c860fb904bad96f047515190d7f1e5903be8bbc6fc95ec7bc222ee7d6ddecb1bc5486797769554a7ac89efe9aeabe404b35bc99
-  languageName: node
-  linkType: hard
-
 "p-limit@npm:3.1.0, p-limit@npm:^3.0.2":
   version: 3.1.0
   resolution: "p-limit@npm:3.1.0"
@@ -18487,7 +18363,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15, prop-types@npm:^15.6.2, prop-types@npm:^15.8.1":
+"prop-types@npm:^15.6.2, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -18930,17 +18806,6 @@ __metadata:
     "@types/react": ">=18"
     react: ">=18"
   checksum: 10c0/5bd645d39379f776d64588105f4060c390c3c8e4ff048552c9fa0ad31b756bb3ff7c11081542dc58d840ccf183a6dd4fd4d4edab44d8c24dee8b66551a5fd30d
-  languageName: node
-  linkType: hard
-
-"react-paginate@npm:^8.2.0":
-  version: 8.3.0
-  resolution: "react-paginate@npm:8.3.0"
-  dependencies:
-    prop-types: "npm:^15"
-  peerDependencies:
-    react: ^16 || ^17 || ^18 || ^19
-  checksum: 10c0/2529fe1d5235fb50195b78c2edf4ab72c5dda88d38445e68521822cd2ea1e47d490a6af9ac2e4d0507db3d094cded4cdd4b5db2b12e535b2c435b123e9427eb7
   languageName: node
   linkType: hard
 
@@ -22332,20 +22197,6 @@ __metadata:
     vue-tsc:
       optional: true
   checksum: 10c0/ae61f01b620c458e355ad05ff632e3143312e75c67acdaaa1fe5160d679283364867a4a8d6c6a3f85838f0251033275af96a1aa9b52eed227151cdbca0c996cf
-  languageName: node
-  linkType: hard
-
-"vite-plugin-cjs-interop@npm:^2.1.4":
-  version: 2.2.0
-  resolution: "vite-plugin-cjs-interop@npm:2.2.0"
-  dependencies:
-    estree-walker: "npm:^3.0.3"
-    magic-string: "npm:^0.30.17"
-    minimatch: "npm:^10.0.1"
-    oxc-parser: "npm:^0.36.0"
-  peerDependencies:
-    vite: 4 || 5 || 6
-  checksum: 10c0/91e457c68d4217b97b9d8d629f7c33d7ab138b9292c5af6a9a1999050425c347b1ca979ccef5285d7a9ec38c0cb0cab6dcba423c2bd0f50b74b4c052bfad5aef
   languageName: node
   linkType: hard
 

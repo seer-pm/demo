@@ -22,9 +22,9 @@ import {
 import { Address, isAddressEqual, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
-import MarketsPagination from "../Market/MarketsPagination";
 import { OutcomeImage } from "../Market/OutcomeImage";
 import { RedeemForm } from "../Market/RedeemForm";
+import { Pagination } from "../Pagination";
 import Popover from "../Popover";
 import { ExecutorBadge } from "./ExecutorBadge";
 import { SortableColumnHeader } from "./SortableColumnHeader";
@@ -505,6 +505,7 @@ function PositionsTableInner({
     pageIndex: 0,
     pageSize: 10,
   });
+  const tableRef = React.useRef<HTMLElement>(null);
   const table = useReactTable({
     columns,
     data,
@@ -559,7 +560,7 @@ function PositionsTableInner({
           </select>
         </label>
       </div>
-      <section className="w-full overflow-x-auto mb-6" aria-label="Position details" tabIndex={0}>
+      <section className="w-full overflow-x-auto" aria-label="Position details" tabIndex={0} ref={tableRef}>
         {showRedeemColumn && (
           <Modal
             title="Redeem"
@@ -647,13 +648,16 @@ function PositionsTableInner({
           </tbody>
         </table>
       </section>
-      {table.getPageCount() > 1 && (
-        <MarketsPagination
-          pageCount={table.getPageCount()}
-          handlePageClick={({ selected }) => table.setPageIndex(selected)}
-          page={table.getState().pagination.pageIndex + 1}
-        />
-      )}
+      <Pagination
+        page={table.getState().pagination.pageIndex + 1}
+        pageCount={table.getPageCount()}
+        onPageChange={(page) => table.setPageIndex(page - 1)}
+        itemCount={table.getPrePaginationRowModel().rows.length}
+        pageSize={table.getState().pagination.pageSize}
+        itemLabel={{ one: "position", other: "positions" }}
+        label="Position pages"
+        resultsRef={tableRef}
+      />
     </>
   );
 }

@@ -132,11 +132,11 @@ function useMarketsSearchParams() {
     });
   };
 
-  const setPage = (page: number) => {
-    setSearchParams((params) => {
-      params.set("page", page.toString());
-      return params;
-    });
+  // A link rather than a setter, so a page of results can be opened in a new tab or shared.
+  const getPageHref = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", page.toString());
+    return `?${params}`;
   };
 
   const toggleShowMyMarkets = (showMyMarkets: boolean) => {
@@ -266,7 +266,7 @@ function useMarketsSearchParams() {
     setVerificationStatus,
     setChains,
     setOrderBy,
-    setPage,
+    getPageHref,
     toggleShowMyMarkets,
     toggleShowConditionalMarkets,
     toggleShowMarketsWithRewards,
