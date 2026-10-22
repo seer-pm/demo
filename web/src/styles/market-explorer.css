@@ -205,13 +205,33 @@
 .seer-header-search > .relative {
   width: 100%;
 }
+/* The beta notice takes the accent tint so it reads as a message from Seer rather than as one more
+   neutral band of header chrome. It stays out of warning colors because nothing is wrong yet. */
 .seer-beta {
   min-height: 44px;
   padding-block: 0;
-  background: var(--seer-surface-raised);
-  border-bottom: 1px solid var(--seer-border);
-  color: var(--seer-muted);
-  font-size: 12px;
+  background: var(--seer-accent-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--seer-brand-purple) 24%, transparent);
+  color: var(--seer-text);
+  font-size: 13px;
+}
+.seer-beta-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.seer-beta-tag {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--seer-radius-full);
+  background: var(--seer-brand-purple);
+  color: var(--seer-brand-white);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-transform: uppercase;
 }
 .seer-beta button {
   display: grid;
@@ -220,6 +240,7 @@
   height: 44px;
   padding: 0;
   flex: none;
+  color: var(--seer-accent-text);
 }
 .seer-beta svg {
   width: 16px;

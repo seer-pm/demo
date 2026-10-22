@@ -121,7 +121,10 @@ function BetaWarning() {
   };
   return (
     <div className="seer-beta">
-      <span>Beta version. Some features may be unstable.</span>
+      <p className="seer-beta-message">
+        <span className="seer-beta-tag">Beta</span>
+        Some features may be unstable.
+      </p>
       <button type="button" aria-label="Dismiss beta notice" className="hover:opacity-80" onClick={dismiss}>
         <CloseCircleOutlineIcon width={12} height={12} fill="white" />
       </button>
