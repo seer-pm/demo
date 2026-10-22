@@ -1,8 +1,9 @@
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
 import { useTokenInfo } from "@seer-pm/react";
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Address } from "viem";
+import { MarketTabList } from "./MarketTabList";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
 import { SplitForm } from "./SplitForm";
@@ -27,49 +28,45 @@ export function ConditionalTokenActions({
   expanded = false,
 }: ConditionalTokenActionsProps) {
   const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
+  const tabsId = useId();
   const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
   const marketStatus = getMarketStatus(market);
   const [isShow, setShow] = useState(false);
   const renderActionBox = () => (
     <div className="card p-[24px] shadow-md">
       <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "mint" && "tab-active"}`}
-          onClick={() => setActiveTab("mint")}
+      <MarketTabList
+        idPrefix={tabsId}
+        label="Token tools"
+        value={activeTab}
+        onChange={setActiveTab}
+        fill
+        tabs={[
+          { id: "mint", label: "Mint" },
+          { id: "merge", label: "Merge" },
+          { id: "redeem", label: "Redeem" },
+        ]}
+      />
+      {(["mint", "merge", "redeem"] as const).map((tab) => (
+        <div
+          key={tab}
+          role="tabpanel"
+          id={`${tabsId}-panel-${tab}`}
+          aria-labelledby={`${tabsId}-tab-${tab}`}
+          hidden={activeTab !== tab}
+          tabIndex={0}
         >
-          Mint
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "merge" && "tab-active"}`}
-          onClick={() => setActiveTab("merge")}
-        >
-          Merge
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab ${activeTab === "redeem" && "tab-active"}`}
-          onClick={() => setActiveTab("redeem")}
-        >
-          Redeem
-        </button>
-      </div>
-
-      {activeTab === "mint" && <SplitForm account={account} market={market} />}
-
-      {activeTab === "merge" && <MergeForm account={account} market={market} />}
-
-      {activeTab === "redeem" &&
-        (marketStatus === MarketStatus.CLOSED ? (
-          <RedeemForm account={account} market={market} />
-        ) : (
-          "Redemptions are not available yet."
-        ))}
+          {activeTab === tab && tab === "mint" && <SplitForm account={account} market={market} />}
+          {activeTab === tab && tab === "merge" && <MergeForm account={account} market={market} />}
+          {activeTab === tab &&
+            tab === "redeem" &&
+            (marketStatus === MarketStatus.CLOSED ? (
+              <RedeemForm account={account} market={market} />
+            ) : (
+              <p>Redemptions are not available yet.</p>
+            ))}
+        </div>
+      ))}
     </div>
   );
 

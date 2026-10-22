@@ -7,6 +7,13 @@ export const MARKET_SIGNAL_LABELS: Record<MarketTypes, string> = {
   [MarketTypes.MULTI_SCALAR]: "Relative values",
 };
 
+export const MARKET_PRICE_LABELS: Record<MarketTypes, string> = {
+  [MarketTypes.CATEGORICAL]: "Estimated probability",
+  [MarketTypes.SCALAR]: "Outcome price",
+  [MarketTypes.MULTI_CATEGORICAL]: "Payout price",
+  [MarketTypes.MULTI_SCALAR]: "Relative value",
+};
+
 export const MARKET_SIGNAL_DESCRIPTIONS: Record<MarketTypes, string> = {
   [MarketTypes.CATEGORICAL]:
     "Prices imply the market's estimated probability of each outcome. The winning outcome pays 1.",

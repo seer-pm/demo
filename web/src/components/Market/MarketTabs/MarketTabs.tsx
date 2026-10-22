@@ -1,8 +1,9 @@
 import { Spinner } from "@/components/Spinner";
 import { useMarketHolders } from "@/hooks/useMarketHolders";
 import { Market } from "@seer-pm/sdk";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { clientOnly } from "vike-react/clientOnly";
+import { MarketTabList } from "../MarketTabList";
 import Activity from "./Activity";
 import { RelatedMarkets } from "./RelatedMarkets";
 import TopHolders from "./TopHolders";
@@ -23,6 +24,7 @@ export default function MarketTabs({ market }: { market: Market }) {
 
   const [relatedMarketsCount, setRelatedMarketsCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"conditionalMarkets" | "topHolders" | "activity">("activity");
+  const tabsId = useId();
   return (
     <div>
       <section className="event-comments" aria-labelledby="market-comments-heading">
@@ -32,38 +34,36 @@ export default function MarketTabs({ market }: { market: Market }) {
         </header>
         <Comments market={market} fallback={<CommentsFallback />} />
       </section>
-      <div role="tablist" className="tabs tabs-bordered font-semibold mb-[32px] overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${activeTab === "conditionalMarkets" && "tab-active"}`}
-          onClick={() => setActiveTab("conditionalMarkets")}
+      <MarketTabList
+        idPrefix={tabsId}
+        label="Market data"
+        value={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { id: "activity", label: "Activity" },
+          { id: "topHolders", label: "Top holders" },
+          {
+            id: "conditionalMarkets",
+            label: `Related markets${relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}`,
+          },
+        ]}
+      />
+      {(["activity", "topHolders", "conditionalMarkets"] as const).map((tab) => (
+        <div
+          key={tab}
+          role="tabpanel"
+          id={`${tabsId}-panel-${tab}`}
+          aria-labelledby={`${tabsId}-tab-${tab}`}
+          hidden={activeTab !== tab}
+          tabIndex={0}
         >
-          Related markets{relatedMarketsCount > 0 ? ` (${relatedMarketsCount})` : ""}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${activeTab === "topHolders" && "tab-active"}`}
-          onClick={() => setActiveTab("topHolders")}
-        >
-          Top Holders
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] whitespace-nowrap ${activeTab === "activity" && "tab-active"}`}
-          onClick={() => setActiveTab("activity")}
-        >
-          Activity
-        </button>
-      </div>
-
-      {activeTab === "conditionalMarkets" && (
-        <RelatedMarkets market={market} setRelatedMarketsCount={(count: number) => setRelatedMarketsCount(count)} />
-      )}
-      {activeTab === "topHolders" && <TopHolders market={market} />}
-      {activeTab === "activity" && <Activity market={market} />}
+          {activeTab === tab && tab === "activity" && <Activity market={market} />}
+          {activeTab === tab && tab === "topHolders" && <TopHolders market={market} />}
+          {activeTab === tab && tab === "conditionalMarkets" && (
+            <RelatedMarkets market={market} setRelatedMarketsCount={setRelatedMarketsCount} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
+import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
@@ -27,6 +28,7 @@ import { MARKET_TYPES_ICONS } from "./Header/Icons";
 import MarketFavorite from "./Header/MarketFavorite";
 import MarketChart from "./MarketChart/MarketChart";
 import {
+  MARKET_PRICE_LABELS,
   MARKET_SIGNAL_DESCRIPTIONS,
   MARKET_SIGNAL_LABELS,
   MARKET_STATUS_LABELS,
@@ -116,6 +118,7 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
   const { data: odds = [] } = useMarketOdds(market, true);
   const { address: account } = useAccount();
   const [chartFocus, setChartFocus] = useState(false);
+  const isSmallScreen = useIsSmallScreen(700);
   const status = getMarketStatus(market);
   const marketType = getMarketType(market);
   const chain = SUPPORTED_CHAINS[market.chainId];
@@ -132,15 +135,31 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
         <div className="event-title-row">
           {market.images?.market && <img src={market.images.market} alt="" />}
           <h1>{market.marketName}</h1>
-          <MarketFavorite market={market} iconWidth="20" />
+          <div className="event-title-favorite">
+            <MarketFavorite market={market} iconWidth="20" />
+          </div>
+          <span className="event-status">
+            {status === MarketStatus.NOT_OPEN
+              ? STATUS_TEXTS[status](market.liquidityUSD > 0)
+              : status
+                ? MARKET_STATUS_LABELS[status]
+                : "Market"}
+          </span>
         </div>
-        <div className="event-status">
-          {status === MarketStatus.NOT_OPEN
-            ? STATUS_TEXTS[status](market.liquidityUSD > 0)
-            : status
-              ? MARKET_STATUS_LABELS[status]
-              : "Market"}
+      </header>
+      <div className="event-chart-summary">
+        <div>
+          <h2>{market.outcomes[selected]}</h2>
+          <p className="event-summary-context">Selected outcome</p>
         </div>
+        <div className="event-odds-summary">
+          <div className="event-selected-odds">
+            <DisplayOdds odd={odds[selected]} marketType={marketType} />
+          </div>
+          <span>{MARKET_PRICE_LABELS[marketType]}</span>
+        </div>
+      </div>
+      <div className="event-market-context">
         <div className="event-metrics">
           <span>
             <small>Volume</small>
@@ -151,77 +170,88 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
             <strong>${formatBigNumbers(market.liquidityUSD)}</strong>
           </span>
           {account && hasOwnPnL && <MarketPnLMetric account={account} market={market} />}
-          <span className="event-metric-type" title={MARKET_TYPES_DESCRIPTION[marketType]}>
-            <small>Type</small>
-            <strong>
-              {MARKET_TYPES_ICONS[marketType]}
-              {MARKET_SIGNAL_LABELS[marketType]}
-            </strong>
-          </span>
-          <span>
-            <small>Network</small>
-            {explorerUrl ? (
-              <a
-                href={`${explorerUrl}/address/${market.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View the market contract on the block explorer"
-              >
-                <strong>{chain.name}</strong>
-                <span aria-hidden="true">↗</span>
-              </a>
-            ) : (
-              <strong>{chain?.name}</strong>
-            )}
-          </span>
           <VerificationMetric market={market} />
           <a className="event-metrics-rules" href="#event-rules">
-            Rules & settlement ↗
+            Rules & settlement
           </a>
         </div>
-        <div className="event-provenance">
-          {creator && (
-            <span>
-              Created by{" "}
-              {explorerUrl ? (
-                <a href={`${explorerUrl}/address/${creator}`} target="_blank" rel="noopener noreferrer" title={creator}>
-                  {creator.slice(0, 6)}…{creator.slice(-4)}
-                  <span className="sr-only"> (view creator on block explorer)</span>
-                </a>
-              ) : (
-                <span title={creator}>
-                  {creator.slice(0, 6)}…{creator.slice(-4)}
+        <details className="event-market-details" open={!isSmallScreen}>
+          <summary>
+            <span>Market details</span>
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
+              <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </summary>
+          <div className="event-details-body">
+            <div className="event-detail-facts">
+              <span className="event-metric-type" title={MARKET_TYPES_DESCRIPTION[marketType]}>
+                <span>Type</span>
+                <strong>
+                  {MARKET_TYPES_ICONS[marketType]}
+                  {MARKET_SIGNAL_LABELS[marketType]}
+                </strong>
+              </span>
+              <span>
+                Network{" "}
+                {explorerUrl ? (
+                  <a
+                    href={`${explorerUrl}/address/${market.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View the market contract on the block explorer"
+                  >
+                    {chain.name} ↗
+                  </a>
+                ) : (
+                  <strong>{chain?.name}</strong>
+                )}
+              </span>
+            </div>
+            <div className="event-provenance">
+              {creator && (
+                <span>
+                  Created by{" "}
+                  {explorerUrl ? (
+                    <a
+                      href={`${explorerUrl}/address/${creator}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={creator}
+                    >
+                      {creator.slice(0, 6)}…{creator.slice(-4)}
+                      <span className="sr-only"> (view creator on block explorer)</span>
+                    </a>
+                  ) : (
+                    <span title={creator}>
+                      {creator.slice(0, 6)}…{creator.slice(-4)}
+                    </span>
+                  )}
                 </span>
               )}
-            </span>
-          )}
-          <span>
-            {resolutionOpening ? (
-              <>
-                Resolution opens{" "}
-                <time dateTime={new Date(resolutionOpening * 1000).toISOString()}>
-                  {formatResolutionDate(resolutionOpening)}
-                </time>
-              </>
-            ) : (
-              "Resolution dates vary by outcome"
-            )}
-          </span>
-          {market.questions[0] && (
-            <a href={getRealityLink(market.chainId, market.questions[0].id)} target="_blank" rel="noopener noreferrer">
-              Resolution on Reality.eth ↗
-            </a>
-          )}
-        </div>
-      </header>
-      <div className="event-chart-summary">
-        <div>
-          <span className="event-selected-label">Selected outcome</span>
-          <h2>{market.outcomes[selected]}</h2>
-        </div>
-        <strong className="event-selected-odds">
-          <DisplayOdds odd={odds[selected]} marketType={getMarketType(market)} />
-        </strong>
+              <span>
+                {resolutionOpening ? (
+                  <>
+                    {status === MarketStatus.NOT_OPEN ? "Resolution opens" : "Resolution opened"}{" "}
+                    <time dateTime={new Date(resolutionOpening * 1000).toISOString()}>
+                      {formatResolutionDate(resolutionOpening)}
+                    </time>
+                  </>
+                ) : (
+                  "Resolution dates vary by outcome"
+                )}
+              </span>
+              {market.questions[0] && (
+                <a
+                  href={getRealityLink(market.chainId, market.questions[0].id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Resolution on Reality.eth ↗
+                </a>
+              )}
+            </div>
+          </div>
+        </details>
       </div>
       <div className="event-chart-switch" aria-label="Chart scope">
         <button type="button" aria-pressed={!chartFocus} onClick={() => setChartFocus(false)}>

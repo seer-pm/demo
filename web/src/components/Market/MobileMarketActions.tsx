@@ -1,6 +1,7 @@
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect, useId, useState } from "react";
 import { Address } from "viem";
+import { MarketTabList } from "./MarketTabList";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
 import { SplitForm } from "./SplitForm";
@@ -21,6 +22,7 @@ export function MobileMarketActions({
   drawerOpen,
 }: MobileMarketActionsProps) {
   const [activeTab, setActiveTab] = useState<"trade" | "mint" | "merge" | "redeem">("trade");
+  const tabsId = useId();
   const marketStatus = getMarketStatus(market);
   const prevDrawerOpenRef = React.useRef<boolean | undefined>(drawerOpen);
 
@@ -62,42 +64,21 @@ export function MobileMarketActions({
 
   const tabs = useMemo(
     () => (
-      <div role="tablist" className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1">
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] flex-1 ${activeTab === "trade" && "tab-active"}`}
-          onClick={() => setActiveTab("trade")}
-        >
-          Trade
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] flex-1 ${activeTab === "mint" && "tab-active"}`}
-          onClick={() => setActiveTab("mint")}
-        >
-          Mint
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] flex-1 ${activeTab === "merge" && "tab-active"}`}
-          onClick={() => setActiveTab("merge")}
-        >
-          Merge
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`tab text-[16px] flex-1 ${activeTab === "redeem" && "tab-active"}`}
-          onClick={() => setActiveTab("redeem")}
-        >
-          Redeem
-        </button>
-      </div>
+      <MarketTabList
+        idPrefix={tabsId}
+        label="Market actions"
+        value={activeTab}
+        onChange={setActiveTab}
+        fill
+        tabs={[
+          { id: "trade", label: "Trade" },
+          { id: "mint", label: "Mint" },
+          { id: "merge", label: "Merge" },
+          { id: "redeem", label: "Redeem" },
+        ]}
+      />
     ),
-    [activeTab],
+    [activeTab, tabsId],
   );
 
   useEffect(() => {
@@ -107,11 +88,22 @@ export function MobileMarketActions({
   }, [tabs, onTabsChange]);
 
   return (
-    <>
-      {activeTab === "trade" && swapWidget}
-      {activeTab === "mint" && renderMintTab()}
-      {activeTab === "merge" && renderMergeTab()}
-      {activeTab === "redeem" && renderRedeemTab()}
-    </>
+    <div>
+      {(["trade", "mint", "merge", "redeem"] as const).map((tab) => (
+        <div
+          key={tab}
+          role="tabpanel"
+          id={`${tabsId}-panel-${tab}`}
+          aria-labelledby={`${tabsId}-tab-${tab}`}
+          hidden={activeTab !== tab}
+          tabIndex={0}
+        >
+          {activeTab === tab && tab === "trade" && swapWidget}
+          {activeTab === tab && tab === "mint" && renderMintTab()}
+          {activeTab === tab && tab === "merge" && renderMergeTab()}
+          {activeTab === tab && tab === "redeem" && renderRedeemTab()}
+        </div>
+      ))}
+    </div>
   );
 }

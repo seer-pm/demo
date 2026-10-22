@@ -288,9 +288,16 @@ function MarketPage() {
                   images={market?.images?.outcomes}
                   onOutcomeChange={onOutcomeChange}
                 />
-                <section className="event-token-tools" aria-label="Mint, merge and redeem">
+                <details className="event-token-tools" open={marketStatus === MarketStatus.CLOSED}>
+                  <summary>
+                    <span>Token tools</span>
+                    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
+                      <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" />
+                    </svg>
+                  </summary>
+                  <p>Mint, merge or redeem outcome tokens.</p>
                   <ConditionalTokenActions expanded market={market} account={account} outcomeIndex={outcomeIndex} />
-                </section>
+                </details>
               </div>
             )}
             <MajorEvents market={market} />
@@ -326,7 +333,7 @@ function MarketPage() {
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
-                className="fixed bottom-6 right-6 z-[99] bg-purple-primary text-white rounded-full p-4 shadow-lg hover:bg-purple-secondary transition-colors flex items-center justify-center w-14 h-14"
+                className="event-mobile-trade"
                 aria-label="Open trade drawer"
               >
                 <svg
@@ -335,9 +342,11 @@ function MarketPage() {
                   viewBox="0 -960 960 960"
                   width="24px"
                   fill="currentColor"
+                  aria-hidden="true"
                 >
                   <path d="M280-160 80-360l200-200 56 57-103 103h287v80H233l103 103-56 57Zm400-240-56-57 103-103H440v-80h287L624-743l56-57 200 200-200 200Z" />
                 </svg>
+                <span>Trade</span>
               </button>
             )}
           </>
