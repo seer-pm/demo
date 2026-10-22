@@ -1013,38 +1013,257 @@
   overflow-wrap: anywhere;
   margin-bottom: 16px;
 }
-.event-rules-date {
-  font-size: 12px;
-  color: var(--seer-muted);
-  margin-block: 20px;
+/* The slot marks where each outcome goes in the shared question. A filled accent background would
+   read as a control, so it borrows the dotted underline of a definition instead. */
+.event-rules-slot {
+  color: var(--seer-text);
+  font-style: italic;
+  text-decoration: underline dotted var(--seer-muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
-.event-resolver {
+/* The resolution card: one oracle, one row per question. */
+.event-resolution {
+  --chip-open-fg: var(--seer-accent-text);
+  --chip-open-bg: var(--seer-accent-soft);
+  --chip-reported-fg: #8a5500;
+  --chip-reported-bg: #fff3da;
+  --chip-dispute-fg: #1d5ca3;
+  --chip-dispute-bg: #e4eefb;
+  --chip-final-fg: #1b6b3a;
+  --chip-final-bg: #e2f5e9;
+  --chip-muted-fg: var(--seer-muted);
+  --chip-muted-bg: var(--seer-surface-raised);
+  border: 1px solid var(--seer-border);
+  border-radius: var(--seer-radius-md);
+  background: var(--seer-surface);
+  font-size: 14px;
+}
+[data-theme="dark"] .event-resolution {
+  --chip-reported-fg: #f5c56b;
+  --chip-reported-bg: #33280f;
+  --chip-dispute-fg: #8fc0ff;
+  --chip-dispute-bg: #152338;
+  --chip-final-fg: #7fd49a;
+  --chip-final-bg: #14291c;
+}
+.event-resolution-head {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px;
-  border-radius: var(--seer-radius-md);
-  background: var(--seer-surface);
-  border: 1px solid var(--seer-border);
+  padding: 16px 18px;
 }
-.event-resolver img {
-  width: 32px;
-  height: 32px;
+.event-resolution-head > img {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
   border-radius: var(--seer-radius-md);
 }
-.event-resolver span {
+.event-resolution-title {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.event-resolution-title strong {
+  font-weight: 600;
+}
+.event-resolution-title span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--seer-muted);
+}
+.event-resolution-count {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: var(--seer-radius-full);
+  background: var(--seer-surface-raised);
+  color: var(--seer-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.event-resolution-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.event-resolution-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--seer-border);
+}
+.event-resolution-row.has-outcome {
+  grid-template-columns: auto 1fr auto;
+}
+.event-resolution-avatar {
   display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--seer-radius-full);
+}
+.event-resolution-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.event-resolution-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.event-resolution-label strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.event-resolution-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--seer-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.event-resolution-chip.is-open {
+  color: var(--chip-open-fg);
+  background: var(--chip-open-bg);
+}
+.event-resolution-chip.is-reported {
+  color: var(--chip-reported-fg);
+  background: var(--chip-reported-bg);
+}
+.event-resolution-chip.is-dispute {
+  color: var(--chip-dispute-fg);
+  background: var(--chip-dispute-bg);
+}
+.event-resolution-chip.is-final {
+  color: var(--chip-final-fg);
+  background: var(--chip-final-bg);
+}
+.event-resolution-chip.is-muted {
+  color: var(--chip-muted-fg);
+  background: var(--chip-muted-bg);
+}
+.event-resolution-answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.event-resolution-answer small {
   font-size: 12px;
   color: var(--seer-muted);
 }
-.event-resolver a {
-  display: block;
-  font-size: 14px;
-  color: var(--seer-brand-purple);
-  margin-top: 4px;
+.event-resolution-textlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  font-size: inherit;
+  font-weight: 500;
+  color: var(--seer-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
 }
-.event-resolution-status {
-  padding-block: 16px;
+.event-resolution-textlink:hover {
+  text-decoration-color: currentColor;
+}
+.event-resolution-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.event-resolution-actions .btn {
+  min-width: 0;
+  white-space: nowrap;
+}
+.event-resolution-external {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--seer-radius-sm);
+  color: var(--seer-muted);
+  transition: color 120ms ease-out, background-color 120ms ease-out;
+}
+.event-resolution-external:hover {
+  color: var(--seer-accent-text);
+  background: var(--seer-accent-soft);
+}
+.event-resolution-external:focus-visible {
+  outline: 2px solid var(--seer-accent-text);
+  outline-offset: 2px;
+}
+.event-resolution-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--seer-border);
+  background: var(--seer-surface-raised);
+  border-radius: 0 0 var(--seer-radius-md) var(--seer-radius-md);
+}
+.event-resolution-foot > span {
+  font-size: 13px;
+  color: var(--seer-muted);
+}
+/* The answer modal names the question it posts to, so a wrong row click is caught before the bond. */
+.event-answer-question {
+  margin: -12px 0 24px;
+  padding: 12px 14px;
+  border-radius: var(--seer-radius-md);
+  background: var(--seer-surface-raised);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.event-answer-question small {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--seer-muted);
+}
+@media (max-width: 700px) {
+  .event-resolution-head,
+  .event-resolution-row,
+  .event-resolution-foot {
+    padding-inline: 14px;
+  }
+  .event-resolution-row,
+  .event-resolution-row.has-outcome {
+    grid-template-columns: auto 1fr;
+  }
+  .event-resolution-row:not(.has-outcome) {
+    grid-template-columns: 1fr;
+  }
+  .event-resolution-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .event-resolution-row.has-outcome .event-resolution-actions {
+    grid-column: 2;
+  }
 }
 .event-token-tools .card {
   border: 0;
