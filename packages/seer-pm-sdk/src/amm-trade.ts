@@ -193,6 +193,9 @@ function isLensNoRouteError(error: unknown): boolean {
   return revert.signature === LENS_NO_ROUTE_SELECTOR || revert.data?.errorName === "NoRoute";
 }
 
+/** Stand-in recipient for quotes requested before a wallet is connected. Never used to execute. */
+const QUOTE_ONLY_RECIPIENT: Address = "0x000000000000000000000000000000000000dEaD";
+
 export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeParams): Promise<AmmTrade> {
   const { chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, tradeType } = params;
   assertLensDeployed(chainId);
@@ -203,7 +206,10 @@ export async function quoteAmmTrade(client: PublicClient, params: QuoteAmmTradeP
   const tokenInLens = toLensTokenAddress(sellToken.address);
   const tokenOutLens = toLensTokenAddress(buyToken.address);
   const slippageBps = maxSlippageToBps(maxSlippage);
-  const recipient = account || zeroAddress;
+  // Lens simulates the swap from the recipient. ERC20s reject transfers from the zero address, so a
+  // wallet-less quote would always revert; any other address works because Lens overrides its
+  // balance and allowance for the simulation.
+  const recipient = account || QUOTE_ONLY_RECIPIENT;
 
   const exactOut = tradeType === TradeType.EXACT_OUTPUT;
   const swapAmount = exactOut
