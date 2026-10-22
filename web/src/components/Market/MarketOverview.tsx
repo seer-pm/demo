@@ -1,6 +1,5 @@
 import { Link } from "@/components/Link";
 import { Spinner } from "@/components/Spinner";
-import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { isVerificationEnabled } from "@/lib/config";
 import { getChallengeRemainingTime } from "@/lib/date";
@@ -17,7 +16,7 @@ import {
   getMarketEstimate,
   getMarketStatus,
   getMarketType,
-  getRealityLink,
+  isOdd,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useState } from "react";
@@ -29,11 +28,9 @@ import MarketFavorite from "./Header/MarketFavorite";
 import MarketChart from "./MarketChart/MarketChart";
 import {
   MARKET_PRICE_LABELS,
-  MARKET_SIGNAL_DESCRIPTIONS,
   MARKET_SIGNAL_LABELS,
   MARKET_STATUS_LABELS,
-  formatResolutionDate,
-  getResolutionOpening,
+  type OutcomeSelectionSource,
 } from "./marketPresentation";
 
 function MarketPnLMetric({ account, market }: { account: Address; market: Market }) {
@@ -114,21 +111,43 @@ function VerificationMetric({ market }: { market: Market }) {
   );
 }
 
-export function MarketOverview({ market, selected }: { market: Market; selected: number }) {
+/** The index of the outcome the market currently prices highest, or undefined while no price is reliable. */
+function getLeadingIndex(odds: (number | null | undefined)[]): number | undefined {
+  let leading: number | undefined;
+  odds.forEach((odd, i) => {
+    if (isOdd(odd) && (leading === undefined || odd > (odds[leading] as number))) leading = i;
+  });
+  return leading;
+}
+
+export function MarketOverview({
+  market,
+  selected,
+  selectionSource,
+}: {
+  market: Market;
+  selected: number;
+  selectionSource: OutcomeSelectionSource;
+}) {
   const { data: odds = [] } = useMarketOdds(market, true);
   const { address: account } = useAccount();
   const [chartFocus, setChartFocus] = useState(false);
-  const isSmallScreen = useIsSmallScreen(700);
   const status = getMarketStatus(market);
   const marketType = getMarketType(market);
   const chain = SUPPORTED_CHAINS[market.chainId];
   const explorerUrl = chain?.blockExplorers?.default?.url;
-  const resolutionOpening = getResolutionOpening(market);
-  const creator = market.creator && market.creator.toLowerCase() !== zeroAddress ? market.creator : undefined;
   const estimate = marketType === MarketTypes.SCALAR ? getMarketEstimate(odds, market, true) : undefined;
   // P/L is keyed to the market a wallet traded on; a child market's trades settle through the parent
   // outcome token, so it has no standalone figure to show.
   const hasOwnPnL = market.parentMarket.id.toLowerCase() === zeroAddress;
+  // The caption says who chose the outcome on display. Until the visitor picks a row the page is
+  // showing its own default, and calling that "selected" implies a choice the visitor never made.
+  const captionLabel =
+    selectionSource === "user"
+      ? "Selected outcome"
+      : getLeadingIndex(odds) === selected
+        ? "Leading outcome"
+        : "Default outcome";
   return (
     <section className="event-overview" aria-label="Event overview">
       <header className="event-heading">
@@ -146,20 +165,6 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
                 : "Market"}
           </span>
         </div>
-      </header>
-      <div className="event-chart-summary">
-        <div>
-          <h2>{market.outcomes[selected]}</h2>
-          <p className="event-summary-context">Selected outcome</p>
-        </div>
-        <div className="event-odds-summary">
-          <div className="event-selected-odds">
-            <DisplayOdds odd={odds[selected]} marketType={marketType} />
-          </div>
-          <span>{MARKET_PRICE_LABELS[marketType]}</span>
-        </div>
-      </div>
-      <div className="event-market-context">
         <div className="event-metrics">
           <span>
             <small>Volume</small>
@@ -171,105 +176,63 @@ export function MarketOverview({ market, selected }: { market: Market; selected:
           </span>
           {account && hasOwnPnL && <MarketPnLMetric account={account} market={market} />}
           <VerificationMetric market={market} />
+          <span className="event-metric-type" title={MARKET_TYPES_DESCRIPTION[marketType]}>
+            <small>Type</small>
+            <strong>
+              {MARKET_TYPES_ICONS[marketType]}
+              {MARKET_SIGNAL_LABELS[marketType]}
+            </strong>
+          </span>
+          <span>
+            <small>Network</small>
+            {explorerUrl ? (
+              <a
+                href={`${explorerUrl}/address/${market.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View the market contract on the block explorer"
+              >
+                <strong>{chain.name}</strong>
+                <span aria-hidden="true">↗</span>
+              </a>
+            ) : (
+              <strong>{chain?.name}</strong>
+            )}
+          </span>
           <a className="event-metrics-rules" href="#event-rules">
             Rules & settlement
           </a>
         </div>
-        <details className="event-market-details" open={!isSmallScreen}>
-          <summary>
-            <span>Market details</span>
-            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
-              <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </summary>
-          <div className="event-details-body">
-            <div className="event-detail-facts">
-              <span className="event-metric-type" title={MARKET_TYPES_DESCRIPTION[marketType]}>
-                <span>Type</span>
-                <strong>
-                  {MARKET_TYPES_ICONS[marketType]}
-                  {MARKET_SIGNAL_LABELS[marketType]}
-                </strong>
-              </span>
-              <span>
-                Network{" "}
-                {explorerUrl ? (
-                  <a
-                    href={`${explorerUrl}/address/${market.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="View the market contract on the block explorer"
-                  >
-                    {chain.name} ↗
-                  </a>
-                ) : (
-                  <strong>{chain?.name}</strong>
-                )}
-              </span>
-            </div>
-            <div className="event-provenance">
-              {creator && (
-                <span>
-                  Created by{" "}
-                  {explorerUrl ? (
-                    <a
-                      href={`${explorerUrl}/address/${creator}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={creator}
-                    >
-                      {creator.slice(0, 6)}…{creator.slice(-4)}
-                      <span className="sr-only"> (view creator on block explorer)</span>
-                    </a>
-                  ) : (
-                    <span title={creator}>
-                      {creator.slice(0, 6)}…{creator.slice(-4)}
-                    </span>
-                  )}
-                </span>
-              )}
-              <span>
-                {resolutionOpening ? (
-                  <>
-                    {status === MarketStatus.NOT_OPEN ? "Resolution opens" : "Resolution opened"}{" "}
-                    <time dateTime={new Date(resolutionOpening * 1000).toISOString()}>
-                      {formatResolutionDate(resolutionOpening)}
-                    </time>
-                  </>
-                ) : (
-                  "Resolution dates vary by outcome"
-                )}
-              </span>
-              {market.questions[0] && (
-                <a
-                  href={getRealityLink(market.chainId, market.questions[0].id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Resolution on Reality.eth ↗
-                </a>
-              )}
-            </div>
+      </header>
+      <div className="event-signal">
+        <div className="event-signal-caption">
+          <div>
+            <h2>{market.outcomes[selected]}</h2>
+            <p className="event-summary-context">{captionLabel}</p>
           </div>
-        </details>
-      </div>
-      <div className="event-chart-switch" aria-label="Chart scope">
-        <button type="button" aria-pressed={!chartFocus} onClick={() => setChartFocus(false)}>
-          Compare outcomes
-        </button>
-        <button type="button" aria-pressed={chartFocus} onClick={() => setChartFocus(true)}>
-          Selected outcome
-        </button>
-      </div>
-      <p className="event-signal-explanation">
+          <div className="event-odds-summary">
+            <div className="event-selected-odds">
+              <DisplayOdds odd={odds[selected]} marketType={marketType} />
+            </div>
+            <span>{MARKET_PRICE_LABELS[marketType]}</span>
+          </div>
+          <fieldset className="event-chart-switch">
+            <legend className="sr-only">Chart scope</legend>
+            <button type="button" aria-pressed={!chartFocus} onClick={() => setChartFocus(false)}>
+              Compare outcomes
+            </button>
+            <button type="button" aria-pressed={chartFocus} onClick={() => setChartFocus(true)}>
+              Selected outcome
+            </button>
+          </fieldset>
+        </div>
         {estimate && estimate !== "NA" && (
-          <>
-            <strong>Market estimate: {estimate}.</strong>{" "}
-          </>
+          <p className="event-signal-explanation">
+            <strong>Market estimate: {estimate}</strong>
+          </p>
         )}
-        {MARKET_SIGNAL_DESCRIPTIONS[marketType]}
-      </p>
-      <MarketChart market={market} outcomeIndex={chartFocus ? selected : undefined} />
+        <MarketChart market={market} outcomeIndex={chartFocus ? selected : undefined} />
+      </div>
     </section>
   );
 }

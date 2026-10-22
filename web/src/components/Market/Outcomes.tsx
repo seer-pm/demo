@@ -44,6 +44,7 @@ import { DisplayOdds } from "./DisplayOdds";
 import { FarmingActions } from "./FarmingActions";
 import { OutcomeActivePanel } from "./OutcomeActivePanel";
 import { OutcomeImage } from "./OutcomeImage";
+import type { OutcomeSelectionSource } from "./marketPresentation";
 
 interface OutcomesProps {
   compact?: boolean;
@@ -52,7 +53,17 @@ interface OutcomesProps {
   market: Market;
   images?: string[];
   activeOutcome: number;
-  onOutcomeChange: (i: number, openDrawer: boolean) => void;
+  onOutcomeChange: (i: number, openDrawer: boolean, source?: OutcomeSelectionSource) => void;
+}
+
+// A Yes/No market is phrased about its Yes side. Defaulting to whichever side is priced higher would
+// headline "No" under "Will X happen?" and preload the trade ticket with the inverse of the question.
+// Once reporting starts the sort puts the winner first, and the winner is the right default.
+function getDefaultOutcomeIndex(market: Market, status: MarketStatus, orderedByOdds: number[]): number {
+  const [first, second] = market.outcomes;
+  const isYesNo = first?.toLowerCase() === "yes" && second?.toLowerCase() === "no";
+  const isTrading = status === MarketStatus.OPEN || status === MarketStatus.NOT_OPEN;
+  return isYesNo && isTrading ? 0 : orderedByOdds[0];
 }
 
 function scalarRedeemTooltip(market: Market, outcomeIndex: number) {
@@ -610,9 +621,9 @@ export function Outcomes({
 
   useEffect(() => {
     if (!autoSelectTopOutcome || hasInitializedRef.current || !indexesOrderedByOdds) return;
-    onOutcomeChange(indexesOrderedByOdds[0], false);
+    onOutcomeChange(getDefaultOutcomeIndex(market, marketStatus, indexesOrderedByOdds), false, "auto");
     hasInitializedRef.current = true;
-  }, [autoSelectTopOutcome, indexesOrderedByOdds, onOutcomeChange]);
+  }, [autoSelectTopOutcome, indexesOrderedByOdds, onOutcomeChange, market, marketStatus]);
 
   return (
     <div>

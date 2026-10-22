@@ -262,7 +262,6 @@
   pointer-events: none;
 }
 
-
 .event-title-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 44px;
@@ -307,9 +306,9 @@
 .event-metrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
+  gap: 10px 24px;
   align-items: center;
-  padding: 24px 0;
+  padding: 16px 0 14px;
   border-bottom: 1px solid var(--seer-border);
 }
 .event-metrics > span {
@@ -373,19 +372,38 @@
   color: var(--seer-muted);
   font-size: 11px;
 }
-.event-chart-summary {
-  padding: 18px 28px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+/* The caption, the number and the scope switch describe the chart, so they sit on it. Below 700px
+   the switch takes its own row; wider, it closes the caption row. */
+.event-signal-caption {
+  padding: 18px 28px 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px 16px;
+}
+.event-signal-caption > div:first-child {
+  min-width: 0;
+}
+.event-signal-caption > .event-chart-switch {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+@media (min-width: 700px) {
+  .event-signal-caption {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px 24px;
+  }
+  .event-signal-caption > .event-chart-switch {
+    grid-column: auto;
+  }
 }
 .event-summary-context {
   font-size: 12px;
   color: var(--seer-muted);
   margin-top: 4px;
 }
-.event-chart-summary h2 {
+.event-signal-caption h2 {
   font-size: 18px;
   font-weight: 500;
   overflow-wrap: anywhere;
@@ -396,6 +414,7 @@
 }
 .event-odds-summary > span {
   display: block;
+  white-space: nowrap;
   font-size: 12px;
   margin-top: 6px;
   color: var(--seer-muted);
@@ -407,14 +426,6 @@
   letter-spacing: -.025em;
   line-height: 1;
 }
-.event-market-context {
-  margin-inline: 28px;
-}
-.event-market-context .event-metrics {
-  padding-block: 10px;
-  gap: 10px 20px;
-}
-.event-market-details summary,
 .event-token-tools summary {
   display: flex;
   align-items: center;
@@ -425,53 +436,22 @@
   list-style: none;
   color: var(--seer-text);
 }
-.event-market-details summary::-webkit-details-marker,
 .event-token-tools summary::-webkit-details-marker {
   display: none;
 }
-.event-market-details summary:focus-visible,
 .event-token-tools summary:focus-visible {
   outline: 2px solid var(--seer-accent-text);
   outline-offset: 2px;
   border-radius: var(--seer-radius-sm);
 }
-.event-market-details[open] > summary svg,
 .event-token-tools[open] > summary svg {
   transform: rotate(180deg);
 }
-.event-market-details summary {
-  display: none;
-  font-size: 12px;
-}
-.event-details-body {
-  padding-block: 10px;
-}
-.event-detail-facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 20px;
-  font-size: 12px;
-  color: var(--seer-muted);
-}
-.event-detail-facts > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.event-detail-facts strong {
-  color: var(--seer-text);
-  font-weight: 500;
-}
-.event-detail-facts a {
-  color: var(--seer-accent-text);
-  text-underline-offset: 3px;
-}
-.event-detail-facts a:hover {
-  text-decoration: underline;
-}
 .event-chart-switch {
-  margin: 0 28px;
+  /* A fieldset names the pair for assistive tech; the browser's fieldset chrome is not wanted. */
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
   display: inline-flex;
   padding: 4px;
   gap: 4px;
@@ -671,14 +651,11 @@
   .event-metrics > .event-metrics-rules {
     margin-left: 0;
   }
-  .event-chart-summary {
+  .event-signal-caption {
     padding: 20px 18px;
   }
   .event-selected-odds {
     font-size: 32px;
-  }
-  .event-chart-switch {
-    margin-inline: 18px;
   }
   .event-overview .seer-market-chart {
     padding-inline: 18px;
@@ -732,7 +709,6 @@
     gap: 20px;
   }
   .event-chart-switch {
-    margin-inline: 20px;
     padding: 3px;
   }
   .event-chart-switch button {
@@ -800,7 +776,7 @@
   .event-metrics {
     padding-block: 8px;
   }
-  .event-chart-summary {
+  .event-signal-caption {
     padding-block: 8px;
   }
   .event-overview .seer-chart-canvas {
@@ -843,44 +819,12 @@
   margin-top: 8px;
 }
 @media (min-width: 1200px) {
-  .event-chart-summary {
-    padding: 16px 20px 10px;
-    gap: 16px;
-  }
-  .event-market-context {
-    margin-inline: 20px;
-  }
-  .event-overview {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .event-overview > * {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-  .event-chart-summary {
-    grid-column: 1;
-    grid-row: 2;
+  .event-signal-caption {
+    padding: 12px 20px 8px;
+    gap: 10px 20px;
   }
   .event-chart-switch {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: center;
-    margin-left: 0;
     padding: 2px;
-  }
-  .event-details-body {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 20px;
-    padding-block: 10px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--seer-muted);
-  }
-  .event-detail-facts,
-  .event-provenance {
-    display: contents;
   }
   .event-chart-switch button {
     padding: 4px 8px;
@@ -900,7 +844,8 @@
     padding-bottom: 6px;
   }
   .event-metrics {
-    padding-block: 6px;
+    padding: 10px 0 8px;
+    gap: 8px 20px;
   }
   .event-outcomes {
     margin-top: 8px;
@@ -951,8 +896,6 @@
     padding-top: 10px;
   }
 
-
-
   .event-title-row h1 {
     font-size: 23px;
   }
@@ -963,8 +906,8 @@
   .event-overview .seer-market-chart {
     padding-top: 6px;
   }
-  .event-chart-summary {
-    padding-block: 3px;
+  .event-signal-caption {
+    padding-block: 4px;
   }
   .event-outcome-disclosure {
     padding-block: 8px;
@@ -1153,60 +1096,105 @@
   background: var(--seer-accent-soft);
   font-size: 12px;
 }
-.event-provenance {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  padding-block: 10px;
-  font-size: 12px;
-  color: var(--seer-muted);
-  line-height: 1.5;
-}
-.event-provenance a { color: var(--seer-accent-text); text-underline-offset: 3px; }
-.event-provenance a:hover { text-decoration: underline; }
-.event-provenance time { color: var(--seer-text); }
 .event-signal-explanation {
   padding: 8px 28px 4px;
   font-size: 12px;
   line-height: 1.6;
   color: var(--seer-muted);
 }
-.event-signal-explanation strong { color: var(--seer-text); font-weight: 600; }
-.event-metrics small, .event-metrics > .event-metrics-rules { font-size: 12px; }
-.event-chart-switch button { font-size: 12px; min-height: 36px; }
-.event-overview .seer-chart-legend-item { font-size: 12px; min-height: 32px; }
-.event-outcome-name small { font-size: 12px; }
-.event-rules-readable { background: var(--seer-page); }
+.event-signal-explanation strong {
+  color: var(--seer-text);
+  font-weight: 600;
+}
+.event-metrics small,
+.event-metrics > .event-metrics-rules {
+  font-size: 12px;
+}
+.event-chart-switch button {
+  font-size: 12px;
+  min-height: 36px;
+}
+.event-overview .seer-chart-legend-item {
+  font-size: 12px;
+  min-height: 32px;
+}
+.event-outcome-name small {
+  font-size: 12px;
+}
+.event-rules-readable {
+  background: var(--seer-page);
+}
 @media (min-width: 1200px) {
-  .event-signal-explanation { padding-inline: 20px; }
-  .event-status { margin-top: 6px; }
+  .event-signal-explanation {
+    padding-inline: 20px;
+  }
+  .event-status {
+    margin-top: 6px;
+  }
 }
 @media (max-width: 700px) {
-  .event-heading { padding: 20px 18px 0; }
-  .event-title-row { grid-template-columns: 32px minmax(0, 1fr) 44px; gap: 10px 12px; }
+  .event-heading {
+    padding: 20px 18px 0;
+  }
+  .event-title-row {
+    grid-template-columns: 32px minmax(0, 1fr) 44px;
+    gap: 10px 12px;
+  }
   .event-title-row h1,
-  .event-title-row:not(:has(> img)) h1 { grid-column: 1 / -1; grid-row: 2; font-size: 23px; line-height: 1.25; }
-  .event-title-row > img { grid-row: 1; align-self: center; width: 32px; height: 32px; border-radius: var(--seer-radius-md); }
-  .event-title-row > .event-status { grid-row: 1; align-self: center; }
-  .event-title-favorite { grid-row: 1; }
-  .event-chart-summary { padding: 18px 18px 12px; align-items: flex-start; }
-  .event-chart-summary h2 { font-size: 17px; }
-  .event-odds-summary { max-width: 50%; }
-  .event-odds-summary > span { font-size: 11px; line-height: 1.4; }
-  .event-selected-odds { font-size: 30px; }
-  .event-chart-switch { display: flex; width: fit-content; max-width: calc(100% - 36px); }
-  .event-chart-switch button { min-width: 0; padding-inline: 8px; }
-  .event-market-context { margin-inline: 18px; }
-  .event-market-context .event-metrics { gap: 8px 14px; }
-  .event-market-details summary { display: flex; }
-  .event-details-body { padding-top: 0; }
-  .event-metrics { gap: 10px 18px; padding-block: 14px; }
-  .event-provenance { gap: 6px 14px; }
-  .event-signal-explanation { padding-inline: 18px; }
+  .event-title-row:not(:has(> img)) h1 {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 23px;
+    line-height: 1.25;
+  }
+  .event-title-row > img {
+    grid-row: 1;
+    align-self: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--seer-radius-md);
+  }
+  .event-title-row > .event-status {
+    grid-row: 1;
+    align-self: center;
+  }
+  .event-title-favorite {
+    grid-row: 1;
+  }
+  .event-signal-caption {
+    padding: 18px 18px 12px;
+  }
+  .event-signal-caption h2 {
+    font-size: 17px;
+  }
+  .event-odds-summary > span {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .event-selected-odds {
+    font-size: 30px;
+  }
+  .event-chart-switch {
+    max-width: 100%;
+  }
+  .event-chart-switch button {
+    min-width: 0;
+    padding-inline: 8px;
+  }
+  .event-metrics {
+    gap: 10px 18px;
+    padding-block: 14px;
+  }
+  .event-signal-explanation {
+    padding-inline: 18px;
+  }
 }
 @media (hover: none) and (pointer: coarse) {
-  .event-chart-switch button, .seer-chart-controls .pill-button,
-  .event-overview .seer-chart-legend-item { min-height: 44px; }
+  .event-chart-switch button,
+  .seer-chart-controls .pill-button,
+  .event-overview .seer-chart-legend-item {
+    min-height: 44px;
+  }
 }
 
 .event-tabs {

@@ -12,6 +12,7 @@ import MarketTabs from "@/components/Market/MarketTabs/MarketTabs";
 import { MobileMarketActions } from "@/components/Market/MobileMarketActions";
 import { Outcomes } from "@/components/Market/Outcomes";
 import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
+import type { OutcomeSelectionSource } from "@/components/Market/marketPresentation";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
@@ -105,6 +106,7 @@ function MarketPage() {
   // so that if the wallet flips back to the wrong chain we don't re-enter a loop.
   const lastAutoSwitchChainIdRef = useRef<number | null>(null);
   const [outcomeIndex, setOutcomeIndex] = useState(0);
+  const [selectionSource, setSelectionSource] = useState<OutcomeSelectionSource>("auto");
   const idOrSlug = routeParams.id as Address;
   const chainId = Number(routeParams.chainId) as SupportedChain;
   const isMobile = useIsSmallScreen(1200);
@@ -146,7 +148,9 @@ function MarketPage() {
   const requestedOutcomeIndex = requestedOutcome ? (market?.outcomes.indexOf(requestedOutcome) ?? -1) : -1;
   const hasRequestedOutcome = requestedOutcomeIndex >= 0;
   useEffect(() => {
-    if (hasRequestedOutcome) setOutcomeIndex(requestedOutcomeIndex);
+    if (!hasRequestedOutcome) return;
+    setOutcomeIndex(requestedOutcomeIndex);
+    setSelectionSource("user");
   }, [idOrSlug, hasRequestedOutcome, requestedOutcomeIndex]);
 
   market = useMarketQuestions(market, chainId);
@@ -165,8 +169,9 @@ function MarketPage() {
   }, [isMobile]);
 
   const onOutcomeChange = useCallback(
-    (i: number, openDrawer: boolean) => {
+    (i: number, openDrawer: boolean, source: OutcomeSelectionSource = "user") => {
       setOutcomeIndex(i);
+      setSelectionSource(source);
       if (openDrawer && isMobile) {
         setDrawerOpen(true);
       }
@@ -257,7 +262,7 @@ function MarketPage() {
         <BrandRibbon />
         <div className="event-workspace" ref={workspaceRef}>
           <div className="event-main">
-            <MarketOverview market={market} selected={outcomeIndex} />
+            <MarketOverview market={market} selected={outcomeIndex} selectionSource={selectionSource} />
 
             <section className="event-outcomes" aria-label="Market outcomes">
               <Outcomes

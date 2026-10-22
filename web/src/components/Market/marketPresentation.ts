@@ -1,5 +1,8 @@
 import { type Market, MarketStatus, MarketTypes } from "@seer-pm/sdk";
 
+/** Who put the outcome on display: the page's own default, or a visitor's click or `?outcome=` link. */
+export type OutcomeSelectionSource = "auto" | "user";
+
 export const MARKET_SIGNAL_LABELS: Record<MarketTypes, string> = {
   [MarketTypes.CATEGORICAL]: "Single outcome",
   [MarketTypes.SCALAR]: "Numeric estimate",
