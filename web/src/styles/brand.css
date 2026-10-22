@@ -286,17 +286,9 @@ button:focus-visible {
   gap: 22px;
   font-size: 13px;
 }
-.seer-primary-nav {
-  margin-left: auto;
-}
 .seer-account-nav {
-  gap: 10px;
-}
-.seer-primary-nav > a {
-  font-weight: 600;
-}
-.seer-primary-nav > a:hover {
-  color: var(--seer-brand-purple);
+  gap: 8px;
+  margin-left: auto;
 }
 .seer-mobile-actions {
   display: none;
@@ -824,9 +816,6 @@ button:focus-visible {
 :root[data-theme="dark"] .seer-primary-nav > a[aria-current="page"] {
   color: #b18aff;
 }
-.seer-header .dropdown > button svg {
-  fill: currentColor;
-}
 /* The header takes the page colour in both themes, so the badge cannot assume a dark backdrop. */
 .seer-account-badge {
   background: var(--seer-accent-soft);
@@ -1083,15 +1072,24 @@ button:focus-visible {
 }
 
 /* The nav is the header's reading spine. Medium weight at 13px keeps it legible against the
-   13px controls beside it without competing with the single filled Connect button. */
+   13px controls beside it without competing with the single filled Connect button. It reads on
+   from the search box, so its position does not depend on how wide the wallet cluster is. */
 .seer-header .seer-primary-nav {
   gap: 20px;
-  margin-inline: auto;
-  justify-content: center;
+  margin-left: 8px;
   font-size: 13px;
 }
-.seer-header .seer-primary-nav > a {
+.seer-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
   font-weight: 500;
+  white-space: nowrap;
+}
+.seer-nav-link:hover,
+.seer-nav-link[aria-expanded="true"] {
+  color: var(--seer-accent-text);
 }
 /* Soft accent, not filled: Connect stays the only filled primary for a visitor who is not
    connected yet, and creating a market is the rare task next to trading. */
@@ -1117,6 +1115,136 @@ button:focus-visible {
 }
 .seer-global-create svg {
   flex-shrink: 0;
+}
+
+/* Every inline control in the header row is a 36px pill. The search box is the exception: it is
+   the row's input and keeps the 44px field height. */
+.seer-header .seer-header-connect {
+  height: 36px;
+  min-height: 36px;
+  padding-inline: 18px;
+  border-radius: var(--seer-radius-full);
+  font-size: 13px;
+}
+/* Neutral, so the soft-accent Create link stays the only tinted control once a wallet is connected. */
+.seer-account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  max-width: 220px;
+  padding: 0 12px 0 8px;
+  border: 1px solid var(--seer-border);
+  border-radius: var(--seer-radius-full);
+  background: var(--seer-surface);
+  color: var(--seer-text);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
+}
+.seer-account-trigger:hover,
+.seer-account-trigger[aria-expanded="true"] {
+  background: var(--seer-surface-raised);
+}
+.seer-account-chain {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--seer-radius-full);
+}
+.seer-account-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seer-header-icon:hover,
+.seer-header-icon[aria-expanded="true"] {
+  background: var(--seer-surface-raised);
+}
+
+/* A chevron only says "this opens", so it stays smaller and lighter than the label it follows. */
+.seer-menu-chevron {
+  flex: none;
+  color: var(--seer-muted);
+  transition: transform 0.15s ease-out;
+}
+[aria-expanded="true"] > .seer-menu-chevron,
+.seer-mobile-nav-group[open] > summary > .seer-menu-chevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .seer-menu-chevron {
+    transition: none;
+  }
+}
+
+.seer-header-menu {
+  position: relative;
+}
+/* Menus share the header's 13px scale. The border carries the edge in dark mode, where the shadow
+   has no lighter page to fall on. */
+.seer-header-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 248px;
+  padding: 6px;
+  border: 1px solid var(--seer-border);
+  border-radius: var(--seer-radius-md);
+  background: var(--seer-surface);
+  color: var(--seer-text);
+  box-shadow: 0 16px 32px -16px rgb(20 18 35 / 0.28), 0 2px 6px rgb(20 18 35 / 0.06);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+}
+:root[data-theme="dark"] .seer-header-menu-panel {
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+}
+.seer-header-menu-panel[data-align="start"] {
+  right: auto;
+  left: -10px;
+}
+.seer-header-menu-panel ul + ul {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--seer-border);
+}
+.seer-header-menu-panel li > a,
+.seer-header-menu-panel li > button,
+.seer-header-menu-panel .seer-header-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: var(--seer-radius-sm);
+  text-align: left;
+  white-space: nowrap;
+}
+.seer-header-menu-panel li > a:hover,
+.seer-header-menu-panel li > button:hover {
+  background: var(--seer-surface-raised);
+}
+.seer-header-menu-panel a[aria-current="page"] {
+  color: var(--seer-accent-text);
+  font-weight: 500;
+}
+.seer-header-menu-panel svg {
+  flex: none;
+}
+.seer-header-menu-meta {
+  margin-left: auto;
+  color: var(--seer-muted);
+  font-size: 12px;
+}
+.seer-app-logo {
+  flex: none;
+  width: auto;
+  height: 20px;
 }
 
 @media (min-width: 1280px) and (max-width: 1500px) {

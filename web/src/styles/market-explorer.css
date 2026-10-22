@@ -229,8 +229,7 @@
   fill: currentColor;
 }
 .seer-mobile-actions > button,
-.seer-header-theme,
-.seer-account-nav > ul > .dropdown > button {
+.seer-header-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -251,24 +250,79 @@
   max-height: none;
   height: auto;
 }
-.seer-mobile-menu-heading {
+.seer-mobile-account {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--seer-border);
 }
-.seer-mobile-menu-heading h2 {
-  font-size: 24px;
-  font-weight: 600;
+.seer-header .seer-mobile-account .seer-header-connect {
+  height: 44px;
+  min-height: 44px;
+}
+.seer-mobile-account-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.seer-mobile-links {
+  padding-block: 8px;
+}
+/* Every row in the drawer is a 44px touch target. */
+.seer-mobile-links a,
+.seer-mobile-nav-group li > a,
+.seer-mobile-nav-group li > button,
+.seer-mobile-nav-group .seer-header-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+}
+.seer-mobile-links a {
+  font-size: 16px;
+  font-weight: 500;
+}
+.seer-mobile-links a[aria-current="page"],
+.seer-mobile-nav-group a[aria-current="page"] {
+  color: var(--seer-accent-text);
+}
+.seer-mobile-nav-group {
+  border-top: 1px solid var(--seer-border);
 }
 .seer-mobile-nav-group > summary {
-  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  list-style: none;
   cursor: pointer;
   font-weight: 600;
-  line-height: 44px;
+}
+.seer-mobile-nav-group > summary::-webkit-details-marker {
+  display: none;
+}
+.seer-mobile-nav-group > summary > .seer-menu-chevron {
+  width: 14px;
+  height: 14px;
 }
 .seer-mobile-nav-group > ul {
-  padding-left: 16px;
+  padding-bottom: 8px;
+}
+.seer-mobile-nav-group ul + ul {
+  padding-top: 8px;
+  border-top: 1px solid var(--seer-border);
+}
+.seer-mobile-nav-group .seer-header-menu-meta {
+  margin-left: auto;
+  color: var(--seer-muted);
+  font-size: 13px;
 }
 @media (max-width: 1279px) {
   .seer-header .seer-navbar {

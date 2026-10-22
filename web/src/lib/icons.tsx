@@ -202,6 +202,24 @@ export const DownArrow = ({ width = 16, height = 16, fill = "#fff" }: SVGAttribu
   </svg>
 );
 
+export const ChevronDown = ({ width = 12, height = 12, ...props }: SVGAttributes<SVGElement>) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 12 12"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <path d="m3 4.5 3 3 3-3" />
+  </svg>
+);
+
 export const HourGlassIcon = () => (
   <svg width={14} height={14} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_21947_128335)">

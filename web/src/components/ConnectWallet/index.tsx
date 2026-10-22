@@ -10,24 +10,25 @@ export const SwitchChainButton: React.FC = () => {
   const handleSwitch = () => {
     open({ view: "Networks" });
   };
-  return (
-    <Button
-      className="btn-purple-primary"
-      isLoading={status === "pending"}
-      disabled={status === "pending"}
-      text="Switch to a supported network"
-      onClick={handleSwitch}
-    />
-  );
+  return <Button className="btn-purple-primary" text="Switch to a supported network" onClick={handleSwitch} />;
 };
 
 type ConnectButtonProps = {
   size?: "small" | "large";
+  className?: string;
 };
 
-const ConnectButton = ({ size = "small" }: ConnectButtonProps) => {
+const ConnectButton = ({ size = "small", className }: ConnectButtonProps) => {
   const { open } = useWeb3Modal();
-  return <Button text={"Connect"} variant="primary" size={size} onClick={async () => open({ view: "Connect" })} />;
+  return (
+    <Button
+      text={"Connect"}
+      variant="primary"
+      size={size}
+      className={className}
+      onClick={async () => open({ view: "Connect" })}
+    />
+  );
 };
 
 type ConnectWallerProps = ConnectButtonProps & {

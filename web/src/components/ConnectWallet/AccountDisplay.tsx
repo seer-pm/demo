@@ -57,7 +57,8 @@ const AccountDisplay: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const { open } = useWeb3Modal();
   const { chain } = useAccount();
   return (
-    <div
+    <button
+      type="button"
       className="seer-account-badge inline-flex gap-2 text-[14px] rounded-full px-[16px] h-[32px] cursor-pointer hover:opacity-90"
       onClick={() => open({ view: "Account" })}
     >
@@ -67,7 +68,7 @@ const AccountDisplay: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
       <div className="flex space-x-2 items-center">
         <AddressOrName />
       </div>
-    </div>
+    </button>
   );
 };
 
