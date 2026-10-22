@@ -358,7 +358,7 @@ export default function AccountPage() {
       <Breadcrumb links={[{ title: "Account" }]} />
       <h2 className="sr-only">Account settings</h2>
 
-      <div className="bg-base-100 border border-separator-100 rounded-[16px] shadow-none">
+      <div className="bg-base-100 border border-separator-100 rounded-surface shadow-none">
         {!isConnected || !address ? (
           <div className="p-6 sm:p-8">
             <p className="text-[14px] text-black-primary mb-4">

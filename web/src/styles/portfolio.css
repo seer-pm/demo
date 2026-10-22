@@ -28,7 +28,7 @@
 }
 .portfolio-demo-label {
   border: 1px solid var(--seer-border);
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
   padding: 5px 9px;
   color: var(--seer-muted);
   font-size: 11px;
@@ -38,7 +38,7 @@
   grid-template-columns: 27% 1fr;
   border: 1px solid var(--seer-border);
   background: var(--seer-surface);
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
   overflow: hidden;
 }
 .portfolio-balance {
@@ -111,7 +111,7 @@
 }
 .portfolio-ranges button {
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
   color: var(--seer-muted);
   font-size: 11px;
 }
@@ -163,7 +163,7 @@
   background: var(--seer-surface-raised);
   color: var(--portfolio-accent);
   margin-left: 6px;
-  border-radius: 4px;
+  border-radius: var(--seer-radius-sm);
   padding: 1px 5px;
   font-size: 11px;
 }
@@ -209,7 +209,7 @@
 .portfolio-table-tools select {
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
   padding: 7px;
   color: var(--seer-text);
   margin-left: 8px;
@@ -268,7 +268,7 @@
   display: grid;
   place-items: center;
   background: var(--seer-surface-raised);
-  border-radius: 9px;
+  border-radius: var(--seer-radius-md);
   color: var(--portfolio-accent);
   font-size: 20px;
   flex-shrink: 0;
@@ -284,14 +284,14 @@
   color: var(--portfolio-accent);
   padding: 2px 6px;
   margin-top: 6px;
-  border-radius: 4px;
+  border-radius: var(--seer-radius-sm);
   font-size: 10px;
 }
 .portfolio-expand {
   background: var(--seer-surface-raised);
   width: 30px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
 }
 .portfolio-expanded-grid {
   display: flex;
@@ -324,7 +324,7 @@
   border: 1px solid var(--seer-border);
   background: var(--seer-surface);
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--seer-radius-md);
   max-width: 460px;
 }
 .portfolio-account-details[open] summary {
@@ -340,7 +340,7 @@
 .portfolio-rewards-context,
 .portfolio-source {
   border: 1px solid var(--seer-border);
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
   padding: 28px;
   background: var(--seer-surface);
 }

@@ -1,12 +1,11 @@
 @use "react-datepicker/dist/react-datepicker";
+@use "./styles/radii.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* increase root specificity */
 :root:root {
-  --rounded-btn: 10px;
-
   /* Color variables in OKLCH format for alpha support */
   --blue-primary: 78.99% 0.143 224.17; /* #24CDFE */
   --blue-secondary: 37.3% 0.234 269.89; /* #200FB9 */
@@ -165,7 +164,7 @@ body {
 
 /* Card component classes */
 .card {
-  @apply bg-base-100 border rounded-[16px] border-separator-100;
+  @apply bg-base-100 border rounded-surface border-separator-100;
 }
 
 .card-active {
@@ -174,11 +173,11 @@ body {
 
 /* Pill component classes */
 .pill {
-  @apply border border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#f2f2f2] dark:bg-[var(--card-bg)] text-base-content text-[14px] text-center;
+  @apply border border-transparent rounded-full px-[16px] py-[6.5px] bg-[#f2f2f2] dark:bg-[var(--card-bg)] text-base-content text-[14px] text-center;
 }
 
 .pill-button {
-  @apply border-2 border-transparent rounded-[300px] px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-purple-primary text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
+  @apply border-2 border-transparent rounded-full px-[16px] py-[6.5px] bg-[#FBF8FF] dark:bg-neutral text-purple-primary text-[14px] text-center cursor-pointer hover:border-purple-primary transition-all;
 
   &.pill-button-active {
     @apply bg-purple-primary text-white;
@@ -263,7 +262,6 @@ body {
 /* ALERT */
 .alert {
   @apply text-base-content;
-  --rounded-box: 3px;
   --alert-bg: transparent;
 
   font-size: 14px;
@@ -345,7 +343,6 @@ body {
     animation: modal-pop 0.2s ease-out;
   }
   .modal-box {
-    --rounded-box: 16px;
     max-width: 620px;
   }
 }
@@ -382,7 +379,7 @@ body {
 }
 
 .dropdown-content {
-  @apply shadow bg-base-100 rounded-[12px] text-base-content text-[16px];
+  @apply shadow bg-base-100 rounded-surface text-base-content text-[16px];
 }
 
 /* CHECKBOX */
@@ -411,7 +408,7 @@ body {
   text-align: center;
   font-weight: 600;
   padding: 5px 10px;
-  border-radius: 1px;
+  border-radius: var(--seer-radius-md);
   position: absolute;
   z-index: 2;
   font-size: 12px;
@@ -534,19 +531,19 @@ body {
   & .react-datepicker__day--range-end,
   .react-datepicker__day--selecting-range-end {
     @apply bg-purple-primary;
-    border-radius: 4.8px;
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
+    border-radius: var(--seer-radius-sm);
+    border-top-right-radius: var(--seer-radius-md);
+    border-bottom-right-radius: var(--seer-radius-md);
   }
   & .react-datepicker__day--range-start,
   .react-datepicker__day--selecting-range-start {
     @apply bg-purple-primary;
-    border-radius: 4.8px;
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
+    border-radius: var(--seer-radius-sm);
+    border-top-left-radius: var(--seer-radius-md);
+    border-bottom-left-radius: var(--seer-radius-md);
   }
   & .react-datepicker__day--range-start.react-datepicker__day--range-end {
-    border-radius: 4.8px;
+    border-radius: var(--seer-radius-sm);
   }
   ::-webkit-scrollbar {
     width: 1px;

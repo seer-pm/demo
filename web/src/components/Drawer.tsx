@@ -93,7 +93,7 @@ export function Drawer({ open, onClose, children, title, tabs, className }: Draw
         role="dialog"
         ref={drawerRef}
         className={clsx(
-          "fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-[16px] z-[101] shadow-lg max-h-[90dvh] flex flex-col w-full",
+          "fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-surface z-[101] shadow-lg max-h-[90dvh] flex flex-col w-full",
           !isDragging && "transition-transform duration-300 ease-out",
           className,
         )}

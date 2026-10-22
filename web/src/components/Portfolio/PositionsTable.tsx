@@ -230,7 +230,7 @@ function PositionsTableInner({
           return (
             <button
               type="button"
-              className={`items-center justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11 ${position.tokenBalance > 0 ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
+              className={`items-center justify-center gap-2 whitespace-nowrap rounded-control bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11 ${position.tokenBalance > 0 ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
               disabled={position.tokenBalance <= 0}
               title={position.tokenBalance <= 0 ? "Withdraw liquidity before redeeming" : undefined}
               onClick={() => {

@@ -13,6 +13,19 @@ export default {
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
+      // Standard radius names also theme the shared discussion components.
+      borderRadius: {
+        DEFAULT: 'var(--seer-radius-sm)',
+        sm: 'var(--seer-radius-sm)',
+        md: 'var(--seer-radius-sm)',
+        lg: 'var(--seer-radius-md)',
+        xl: 'var(--seer-radius-md)',
+        '2xl': 'var(--seer-radius-md)',
+        '3xl': 'var(--seer-radius-md)',
+        full: 'var(--seer-radius-full)',
+        control: 'var(--seer-radius-sm)',
+        surface: 'var(--seer-radius-md)',
+      },
       fontFamily: {
         sans: ['Open Sans', 'sans-serif'],
       },

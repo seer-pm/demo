@@ -278,7 +278,7 @@ function SortableHeader({
         <button
           type="button"
           className={clsx(
-            "inline-flex items-center justify-end gap-1 min-h-11 font-semibold rounded-[16px] hover:text-base-content",
+            "inline-flex items-center justify-end gap-1 min-h-11 font-semibold rounded-control hover:text-base-content",
             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary",
             info ? "" : "w-full",
             active ? "text-base-content" : "text-black-secondary",
@@ -564,7 +564,7 @@ function LeaderboardPage() {
       {filtersOpen ? (
         <div
           id="leaderboard-filters-panel"
-          className="bg-base-100 border border-separator-100 rounded-[16px] p-4 space-y-4"
+          className="bg-base-100 border border-separator-100 rounded-surface p-4 space-y-4"
         >
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-sm text-black-secondary mr-1">App</span>
@@ -640,12 +640,12 @@ function LeaderboardPage() {
       ) : null}
 
       {!hasMarketsForSelection ? (
-        <div className="bg-base-100 border border-separator-100 rounded-[16px] p-6 text-black-secondary">
+        <div className="bg-base-100 border border-separator-100 rounded-surface p-6 text-black-secondary">
           No markets are available for this app
           {effectiveChainId === "all" ? "" : " on this chain"} yet. Try another app or chain filter.
         </div>
       ) : (
-        <div className="bg-base-100 border border-separator-100 rounded-[16px] shadow-none overflow-x-auto">
+        <div className="bg-base-100 border border-separator-100 rounded-surface shadow-none overflow-x-auto">
           {query.error && rows.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-separator-100">
               <p className="text-sm text-error">{(query.error as Error).message || "Failed to refresh leaderboard"}</p>

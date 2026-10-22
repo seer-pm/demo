@@ -1,0 +1,13 @@
+/* Geometry follows the supplied Electric Foundation reference in both themes.
+   Use sm for compact controls and badges, md for surfaces, inputs and outcome rows,
+   and full for pills. Circular avatars and chart shapes retain their own geometry. */
+:root:root {
+  --seer-radius-sm: 4px;
+  --seer-radius-md: 10px;
+  --seer-radius-full: 9999px;
+
+  --rounded-box: var(--seer-radius-md);
+  --rounded-btn: var(--seer-radius-sm);
+  --rounded-badge: var(--seer-radius-full);
+  --tab-radius: var(--seer-radius-sm);
+}

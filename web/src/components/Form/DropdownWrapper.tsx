@@ -150,7 +150,7 @@ const DropdownWrapper = React.forwardRef<HTMLDivElement, DropdownWrapperProps>((
                   }),
             }}
             className={clsx(
-              "fixed z-[1000] mt-1 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] bg-base-100",
+              "fixed z-[1000] mt-1 border border-separator-100 rounded-surface shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] bg-base-100",
               className,
             )}
           >

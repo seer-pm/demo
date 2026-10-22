@@ -233,7 +233,7 @@ function CollectionsPage() {
                     <div className="p-2">
                       <button
                         type="button"
-                        className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                        className="w-full rounded-surface p-2 hover:bg-[#ededed] transition-all"
                         onClick={() => {
                           setInput(currentCollection!.name);
                           openUpdateCollectionModal();
@@ -243,7 +243,7 @@ function CollectionsPage() {
                       </button>
                       <button
                         type="button"
-                        className="w-full rounded-[8px] p-2 hover:bg-[#ededed] transition-all"
+                        className="w-full rounded-surface p-2 hover:bg-[#ededed] transition-all"
                         onClick={() => openDeleteCollectionModal()}
                       >
                         Remove Collection

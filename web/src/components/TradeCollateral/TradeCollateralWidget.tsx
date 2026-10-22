@@ -149,7 +149,7 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
   return (
     <div className="rounded-2xl border border-[#2222220d] dark:border-neutral bg-base-100 p-5 space-y-5 max-w-[480px]">
       <form className="space-y-5">
-        <div className={clsx("rounded-[12px] p-4 space-y-2 min-h-[120px]", "border border-[#2222220d] bg-base-200/80")}>
+        <div className={clsx("rounded-surface p-4 space-y-2 min-h-[120px]", "border border-[#2222220d] bg-base-200/80")}>
           <p className="text-base-content/70">You pay</p>
           <div className="flex justify-between items-start">
             <Input
@@ -193,7 +193,7 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
                     setValue("amount", formatUnits(amount, payToken.decimals));
                   }}
                   disabled={!payToken || !payBalance || payBalance === 0n}
-                  className="text-[12px] font-semibold text-base-content/70 rounded-lg border border-[#2222220d] dark:border-neutral py-1.5 px-2.5 bg-base-200/80 hover:bg-base-300/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-[12px] font-semibold text-base-content/70 rounded-control border border-[#2222220d] dark:border-neutral py-1.5 px-2.5 bg-base-200/80 hover:bg-base-300/60 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {pct}%
                 </button>
@@ -202,7 +202,7 @@ export function TradeCollateralWidget({ chainId }: TradeCollateralWidgetProps) {
           </div>
         </div>
 
-        <div className={clsx("rounded-[12px] p-4 space-y-2 min-h-[120px]", "border border-[#2222220d] bg-base-200/80")}>
+        <div className={clsx("rounded-surface p-4 space-y-2 min-h-[120px]", "border border-[#2222220d] bg-base-200/80")}>
           <p className="text-base-content/70">You will get</p>
           <div className="flex justify-between items-start">
             <Input

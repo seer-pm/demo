@@ -41,7 +41,6 @@
 }
 .seer-market-card {
   border: 1px solid var(--seer-border);
-  border-radius: 12px;
 }
 .seer-market-card-heading {
   min-height: 0;
@@ -117,7 +116,7 @@
   min-width: 44px;
   min-height: 44px;
   margin: -6px -10px -6px 0;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
 }
 .seer-card-signal > button:hover {
   color: var(--seer-accent-text);
@@ -137,7 +136,7 @@
   overflow: hidden;
   min-height: 48px;
   padding: 11px 12px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface-raised);
   color: var(--seer-text);
   font-size: 13px;
@@ -194,7 +193,7 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
   color: var(--seer-muted);
   font-size: 12px;
 }
@@ -237,7 +236,7 @@
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
 }
 .seer-mobile-menu-content {
   max-width: 640px;

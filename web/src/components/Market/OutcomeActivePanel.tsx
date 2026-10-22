@@ -16,7 +16,7 @@ export function OutcomeActivePanel({
   const isScalar = getMarketType(market) === MarketTypes.SCALAR;
   const [activeTab, setActiveTab] = useState<ActiveTab>("liquidity");
   return (
-    <div className="border-t border-purple-primary rounded-b-[3px] bg-base-100">
+    <div className="border-t border-purple-primary rounded-b-surface bg-base-100">
       <div>
         {!isScalar && (
           <div

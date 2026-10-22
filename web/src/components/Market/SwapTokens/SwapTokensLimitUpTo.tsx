@@ -381,7 +381,7 @@ export function SwapTokensLimitUpto({
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal, handleOpenConfirmPartialSwap)} className="space-y-5">
         <div className="space-y-2">
-          <div className={clsx("rounded-[12px] p-4 space-y-2 border border-[#2222220d]")}>
+          <div className={clsx("rounded-surface p-4 space-y-2 border border-[#2222220d]")}>
             <div className="flex items-center justify-between">
               <p className="text-base-content/70">Target price</p>
             </div>
@@ -443,7 +443,7 @@ export function SwapTokensLimitUpto({
               </div>
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-base-200/80")}>
+          <div className={clsx("rounded-surface p-4 space-y-2 bg-base-200/80")}>
             <p className="text-base-content/70">You will sell</p>
             <div className="flex justify-between items-start">
               <div>
@@ -508,7 +508,7 @@ export function SwapTokensLimitUpto({
                   {balance > 0 && (
                     <button
                       type="button"
-                      className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
+                      className="text-[14px] font-semibold text-base-content/70 rounded-control border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
                       onClick={() => {
                         swapMax();
                       }}
@@ -520,7 +520,7 @@ export function SwapTokensLimitUpto({
               )}
             </div>
           </div>
-          <div className={clsx("rounded-[12px] p-4 space-y-2 bg-base-200/80")}>
+          <div className={clsx("rounded-surface p-4 space-y-2 bg-base-200/80")}>
             <p className="text-base-content/70">To receive</p>
             <div className="flex justify-between items-start">
               <div>

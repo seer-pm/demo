@@ -378,7 +378,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
               ) : (
                 <>
                   {/* Bridge Amount Input - Only show when connected and has tokens */}
-                  <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d]">
+                  <div className="rounded-surface p-4 space-y-2 border border-[#2222220d]">
                     <p className="text-base-content/70">Bridge Amount</p>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -432,7 +432,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
                           </p>
                           <button
                             type="button"
-                            className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60 dark:hover:bg-[var(--card-bg)]"
+                            className="text-[14px] font-semibold text-base-content/70 rounded-control border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60 dark:hover:bg-[var(--card-bg)]"
                             onClick={() => {
                               setValue("amount", formatUnits(selectedTokenBalance, selectedToken.decimals), {
                                 shouldValidate: true,
@@ -449,7 +449,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
 
                   {/* Quote Information */}
                   {bridgeQuote && !isQuoteLoading && (
-                    <div className="rounded-[12px] p-4 space-y-2 border border-[#2222220d] bg-base-200/50">
+                    <div className="rounded-surface p-4 space-y-2 border border-[#2222220d] bg-base-200/50">
                       <p className="text-base-content/70">You will receive</p>
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -509,7 +509,7 @@ export function BridgeWidget({ toChainId }: { toChainId: SupportedChain }) {
 
                   {/* Execution Status */}
                   {executionStatus && (
-                    <div className="rounded-[12px] p-4 space-y-3 border border-[#2222220d] bg-blue-50">
+                    <div className="rounded-surface p-4 space-y-3 border border-[#2222220d] bg-blue-50">
                       {/* Process Steps */}
                       {executionStatus.processes.length > 0 && (
                         <div className="space-y-2">

@@ -80,7 +80,7 @@ export default function Tooltip({ trigger, content }: TooltipProps) {
               left: position.left,
               background: "white",
               border: "1px solid #ddd",
-              borderRadius: 8,
+              borderRadius: "var(--seer-radius-md)",
               padding: 8,
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               zIndex: 10000,

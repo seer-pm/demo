@@ -6,7 +6,7 @@
   position: relative;
   isolation: isolate;
   border: 1px solid var(--seer-border);
-  border-radius: 24px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
 }
 .seer-market-streak {
@@ -42,7 +42,7 @@
   margin-bottom: 14px;
 }
 .seer-market-hero img[alt]:not([alt="network-icon"]) {
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
   object-fit: cover;
 }
 .seer-market-workspace {
@@ -51,7 +51,7 @@
 }
 .seer-market-chart {
   border: 1px solid var(--seer-border);
-  border-radius: 22px;
+  border-radius: var(--seer-radius-md);
   padding: 24px;
   box-shadow: none;
 }
@@ -77,7 +77,7 @@
   font-size: 10px;
   padding: 6px 10px;
   border: 1px solid var(--seer-border);
-  border-radius: 20px;
+  border-radius: var(--seer-radius-full);
 }
 .seer-market-chart .seer-chart-panel {
   border: 0;
@@ -87,7 +87,7 @@
 }
 .seer-chart-controls .pill-button {
   min-height: 32px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
   padding: 7px 13px;
   color: var(--seer-muted);
   background: transparent;
@@ -121,7 +121,7 @@
 }
 .seer-market-outcomes .card {
   border: 1px solid var(--seer-border);
-  border-radius: 18px;
+  border-radius: var(--seer-radius-md);
   box-shadow: none;
   overflow: clip;
 }
@@ -142,7 +142,7 @@
 .seer-market-trade {
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 22px;
+  border-radius: var(--seer-radius-md);
   padding: 20px;
 }
 .seer-trade-heading {
@@ -173,7 +173,7 @@
 .seer-market-discussion {
   padding: 24px;
   border: 1px solid var(--seer-border);
-  border-radius: 22px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
 }
 @media (max-width: 700px) {
@@ -181,7 +181,7 @@
     padding-inline: 16px;
   }
   .seer-market-hero {
-    border-radius: 18px;
+    border-radius: var(--seer-radius-md);
   }
   .seer-market-streak {
     width: 180px;
@@ -241,7 +241,7 @@
 }
 .event-overview {
   border: 1px solid var(--seer-border);
-  border-radius: 20px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
   overflow: clip;
 }
@@ -275,7 +275,7 @@
   grid-row: 1 / span 2;
   width: 54px;
   height: 54px;
-  border-radius: 12px;
+  border-radius: var(--seer-radius-md);
   object-fit: cover;
 }
 .event-title-row h1 {
@@ -330,7 +330,7 @@
   align-items: baseline;
   gap: 4px;
   color: inherit;
-  border-radius: 4px;
+  border-radius: var(--seer-radius-sm);
 }
 .event-metrics > span a:hover strong {
   text-decoration: underline;
@@ -433,7 +433,7 @@
 .event-token-tools summary:focus-visible {
   outline: 2px solid var(--seer-accent-text);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--seer-radius-sm);
 }
 .event-market-details[open] > summary svg,
 .event-token-tools[open] > summary svg {
@@ -476,13 +476,13 @@
   padding: 4px;
   gap: 4px;
   background: var(--seer-surface-raised);
-  border-radius: 9px;
+  border-radius: var(--seer-radius-md);
 }
 .event-chart-switch button {
   font-size: 11px;
   padding: 7px 12px;
   color: var(--seer-muted);
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
 }
 .event-chart-switch button[aria-pressed="true"] {
   background: var(--seer-surface);
@@ -531,7 +531,7 @@
 }
 .event-outcome-row {
   border: 1px solid var(--seer-border);
-  border-radius: 13px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
   overflow: clip;
 }
@@ -561,7 +561,7 @@
   height: 38px;
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--seer-radius-md);
 }
 .event-outcome-avatar img,
 .event-outcome-avatar > div {
@@ -595,7 +595,7 @@
   font-size: 18px;
 }
 .event-trade-outcome {
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
   padding: 10px 16px;
   font-size: 12px;
   background: var(--seer-accent-soft);
@@ -617,7 +617,7 @@
 }
 .event-ticket-column .seer-market-trade {
   border-top: 3px solid #a275ef;
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
   padding: 22px;
 }
 .event-token-tools {
@@ -1080,14 +1080,14 @@
   align-items: center;
   gap: 14px;
   padding: 18px;
-  border-radius: 12px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
 }
 .event-resolver img {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-md);
 }
 .event-resolver span {
   display: block;
@@ -1129,7 +1129,7 @@
 .event-outcome-inline-actions > a,
 .event-outcome-inline-actions button {
   border: 1px solid var(--seer-border);
-  border-radius: 7px;
+  border-radius: var(--seer-radius-sm);
   padding: 6px 10px;
   color: var(--seer-brand-purple);
   background: var(--seer-surface);
@@ -1148,7 +1148,7 @@
   display: inline-flex;
   margin-top: 10px;
   padding: 4px 9px;
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
   color: var(--seer-accent-text);
   background: var(--seer-accent-soft);
   font-size: 12px;
@@ -1186,7 +1186,7 @@
   .event-title-row { grid-template-columns: 32px minmax(0, 1fr) 44px; gap: 10px 12px; }
   .event-title-row h1,
   .event-title-row:not(:has(> img)) h1 { grid-column: 1 / -1; grid-row: 2; font-size: 23px; line-height: 1.25; }
-  .event-title-row > img { grid-row: 1; align-self: center; width: 32px; height: 32px; border-radius: 8px; }
+  .event-title-row > img { grid-row: 1; align-self: center; width: 32px; height: 32px; border-radius: var(--seer-radius-md); }
   .event-title-row > .event-status { grid-row: 1; align-self: center; }
   .event-title-favorite { grid-row: 1; }
   .event-chart-summary { padding: 18px 18px 12px; align-items: flex-start; }
@@ -1248,7 +1248,7 @@
 .event-tab:focus-visible {
   outline: 2px solid var(--seer-accent-text);
   outline-offset: -4px;
-  border-radius: 4px;
+  border-radius: var(--seer-radius-sm);
 }
 .event-tabs-fill {
   gap: 8px;
@@ -1272,7 +1272,7 @@
   gap: 8px;
   min-height: 48px;
   padding: 12px 18px;
-  border-radius: 999px;
+  border-radius: var(--seer-radius-full);
   color: var(--seer-brand-white);
   background: var(--seer-brand-purple);
   box-shadow: 0 4px 14px #14122322;

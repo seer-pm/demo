@@ -91,9 +91,9 @@ function ScoreBreakdownPanel({
               <tr key={key}>
                 <td className="py-1 pr-2">
                   <span>{label}</span>
-                  <span className="block h-1 mt-1 bg-black-medium rounded-[1px]" aria-hidden>
+                  <span className="block h-1 mt-1 bg-black-medium rounded-control" aria-hidden>
                     <span
-                      className="block h-1 bg-purple-primary rounded-[1px]"
+                      className="block h-1 bg-purple-primary rounded-control"
                       style={{ width: `${Math.max(0, Math.min(100, sub))}%` }}
                     />
                   </span>
@@ -158,7 +158,7 @@ export function TraderScoreBadge({ score, tier, marketCount, scoreUnavailable, b
     <span
       className={clsx(
         "inline-grid grid-cols-[4.5ch_3ch] lg:grid-cols-[4.5ch_7ch] items-center gap-1.5",
-        "rounded-[1px] px-2 py-1 font-semibold tabular-nums",
+        "rounded-control px-2 py-1 font-semibold tabular-nums",
         TRADER_TIER_CLASS[tier],
       )}
     >

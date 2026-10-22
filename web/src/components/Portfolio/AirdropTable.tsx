@@ -57,7 +57,7 @@ function PohRegisterCallout({ href }: { href: string }) {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex w-fit items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-[4px] bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11"
+        className="inline-flex w-fit items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-control bg-purple-primary text-white text-[14px] px-4 py-[10px] min-h-11"
       >
         Register on Proof of Humanity
       </a>

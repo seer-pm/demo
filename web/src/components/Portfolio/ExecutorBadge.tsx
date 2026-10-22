@@ -21,7 +21,7 @@ export function ExecutorBadge({ wallet }: { wallet: Address }) {
       label={`Executed by Trade Executor ${shortenAddress(wallet)}`}
       width={260}
       trigger={
-        <span className="text-xs text-purple-primary font-medium whitespace-nowrap border border-purple-primary rounded-[2px] px-1 py-[1px] shrink-0">
+        <span className="text-xs text-purple-primary font-medium whitespace-nowrap border border-purple-primary rounded-control px-1 py-[1px] shrink-0">
           via Trade Executor
         </span>
       }

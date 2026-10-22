@@ -11,8 +11,6 @@
   --seer-border: #e2e2e9;
   --card-bg: var(--seer-surface);
   --separator-100: var(--seer-border);
-  --rounded-box: 16px;
-  --rounded-btn: 10px;
   --b1: 100% 0 0;
   --b2: 97.67009% 0.0026464 286.35074;
   --b3: 95.89962% 0.0039893 286.32430;
@@ -62,7 +60,7 @@
   flex: none;
   width: 46px;
   height: 46px;
-  border-radius: 10px;
+  border-radius: var(--seer-radius-md);
 }
 .seer-brand-wordmark {
   display: block;
@@ -82,7 +80,7 @@
 .input,
 .select,
 .textarea {
-  border-radius: 10px;
+  border-radius: var(--seer-radius-md);
 }
 .input:focus-visible,
 .select:focus-visible,
@@ -94,7 +92,7 @@ button:focus-visible {
 }
 .seer-market-card {
   border: 1px solid var(--seer-border);
-  border-radius: 14px;
+  border-radius: var(--seer-radius-md);
   box-shadow: none;
   transition: border-color 150ms ease;
 }
@@ -102,7 +100,7 @@ button:focus-visible {
   border-color: #9d78d2;
 }
 .seer-market-card img {
-  border-radius: 8px;
+  border-radius: var(--seer-radius-md);
 }
 @media (prefers-reduced-motion: reduce) {
   .seer-market-card {
@@ -171,7 +169,7 @@ button:focus-visible {
   padding: 6px;
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 14px;
+  border-radius: var(--seer-radius-md);
   box-shadow: 0 10px 28px #14122322;
   z-index: 30;
   text-align: left;
@@ -191,7 +189,7 @@ button:focus-visible {
   align-items: flex-start;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: 9px;
+  border-radius: var(--seer-radius-md);
   color: var(--seer-text);
   cursor: pointer;
 }
@@ -262,14 +260,14 @@ button:focus-visible {
   line-height: 1;
   padding: 4px 6px;
   border: 1px solid var(--seer-border);
-  border-radius: 6px;
+  border-radius: var(--seer-radius-sm);
   color: var(--seer-muted);
   background: var(--seer-surface);
 }
 .seer-header-search .input {
   background: var(--seer-surface-raised);
   border-color: transparent;
-  border-radius: 40px;
+  border-radius: var(--seer-radius-full);
   height: 44px;
   font-size: 13px;
   padding-right: 42px;
@@ -335,7 +333,7 @@ button:focus-visible {
   z-index: 1000;
   background: var(--seer-surface);
   padding: 12px 20px;
-  border-radius: 10px;
+  border-radius: var(--seer-radius-md);
 }
 .seer-skip-link:focus {
   top: 12px;
@@ -447,7 +445,7 @@ button:focus-visible {
   gap: 8px;
   height: 36px;
   padding-inline: 14px;
-  border-radius: 40px;
+  border-radius: var(--seer-radius-full);
   background: var(--seer-accent-soft);
   color: var(--seer-brand-purple);
   font-size: 12px;
@@ -495,7 +493,7 @@ button:focus-visible {
   min-width: 18px;
   height: 18px;
   padding-inline: 5px;
-  border-radius: 9px;
+  border-radius: var(--seer-radius-full);
   display: grid;
   place-items: center;
   background: var(--seer-brand-purple);
@@ -533,7 +531,6 @@ button:focus-visible {
 }
 .seer-market-card {
   border-color: transparent;
-  border-radius: 12px;
   min-width: 0;
 }
 .seer-market-card-heading {
@@ -566,7 +563,7 @@ button:focus-visible {
   gap: 8px;
   background: var(--seer-surface-raised);
   padding: 9px 10px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-md);
   font-size: 12px;
   min-height: 42px;
 }
@@ -587,7 +584,7 @@ button:focus-visible {
 .seer-outcome-action {
   background: var(--seer-brand-purple);
   color: white;
-  border-radius: 5px;
+  border-radius: var(--seer-radius-sm);
   padding: 5px 8px;
   font-size: 10px;
   white-space: nowrap;
@@ -611,7 +608,7 @@ button:focus-visible {
   padding: 72px 24px;
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
 }
 .seer-empty-state h2 {
   font-size: 22px;
@@ -628,7 +625,7 @@ button:focus-visible {
 .seer-main .alert,
 .modal-box {
   box-shadow: none;
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
 }
 .seer-main .alert {
   padding: 24px;
@@ -684,7 +681,7 @@ button:focus-visible {
 .seer-main .simple-table,
 .seer-main .table {
   background: var(--seer-surface);
-  border-radius: 12px;
+  border-radius: var(--seer-radius-md);
   font-size: 13px;
 }
 .seer-main .simple-table th,
@@ -710,7 +707,7 @@ button:focus-visible {
   padding: 28px;
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
 }
 .seer-reward-panel-accent {
   background: var(--seer-accent-soft);
@@ -724,7 +721,7 @@ button:focus-visible {
 .seer-reward-callout {
   padding: 24px 28px;
   border: 1px solid var(--seer-brand-purple);
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
 }
 .seer-main h2 {
@@ -861,7 +858,7 @@ button:focus-visible {
 .seer-chart-panel {
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 16px;
+  border-radius: var(--seer-radius-md);
   padding: 20px;
 }
 .seer-market-card .tooltip:last-child .tooltiptext {
@@ -874,7 +871,7 @@ button:focus-visible {
   padding: 32px;
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 18px;
+  border-radius: var(--seer-radius-md);
 }
 .seer-form-page .steps {
   font-size: 12px;
@@ -885,7 +882,7 @@ button:focus-visible {
   text-align: left;
 }
 .seer-form-page form .btn {
-  border-radius: 10px;
+  border-radius: var(--seer-radius-sm);
 }
 @media (max-width: 640px) {
   .seer-form-page {
@@ -918,9 +915,6 @@ button:focus-visible {
 }
 .seer-market-grid {
   gap: 16px;
-}
-.seer-market-card {
-  border-radius: 10px;
 }
 .seer-market-card-heading {
   min-height: 66px;
@@ -969,7 +963,7 @@ button:focus-visible {
   justify-content: center;
   gap: 12px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-md);
   background: #a275ef;
   color: #24133f;
   min-height: 44px;
@@ -1006,7 +1000,7 @@ button:focus-visible {
   padding: 14px;
   background: var(--seer-surface);
   border: 1px solid var(--seer-border);
-  border-radius: 8px;
+  border-radius: var(--seer-radius-md);
   z-index: 20;
   box-shadow: 0 6px 20px #14122318;
 }
@@ -1107,7 +1101,7 @@ button:focus-visible {
   gap: 8px;
   height: 36px;
   padding: 0 16px 0 10px;
-  border-radius: 999px;
+  border-radius: var(--seer-radius-full);
   background: var(--seer-accent-soft);
   color: var(--seer-brand-purple);
   font-size: 12px;
@@ -1196,7 +1190,7 @@ input, textarea {
   flex: none;
   min-width: 44px;
   min-height: 44px;
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
   color: var(--seer-accent-text);
 }
 .seer-sort-direction:hover:not(:disabled), .seer-icon-button:hover, .seer-favorite-button:hover {
@@ -1214,7 +1208,7 @@ input, textarea {
   overscroll-behavior: contain;
   padding: 0 24px;
   border: 1px solid var(--seer-border);
-  border-radius: 12px;
+  border-radius: var(--seer-radius-md);
   background: var(--seer-surface);
   box-shadow: 0 12px 32px #00000014;
   font-size: 13px;
@@ -1271,7 +1265,7 @@ input, textarea {
   max-width: 100%;
   padding: 6px 10px;
   border: 1px solid var(--seer-border);
-  border-radius: 8px;
+  border-radius: var(--seer-radius-sm);
   background: var(--seer-surface);
   font-size: 12px;
 }

@@ -72,7 +72,7 @@ function OutcomesInfo({
   const marketType = getMarketType(market);
 
   if (odds.length === 0) {
-    return <div className="shimmer-container w-full h-[6px] rounded-[8px]"></div>;
+    return <div className="shimmer-container w-full h-[6px] rounded-surface"></div>;
   }
 
   const [lowerBound, upperBound] = [displayScalarBound(market.lowerBound), displayScalarBound(market.upperBound)];
@@ -123,7 +123,7 @@ function OutcomesInfo({
   }
   return (
     <div>
-      <div className="flex items-start gap-[3px] w-full rounded-[8px] overflow-hidden">
+      <div className="flex items-start gap-[3px] w-full rounded-surface overflow-hidden">
         {visibleIndexes.map((i, order) => {
           const outcome = market.outcomes[i];
           const originalIndex = market.wrappedTokens.findIndex((x) => market.wrappedTokens[i] === x);
@@ -216,7 +216,7 @@ export function SlideCard({ market }: { market: Market }) {
     <div
       ref={cardRef}
       className={clsx(
-        "bg-base-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex h-full justify-between",
+        "bg-base-100 rounded-surface shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] text-left flex h-full justify-between",
         market.id === "0x000" ? "pointer-events-none" : "",
       )}
     >
@@ -386,7 +386,7 @@ export function SlideCard({ market }: { market: Market }) {
         </div>
       </div>
       {!isCardMobile && (
-        <div className="h-full rounded-[3px] p-1 flex-shrink-0 overflow-hidden">
+        <div className="h-full rounded-control p-1 flex-shrink-0 overflow-hidden">
           {market.images?.market ? (
             <img src={market.images.market} alt={market.marketName} className="h-full" />
           ) : (

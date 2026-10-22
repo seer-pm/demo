@@ -89,6 +89,14 @@ injected from the linked site. Notes:
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
 
+## Web UI radii
+
+`web/src/styles/radii.css` owns the Electric Foundation radius scale: `sm` (4px) for compact
+controls and badges, `md` (10px) for surfaces, inputs and outcome rows, and `full` for pills.
+Use these CSS variables or Tailwind's `rounded-control`, `rounded-surface` and `rounded-full`;
+standard Tailwind sizes and DaisyUI also resolve to the same tokens. Do not add literal surface
+radii or page-specific overrides. Circular avatars and chart geometry keep their shape.
+
 ## Comments justify the current code, not its history
 
 A comment that recounts the previous implementation, or the bug being fixed, costs the next reader

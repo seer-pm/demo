@@ -71,7 +71,7 @@ function DateRangePicker({
     }
   };
   return (
-    <div ref={rootRef} className="bg-base-100 w-fit border border-separator-100 rounded-[1px] shadow-md">
+    <div ref={rootRef} className="bg-base-100 w-fit border border-separator-100 rounded-surface shadow-md">
       <div className="flex border-b border-separator-100">
         <div className="border-r border-separator-100">
           {defaultRanges.map((range) => {

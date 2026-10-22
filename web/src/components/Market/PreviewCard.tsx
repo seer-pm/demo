@@ -142,12 +142,12 @@ function ScalarGaugeShimmer() {
         <div className="absolute bottom-[4px] shimmer-container w-[8px] h-[8px] rounded-full" />
       </div>
       <div className="flex flex-col items-center gap-0.5 -mt-1">
-        <div className="shimmer-container h-[14px] w-[40px] rounded-[4px]" />
-        <div className="shimmer-container h-[9px] w-[20px] rounded-[4px]" />
+        <div className="shimmer-container h-[14px] w-[40px] rounded-control" />
+        <div className="shimmer-container h-[9px] w-[20px] rounded-control" />
       </div>
       <div className="flex justify-between">
-        <div className="shimmer-container h-[9px] w-[24px] rounded-[4px]" />
-        <div className="shimmer-container h-[9px] w-[24px] rounded-[4px]" />
+        <div className="shimmer-container h-[9px] w-[24px] rounded-control" />
+        <div className="shimmer-container h-[9px] w-[24px] rounded-control" />
       </div>
     </div>
   );
@@ -329,9 +329,9 @@ export function OutcomesInfo({
       <div className="flex items-center gap-3 w-full">
         <div className="shimmer-container w-[56px] h-[56px] rounded-full flex-shrink-0" />
         <div className="flex flex-col gap-1 flex-1">
-          <div className="shimmer-container h-[12px] rounded-[4px] w-full" />
-          <div className="shimmer-container h-[12px] rounded-[4px] w-4/5" />
-          <div className="shimmer-container h-[12px] rounded-[4px] w-3/5" />
+          <div className="shimmer-container h-[12px] rounded-control w-full" />
+          <div className="shimmer-container h-[12px] rounded-control w-4/5" />
+          <div className="shimmer-container h-[12px] rounded-control w-3/5" />
         </div>
       </div>
     );
@@ -421,7 +421,7 @@ function MarketResult({ market }: { market: Market }) {
 
   return (
     <Link
-      className="h-[24px] block rounded-[3px] text-[12px] leading-[24px] relative"
+      className="h-[24px] block rounded-control text-[12px] leading-[24px] relative"
       style={{ background: `${BAR_COLOR[marketType][0]}29`, color: BAR_COLOR[marketType][0] }}
       to={paths.market(market)}
     >
@@ -443,8 +443,8 @@ function OutcomeRowsShimmer() {
   return (
     <div className="seer-outcome-list" aria-busy="true">
       <span className="sr-only">Loading prices</span>
-      <div className="shimmer-container h-[42px] rounded-[8px]" />
-      <div className="shimmer-container h-[42px] rounded-[8px]" />
+      <div className="shimmer-container h-[42px] rounded-surface" />
+      <div className="shimmer-container h-[42px] rounded-surface" />
     </div>
   );
 }

@@ -432,7 +432,7 @@ export function SwapTokensMarket({
               setFocus("amount");
             }}
             className={clsx(
-              "seer-swap-amount rounded-[12px] p-4 space-y-2 cursor-pointer h-[137px]",
+              "seer-swap-amount rounded-surface p-4 space-y-2 cursor-pointer h-[137px]",
               focusContainer === 0 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
             )}
           >
@@ -508,7 +508,7 @@ export function SwapTokensMarket({
                   </p>
                   <button
                     type="button"
-                    className="text-[14px] font-semibold text-base-content/70 rounded-[12px] border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
+                    className="text-[14px] font-semibold text-base-content/70 rounded-control border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
                     onClick={() => {
                       setTradeType(TradeType.EXACT_INPUT);
                       setValue("amount", formatUnits(balance, sellToken.decimals), {
@@ -536,7 +536,7 @@ export function SwapTokensMarket({
                 setFocusContainer(0);
                 setFocus("amount");
               }}
-              className="absolute border-[4px] border-base-100 rounded-[16px] p-2 bg-base-200/80 hover:bg-base-300/60 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+              className="absolute border-[4px] border-base-100 rounded-control p-2 bg-base-200/80 hover:bg-base-300/60 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
             >
               <ArrowDown fill="currentColor" />
             </button>
@@ -547,7 +547,7 @@ export function SwapTokensMarket({
               setFocus("amountOut");
             }}
             className={clsx(
-              "seer-swap-amount rounded-[12px] p-4 space-y-2 h-[137px] cursor-pointer",
+              "seer-swap-amount rounded-surface p-4 space-y-2 h-[137px] cursor-pointer",
               focusContainer === 1 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
             )}
           >

@@ -36,7 +36,7 @@ function LegendContent() {
             <li key={band.tier} className="flex gap-2">
               <span
                 className={clsx(
-                  "shrink-0 w-[4.75rem] text-center rounded-[1px] px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                  "shrink-0 w-[4.75rem] text-center rounded-control px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
                   TRADER_TIER_CLASS[band.tier],
                 )}
               >

@@ -106,7 +106,7 @@ export default function Popover({ trigger, content, label, width }: PopoverProps
       */}
       <button
         type="button"
-        className="inline-flex cursor-pointer rounded-[1px] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary"
+        className="inline-flex cursor-pointer rounded-control text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary"
         ref={triggerRef}
         onClick={toggle}
         aria-haspopup="dialog"
@@ -134,7 +134,7 @@ export default function Popover({ trigger, content, label, width }: PopoverProps
               overflowY: "auto",
               zIndex: 10000,
             }}
-            className="bg-base-100 border border-separator-100 rounded-[1px] p-3 shadow-[0_4px_16px_0_rgba(0,0,0,0.14)] focus:outline-none"
+            className="bg-base-100 border border-separator-100 rounded-surface p-3 shadow-[0_4px_16px_0_rgba(0,0,0,0.14)] focus:outline-none"
           >
             {content}
           </dialog>,
