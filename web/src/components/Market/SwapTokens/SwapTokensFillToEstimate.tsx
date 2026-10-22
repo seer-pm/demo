@@ -6,7 +6,7 @@ import { useModal } from "@/hooks/useModal";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { formatCurrentEstimate, formatFillToEstimateLegPreview } from "@/lib/fill-to-estimate-display";
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
-import { Parameter, QuestionIcon } from "@/lib/icons";
+import { QuestionIcon } from "@/lib/icons";
 import { displayBalance, displayNumber } from "@/lib/utils";
 import { useMarketOdds, useTokenBalance } from "@seer-pm/react";
 import {
@@ -26,13 +26,14 @@ import type { Token } from "@seer-pm/sdk";
 import { TradeType } from "@seer-pm/sdk";
 import { getPublicClient } from "@wagmi/core";
 import clsx from "clsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount, useConfig } from "wagmi";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
+import { SlippageButton } from "./components/SlippageButton";
 
 interface SwapFormValues {
   targetEstimate: string;
@@ -43,12 +44,14 @@ interface SwapTokensFillToEstimateProps {
   market: Market;
   fixedCollateral: Token | undefined;
   setShowMaxSlippage: (isShow: boolean) => void;
+  orderTypeControl?: ReactNode;
 }
 
 export function SwapTokensFillToEstimate({
   market,
   fixedCollateral,
   setShowMaxSlippage,
+  orderTypeControl,
 }: SwapTokensFillToEstimateProps) {
   const { address: account } = useAccount();
   const wagmiConfig = useConfig();
@@ -286,6 +289,7 @@ export function SwapTokensFillToEstimate({
 
   return (
     <div className="space-y-5">
+      {orderTypeControl}
       <div className="text-[14px] text-black-secondary">
         Current market estimate: <span className="font-semibold text-base-content">{currentEstimateLabel}</span>
       </div>
@@ -449,16 +453,7 @@ export function SwapTokensFillToEstimate({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          className="flex items-center gap-2 text-[14px] text-purple-primary"
-          onClick={() => setShowMaxSlippage(true)}
-        >
-          <Parameter width="16px" height="16px" />
-          Max slippage: {maxSlippage}%
-        </button>
-      </div>
+      <SlippageButton maxSlippage={maxSlippage} onClick={() => setShowMaxSlippage(true)} />
 
       <Button
         type="button"

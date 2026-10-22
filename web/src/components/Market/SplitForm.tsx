@@ -8,7 +8,7 @@ import { displayBalance } from "@/lib/utils";
 import { useTokenBalance } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { NATIVE_TOKEN, getRouterAddress } from "@seer-pm/sdk";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { ApproveButton } from "../Form/ApproveButton";
@@ -26,6 +26,7 @@ interface SplitFormProps {
 
 export function SplitForm({ account, market }: SplitFormProps) {
   const router = getRouterAddress(market);
+  const amountId = useId();
 
   const useFormReturn = useForm<SplitFormValues>({
     mode: "all",
@@ -48,6 +49,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const altCollateral = useSelectedCollateral(market, true);
   const { data: balance = BigInt(0), isFetching: isFetchingBalance } = useTokenBalance(
     account,
     selectedCollateral?.address,
@@ -90,9 +92,12 @@ export function SplitForm({ account, market }: SplitFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
         <div className="flex justify-between items-center">
-          <div className="text-[14px]">Amount</div>
-          <div
-            className="text-purple-primary cursor-pointer"
+          <label htmlFor={amountId} className="text-[14px]">
+            Amount
+          </label>
+          <button
+            type="button"
+            className="rounded-control border border-[var(--seer-border)] bg-[var(--seer-surface-raised)] px-[6px] py-1 text-[14px] font-semibold text-[var(--seer-muted)] hover:text-[var(--seer-text)]"
             onClick={() => {
               setValue("amount", formatUnits(balance, selectedCollateral.decimals), {
                 shouldValidate: true,
@@ -101,7 +106,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
             }}
           >
             Max
-          </div>
+          </button>
         </div>
         <div className="text-[12px] text-black-secondary mb-2 flex items-center gap-1">
           Balance:{" "}
@@ -116,6 +121,7 @@ export function SplitForm({ account, market }: SplitFormProps) {
           </div>
         </div>
         <Input
+          id={amountId}
           autoComplete="off"
           type="number"
           min="0"
@@ -139,7 +145,11 @@ export function SplitForm({ account, market }: SplitFormProps) {
         />
       </div>
 
-      <AltCollateralSwitch {...register("useAltCollateral")} market={market} />
+      <AltCollateralSwitch
+        {...register("useAltCollateral")}
+        aria-label={`Use ${altCollateral.symbol}`}
+        market={market}
+      />
 
       {missingApprovals && (
         <SwitchChainButtonWrapper chainId={market.chainId}>

@@ -1,3 +1,4 @@
+import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
 import React, { useMemo, useEffect, useId, useState } from "react";
 import { Address } from "viem";
@@ -5,6 +6,7 @@ import { MarketTabList } from "./MarketTabList";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
 import { SplitForm } from "./SplitForm";
+import { tokenToolDescription } from "./tokenTools";
 
 interface MobileMarketActionsProps {
   account?: Address;
@@ -24,6 +26,7 @@ export function MobileMarketActions({
   const [activeTab, setActiveTab] = useState<"trade" | "mint" | "merge" | "redeem">("trade");
   const tabsId = useId();
   const marketStatus = getMarketStatus(market);
+  const collateral = useSelectedCollateral(market, false);
   const prevDrawerOpenRef = React.useRef<boolean | undefined>(drawerOpen);
 
   // Reset to "trade" tab whenever drawer opens
@@ -35,32 +38,21 @@ export function MobileMarketActions({
     prevDrawerOpenRef.current = drawerOpen;
   }, [drawerOpen]);
 
-  const renderMintTab = () => {
-    return (
-      <div className="bg-base-100 p-[24px] shadow-md">
-        <SplitForm account={account} market={market} />
-      </div>
-    );
-  };
+  // Redemption only opens once the market resolves, so the tab is not offered before then.
+  const canRedeem = marketStatus === MarketStatus.CLOSED;
+  const visibleTabs = useMemo(
+    () => [
+      { id: "trade" as const, label: "Trade" },
+      { id: "mint" as const, label: "Mint" },
+      { id: "merge" as const, label: "Merge" },
+      ...(canRedeem ? [{ id: "redeem" as const, label: "Redeem" }] : []),
+    ],
+    [canRedeem],
+  );
 
-  const renderMergeTab = () => {
-    return (
-      <div className="bg-base-100 p-[24px] shadow-md">
-        <MergeForm account={account} market={market} />
-      </div>
-    );
-  };
-
-  const renderRedeemTab = () => {
-    if (marketStatus === MarketStatus.CLOSED) {
-      return (
-        <div className="bg-base-100 p-[24px] shadow-md">
-          <RedeemForm account={account} market={market} />
-        </div>
-      );
-    }
-    return <div className="bg-base-100 p-[24px] shadow-md">Redemptions are not available yet.</div>;
-  };
+  useEffect(() => {
+    if (!visibleTabs.some((tab) => tab.id === activeTab)) setActiveTab("trade");
+  }, [visibleTabs, activeTab]);
 
   const tabs = useMemo(
     () => (
@@ -70,15 +62,10 @@ export function MobileMarketActions({
         value={activeTab}
         onChange={setActiveTab}
         fill
-        tabs={[
-          { id: "trade", label: "Trade" },
-          { id: "mint", label: "Mint" },
-          { id: "merge", label: "Merge" },
-          { id: "redeem", label: "Redeem" },
-        ]}
+        tabs={visibleTabs}
       />
     ),
-    [activeTab, tabsId],
+    [activeTab, tabsId, visibleTabs],
   );
 
   useEffect(() => {
@@ -88,8 +75,8 @@ export function MobileMarketActions({
   }, [tabs, onTabsChange]);
 
   return (
-    <div>
-      {(["trade", "mint", "merge", "redeem"] as const).map((tab) => (
+    <div className="seer-drawer-panel">
+      {visibleTabs.map(({ id: tab }) => (
         <div
           key={tab}
           role="tabpanel"
@@ -97,11 +84,17 @@ export function MobileMarketActions({
           aria-labelledby={`${tabsId}-tab-${tab}`}
           hidden={activeTab !== tab}
           tabIndex={0}
+          className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--seer-brand-purple)] rounded-control"
         >
+          {activeTab === tab && tab !== "trade" && (
+            <p className="mb-4 text-[14px] leading-relaxed text-[var(--seer-muted)]">
+              {tokenToolDescription(tab, collateral.symbol)}
+            </p>
+          )}
           {activeTab === tab && tab === "trade" && swapWidget}
-          {activeTab === tab && tab === "mint" && renderMintTab()}
-          {activeTab === tab && tab === "merge" && renderMergeTab()}
-          {activeTab === tab && tab === "redeem" && renderRedeemTab()}
+          {activeTab === tab && tab === "mint" && <SplitForm account={account} market={market} />}
+          {activeTab === tab && tab === "merge" && <MergeForm account={account} market={market} />}
+          {activeTab === tab && tab === "redeem" && <RedeemForm account={account} market={market} />}
         </div>
       ))}
     </div>

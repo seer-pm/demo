@@ -40,6 +40,7 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
     market.parentMarket.payoutReported && market.parentMarket.payoutNumerators[Number(market.parentOutcome)] > 0n;
 
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const altCollateral = useSelectedCollateral(market, true);
 
   const router = getRedeemRouter(isRedeemToParentCollateral && isParentPayoutReported, market);
 
@@ -73,7 +74,9 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
     });
   };
   if (isPending) {
-    if (chainId !== market.chainId) {
+    // Without an account the positions query never runs, so it stays pending: the wrapper's connect
+    // prompt is the only useful thing to show.
+    if (!account || chainId !== market.chainId) {
       return (
         <SwitchChainButtonWrapper chainId={market.chainId}>
           <div></div>
@@ -88,11 +91,20 @@ export function RedeemForm({ account, market, successCallback }: RedeemFormProps
   }
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {market.type === "Generic" && <AltCollateralSwitch {...register("useAltCollateral")} market={market} />}
+      {market.type === "Generic" && (
+        <AltCollateralSwitch
+          {...register("useAltCollateral")}
+          aria-label={`Use ${altCollateral.symbol}`}
+          market={market}
+        />
+      )}
       {market.parentMarket.id !== zeroAddress && isParentPayoutReported && (
         <div className="flex space-x-2">
           <div>Parent Token</div>
-          <Toggle {...register("isRedeemToParentCollateral")} />
+          <Toggle
+            {...register("isRedeemToParentCollateral")}
+            aria-label={`Redeem to ${getActivePrimaryCollateral(market.chainId).symbol}`}
+          />
           <div>{getActivePrimaryCollateral(market.chainId).symbol}</div>
         </div>
       )}

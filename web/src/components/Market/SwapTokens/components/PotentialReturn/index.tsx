@@ -63,17 +63,24 @@ export function PotentialReturn({
   }
 
   return (
-    <div className="flex justify-between text-black-secondary-fg text-[14px]">
-      <div className="flex items-center gap-2 relative">
-        Potential return{" "}
-        <span className="tooltip">
+    <div className="flex justify-between gap-3 text-black-secondary-fg text-[14px]">
+      <div className="flex items-center gap-2 relative min-w-0">
+        {/* A long name gives way in the middle so the sentence still ends in "wins". */}
+        <span className="flex min-w-0 whitespace-pre">
+          <span className="shrink-0">If </span>
+          <span className="truncate" title={outcomeText}>
+            {outcomeText}
+          </span>
+          <span className="shrink-0"> wins</span>
+        </span>
+        <span className="tooltip shrink-0">
           <p className="tooltiptext !whitespace-break-spaces !w-[300px]">
             Each token can be redeemed for 1{" "}
             {isSecondaryCollateral ? primaryCollateral.symbol : selectedCollateral.symbol}
             {isSecondaryCollateral ? ` (or ${sharesToAssets.toFixed(3)} ${selectedCollateral.symbol})` : ""} if the
             market resolves to {outcomeText}.
           </p>
-          <QuestionIcon fill="#7D33FF" />
+          <QuestionIcon fill="currentColor" />
         </span>
       </div>
       <PotentialReturnResult

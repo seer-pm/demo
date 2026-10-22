@@ -1,3 +1,4 @@
+import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { ArrowDropDown, ArrowDropUp } from "@/lib/icons";
 import { useTokenInfo } from "@seer-pm/react";
 import { Market, MarketStatus, getMarketStatus } from "@seer-pm/sdk";
@@ -7,6 +8,7 @@ import { MarketTabList } from "./MarketTabList";
 import { MergeForm } from "./MergeForm";
 import { RedeemForm } from "./RedeemForm";
 import { SplitForm } from "./SplitForm";
+import { type TokenTool, tokenToolDescription } from "./tokenTools";
 
 interface ConditionalTokenActionsProps {
   account?: Address;
@@ -15,7 +17,7 @@ interface ConditionalTokenActionsProps {
   expanded?: boolean;
 }
 
-const titles = {
+const titles: Record<TokenTool, string> = {
   mint: "Mint",
   merge: "Merge",
   redeem: "Redeem",
@@ -27,27 +29,27 @@ export function ConditionalTokenActions({
   outcomeIndex,
   expanded = false,
 }: ConditionalTokenActionsProps) {
-  const [activeTab, setActiveTab] = useState<"mint" | "merge" | "redeem">("mint");
+  const [activeTab, setActiveTab] = useState<TokenTool>("mint");
   const tabsId = useId();
   const { data: outcomeToken, isPending } = useTokenInfo(market.wrappedTokens[outcomeIndex], market.chainId);
+  const collateral = useSelectedCollateral(market, false);
   const marketStatus = getMarketStatus(market);
   const [isShow, setShow] = useState(false);
+  // Redemption only opens once the market resolves, so the tab is not offered before then.
+  const tools: TokenTool[] = marketStatus === MarketStatus.CLOSED ? ["mint", "merge", "redeem"] : ["mint", "merge"];
   const renderActionBox = () => (
     <div className="card p-[24px] shadow-md">
-      <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>
+      {/* Expanded, the box sits under its caller's heading and the selected tab already names the action. */}
+      {!expanded && <div className="text-[24px] font-semibold mb-[20px]">{titles[activeTab]}</div>}
       <MarketTabList
         idPrefix={tabsId}
         label="Token tools"
         value={activeTab}
         onChange={setActiveTab}
         fill
-        tabs={[
-          { id: "mint", label: "Mint" },
-          { id: "merge", label: "Merge" },
-          { id: "redeem", label: "Redeem" },
-        ]}
+        tabs={tools.map((tool) => ({ id: tool, label: titles[tool] }))}
       />
-      {(["mint", "merge", "redeem"] as const).map((tab) => (
+      {tools.map((tab) => (
         <div
           key={tab}
           role="tabpanel"
@@ -56,15 +58,14 @@ export function ConditionalTokenActions({
           hidden={activeTab !== tab}
           tabIndex={0}
         >
+          {activeTab === tab && (
+            <p className="mb-4 text-[14px] leading-relaxed text-[var(--seer-muted)]">
+              {tokenToolDescription(tab, collateral.symbol)}
+            </p>
+          )}
           {activeTab === tab && tab === "mint" && <SplitForm account={account} market={market} />}
           {activeTab === tab && tab === "merge" && <MergeForm account={account} market={market} />}
-          {activeTab === tab &&
-            tab === "redeem" &&
-            (marketStatus === MarketStatus.CLOSED ? (
-              <RedeemForm account={account} market={market} />
-            ) : (
-              <p>Redemptions are not available yet.</p>
-            ))}
+          {activeTab === tab && tab === "redeem" && <RedeemForm account={account} market={market} />}
         </div>
       ))}
     </div>

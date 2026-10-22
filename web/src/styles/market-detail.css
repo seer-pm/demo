@@ -99,7 +99,7 @@
   font-weight: 600;
 }
 [data-theme="dark"] .seer-chart-controls .pill-button-active {
-  color: #c0a0ff;
+  color: var(--seer-accent-text);
 }
 .seer-chart-legend-item {
   border: 1px solid var(--seer-border);
@@ -133,8 +133,8 @@
   background: var(--seer-surface-raised);
 }
 .seer-market-outcomes .card-active {
-  border-color: #a275ef;
-  border-left: 3px solid #a275ef;
+  border-color: var(--seer-brand-purple);
+  border-left: 3px solid var(--seer-brand-purple);
 }
 .seer-market-outcomes .card-active > div:first-child {
   background: color-mix(in srgb, var(--seer-accent-soft) 45%, var(--seer-surface));
@@ -145,22 +145,18 @@
   border-radius: var(--seer-radius-md);
   padding: 20px;
 }
-.seer-trade-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--seer-border);
-  padding-bottom: 18px;
-  margin-bottom: 18px;
-  gap: 12px;
-}
-.seer-trade-heading > :first-child {
-  font-size: 19px;
+/* The ticket column's cards share one title style so "Trade" and "Major events" read as siblings. */
+.seer-trade-heading,
+.seer-column-title {
+  color: var(--seer-text);
+  font-size: 17px;
   font-weight: 600;
+  line-height: 1.3;
 }
-.seer-trade-heading > :last-child {
-  color: var(--seer-muted);
-  font-size: 11px;
+.seer-trade-heading {
+  border-bottom: 1px solid var(--seer-border);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
 }
 .seer-market-trade > .seer-swap-widget {
   border: 0;
@@ -256,7 +252,7 @@
   top: 0;
   width: 240px;
   height: 150px;
-  color: #7d33ff;
+  color: var(--seer-brand-purple);
   opacity: 0.16;
   z-index: -1;
   pointer-events: none;
@@ -439,11 +435,6 @@
 .event-token-tools summary::-webkit-details-marker {
   display: none;
 }
-.event-token-tools summary:focus-visible {
-  outline: 2px solid var(--seer-accent-text);
-  outline-offset: 2px;
-  border-radius: var(--seer-radius-sm);
-}
 .event-token-tools[open] > summary svg {
   transform: rotate(180deg);
 }
@@ -516,7 +507,7 @@
   overflow: clip;
 }
 .event-outcome-row.is-selected {
-  border-color: #a275ef;
+  border-color: var(--seer-brand-purple);
 }
 .event-outcome-top {
   display: flex;
@@ -582,8 +573,8 @@
   color: var(--seer-brand-purple);
 }
 .event-outcome-row.is-selected .event-trade-outcome {
-  background: #7d33ff;
-  color: white;
+  background: var(--seer-brand-purple);
+  color: var(--seer-brand-white);
 }
 .event-outcome-tools {
   padding: 16px;
@@ -595,27 +586,52 @@
   position: static;
   min-width: 0;
 }
-.event-ticket-column .seer-market-trade {
-  border-top: 3px solid #a275ef;
+.event-ticket-column .seer-market-trade,
+.event-ticket-column .seer-major-events {
+  background: var(--seer-surface);
+  border: 1px solid var(--seer-border);
   border-radius: var(--seer-radius-md);
-  padding: 22px;
+  padding: 20px;
+}
+.event-ticket-column > .seer-market-trade ~ .seer-major-events {
+  margin-top: 16px;
 }
 .event-token-tools {
   border-top: 1px solid var(--seer-border);
-  padding-top: 4px;
+  font-size: 14px;
+}
+/* The summary spans the card's padding so the whole row is the hit area, not just the label. */
+.event-token-tools > summary {
+  margin-inline: -20px;
+  padding: 10px 20px;
+  min-height: 48px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.event-token-tools > summary:hover {
+  background: var(--seer-surface-raised);
+}
+/* Inset, because the row reaches the card edge and the scrolling column clips anything outside it. */
+.event-token-tools > summary:focus-visible {
+  outline: 2px solid var(--seer-brand-purple);
+  outline-offset: -2px;
+  border-radius: var(--seer-radius-sm);
+}
+.event-token-tools-label {
+  flex: 1;
+}
+.event-token-tools-hint {
   color: var(--seer-muted);
   font-size: 12px;
+  font-weight: 400;
 }
-.event-token-tools summary {
-  font-size: 13px;
-  font-weight: 500;
-}
-.event-token-tools > p {
-  margin-block: 4px 16px;
-  line-height: 1.6;
+.event-token-tools > summary svg {
+  flex-shrink: 0;
+  color: var(--seer-muted);
+  transition: transform 150ms ease;
 }
 .event-token-tools > :last-child {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 .event-secondary {
   grid-column: 1;
@@ -742,11 +758,8 @@
   .event-outcome-row + .event-outcome-row {
     margin-top: 8px;
   }
-  .event-ticket-column .seer-market-trade {
-    padding: 16px;
-  }
   .event-ticket-column .seer-trade-heading {
-    padding-bottom: 10px;
+    padding-bottom: 12px;
     margin-bottom: 12px;
   }
   .event-ticket-column .seer-swap-widget .space-y-5 > :not([hidden]) ~ :not([hidden]),
@@ -792,6 +805,14 @@
   }
   .event-outcome-disclosure {
     padding-block: 8px;
+  }
+  .event-ticket-column .seer-market-trade,
+  .event-ticket-column .seer-major-events {
+    padding: 16px;
+  }
+  .event-token-tools > summary {
+    margin-inline: -16px;
+    padding-inline: 16px;
   }
   .event-ticket-column .seer-trade-heading {
     padding-bottom: 8px;
@@ -867,8 +888,8 @@
     scrollbar-color: var(--seer-border) transparent;
   }
   .event-ticket-column:focus-visible {
-    outline: 2px solid #a275ef;
-    outline-offset: 3px;
+    outline: 2px solid var(--seer-brand-purple);
+    outline-offset: 2px;
   }
 }
 
@@ -943,12 +964,12 @@
   height: max(640px, calc(100dvh - 80px));
   margin: 0 !important;
   transform: translateX(-50%);
-  color: #7d33ff;
+  color: var(--seer-brand-purple);
   opacity: 0.08;
   pointer-events: none;
 }
 [data-theme="dark"] .event-brand-ribbon {
-  color: #a275ef;
+  color: var(--seer-accent-text);
   opacity: 0.12;
 }
 .event-comments {
@@ -1270,9 +1291,6 @@
   box-shadow: none;
   background: transparent;
   padding: 0;
-}
-.event-token-tools .card > :first-child {
-  display: none;
 }
 .event-token-tools [role="tablist"] {
   margin-bottom: 16px;

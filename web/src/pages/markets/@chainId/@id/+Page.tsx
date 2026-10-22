@@ -15,6 +15,7 @@ import { SwapTokens } from "@/components/Market/SwapTokens/SwapTokens";
 import type { OutcomeSelectionSource } from "@/components/Market/marketPresentation";
 import { useIsSmallScreen } from "@/hooks/useIsSmallScreen";
 import { useSearchParams } from "@/hooks/useSearchParams";
+import { useSelectedCollateral } from "@/hooks/useSelectedCollateral";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { queryClient } from "@/lib/query-client";
 import { config } from "@/wagmi";
@@ -68,13 +69,13 @@ function SwapWidget({
         : undefined,
     market.chainId,
   );
+  const collateral = useSelectedCollateral(market, false);
   const marketStatus = getMarketStatus(market);
 
   if (marketStatus === MarketStatus.CLOSED) {
     return (
-      <Alert type="info">
-        The trade widget is hidden for closed markets. But you can still interact with your ERC20 outcome tokens onchain
-        as well as mint, merge, redeem.
+      <Alert type="info" title="Trading is closed">
+        This market has closed. If you hold winning tokens, redeem them for {collateral.symbol} in the Redeem tab.
       </Alert>
     );
   }
@@ -283,10 +284,7 @@ function MarketPage() {
             {/* Desktop: Show sidebar, Mobile: Hidden (shown in drawer) */}
             {!isMobile && (
               <div className="seer-market-trade">
-                <div className="seer-trade-heading">
-                  <span>Trade outcome</span>
-                  <span>SEER</span>
-                </div>
+                <h2 className="seer-trade-heading">Trade</h2>
                 <SwapWidget
                   market={market}
                   outcomeIndex={outcomeIndex}
@@ -295,12 +293,12 @@ function MarketPage() {
                 />
                 <details className="event-token-tools" open={marketStatus === MarketStatus.CLOSED}>
                   <summary>
-                    <span>Token tools</span>
+                    <span className="event-token-tools-label">Token tools</span>
+                    <span className="event-token-tools-hint">Mint · Merge · Redeem</span>
                     <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
                       <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   </summary>
-                  <p>Mint, merge or redeem outcome tokens.</p>
                   <ConditionalTokenActions expanded market={market} account={account} outcomeIndex={outcomeIndex} />
                 </details>
               </div>

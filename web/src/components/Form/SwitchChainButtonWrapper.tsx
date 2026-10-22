@@ -1,7 +1,6 @@
 import { SUPPORTED_CHAINS } from "@/lib/chains";
-import { checkWalletConnectCallback } from "@/lib/wallet";
 import type { SupportedChain } from "@seer-pm/sdk";
-import { useEffect, useRef } from "react";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { useAccount, useSwitchChain } from "wagmi";
 import Button, { ButtonSize } from "./Button";
 
@@ -15,12 +14,22 @@ export function SwitchChainButtonWrapper({
   size?: ButtonSize;
 }) {
   const { isPending, switchChain } = useSwitchChain();
-  const { chainId: connectedChainId } = useAccount();
+  const { chainId: connectedChainId, isConnected } = useAccount();
+  const { open } = useWeb3Modal();
 
-  const chainIdRef = useRef(connectedChainId);
-  useEffect(() => {
-    chainIdRef.current = connectedChainId;
-  }, [connectedChainId]);
+  // A visitor without a wallet has no network to switch, so the first step they need is connecting.
+  if (!isConnected) {
+    return (
+      <Button
+        variant="primary"
+        size={size}
+        type="button"
+        onClick={() => open({ view: "Connect" })}
+        text="Connect wallet"
+        className="w-full"
+      />
+    );
+  }
   if (chainId === connectedChainId) {
     return children;
   }
@@ -29,13 +38,7 @@ export function SwitchChainButtonWrapper({
       variant="primary"
       size={size}
       type="button"
-      onClick={() => {
-        if (!connectedChainId) {
-          checkWalletConnectCallback(() => switchChain({ chainId }), 2000);
-          return;
-        }
-        switchChain({ chainId });
-      }}
+      onClick={() => switchChain({ chainId })}
       isLoading={isPending}
       text={`Switch to ${SUPPORTED_CHAINS?.[chainId]?.name}`}
       className="w-full"

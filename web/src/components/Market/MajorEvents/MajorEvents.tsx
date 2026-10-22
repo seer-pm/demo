@@ -22,7 +22,7 @@ import type { Market } from "@seer-pm/sdk";
 import { MarketTypes, getMarketType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { formatInTimeZone } from "date-fns-tz";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 const ACTIVE_EVENT_WINDOW_MS = 10 * 60 * 1000;
 
@@ -30,13 +30,18 @@ function isEventActive(eventAt: Date, nowMs: number): boolean {
   return Math.abs(eventAt.getTime() - nowMs) <= ACTIVE_EVENT_WINDOW_MS;
 }
 
-function getResolutionDescription(market: Market, questionIndex: number): string | null {
+const RESOLUTION_NOTE = "Final unless someone disputes it on Reality.eth.";
+
+function getResolutionDescription(market: Market, questionIndex: number): string {
   const marketType = getMarketType(market);
   if (marketType === MarketTypes.MULTI_SCALAR || market.questions.length > 1) {
-    return market.outcomes[questionIndex] ?? null;
+    const outcome = market.outcomes[questionIndex];
+    if (outcome) {
+      return `${outcome}. ${RESOLUTION_NOTE}`;
+    }
   }
 
-  return null;
+  return RESOLUTION_NOTE;
 }
 
 function buildKnownDates(events: DisplayMarketEvent[]): KnownMarketEventDate[] {
@@ -66,9 +71,11 @@ function buildDisplayEvents(market: Market, dbEvents: MarketEvent[], nowMs: numb
       return;
     }
 
+    // finalize_ts is set once the question has an answer: the moment that answer settles the market
+    // if nobody posts a higher bond first.
     events.push({
       id: `resolution-${question.id}`,
-      title: "Reality.eth Resolution",
+      title: "Answer becomes final",
       description: getResolutionDescription(market, questionIndex),
       eventAt: resolutionDate,
       isResolution: true,
@@ -79,12 +86,11 @@ function buildDisplayEvents(market: Market, dbEvents: MarketEvent[], nowMs: numb
 }
 
 function formatEventDate(date: Date, isFirst = false): string {
+  const datePart = formatInTimeZone(date, "UTC", "MMM d, yyyy");
   if (isFirst) {
-    const datePart = formatInTimeZone(date, "UTC", "MMM d, yyyy");
     return `${datePart} · ${formatInTimeZone(date, "UTC", "HH:mm")} UTC`;
   }
 
-  const datePart = formatInTimeZone(date, "UTC", "MMM d, yyyy").toUpperCase();
   const isMidnightUtc = date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0;
 
   if (isMidnightUtc) {
@@ -108,7 +114,7 @@ function TimelineDot({ active }: { active: boolean }) {
     return <LiveEventIcon />;
   }
 
-  return <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-base-content/20" />;
+  return <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--seer-border)]" />;
 }
 
 function EventRow({
@@ -132,21 +138,23 @@ function EventRow({
       <div className="min-w-0 flex-1">
         <p
           className={clsx(
-            "text-[11px] font-semibold tracking-wide uppercase mb-1",
-            active ? "text-purple-primary" : "text-base-content/40",
+            "text-[12px] font-medium mb-1",
+            active ? "font-semibold text-[var(--seer-accent-text)]" : "text-[var(--seer-muted)]",
           )}
         >
           {formatEventDate(event.eventAt, isFirst)}
         </p>
         <div className="flex flex-wrap items-center gap-2 mb-1">
-          <h3 className="text-[15px] font-semibold leading-snug">{event.title}</h3>
+          <h3 className="text-[14px] font-semibold leading-snug">{event.title}</h3>
           {event.isResolution && (
-            <span className="rounded-full bg-purple-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-white">
+            <span className="rounded-control bg-[var(--seer-accent-soft)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--seer-accent-text)]">
               Resolution
             </span>
           )}
         </div>
-        {event.description && <p className="text-[13px] text-base-content/60 leading-relaxed">{event.description}</p>}
+        {event.description && (
+          <p className="text-[12px] text-[var(--seer-muted)] leading-relaxed">{event.description}</p>
+        )}
       </div>
       {canManage && (
         <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
@@ -194,6 +202,7 @@ export function MajorEvents({ market }: { market: Market }) {
   const [deletingEvent, setDeletingEvent] = useState<MarketEvent | null>(null);
   const [suggestionResult, setSuggestionResult] = useState<RecommendMarketEventsResponse | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const headingId = useId();
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 60_000);
@@ -308,9 +317,11 @@ export function MajorEvents({ market }: { market: Market }) {
           />
         }
       />
-      <div className="card p-[24px] shadow-md">
-        <div className="flex items-center justify-between gap-3 mb-5">
-          <h2 className="text-[20px] font-semibold">Major Events</h2>
+      <section className="seer-major-events" aria-labelledby={headingId}>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 id={headingId} className="seer-column-title">
+            Major events
+          </h2>
           <div className="flex items-center gap-3">
             {showAdminActions && (
               <button
@@ -322,17 +333,17 @@ export function MajorEvents({ market }: { market: Market }) {
               </button>
             )}
             {events.length > 0 && (
-              <span className="rounded-full bg-base-200 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-base-content/50">
+              <span className="rounded-full bg-[var(--seer-accent-soft)] px-2.5 py-0.5 text-[12px] font-medium text-[var(--seer-accent-text)]">
                 {events.length} upcoming
               </span>
             )}
           </div>
         </div>
         {events.length === 0 && showAdminActions && (
-          <p className="text-[13px] text-base-content/60">No upcoming events yet.</p>
+          <p className="text-[14px] text-[var(--seer-muted)]">No upcoming events yet.</p>
         )}
         {events.length > 0 && (
-          <ol className="list-none m-0 p-0 divide-y divide-base-content/10">
+          <ol className="list-none m-0 p-0 divide-y divide-[var(--seer-border)]">
             {events.map((event, index) => (
               <EventRow
                 key={event.id}
@@ -350,7 +361,7 @@ export function MajorEvents({ market }: { market: Market }) {
           <div
             className={clsx(
               "flex justify-end",
-              events.length > 0 ? "mt-5 pt-5 border-t border-base-content/10" : "mt-4",
+              events.length > 0 ? "mt-4 pt-4 border-t border-[var(--seer-border)]" : "mt-4",
             )}
           >
             <Button
@@ -364,7 +375,7 @@ export function MajorEvents({ market }: { market: Market }) {
             />
           </div>
         )}
-      </div>
+      </section>
     </>
   );
 }

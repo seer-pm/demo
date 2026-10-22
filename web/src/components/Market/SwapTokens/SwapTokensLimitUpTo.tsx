@@ -8,7 +8,7 @@ import { useGlobalState } from "@/hooks/useGlobalState";
 import { useModal } from "@/hooks/useModal";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
-import { Parameter, QuestionIcon } from "@/lib/icons";
+import { QuestionIcon } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isTwoStringsEqual, isUndefined } from "@/lib/utils";
@@ -21,7 +21,7 @@ import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { type AmmTrade, TradeType } from "@seer-pm/sdk";
 import { TickMath, encodeSqrtRatioX96 } from "@uniswap/v3-sdk";
 import clsx from "clsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
@@ -31,6 +31,8 @@ import Input from "../../Form/Input";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { TokenSelector } from "./TokenSelector";
 import { PotentialReturn } from "./components/PotentialReturn";
+import { QuoteErrorAlert } from "./components/QuoteErrorAlert";
+import { SlippageButton } from "./components/SlippageButton";
 import SwapButtons from "./components/SwapButtons";
 
 interface SwapFormValues {
@@ -49,6 +51,7 @@ interface SwapTokensLimitUptoProps {
   outcomeImage?: string;
   isInvalidOutcome: boolean;
   onOutcomeChange: (i: number, isClick: boolean) => void;
+  orderTypeControl?: ReactNode;
 }
 
 export function SwapTokensLimitUpto({
@@ -60,6 +63,7 @@ export function SwapTokensLimitUpto({
   outcomeImage,
   isInvalidOutcome,
   onOutcomeChange,
+  orderTypeControl,
 }: SwapTokensLimitUptoProps) {
   const limitPriceRef = useRef<HTMLInputElement | null>(null);
   const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
@@ -380,6 +384,7 @@ export function SwapTokensLimitUpto({
         }
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal, handleOpenConfirmPartialSwap)} className="space-y-5">
+        {orderTypeControl}
         <div className="space-y-2">
           <div className={clsx("rounded-surface p-4 space-y-2 border border-[#2222220d]")}>
             <div className="flex items-center justify-between">
@@ -612,32 +617,9 @@ export function SwapTokensLimitUpto({
             Try to reduce the input price.
           </Alert>
         )}
-        {quoteError && (
-          <Alert type="error">
-            {quoteError.message
-              ? quoteError.message === "No route found"
-                ? swapType === "sell"
-                  ? `Not enough liquidity to sell ${outcomeText} right now.`
-                  : "Not enough liquidity. Try to reduce the input price."
-                : quoteError.message
-              : "Error when quoting price"}
-          </Alert>
-        )}
+        {quoteError && <QuoteErrorAlert error={quoteError} swapType={swapType} outcomeText={outcomeText} />}
 
-        <div className="flex justify-between flex-wrap gap-4">
-          {/* market.type === "Futarchy" && <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} /> */}
-          <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
-            Parameters:{" "}
-            <div
-              className="flex items-center gap-2 cursor-pointer text-purple-primary hover:opacity-50"
-              onClick={() => setShowMaxSlippage(true)}
-            >
-              <p>Max slippage {maxSlippage}%</p>
-
-              <Parameter width="16px" height="16px" />
-            </div>
-          </div>
-        </div>
+        <SlippageButton maxSlippage={maxSlippage} onClick={() => setShowMaxSlippage(true)} />
         {renderButtons()}
       </form>
     </>

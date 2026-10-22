@@ -1,7 +1,6 @@
 import { ArrowDropDown } from "@/lib/icons";
-import clsx from "clsx";
 import { ReactNode, useState } from "react";
-import DropdownWrapper from "./Form/DropdownWrapper";
+import DropdownWrapper, { DropdownOption } from "./Form/DropdownWrapper";
 
 interface DropdownProps {
   options: { value: number | string | boolean; text: string; icon?: ReactNode }[];
@@ -18,34 +17,32 @@ export function Dropdown({ options, value, onClick, defaultLabel }: DropdownProp
     <DropdownWrapper
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      direction="auto"
       className="w-[200px]"
-      content={
-        <ul className="p-2">
-          {options.map((option) => (
-            <li
-              key={option.value.toString()}
-              onClick={() => {
-                onClick(option.value);
-                setIsOpen(false);
-              }}
-              className={clsx(
-                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
-                option.value === value &&
-                  "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
-              )}
-            >
-              {option.icon}
-              <span>{option.text}</span>
-            </li>
-          ))}
-        </ul>
-      }
+      listboxLabel={defaultLabel}
+      triggerLabel={selectedOption ? `${defaultLabel}: ${selectedOption.text}` : undefined}
+      triggerClassName="rounded-control"
+      content={options.map((option) => (
+        <DropdownOption
+          key={option.value.toString()}
+          selected={option.value === value}
+          onSelect={() => {
+            onClick(option.value);
+            setIsOpen(false);
+          }}
+        >
+          {option.icon}
+          <span>{option.text}</span>
+        </DropdownOption>
+      ))}
     >
-      <div className="text-[14px] font-semibold cursor-pointer flex items-center whitespace-nowrap">
+      <span className="text-[14px] font-semibold cursor-pointer flex items-center whitespace-nowrap">
         {selectedOption?.icon}
         {selectedOption?.text ?? defaultLabel}
-        <ArrowDropDown />
-      </div>
+        <span className="flex text-[var(--seer-muted)]" aria-hidden="true">
+          <ArrowDropDown fill="currentColor" />
+        </span>
+      </span>
     </DropdownWrapper>
   );
 }

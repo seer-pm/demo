@@ -10,7 +10,7 @@ import { useTokensInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import { getRouterAddress } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../Alert";
@@ -40,6 +40,7 @@ function getMergePositions(market: Market, useAltCollateral: boolean): Address[]
 
 export function MergeForm({ account, market }: MergeFormProps) {
   const router = getRouterAddress(market);
+  const amountId = useId();
 
   const { data: balances, isLoading: isLoadingBalances } = useTokenBalances(
     account,
@@ -68,6 +69,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
   const [useAltCollateral, amount] = watch(["useAltCollateral", "amount"]);
 
   const selectedCollateral = useSelectedCollateral(market, useAltCollateral);
+  const altCollateral = useSelectedCollateral(market, true);
   const { data: balance = BigInt(0) } = useTokenBalance(account, selectedCollateral?.address, market.chainId);
 
   const parsedAmount = parseUnits(amount ?? "0", selectedCollateral.decimals);
@@ -111,9 +113,12 @@ export function MergeForm({ account, market }: MergeFormProps) {
           </Alert>
         </div>
         <div className="flex justify-between items-center">
-          <div className="text-[14px]">Amount</div>
-          <div
-            className="text-purple-primary cursor-pointer"
+          <label htmlFor={amountId} className="text-[14px]">
+            Amount
+          </label>
+          <button
+            type="button"
+            className="rounded-control border border-[var(--seer-border)] bg-[var(--seer-surface-raised)] px-[6px] py-1 text-[14px] font-semibold text-[var(--seer-muted)] hover:text-[var(--seer-text)]"
             onClick={() => {
               setValue("amount", formatUnits(maxPositionAmount, selectedCollateral.decimals), {
                 shouldValidate: true,
@@ -122,7 +127,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
             }}
           >
             Max
-          </div>
+          </button>
         </div>
         <div className={clsx("text-[12px] text-black-secondary mb-2 flex gap-1", isLoading ? "items-center" : "")}>
           Balance:{" "}
@@ -145,6 +150,7 @@ export function MergeForm({ account, market }: MergeFormProps) {
           </div>
         </div>
         <Input
+          id={amountId}
           autoComplete="off"
           type="number"
           min="0"
@@ -168,7 +174,11 @@ export function MergeForm({ account, market }: MergeFormProps) {
         />
       </div>
 
-      <AltCollateralSwitch {...register("useAltCollateral")} market={market} />
+      <AltCollateralSwitch
+        {...register("useAltCollateral")}
+        aria-label={`Use ${altCollateral.symbol}`}
+        market={market}
+      />
 
       {missingApprovals && (
         <SwitchChainButtonWrapper chainId={market.chainId}>

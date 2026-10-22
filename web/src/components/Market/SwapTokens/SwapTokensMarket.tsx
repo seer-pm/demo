@@ -8,30 +8,34 @@ import { useTradeConditions } from "@/hooks/trade/useTradeConditions";
 import { useGlobalState } from "@/hooks/useGlobalState";
 import { useMarketTradeDraft, useOnTradeDraftCleared } from "@/hooks/useTradeFormDraft";
 import { NOT_ENOUGH_BALANCE_ERROR } from "@/lib/form-errors";
-import { ArrowDown, Parameter, QuestionIcon } from "@/lib/icons";
+import { QuestionIcon } from "@/lib/icons";
 import { formatLeftoverList, summarizeLeftovers } from "@/lib/leftovers";
 import { isDraftForOutcome } from "@/lib/trade-draft";
 import { displayBalance, displayNumber, isUndefined } from "@/lib/utils";
 import { useQuoteTrade } from "@seer-pm/react";
-import { isMintToCoverEligible, isTradingCredits } from "@seer-pm/sdk";
+import { MarketTypes, getMarketType, isMintToCoverEligible, isTradingCredits } from "@seer-pm/sdk";
 import { FUTARCHY_LP_PAIRS_MAPPING, Market } from "@seer-pm/sdk";
 import { type Token, getCollateralPerShare, getOutcomeTokenVolume } from "@seer-pm/sdk";
 import { getActivePrimaryCollateral } from "@seer-pm/sdk";
 import { type AmmTrade, TradeType } from "@seer-pm/sdk";
 import clsx from "clsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Address, formatUnits, parseUnits } from "viem";
 import { Alert } from "../../Alert";
 import { BridgeWidget } from "../../BridgeWidget";
 import Button from "../../Form/Button";
 import Input from "../../Form/Input";
+import { SwitchChainButtonWrapper } from "../../Form/SwitchChainButtonWrapper";
 import AltCollateralSwitch from "../AltCollateralSwitch";
 import { SwapTokensConfirmation } from "./SwapTokensConfirmation";
 import { TokenSelector } from "./TokenSelector";
 import { MintToCoverNotice } from "./components/MintToCoverNotice";
 import { PotentialReturn } from "./components/PotentialReturn";
+import { QuoteErrorAlert } from "./components/QuoteErrorAlert";
+import { SlippageButton } from "./components/SlippageButton";
 import SwapButtons from "./components/SwapButtons";
+import { TradeSideToggle } from "./components/TradeSideToggle";
 
 interface SwapFormValues {
   type: "buy" | "sell";
@@ -48,6 +52,7 @@ interface SwapTokensMarketProps {
   outcomeImage?: string;
   isInvalidOutcome: boolean;
   onOutcomeChange: (i: number, isClick: boolean) => void;
+  orderTypeControl?: ReactNode;
 }
 
 export function FutarchyTokenSwitch({
@@ -117,7 +122,10 @@ export function SwapTokensMarket({
   outcomeImage,
   isInvalidOutcome,
   onOutcomeChange,
+  orderTypeControl,
 }: SwapTokensMarketProps) {
+  const amountInputId = useId();
+  const amountOutInputId = useId();
   const amountRef = useRef<HTMLInputElement | null>(null);
   const amountOutRef = useRef<HTMLInputElement | null>(null);
   const { getDraft, setDraft, clearDraft } = useMarketTradeDraft(market);
@@ -314,6 +322,20 @@ export function SwapTokensMarket({
     swapType,
     getOutcomeTokenVolume(quoteData, swapType),
   );
+  // Buttons name the outcome only while it fits on one line; the header above always shows it in full.
+  const actionLabel = `${swapType === "buy" ? "Buy" : "Sell"}${outcomeText.length <= 20 ? ` ${outcomeText}` : ""}`;
+  const hasAmount = Number(amount) > 0 || Number(amountOut) > 0;
+
+  // The one-line bet, repeated in the confirmation. Only categorical outcomes pay a fixed 1 per
+  // token; other market types depend on where the answer lands, so they get no single figure.
+  const isOneOrNothing = getMarketType(market) === MarketTypes.CATEGORICAL || outcomeToken.symbol === "SER-INVALID";
+  const payoutLine =
+    swapType === "buy" && market.type === "Generic" && isOneOrNothing && receivedAmount > 0
+      ? `If ${outcomeText} wins, these ${displayNumber(receivedAmount)} shares pay ${displayNumber(
+          isSecondaryCollateral ? receivedAmount * sharesToAssets : receivedAmount,
+        )} ${selectedCollateral.symbol}.`
+      : undefined;
+
   const resetInputs = () => {
     // defaultValue "": the form defaults were seeded from the draft, so resetting a
     // field to its default would bring the restored amount back instead of clearing it.
@@ -322,6 +344,10 @@ export function SwapTokensMarket({
   };
 
   const renderButtons = () => {
+    if (!account) {
+      // Renders the connect prompt: there is no connected chain to match.
+      return <SwitchChainButtonWrapper chainId={market.chainId}>{null}</SwitchChainButtonWrapper>;
+    }
     if (amountErrorMessage && amountErrorMessage !== "This field is required.") {
       return <Button variant="primary" className="w-full" type="button" disabled={true} text={amountErrorMessage} />;
     }
@@ -339,7 +365,7 @@ export function SwapTokensMarket({
             isPriceTooHigh ||
             (hasShortfall && !isMintToCover)
           }
-          text={isMintToCover ? "Mint & Sell" : undefined}
+          text={isMintToCover ? "Mint & Sell" : actionLabel}
           missingApprovals={missingApprovals}
           isLoading={
             tradeTokens.isPending ||
@@ -408,7 +434,7 @@ export function SwapTokensMarket({
   return (
     <>
       <ConfirmSwapModal
-        title="Confirm Swap"
+        title={`${swapType === "buy" ? "Buy" : "Sell"} ${outcomeText}`}
         content={
           <SwapTokensConfirmation
             trade={effectiveQuote?.trade}
@@ -421,25 +447,49 @@ export function SwapTokensMarket({
             originalAmount={amount}
             isTradingCredits={isTradingCreditsCollateral}
             outcomeToken={outcomeToken}
+            confirmText={actionLabel}
+            payoutLine={payoutLine}
           />
         }
       />
       <form onSubmit={handleSubmit(openConfirmSwapModal)} className="space-y-5">
-        <div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <TradeSideToggle
+              value={swapType}
+              outcomeText={outcomeText}
+              onChange={(side) => {
+                if (side === swapType) {
+                  return;
+                }
+                setSwapType(side);
+                setFocusContainer(0);
+              }}
+            />
+          </div>
+          {orderTypeControl}
+        </div>
+        <div className="space-y-2">
           <div
             onClick={() => {
               setFocusContainer(0);
               setFocus("amount");
             }}
             className={clsx(
-              "seer-swap-amount rounded-surface p-4 space-y-2 cursor-pointer h-[137px]",
-              focusContainer === 0 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
+              "seer-swap-amount rounded-surface p-4 space-y-2 cursor-pointer border",
+              account && "h-[137px]",
+              focusContainer === 0
+                ? "border-[var(--seer-border)]"
+                : "border-transparent bg-base-200/80 hover:bg-base-300/60",
             )}
           >
-            <p className="text-base-content/70">You pay</p>
-            <div className="flex justify-between items-start">
-              <div>
+            <label htmlFor={amountInputId} className="block text-base-content/70">
+              {swapType === "buy" ? "You pay" : "You sell"}
+            </label>
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
                 <Input
+                  id={amountInputId}
                   autoComplete="off"
                   type="number"
                   step="any"
@@ -453,7 +503,9 @@ export function SwapTokensMarket({
 
                       const val = parseUnits(v, sellToken.decimals);
 
-                      if (val > balance && !canMintShortfallRef.current) {
+                      // Without a wallet there is no balance to check against: the quote still shows,
+                      // and the button asks to connect instead.
+                      if (account && val > balance && !canMintShortfallRef.current) {
                         return NOT_ENOUGH_BALANCE_ERROR;
                       }
 
@@ -498,7 +550,7 @@ export function SwapTokensMarket({
                 }}
               />
             </div>
-            <div className="flex justify-end">
+            <div className={clsx("flex justify-end", !account && "hidden")}>
               {isFetchingBalance ? (
                 <div className="shimmer-container w-[80px] h-[13px]" />
               ) : (
@@ -508,7 +560,8 @@ export function SwapTokensMarket({
                   </p>
                   <button
                     type="button"
-                    className="text-[14px] font-semibold text-base-content/70 rounded-control border border-[#2222220d] py-1 px-[6px] bg-base-200/80 hover:bg-base-300/60"
+                    aria-label={`Use your full ${sellToken.symbol} balance`}
+                    className="text-[14px] font-semibold text-[var(--seer-muted)] rounded-control border border-[var(--seer-border)] py-1 px-[6px] bg-[var(--seer-surface-raised)] hover:text-[var(--seer-text)]"
                     onClick={() => {
                       setTradeType(TradeType.EXACT_INPUT);
                       setValue("amount", formatUnits(balance, sellToken.decimals), {
@@ -528,33 +581,26 @@ export function SwapTokensMarket({
               )}
             </div>
           </div>
-          <div className="my-1 relative">
-            <button
-              type="button"
-              onClick={() => {
-                setSwapType((state) => (state === "buy" ? "sell" : "buy"));
-                setFocusContainer(0);
-                setFocus("amount");
-              }}
-              className="absolute border-[4px] border-base-100 rounded-control p-2 bg-base-200/80 hover:bg-base-300/60 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            >
-              <ArrowDown fill="currentColor" />
-            </button>
-          </div>
           <div
             onClick={() => {
               setFocusContainer(1);
               setFocus("amountOut");
             }}
             className={clsx(
-              "seer-swap-amount rounded-surface p-4 space-y-2 h-[137px] cursor-pointer",
-              focusContainer === 1 ? "border border-[#2222220d]" : "bg-base-200/80 hover:bg-base-300/60",
+              "seer-swap-amount rounded-surface p-4 space-y-2 cursor-pointer border",
+              account && "h-[137px]",
+              focusContainer === 1
+                ? "border-[var(--seer-border)]"
+                : "border-transparent bg-base-200/80 hover:bg-base-300/60",
             )}
           >
-            <p className="text-base-content/70">You will get</p>
-            <div className="flex justify-between items-start">
-              <div>
+            <label htmlFor={amountOutInputId} className="block text-base-content/70">
+              {swapType === "buy" ? "You get" : "You receive"}
+            </label>
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
                 <Input
+                  id={amountOutInputId}
                   autoComplete="off"
                   type="number"
                   step="any"
@@ -607,49 +653,29 @@ export function SwapTokensMarket({
           </div>
         </div>
         {showBridgeLink && <BridgeWidget toChainId={market.chainId} />}
-        <div className="space-y-1">
-          <div className="flex justify-between text-black-secondary-fg text-[14px]">
-            Avg price
-            {quoteIsLoading || isFetching ? (
-              <div className="shimmer-container ml-2 w-[100px]" />
-            ) : market.type === "Futarchy" ? (
-              <FutarchyPricePerShare
-                {...{
-                  swapType,
-                  collateralPerShare,
-                  buyToken,
-                  sellToken,
-                  outcomeIndex,
-                }}
-              />
-            ) : (
-              <div className="flex items-center gap-2">
-                {displayNumber(collateralPerShare)} {selectedCollateral.symbol}
-                {isSecondaryCollateral && (
-                  <span className="tooltip">
-                    <p className="tooltiptext">
-                      {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
-                    </p>
-                    <QuestionIcon fill="#7D33FF" />
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {!!limitPriceFromVolume && (
+        {hasAmount && (
+          <div className="space-y-1">
             <div className="flex justify-between text-black-secondary-fg text-[14px]">
-              Price after {swapType}
+              Avg price
               {quoteIsLoading || isFetching ? (
                 <div className="shimmer-container ml-2 w-[100px]" />
+              ) : market.type === "Futarchy" ? (
+                <FutarchyPricePerShare
+                  {...{
+                    swapType,
+                    collateralPerShare,
+                    buyToken,
+                    sellToken,
+                    outcomeIndex,
+                  }}
+                />
               ) : (
                 <div className="flex items-center gap-2">
-                  {(isSecondaryCollateral ? limitPriceFromVolume * sharesToAssets : limitPriceFromVolume).toFixed(3)}{" "}
-                  {selectedCollateral.symbol}
+                  {displayNumber(collateralPerShare)} {selectedCollateral.symbol}
                   {isSecondaryCollateral && (
                     <span className="tooltip">
                       <p className="tooltiptext">
-                        {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
+                        {(collateralPerShare * assetsToShares).toFixed(3)} {primaryCollateral.symbol}
                       </p>
                       <QuestionIcon fill="#7D33FF" />
                     </span>
@@ -657,27 +683,49 @@ export function SwapTokensMarket({
                 </div>
               )}
             </div>
-          )}
 
-          <PotentialReturn
-            {...{
-              swapType,
-              isSecondaryCollateral,
-              selectedCollateral,
-              sharesToAssets,
-              assetsToShares,
-              outcomeText,
-              outcomeToken,
-              market,
-              quoteIsLoading,
-              isFetching,
-              amount,
-              receivedAmount,
-              collateralPerShare,
-              tradeType,
-            }}
-          />
-        </div>
+            {!!limitPriceFromVolume && (
+              <div className="flex justify-between text-black-secondary-fg text-[14px]">
+                Price after {swapType}
+                {quoteIsLoading || isFetching ? (
+                  <div className="shimmer-container ml-2 w-[100px]" />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {(isSecondaryCollateral ? limitPriceFromVolume * sharesToAssets : limitPriceFromVolume).toFixed(3)}{" "}
+                    {selectedCollateral.symbol}
+                    {isSecondaryCollateral && (
+                      <span className="tooltip">
+                        <p className="tooltiptext">
+                          {limitPriceFromVolume.toFixed(3)} {primaryCollateral.symbol}
+                        </p>
+                        <QuestionIcon fill="#7D33FF" />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <PotentialReturn
+              {...{
+                swapType,
+                isSecondaryCollateral,
+                selectedCollateral,
+                sharesToAssets,
+                assetsToShares,
+                outcomeText,
+                outcomeToken,
+                market,
+                quoteIsLoading,
+                isFetching,
+                amount,
+                receivedAmount,
+                collateralPerShare,
+                tradeType,
+              }}
+            />
+          </div>
+        )}
 
         <MintToCoverNotice status={mintToCover} collateral={selectedCollateral} outcomeText={outcomeText} />
         {isPriceTooHigh && (
@@ -686,33 +734,13 @@ export function SwapTokensMarket({
             Try to reduce the input amount.
           </Alert>
         )}
-        {quoteError && (
-          <Alert type="error">
-            {quoteError.message
-              ? quoteError.message === "No route found"
-                ? swapType === "sell"
-                  ? `Not enough liquidity to sell ${outcomeText} right now.`
-                  : "Not enough liquidity. Try to reduce the input amount."
-                : quoteError.message
-              : "Error when quoting price"}
-          </Alert>
-        )}
+        {quoteError && <QuoteErrorAlert error={quoteError} swapType={swapType} outcomeText={outcomeText} />}
 
         <div className="flex justify-between flex-wrap gap-4">
           {market.type === "Futarchy" && (
             <FutarchyTokenSwitch market={market} outcomeIndex={outcomeIndex} onOutcomeChange={onOutcomeChange} />
           )}
-          <div className="w-full text-[12px] text-black-secondary flex items-center gap-2">
-            Parameters:{" "}
-            <div
-              className="flex items-center gap-2 cursor-pointer text-purple-primary hover:opacity-50"
-              onClick={() => setShowMaxSlippage(true)}
-            >
-              <p>Max slippage {maxSlippage}%</p>
-
-              <Parameter width="16px" height="16px" />
-            </div>
-          </div>
+          <SlippageButton maxSlippage={maxSlippage} onClick={() => setShowMaxSlippage(true)} />
         </div>
         {renderButtons()}
       </form>

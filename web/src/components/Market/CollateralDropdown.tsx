@@ -1,4 +1,3 @@
-import { ArrowDropDown } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { isTradingCreditsDisabled } from "@/lib/trading-credits";
 import { isTwoStringsEqual } from "@/lib/utils";
@@ -7,10 +6,10 @@ import { useTokensInfo } from "@seer-pm/react";
 import { Market } from "@seer-pm/sdk";
 import type { Token } from "@seer-pm/sdk";
 import { getActiveCollateralProfile, getActiveCreditsTokenAddress } from "@seer-pm/sdk";
-import clsx from "clsx";
 import { useState } from "react";
 import { Address, zeroAddress } from "viem";
-import DropdownWrapper from "../Form/DropdownWrapper";
+import DropdownWrapper, { DropdownOption } from "../Form/DropdownWrapper";
+import { TokenPill } from "./OutcomeDropdown";
 
 type CollateralDropdownProps = {
   selectedCollateral: Token;
@@ -70,46 +69,41 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
     <DropdownWrapper
       isOpen={isOpen}
       setIsOpen={setIsOpen}
-      content={
-        <ul className="p-2">
-          {collateralTokens.map((collateralToken) => (
-            <li
-              key={collateralToken.address}
-              onClick={() => {
-                setSelectedCollateral(collateralToken);
-                setIsOpen(false);
-              }}
-              className={clsx(
-                "px-[15px] py-[10px] border-l-[3px] border-transparent hover:bg-purple-medium dark:hover:bg-neutral hover:border-l-purple-primary flex items-center gap-2 cursor-pointer",
-                isTwoStringsEqual(collateralToken.address, selectedCollateral.address) &&
-                  "active border-l-[3px] border-l-purple-primary bg-purple-medium dark:bg-neutral",
-              )}
-            >
-              <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
-                <img
-                  className="w-full h-full rounded-full "
-                  alt={collateralToken.symbol}
-                  src={paths.tokenImage(collateralToken.address, collateralToken.chainId)}
-                />
-                {showChainLogo && (
-                  <img
-                    className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-base-100 rounded-full"
-                    alt={String(collateralToken.chainId)}
-                    src={paths.chainImage(collateralToken.chainId)}
-                  />
-                )}
-              </div>
-              <p className="font-semibold text-[16px] whitespace-nowrap">{collateralToken.symbol}</p>
-            </li>
-          ))}
-        </ul>
-      }
+      listboxLabel="Tokens"
+      triggerLabel={`Token: ${selectedCollateral.symbol}`}
+      triggerClassName="rounded-full"
+      content={collateralTokens.map((collateralToken) => (
+        <DropdownOption
+          key={collateralToken.address}
+          selected={isTwoStringsEqual(collateralToken.address, selectedCollateral.address)}
+          onSelect={() => {
+            setSelectedCollateral(collateralToken);
+            setIsOpen(false);
+          }}
+        >
+          <span className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
+            <img
+              className="w-full h-full rounded-full "
+              alt=""
+              src={paths.tokenImage(collateralToken.address, collateralToken.chainId)}
+            />
+            {showChainLogo && (
+              <img
+                className="absolute w-[10px] h-[10px] bottom-0 right-0 bg-base-100 rounded-full"
+                alt={String(collateralToken.chainId)}
+                src={paths.chainImage(collateralToken.chainId)}
+              />
+            )}
+          </span>
+          <span className="font-semibold text-[16px] whitespace-nowrap">{collateralToken.symbol}</span>
+        </DropdownOption>
+      ))}
     >
-      <div className="flex items-center gap-1 rounded-full border border-[#f2f2f2] dark:border-neutral px-3 py-1 shadow-[0_0_10px_rgba(34,34,34,0.04)] hover:bg-base-300/60 dark:hover:bg-base-200 cursor-pointer">
-        <div className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
+      <TokenPill>
+        <span className="w-6 h-6 overflow-hidden flex-shrink-0 relative">
           <img
             className="w-full h-full rounded-full"
-            alt={selectedCollateral.symbol}
+            alt=""
             src={paths.tokenImage(selectedCollateral.address, selectedCollateral.chainId)}
           />
           {showChainLogo && (
@@ -119,10 +113,9 @@ export function CollateralDropdown(props: CollateralDropdownProps) {
               src={paths.chainImage(selectedCollateral.chainId)}
             />
           )}
-        </div>
-        <p className="font-semibold text-[16px] whitespace-nowrap">{selectedCollateral.symbol}</p>
-        <ArrowDropDown />
-      </div>
+        </span>
+        <span className="font-semibold text-[16px] whitespace-nowrap">{selectedCollateral.symbol}</span>
+      </TokenPill>
     </DropdownWrapper>
   );
 }

@@ -1,0 +1,21 @@
+/* Bottom sheet (components/Drawer.tsx) and the trade ticket it hosts on narrow screens. */
+
+.seer-drawer-header .event-tabs {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+/* The sheet is already the surface, so the panels inside it drop their own card chrome and share the
+   sheet's gutter. */
+.seer-drawer-panel .seer-swap-widget {
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* The React Query devtools toggle sits bottom-left in development and covers the sheet's primary action. */
+body.seer-drawer-open .tsqd-open-btn-container {
+  display: none;
+}

@@ -43,7 +43,7 @@ export function MintToCoverNotice({
   const leftovers = leg.leftoverTokens ?? [];
 
   return (
-    <Alert type="info" title="You don't hold enough — we'll mint the rest">
+    <Alert type="info" title="You don't hold enough, so we'll mint the rest">
       <div className="space-y-1">
         <p>
           {held > 0n ? (
