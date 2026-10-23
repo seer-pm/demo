@@ -1,0 +1,27 @@
+/* Opt-in document defaults. Selection, caret, scrollbar and focus ring otherwise ship as browser
+   defaults that belong to no Seer theme. Requires tokens.css. */
+body {
+  background: var(--seer-page);
+  color: var(--seer-text);
+  font-family: var(--seer-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scrollbar-color: var(--seer-border) var(--seer-page);
+}
+
+::selection {
+  background: var(--seer-accent-soft);
+  color: var(--seer-text);
+}
+
+input,
+textarea {
+  caret-color: var(--seer-accent-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--seer-accent-text);
+  outline-offset: 3px;
+}

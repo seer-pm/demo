@@ -1,0 +1,73 @@
+{
+  "name": "@seer-pm/ui-kit",
+  "version": "0.1.0",
+  "description": "Electric Foundation tokens, brand assets and shared UI for every Seer site",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "packages/seer-pm-ui-kit"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.mjs",
+      "require": "./dist/react/index.js"
+    },
+    "./tokens.css": "./css/tokens.css",
+    "./base.css": "./css/base.css",
+    "./fonts.css": "./css/fonts.css",
+    "./components.css": "./css/components.css",
+    "./tailwind.css": "./css/tailwind-theme.css",
+    "./tailwind": "./tailwind-preset.cjs",
+    "./assets/*": "./assets/*"
+  },
+  "files": [
+    "dist",
+    "css",
+    "assets",
+    "tailwind-preset.cjs",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "yarn build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/open-sans": "^5.2.5"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.22",
+    "react": "^18.2.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

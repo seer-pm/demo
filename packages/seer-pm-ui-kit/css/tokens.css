@@ -1,0 +1,56 @@
+/* Electric Foundation tokens for every Seer site.
+   Brand values hold in both themes. The ink-field values sampled from the brand posters
+   (lavender display type, the lighter purple that reads on ink) sit with them, because ink
+   fields stay ink in both themes. */
+:root {
+  --seer-brand-purple: #7d33ff;
+  --seer-brand-purple-hover: #6925df;
+  --seer-brand-purple-on-ink: #8f55f7;
+  --seer-brand-ink: #141223;
+  --seer-brand-lavender: #bfbfe6;
+  --seer-brand-white: #ffffff;
+
+  --seer-on-ink: #f2edff;
+  --seer-on-ink-muted: #b9b1ca;
+  --seer-ink-border: #39314a;
+
+  /* sm for compact controls and badges, md for surfaces, inputs and rows, full for pills. */
+  --seer-radius-sm: 4px;
+  --seer-radius-md: 10px;
+  --seer-radius-full: 9999px;
+
+  /* Open Sans everywhere, so the landing and the apps read as one system. */
+  --seer-font-sans: "Open Sans Variable", "Open Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --seer-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --seer-duration-fast: 150ms;
+}
+
+/* The theme scopes to any element, so one section can take the other theme. Seer app sets
+   data-theme on <html>; next-themes in class mode sets .light or .dark. */
+:root,
+[data-theme="light"],
+.light {
+  color-scheme: light;
+  --seer-page: #f7f7f9;
+  --seer-surface: #ffffff;
+  --seer-surface-raised: #f1f1f4;
+  --seer-text: #17171c;
+  --seer-muted: #5c5c66;
+  --seer-border: #e2e2e9;
+  --seer-accent-soft: #efe9fc;
+  --seer-accent-text: #6c2bd9;
+}
+
+[data-theme="dark"],
+.dark {
+  color-scheme: dark;
+  --seer-page: #101013;
+  --seer-surface: #1a1a1e;
+  --seer-surface-raised: #1f1f24;
+  --seer-text: #ededf2;
+  --seer-muted: #a8a8b3;
+  --seer-border: #34343c;
+  --seer-accent-soft: #241e33;
+  --seer-accent-text: #b18aff;
+}

@@ -1,0 +1,204 @@
+/* Framework-free Seer primitives. Any site renders the markup (React through
+   @seer-pm/ui-kit/react, Astro or plain HTML by hand) and gets the same result. Requires tokens.css.
+   Masks resolve relative to this file, so bundlers copy the assets wherever they emit CSS. */
+
+.seer-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--seer-radius-sm);
+  font: 600 14px/1.2 var(--seer-font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--seer-duration-fast) var(--seer-ease-out),
+    color var(--seer-duration-fast) var(--seer-ease-out);
+}
+.seer-button-primary {
+  background: var(--seer-brand-purple);
+  color: var(--seer-brand-white);
+}
+.seer-button-primary:hover {
+  background: var(--seer-brand-purple-hover);
+}
+.seer-button-secondary {
+  background: var(--seer-accent-soft);
+  color: var(--seer-accent-text);
+}
+.seer-button-secondary:hover {
+  background: color-mix(in srgb, var(--seer-accent-soft), var(--seer-brand-purple) 14%);
+}
+.seer-button:disabled,
+.seer-button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The lockup takes its colour from the surrounding text, so it works on page, surface and ink. */
+.seer-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: inherit;
+}
+.seer-brand-bird {
+  display: block;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  background: currentColor;
+  /* The supplied bird is white line art, so its luminance is the shape. */
+  mask: url("../assets/seer-bird.png") center / 120% no-repeat;
+  mask-mode: luminance;
+}
+.seer-brand-wordmark {
+  display: block;
+  flex: none;
+  width: 76px;
+  height: 25px;
+  background: currentColor;
+  mask: url("../assets/seer-wordmark.svg") center / contain no-repeat;
+  -webkit-mask: url("../assets/seer-wordmark.svg") center / contain no-repeat;
+}
+
+.seer-icon {
+  display: block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  mask-position: center;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+}
+.seer-icon-discord {
+  mask-image: url("../assets/icons/discord.svg");
+  -webkit-mask-image: url("../assets/icons/discord.svg");
+}
+.seer-icon-telegram {
+  mask-image: url("../assets/icons/telegram.svg");
+  -webkit-mask-image: url("../assets/icons/telegram.svg");
+}
+.seer-icon-x {
+  mask-image: url("../assets/icons/x.svg");
+  -webkit-mask-image: url("../assets/icons/x.svg");
+}
+.seer-icon-github {
+  mask-image: url("../assets/icons/github.svg");
+  -webkit-mask-image: url("../assets/icons/github.svg");
+}
+.seer-icon-secured-by-kleros {
+  width: 149px;
+  height: 20px;
+  mask-image: url("../assets/icons/secured-by-kleros.svg");
+  -webkit-mask-image: url("../assets/icons/secured-by-kleros.svg");
+}
+
+/* Ecosystem footer. Ink in both themes: it closes every Seer site the same way. */
+.seer-footer {
+  background: var(--seer-brand-ink);
+  color: var(--seer-on-ink);
+  font-family: var(--seer-font-sans);
+}
+.seer-footer-inner {
+  max-width: 1480px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 32px);
+}
+.seer-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+.seer-footer a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.seer-footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  padding-block: 40px;
+}
+.seer-footer-tagline {
+  margin-top: 12px;
+  max-width: 32ch;
+  color: var(--seer-on-ink-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.seer-footer-nav {
+  display: flex;
+  gap: 56px;
+}
+.seer-footer-group-title {
+  margin: 0 0 8px;
+  color: var(--seer-on-ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.seer-footer-group ul {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+/* Padding instead of gap keeps each link a comfortable touch target. */
+.seer-footer-group a {
+  display: inline-block;
+  padding-block: 5px;
+}
+.seer-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 64px;
+  border-top: 1px solid var(--seer-ink-border);
+}
+/* Each icon sits centred in a 40px touch target; the negative margin puts the glyphs, not the
+   targets, on the content edge. */
+.seer-footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline: -11px;
+}
+.seer-footer-socials a,
+.seer-footer-bottom > a {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+}
+@media (max-width: 640px) {
+  .seer-footer-top {
+    flex-direction: column;
+    gap: 32px;
+  }
+  .seer-footer-nav {
+    flex-wrap: wrap;
+    gap: 32px 48px;
+  }
+  .seer-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-block: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seer-button {
+    transition: none;
+  }
+}

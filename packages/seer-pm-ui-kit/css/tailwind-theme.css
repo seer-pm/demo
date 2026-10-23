@@ -1,0 +1,26 @@
+/* Tailwind 4 bindings for the Seer tokens. Import after "tailwindcss" and tokens.css.
+   `inline` keeps the var() references, so utilities follow the theme of the element they sit in
+   instead of freezing the light values at :root. */
+@theme inline {
+  --color-seer-purple: var(--seer-brand-purple);
+  --color-seer-purple-hover: var(--seer-brand-purple-hover);
+  --color-seer-purple-on-ink: var(--seer-brand-purple-on-ink);
+  --color-seer-ink: var(--seer-brand-ink);
+  --color-seer-lavender: var(--seer-brand-lavender);
+  --color-seer-on-ink: var(--seer-on-ink);
+  --color-seer-on-ink-muted: var(--seer-on-ink-muted);
+  --color-seer-ink-border: var(--seer-ink-border);
+  --color-seer-page: var(--seer-page);
+  --color-seer-surface: var(--seer-surface);
+  --color-seer-surface-raised: var(--seer-surface-raised);
+  --color-seer-text: var(--seer-text);
+  --color-seer-muted: var(--seer-muted);
+  --color-seer-border: var(--seer-border);
+  --color-seer-accent-soft: var(--seer-accent-soft);
+  --color-seer-accent-text: var(--seer-accent-text);
+
+  --radius-control: var(--seer-radius-sm);
+  --radius-surface: var(--seer-radius-md);
+
+  --font-seer: var(--seer-font-sans);
+}
