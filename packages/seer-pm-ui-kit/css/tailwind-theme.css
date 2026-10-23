@@ -21,6 +21,10 @@
   --color-seer-positive: var(--seer-positive);
   --color-seer-negative: var(--seer-negative);
   --color-seer-warning: var(--seer-warning);
+  --color-seer-series-1: var(--seer-series-1);
+  --color-seer-series-2: var(--seer-series-2);
+  --color-seer-series-3: var(--seer-series-3);
+  --color-seer-series-4: var(--seer-series-4);
 
   --radius-control: var(--seer-radius-sm);
   --radius-surface: var(--seer-radius-md);

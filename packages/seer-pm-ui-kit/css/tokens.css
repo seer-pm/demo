@@ -46,6 +46,14 @@
   --seer-positive: #13795b;
   --seer-negative: #c0283f;
   --seer-warning: #ad4b00;
+  /* Chart series, in this order and never cycled: a fifth series folds into the rest. Validated as a
+     set for colour-vision deficiency, lightness and 3:1 against page and surface in each theme.
+     Slots 1 and 2 are the pair for a two-sided reading (pass and fail, UP and DOWN). None of them
+     is a status colour, so a series never reads as a gain, a loss or a warning. */
+  --seer-series-1: #7d33ff;
+  --seer-series-2: #b8860b;
+  --seer-series-3: #2a78d6;
+  --seer-series-4: #d55181;
 }
 
 [data-theme="dark"],
@@ -62,4 +70,8 @@
   --seer-positive: #3ecf8e;
   --seer-negative: #ff6b81;
   --seer-warning: #ff9a52;
+  --seer-series-1: #8f55f7;
+  --seer-series-2: #b5850f;
+  --seer-series-3: #3987e5;
+  --seer-series-4: #d55181;
 }

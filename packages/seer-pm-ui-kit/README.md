@@ -75,6 +75,13 @@ theme. The brand values (`--seer-brand-*`, `--seer-on-ink*`) are the same in bot
 | `--seer-brand-ink`, `--seer-on-ink`, `--seer-on-ink-muted`, `--seer-ink-border` | Ink fields and what sits on them |
 | `--seer-brand-lavender`, `--seer-brand-purple-on-ink` | Display type and motifs on ink, from the brand posters |
 | `--seer-radius-sm`, `--seer-radius-md`, `--seer-radius-full` | Controls and badges, surfaces and rows, pills |
+| `--seer-series-1` … `--seer-series-4` | Chart series, in fixed order; 1 and 2 are the pair for two-sided readings |
+
+Series colours are for marks (lines, bars, dots) and their swatches; values and labels beside them
+stay in `--seer-text` and `--seer-muted`. Assign them in order and keep each one on its entity, so
+a filter never repaints the survivors. Four is the ceiling: a chart with more series draws the rest
+as context in `--seer-muted` and lets the reader pick which to colour. The set passes colour-vision
+deficiency separation, a shared lightness band and 3:1 against page and surface in both themes.
 
 Status fills and outlines come from the status colours at fixed strengths rather than from tokens
 of their own: 10% for a fill and 40% for its border (`bg-seer-negative/10 border-seer-negative/40`

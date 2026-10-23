@@ -28,6 +28,10 @@ module.exports = {
           positive: token("--seer-positive"),
           negative: token("--seer-negative"),
           warning: token("--seer-warning"),
+          "series-1": token("--seer-series-1"),
+          "series-2": token("--seer-series-2"),
+          "series-3": token("--seer-series-3"),
+          "series-4": token("--seer-series-4"),
         },
       },
       borderRadius: {
