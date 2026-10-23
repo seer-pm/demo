@@ -118,6 +118,10 @@ to 640px it becomes a bottom sheet. In React, `Dialog` keeps the element in step
 **Lockup.** `BrandLockup appName="Futarchy"` (or a `.seer-brand-app` span after the wordmark) sets
 an application's name after the Seer wordmark. `EcosystemFooter` takes the same `appName`.
 
+**Footer width.** The footer's content is 1480px wide with a `clamp(16px, 4vw, 32px)` gutter. A
+site with another content column sets `--seer-footer-max-width` and `--seer-footer-gutter` on
+`.seer-footer` so the edges line up.
+
 ## Deliberate departures from the brand kit
 
 - Open Sans replaces PP Neue Montreal and Suisse Intl Mono on every site, so the landing and the

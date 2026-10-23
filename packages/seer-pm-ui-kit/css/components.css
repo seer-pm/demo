@@ -428,10 +428,12 @@ select.seer-input {
   color: var(--seer-on-ink);
   font-family: var(--seer-font-sans);
 }
+/* The footer's edges line up with the site's own content column. A site whose container differs
+   from the 1480px default sets these two on .seer-footer. */
 .seer-footer-inner {
-  max-width: 1480px;
+  max-width: var(--seer-footer-max-width, 1480px);
   margin-inline: auto;
-  padding-inline: clamp(16px, 4vw, 32px);
+  padding-inline: var(--seer-footer-gutter, clamp(16px, 4vw, 32px));
 }
 .seer-footer a {
   color: inherit;
