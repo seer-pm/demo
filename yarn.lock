@@ -6504,7 +6504,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@seer-pm/ui-kit@workspace:packages/seer-pm-ui-kit":
+"@seer-pm/ui-kit@npm:*, @seer-pm/ui-kit@workspace:packages/seer-pm-ui-kit":
   version: 0.0.0-use.local
   resolution: "@seer-pm/ui-kit@workspace:packages/seer-pm-ui-kit"
   dependencies:
@@ -6539,6 +6539,7 @@ __metadata:
     "@seer-pm/discussions": "npm:*"
     "@seer-pm/react": "npm:*"
     "@seer-pm/sdk": "npm:*"
+    "@seer-pm/ui-kit": "npm:*"
     "@solana/wallet-adapter-react": "npm:^0.15.39"
     "@supabase/supabase-js": "npm:^2.46.2"
     "@tailwindcss/container-queries": "npm:^0.1.1"

@@ -31,6 +31,7 @@
     "@seer-pm/discussions": "*",
     "@seer-pm/react": "*",
     "@seer-pm/sdk": "*",
+    "@seer-pm/ui-kit": "*",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@supabase/supabase-js": "^2.46.2",
     "@tailwindcss/container-queries": "^0.1.1",

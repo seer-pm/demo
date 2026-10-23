@@ -1,14 +1,7 @@
-/* Electric Foundation uses neutral app surfaces and purple for brand and interaction. */
+/* Electric Foundation uses neutral app surfaces and purple for brand and interaction. The --seer-*
+   tokens come from @seer-pm/ui-kit/tokens.css; these blocks map them onto DaisyUI's theme
+   variables, which DaisyUI declares on :root and [data-theme], hence :root:root. */
 :root:root {
-  --seer-brand-purple: #7d33ff;
-  --seer-brand-ink: #141223;
-  --seer-brand-white: #ffffff;
-  --seer-page: #f7f7f9;
-  --seer-surface: #ffffff;
-  --seer-surface-raised: #f1f1f4;
-  --seer-text: #17171c;
-  --seer-muted: #5c5c66;
-  --seer-border: #e2e2e9;
   --card-bg: var(--seer-surface);
   --separator-100: var(--seer-border);
   --b1: 100% 0 0;
@@ -21,12 +14,6 @@
   --pc: 100% 0 0;
 }
 :root:root[data-theme="dark"] {
-  --seer-page: #101013;
-  --seer-surface: #1a1a1e;
-  --seer-surface-raised: #1f1f24;
-  --seer-text: #ededf2;
-  --seer-muted: #a8a8b3;
-  --seer-border: #34343c;
   --n: var(--b3);
   --nc: var(--bc);
   --card-bg: var(--seer-surface);
@@ -37,7 +24,6 @@
   --bc: 94.75325% 0.0066739 286.27167;
   --black-primary: 94.75325% 0.0066739 286.27167;
   --black-secondary-fg: 73.50277% 0.0156961 286.00727;
-  color-scheme: dark;
 }
 :root body,
 :root[data-theme="dark"] body {
@@ -71,11 +57,11 @@
   -webkit-mask: url("/assets/brand/official-wordmark.svg") center / contain no-repeat;
 }
 :root[data-theme="dark"] .text-purple-primary {
-  color: #b18aff;
+  color: var(--seer-accent-text);
 }
 .btn.btn-primary:hover {
-  background-color: #6925df;
-  border-color: #6925df;
+  background-color: var(--seer-brand-purple-hover);
+  border-color: var(--seer-brand-purple-hover);
 }
 .input,
 .select,
@@ -109,16 +95,6 @@ button:focus-visible {
 }
 
 /* Shared app shell and responsive navigation. */
-:root:root {
-  color-scheme: light;
-  --seer-accent-soft: #efe9fc;
-  --seer-accent-text: #6c2bd9;
-}
-:root:root[data-theme="dark"] {
-  color-scheme: dark;
-  --seer-accent-soft: #241e33;
-  --seer-accent-text: #b18aff;
-}
 .container-fluid {
   width: 100%;
   max-width: 1480px;
