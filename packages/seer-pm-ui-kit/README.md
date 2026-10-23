@@ -17,7 +17,7 @@ site needs stays in that site.
 | `@seer-pm/ui-kit/tailwind.css` | Tailwind 4 `@theme` bindings |
 | `@seer-pm/ui-kit/tailwind` | Tailwind 3 preset |
 | `@seer-pm/ui-kit` | `seerApps`, footer and social links, `convergencePaths()` |
-| `@seer-pm/ui-kit/react` | `BrandLockup`, `BrandStreak`, `Dialog`, `EcosystemFooter` |
+| `@seer-pm/ui-kit/react` | `BrandLockup`, `BrandStreak`, `Dialog`, `EcosystemFooter`, `ThemeToggle` |
 | `@seer-pm/ui-kit/assets/*` | Wordmark (SVG), bird (WebP), app logo (PNG), footer icons (SVG) |
 
 ## Usage
@@ -76,6 +76,13 @@ theme. The brand values (`--seer-brand-*`, `--seer-on-ink*`) are the same in bot
 | `--seer-brand-lavender`, `--seer-brand-purple-on-ink` | Display type and motifs on ink, from the brand posters |
 | `--seer-radius-sm`, `--seer-radius-md`, `--seer-radius-full` | Controls and badges, surfaces and rows, pills |
 
+Status fills and outlines come from the status colours at fixed strengths rather than from tokens
+of their own: 10% for a fill and 40% for its border (`bg-seer-negative/10 border-seer-negative/40`
+in Tailwind 4, `color-mix(in oklab, var(--seer-negative) 10%, transparent)` in plain CSS). In the
+light theme a status colour as text on its own fill holds 4.5:1 only when the fill sits on
+`--seer-surface`; over the page or a raised surface it drops to about 4.2:1. There, set the fill's
+text in `--seer-text` and keep the status colour for its icon and border.
+
 ## Components
 
 The kit owns how these look; state and behaviour stay in each site.
@@ -104,16 +111,23 @@ spinner and keeps the label.
 border to `--seer-negative`; pair it with a `.seer-error` line that names the problem.
 
 **Dialog.** `.seer-dialog` on a native `<dialog>` opened with `showModal()`, with
-`.seer-dialog-panel` wrapping `-header` (`-title` and a ghost icon button with
-`.seer-icon-close`), `-body` and an optional `-footer`. `.seer-dialog-wide` is 640px. On screens up
-to 640px it becomes a bottom sheet. In React, `Dialog` keeps the element in step with `open`:
+`.seer-dialog-panel` wrapping `-header` (a `-heading` with `-title` and an optional
+`-description`, then a ghost icon button with `.seer-icon-close`), an optional `-body` and an
+optional `-footer`. `.seer-dialog-wide` is 640px. On screens up to 640px it becomes a bottom sheet.
+In React, `Dialog` keeps the element in step with `open` and points `aria-describedby` at the
+description:
 
 ```tsx
 <Dialog open={open} onClose={() => setOpen(false)} title="Confirm swap" dismissible={!pending}
+  description="Prices can move before the transaction confirms."
   footer={<button className="seer-button seer-button-primary">Confirm swap</button>}>
   …
 </Dialog>
 ```
+
+**Theme toggle.** `ThemeToggle theme={theme} onToggle={toggle}` is a ghost icon button whose icon
+(`.seer-icon-sun`, `.seer-icon-moon`) and label name the theme a click switches to. The site keeps
+the choice, follows the system until there is one, and applies it before first paint.
 
 **Lockup.** `BrandLockup appName="Futarchy"` (or a `.seer-brand-app` span after the wordmark) sets
 an application's name after the Seer wordmark. `EcosystemFooter` takes the same `appName`.

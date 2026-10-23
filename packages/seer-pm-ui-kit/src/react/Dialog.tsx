@@ -5,7 +5,10 @@ export type DialogProps = {
   /** Called when the reader dismisses the dialog: Escape, the close button or the backdrop. */
   onClose: () => void;
   title: ReactNode;
-  children: ReactNode;
+  /** One or two lines under the title, read out with it as the dialog's description. */
+  description?: ReactNode;
+  /** Omitted for a confirmation that is only a title, a description and its actions. */
+  children?: ReactNode;
   /** Actions, right-aligned on desktop and full width on a phone. */
   footer?: ReactNode;
   /** False while something must finish first, such as a pending transaction: Escape, the backdrop
@@ -25,6 +28,7 @@ export function Dialog({
   open,
   onClose,
   title,
+  description,
   children,
   footer,
   dismissible = true,
@@ -34,6 +38,9 @@ export function Dialog({
 }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const descriptionId = useId();
+  const hasDescription = description != null && description !== false;
+  const hasBody = children != null && children !== false;
   const pressStartedOnBackdrop = useRef(false);
   const latest = useRef({ open, onClose, dismissible });
   latest.current = { open, onClose, dismissible };
@@ -71,6 +78,7 @@ export function Dialog({
       ref={ref}
       className={`seer-dialog${size === "wide" ? " seer-dialog-wide" : ""}${className ? ` ${className}` : ""}`}
       aria-labelledby={titleId}
+      aria-describedby={hasDescription ? descriptionId : undefined}
       onMouseDown={(event) => {
         pressStartedOnBackdrop.current = event.target === event.currentTarget;
       }}
@@ -80,9 +88,16 @@ export function Dialog({
     >
       <div className="seer-dialog-panel">
         <div className="seer-dialog-header">
-          <h2 id={titleId} className="seer-dialog-title">
-            {title}
-          </h2>
+          <div className="seer-dialog-heading">
+            <h2 id={titleId} className="seer-dialog-title">
+              {title}
+            </h2>
+            {hasDescription && (
+              <p id={descriptionId} className="seer-dialog-description">
+                {description}
+              </p>
+            )}
+          </div>
           {dismissible && (
             <button
               type="button"
@@ -94,7 +109,7 @@ export function Dialog({
             </button>
           )}
         </div>
-        <div className="seer-dialog-body">{children}</div>
+        {hasBody && <div className="seer-dialog-body">{children}</div>}
         {footer && <div className="seer-dialog-footer">{footer}</div>}
       </div>
     </dialog>

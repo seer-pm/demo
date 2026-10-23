@@ -328,11 +328,19 @@ select.seer-input {
   gap: 16px;
   padding: 20px 20px 0;
 }
+.seer-dialog-heading {
+  min-width: 0;
+}
 .seer-dialog-title {
   margin: 0;
   padding-top: 6px;
   font: 600 18px/1.3 var(--seer-font-sans);
   letter-spacing: -0.01em;
+}
+.seer-dialog-description {
+  margin: 4px 0 0;
+  color: var(--seer-muted);
+  font: 400 14px/1.5 var(--seer-font-sans);
 }
 .seer-dialog-header .seer-button {
   margin: 0 -8px 0 0;
@@ -350,9 +358,22 @@ select.seer-input {
   padding: 16px 20px 20px;
   border-top: 1px solid var(--seer-border);
 }
+/* A confirmation can be all header and actions. With no body between them, the rule would
+   separate the actions from nothing. */
+.seer-dialog-header + .seer-dialog-footer {
+  border-top: 0;
+}
 .seer-icon-close {
   mask-image: url("../assets/icons/close.svg");
   -webkit-mask-image: url("../assets/icons/close.svg");
+}
+.seer-icon-sun {
+  mask-image: url("../assets/icons/sun.svg");
+  -webkit-mask-image: url("../assets/icons/sun.svg");
+}
+.seer-icon-moon {
+  mask-image: url("../assets/icons/moon.svg");
+  -webkit-mask-image: url("../assets/icons/moon.svg");
 }
 @media (max-width: 640px) {
   .seer-dialog,
