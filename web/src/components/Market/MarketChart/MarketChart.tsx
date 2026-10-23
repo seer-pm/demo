@@ -3,8 +3,7 @@ import { type ChartData, buildChartData } from "@/hooks/chart/utils";
 import { formatDate } from "@/lib/date";
 import { ExportIcon, QuestionIcon } from "@/lib/icons";
 import { downloadCsv } from "@/lib/utils";
-import { Market, MarketTypes, fetchChartData, getMarketType } from "@seer-pm/sdk";
-import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
+import { Market, fetchChartData } from "@seer-pm/sdk";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { differenceInDays, format } from "date-fns";
@@ -14,6 +13,7 @@ import slug from "slug";
 import DateRangePicker from "../../Portfolio/DateRangePicker";
 import { Spinner } from "../../Spinner";
 import Legend from "./Legend";
+import { CHART_OPTION_PERIODS, type ChartOptionPeriod, getSeries, getSeriesColors } from "./chartSeries";
 
 export interface IOutcomeData {
   outcome: {
@@ -21,110 +21,6 @@ export interface IOutcomeData {
     color: string;
   };
   data: Array<{ time: UTCTimestamp; value: number }>;
-}
-
-const CHART_COLORS = [
-  "#a275ef",
-  "#36b8a0",
-  "#e5a653",
-  "#e27d9b",
-  "#42d4f4",
-  "#fabed4",
-  "#469990",
-  "#dcbeff",
-  "#9A6324",
-  "#ffe119",
-  "#FF6F61",
-  "#6B7280",
-  "#FBBF24",
-  "#34D399",
-  "#3B82F6",
-  "#EC4899",
-  "#F97316",
-  "#22D3EE",
-  "#84CC16",
-  "#A855F7",
-  "#EF4444",
-  "#10B981",
-  "#6366F1",
-  "#F59E0B",
-  "#06B6D4",
-  "#8B5CF6",
-  "#D97706",
-  "#14B8A6",
-  "#7C3AED",
-  "#F87171",
-  "#4ADE80",
-  "#2563EB",
-  "#FBBF24",
-  "#0EA5E9",
-  "#A78BFA",
-  "#EF6C00",
-  "#2DD4BF",
-  "#7E22CE",
-  "#DC2626",
-  "#22C55E",
-  "#1D4ED8",
-  "#EAB308",
-  "#0891B2",
-  "#9333EA",
-  "#C2410C",
-  "#14B8A6",
-  "#6D28D9",
-  "#B91C1C",
-  "#16A34A",
-  "#1E40AF",
-  "#D97706",
-  "#0E7490",
-  "#7C3AED",
-  "#991B1B",
-  "#15803D",
-  "#1E3A8A",
-  "#B45309",
-  "#0E7490",
-  "#6B21A8",
-  "#7F1D1D",
-  "#047857",
-];
-
-const CHART_OPTION_PERIODS = {
-  "1D": {
-    dayCount: 1,
-    interval: 60 * 5,
-  },
-  "1W": {
-    dayCount: 7,
-    interval: 60 * 30,
-  },
-  "1M": {
-    dayCount: 30,
-    interval: 60 * 60 * 3,
-  },
-  All: { dayCount: 365 * 10, interval: 60 * 30 },
-};
-
-type ChartOptionPeriod = keyof typeof CHART_OPTION_PERIODS;
-
-function getSeries(market: Market, chartData: ChartData["chartData"]) {
-  if (market.type === "Futarchy") {
-    return chartData
-      .map((x, index) => {
-        return {
-          ...x,
-          data: x.data,
-          originalIndex: index,
-        };
-      })
-      .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
-  }
-
-  if (getMarketType(market) === MarketTypes.SCALAR) {
-    return chartData;
-  }
-
-  return chartData
-    .filter((x) => x.name !== INVALID_RESULT_OUTCOME_TEXT)
-    .sort((a, b) => b.data[b.data.length - 1][1] - a.data[a.data.length - 1][1]);
 }
 
 function getFilteredSeries(market: Market, chartData: ChartData["chartData"]) {
@@ -259,11 +155,10 @@ function MarketChart({
   const mutateExport = useMutation({ mutationFn: () => exportData(market) });
 
   const chartSeries = useMemo(() => {
-    const fullSeries = getFilteredSeries(market, chartData);
+    const colors = getSeriesColors(market, chartData);
     return series.map((serie) => {
-      const colorIndex = fullSeries.findIndex((s) => s.name === serie.name);
       return {
-        outcome: { name: serie.name, color: CHART_COLORS?.[colorIndex] || "#000" },
+        outcome: { name: serie.name, color: colors[serie.name] ?? "#000" },
         data: serie.data.map((d) => ({ time: d[0] as UTCTimestamp, value: d[1] })),
       };
     });

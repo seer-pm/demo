@@ -506,8 +506,16 @@
   background: var(--seer-surface);
   overflow: clip;
 }
+/* The selected row is the one the trade ticket holds, so it must outrank the hover fill. */
 .event-outcome-row.is-selected {
   border-color: var(--seer-brand-purple);
+  background: var(--seer-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--seer-brand-purple);
+}
+/* The row clips its contents to its radius, which would also clip a ring drawn around the button. */
+.event-outcome-row:has(> .event-outcome-top > .event-outcome-disclosure:focus-visible) {
+  outline: 2px solid var(--seer-accent-text);
+  outline-offset: 1px;
 }
 .event-outcome-top {
   display: flex;
@@ -516,6 +524,7 @@
   padding-right: 16px;
 }
 .event-outcome-disclosure {
+  position: relative;
   display: flex;
   flex: 1;
   min-width: 0;
@@ -524,8 +533,14 @@
   padding: 17px;
   text-align: left;
 }
+.event-outcome-disclosure:focus-visible {
+  outline: none;
+}
 .event-outcome-disclosure:hover {
   background: var(--seer-surface-raised);
+}
+.event-outcome-row.is-selected .event-outcome-disclosure:hover {
+  background: color-mix(in srgb, var(--seer-brand-purple) 6%, transparent);
 }
 .event-outcome-avatar {
   width: 38px;
@@ -555,15 +570,56 @@
   color: var(--seer-muted);
   font-size: 10px;
 }
+/* Right-aligned tabular figures keep every row's odds in one column, so they compare at a glance. */
 .event-outcome-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 3.6em;
+  flex-shrink: 0;
+  text-align: right;
   font-size: 22px;
   font-weight: 500;
-  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.01em;
+}
+.event-outcome-estimate {
+  color: var(--seer-muted);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+/* Invalid pays out only if the question cannot be answered; it stays readable without competing with the real answers. */
+.event-outcome-row.is-invalid .event-outcome-price {
+  color: var(--seer-muted);
+  font-size: 16px;
 }
 .event-outcome-chevron {
+  flex-shrink: 0;
   color: var(--seer-muted);
-  width: 14px;
-  font-size: 18px;
+  transition: rotate 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.event-outcome-disclosure[aria-expanded="true"] .event-outcome-chevron {
+  rotate: 180deg;
+}
+/* Width is the outcome's price and colour its chart line, tying each row to the series above. */
+.event-outcome-meter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--outcome-color, var(--seer-border));
+  transform-origin: left;
+  pointer-events: none;
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .event-outcome-chevron,
+  .event-outcome-meter {
+    transition: none;
+  }
 }
 .event-trade-outcome {
   border-radius: var(--seer-radius-sm);

@@ -1,11 +1,12 @@
 import { Link } from "@/components/Link";
+import { useOutcomeSeriesColors } from "@/hooks/chart/useOutcomeSeriesColors";
 import { useModal } from "@/hooks/useModal";
 import { useSortedOutcomes } from "@/hooks/useSortedOutcomes";
 import { useWinningOutcomes } from "@/hooks/useWinningOutcomes";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { getFarmingUrl, getPositionUrl } from "@/lib/config";
 import { formatDate } from "@/lib/date";
-import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
+import { CheckCircleIcon, ChevronDown, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
 import {
@@ -34,7 +35,7 @@ import {
 } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Address, formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
@@ -459,6 +460,7 @@ function CompactOutcomeRow({
   isLoadingOdds,
   isActive,
   expanded,
+  color,
   openLiquidityModal,
   onActivate,
 }: {
@@ -471,6 +473,8 @@ function CompactOutcomeRow({
   isLoadingOdds: boolean;
   isActive: boolean;
   expanded: boolean;
+  /** The outcome's line colour in the market chart, absent for Invalid and single-series charts. */
+  color?: string;
   openLiquidityModal?: () => void;
   /** The whole bar is the control: it selects the outcome and toggles its order book. */
   onActivate: () => void;
@@ -485,12 +489,15 @@ function CompactOutcomeRow({
   const detailsId = `pool-details-${market.id}-${outcomeIndex}`;
   const balance = balances && balances[outcomeIndex] > 0n ? displayBalance(balances[outcomeIndex], 18, true) : null;
   return (
-    <article className={`event-outcome-row ${isActive ? "is-selected" : ""}`}>
+    <li
+      className={clsx("event-outcome-row", isActive && "is-selected", invalid && "is-invalid")}
+      style={color ? ({ "--outcome-color": color } as CSSProperties) : undefined}
+    >
       <div className="event-outcome-top">
         <button
           type="button"
           className="event-outcome-disclosure"
-          aria-pressed={isActive}
+          aria-current={isActive || undefined}
           aria-expanded={expanded}
           aria-controls={detailsId}
           onClick={onActivate}
@@ -540,9 +547,14 @@ function CompactOutcomeRow({
               </>
             )}
           </span>
-          <span className="event-outcome-chevron" aria-hidden="true">
-            {expanded ? "−" : "+"}
-          </span>
+          <ChevronDown className="event-outcome-chevron" width={14} height={14} />
+          {!isLoadingOdds && isOdd(odd) && (
+            <span
+              className="event-outcome-meter"
+              style={{ transform: `scaleX(${Math.min(Math.max(odd!, 0), 100) / 100})` }}
+              aria-hidden="true"
+            />
+          )}
         </button>
       </div>
       {expanded && (
@@ -571,7 +583,7 @@ function CompactOutcomeRow({
       <div id={detailsId} hidden={!expanded}>
         {expanded && <OutcomeActivePanel market={market} outcomeIndex={outcomeIndex} />}
       </div>
-    </article>
+    </li>
   );
 }
 
@@ -593,7 +605,7 @@ function MultiScalarEstimate({
   }
 
   return (
-    <div className="text-[13px] font-normal">
+    <div className="event-outcome-estimate">
       ~ {estimate.value} {estimate.unit}
     </div>
   );
@@ -612,6 +624,9 @@ export function Outcomes({
   const { Modal, openModal, closeModal } = useModal("liquidity-modal");
   const marketStatus = getMarketStatus(market);
   const { data: indexesOrderedByOdds } = useSortedOutcomes(odds, market, marketStatus);
+  const seriesColors = useOutcomeSeriesColors(market);
+  const isCompactList = compact && market.type === "Generic";
+  const ListTag = isCompactList ? "ul" : "div";
 
   const hasInitializedRef = useRef(false);
   // One order book at a time: each panel loads tick data and a chart, so opening a second one
@@ -631,13 +646,13 @@ export function Outcomes({
         <h2>Outcomes</h2>
         {compact && <span>Select an outcome to trade it and see its order book.</span>}
       </div>
-      <div className="space-y-3">
+      <ListTag className="space-y-3">
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
             !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
           const isActive = activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2);
-          if (compact && market.type === "Generic") {
+          if (isCompactList) {
             return (
               <CompactOutcomeRow
                 key={market.wrappedTokens[i]}
@@ -650,6 +665,7 @@ export function Outcomes({
                 isLoadingOdds={isLoading}
                 isActive={isActive}
                 expanded={openPoolDetails === i}
+                color={seriesColors[market.outcomes[i]]}
                 openLiquidityModal={openModalCallback}
                 onActivate={() => {
                   onOutcomeChange(i, false);
@@ -742,13 +758,13 @@ export function Outcomes({
             </div>
           );
         })}
-        <Modal
-          title="Add Liquidity"
-          content={
-            <AddLiquidityInfo chainId={market.chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />
-          }
-        />
-      </div>
+      </ListTag>
+      <Modal
+        title="Add Liquidity"
+        content={
+          <AddLiquidityInfo chainId={market.chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />
+        }
+      />
     </div>
   );
 }
