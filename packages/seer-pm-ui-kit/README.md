@@ -18,7 +18,7 @@ site needs stays in that site.
 | `@seer-pm/ui-kit/tailwind` | Tailwind 3 preset |
 | `@seer-pm/ui-kit` | `seerApps`, footer and social links, `convergencePaths()` |
 | `@seer-pm/ui-kit/react` | `BrandLockup`, `BrandStreak`, `EcosystemFooter` |
-| `@seer-pm/ui-kit/assets/*` | Wordmark (SVG), bird and app logo (PNG), footer icons (SVG) |
+| `@seer-pm/ui-kit/assets/*` | Wordmark (SVG), bird (WebP), app logo (PNG), footer icons (SVG) |
 
 ## Usage
 

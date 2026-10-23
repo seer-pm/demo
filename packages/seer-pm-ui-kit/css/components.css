@@ -51,9 +51,10 @@
   width: 42px;
   height: 42px;
   background: currentColor;
-  /* The supplied bird is white line art, so its luminance is the shape. */
-  mask: url("../assets/seer-bird.png") center / 120% no-repeat;
-  mask-mode: luminance;
+  /* The bird is white line art on transparency, so its alpha is the shape. 256px covers the 42px
+     lockup at 3x and the scaled lockups the app draws. */
+  mask: url("../assets/seer-bird.webp") center / 120% no-repeat;
+  -webkit-mask: url("../assets/seer-bird.webp") center / 120% no-repeat;
 }
 .seer-brand-wordmark {
   display: block;
