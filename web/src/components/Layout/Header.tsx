@@ -31,7 +31,7 @@ import { usePageContext } from "vike-react/usePageContext";
 import { useAccount, useDisconnect } from "wagmi";
 import DepositGuide from "../DepositGuide";
 import Button from "../Form/Button";
-import { BrandLockup } from "./BrandLockup";
+import { BrandLockup } from "@seer-pm/ui-kit/react";
 import { HeaderMenu, MenuChevron } from "./HeaderMenu";
 import { HeaderSearch } from "./HeaderSearch";
 import { ThemeToggleButton } from "./ThemeToggleButton";

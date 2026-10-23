@@ -1,4 +1,4 @@
-import { BrandLockup } from "@/components/Layout/BrandLockup";
+import { BrandLockup } from "@seer-pm/ui-kit/react";
 import { SVGAttributes } from "react";
 
 export const CalendarIcon = () => (

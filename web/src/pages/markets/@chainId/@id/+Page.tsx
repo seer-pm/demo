@@ -2,7 +2,7 @@ import { Alert } from "@/components/Alert";
 import "@/styles/market-detail.css";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Drawer } from "@/components/Drawer";
-import { BrandRibbon } from "@/components/Layout/BrandStreak";
+import { BrandRibbon } from "@/components/Layout/BrandRibbon";
 import { ConditionalMarketAlert } from "@/components/Market/ConditionalMarketAlert";
 import { ConditionalTokenActions } from "@/components/Market/ConditionalTokenActions";
 import { MajorEvents } from "@/components/Market/MajorEvents/MajorEvents";

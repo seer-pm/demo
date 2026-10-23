@@ -27,6 +27,8 @@
       "@seer-pm/sdk/sign-in": ["../packages/seer-pm-sdk/src/sign-in.ts"],
       "@seer-pm/react": ["../packages/seer-pm-react/src/index.ts"],
       "@seer-pm/discussions": ["../packages/seer-pm-discussions/src/index.ts"],
+      "@seer-pm/ui-kit": ["../packages/seer-pm-ui-kit/src/index.ts"],
+      "@seer-pm/ui-kit/react": ["../packages/seer-pm-ui-kit/src/react/index.ts"],
     },
 
     "types": ["vitest/globals"]

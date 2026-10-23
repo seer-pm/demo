@@ -43,6 +43,11 @@ export default defineConfig({
       "@seer-pm/sdk": path.resolve(__dirname, "../packages/seer-pm-sdk/src/index.ts"),
       "@seer-pm/react": path.resolve(__dirname, "../packages/seer-pm-react/src/index.ts"),
       "@seer-pm/discussions": path.resolve(__dirname, "../packages/seer-pm-discussions/src/index.ts"),
+      // Subpaths first: the bare "@seer-pm/ui-kit" entry would also capture "@seer-pm/ui-kit/<file>".
+      "@seer-pm/ui-kit/tokens.css": path.resolve(__dirname, "../packages/seer-pm-ui-kit/css/tokens.css"),
+      "@seer-pm/ui-kit/components.css": path.resolve(__dirname, "../packages/seer-pm-ui-kit/css/components.css"),
+      "@seer-pm/ui-kit/react": path.resolve(__dirname, "../packages/seer-pm-ui-kit/src/react/index.ts"),
+      "@seer-pm/ui-kit": path.resolve(__dirname, "../packages/seer-pm-ui-kit/src/index.ts"),
     },
   },
 });

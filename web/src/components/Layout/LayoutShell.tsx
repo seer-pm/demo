@@ -12,6 +12,7 @@ import { config } from "../../wagmi.ts";
 
 import "react-toastify/dist/ReactToastify.css";
 import "@seer-pm/ui-kit/tokens.css";
+import "@seer-pm/ui-kit/components.css";
 import "../../index.scss";
 import "../../styles/brand.css";
 import "../../styles/market-explorer.css";

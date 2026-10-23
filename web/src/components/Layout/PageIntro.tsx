@@ -1,5 +1,5 @@
 import { usePageContext } from "vike-react/usePageContext";
-import { BrandStreak } from "./BrandStreak";
+import { BrandStreak } from "@seer-pm/ui-kit/react";
 
 const sections: [string, string, string, string][] = [
   ["/leaderboard", "Find your edge", "Leaderboard", "Explore the people behind the predictions."],

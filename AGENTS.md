@@ -89,13 +89,25 @@ injected from the linked site. Notes:
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
 
-## Web UI radii
+## Electric Foundation tokens live in `@seer-pm/ui-kit`
 
-`web/src/styles/radii.css` owns the Electric Foundation radius scale: `sm` (4px) for compact
-controls and badges, `md` (10px) for surfaces, inputs and outcome rows, and `full` for pills.
-Use these CSS variables or Tailwind's `rounded-control`, `rounded-surface` and `rounded-full`;
-standard Tailwind sizes and DaisyUI also resolve to the same tokens. Do not add literal surface
-radii or page-specific overrides. Circular avatars and chart geometry keep their shape.
+`packages/seer-pm-ui-kit` owns the `--seer-*` colour, radius and font tokens, the lockup, the line
+motif and the ecosystem footer for every Seer site, including the landing and Risk Pricing outside
+this repo. `web` imports `tokens.css` and `components.css` from it; `web/src/styles/brand.css` and
+`radii.css` only map the tokens onto DaisyUI's variables and add app-specific rules.
+
+Rules:
+
+- Change a token value or a shared component in the kit, not in `web`. Other sites pick it up from
+  the published package, so a value redefined in `web` silently forks the brand.
+- Radii: `sm` (4px) for compact controls and badges, `md` (10px) for surfaces, inputs and outcome
+  rows, and `full` for pills. Use the CSS variables or Tailwind's `rounded-control`,
+  `rounded-surface` and `rounded-full`; standard Tailwind sizes and DaisyUI also resolve to them.
+  Do not add literal surface radii or page-specific overrides. Circular avatars and chart geometry
+  keep their shape.
+- `web/vite.config.ts` aliases each kit subpath (`/tokens.css`, `/components.css`, `/react`) to
+  source before the bare `@seer-pm/ui-kit` entry, which would otherwise capture them. A new subpath
+  needs its own alias there, and in `web/tsconfig.json` paths when it is TypeScript.
 
 ## Comments justify the current code, not its history
 
