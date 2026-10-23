@@ -14,28 +14,104 @@
   font: 600 14px/1.2 var(--seer-font-sans);
   text-decoration: none;
   cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
   transition:
     background-color var(--seer-duration-fast) var(--seer-ease-out),
+    border-color var(--seer-duration-fast) var(--seer-ease-out),
     color var(--seer-duration-fast) var(--seer-ease-out);
 }
+.seer-button:focus-visible {
+  outline: 2px solid var(--seer-accent-text);
+  outline-offset: 3px;
+}
+/* Hover only where the button can act, so a disabled button never looks pressable. */
 .seer-button-primary {
   background: var(--seer-brand-purple);
   color: var(--seer-brand-white);
 }
-.seer-button-primary:hover {
+.seer-button-primary:where(:not(:disabled, [aria-disabled="true"])):hover {
   background: var(--seer-brand-purple-hover);
 }
 .seer-button-secondary {
   background: var(--seer-accent-soft);
   color: var(--seer-accent-text);
 }
-.seer-button-secondary:hover {
+.seer-button-secondary:where(:not(:disabled, [aria-disabled="true"])):hover {
   background: color-mix(in srgb, var(--seer-accent-soft), var(--seer-brand-purple) 14%);
+}
+/* Outline and ghost sit beside a primary action without competing with it: outline for a
+   standalone alternative, ghost for actions inside a toolbar, a row or a dialog header. */
+.seer-button-outline {
+  background: transparent;
+  color: var(--seer-text);
+  box-shadow: inset 0 0 0 1px var(--seer-border);
+}
+.seer-button-outline:where(:not(:disabled, [aria-disabled="true"])):hover {
+  box-shadow: inset 0 0 0 1px var(--seer-accent-text);
+  color: var(--seer-accent-text);
+}
+.seer-button-ghost {
+  background: transparent;
+  color: var(--seer-text);
+}
+.seer-button-ghost:where(:not(:disabled, [aria-disabled="true"])):hover {
+  background: var(--seer-surface-raised);
+}
+.seer-button-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 13px;
+}
+.seer-button-lg {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+.seer-button-block {
+  width: 100%;
+}
+/* Square, for a control that is only an icon. It still needs an aria-label. */
+.seer-button-icon {
+  padding: 0;
+  width: 40px;
+}
+.seer-button-icon.seer-button-sm {
+  width: 32px;
+}
+.seer-button-icon.seer-button-lg {
+  width: 48px;
 }
 .seer-button:disabled,
 .seer-button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* aria-busy keeps the label and adds a spinner in front of it, so the button keeps its width
+   while a transaction is pending and the reader still knows which action is running. */
+.seer-button[aria-busy="true"] {
+  cursor: progress;
+}
+.seer-button[aria-busy="true"]::before {
+  content: "";
+  flex: none;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--seer-radius-full);
+  animation: seer-spin 0.7s linear infinite;
+}
+@keyframes seer-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seer-button[aria-busy="true"]::before {
+    animation-duration: 2.4s;
+  }
 }
 
 /* The lockup takes its colour from the surrounding text, so it works on page, surface and ink. */
@@ -64,6 +140,250 @@
   background: currentColor;
   mask: url("../assets/seer-wordmark.svg") center / contain no-repeat;
   -webkit-mask: url("../assets/seer-wordmark.svg") center / contain no-repeat;
+}
+/* An application's name after the Seer wordmark, behind a hairline: the app reads as part of Seer
+   and the wordmark stays the brand. Sized to the wordmark's cap height. */
+.seer-brand-app {
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  font: 600 18px/22px var(--seer-font-sans);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Form fields. A .seer-input is a box on its own; inside a .seer-input-group it gives the box to
+   the group, which adds a unit or an action (a token symbol, "Max") on the same line. */
+.seer-field {
+  display: grid;
+  gap: 6px;
+  font-family: var(--seer-font-sans);
+}
+.seer-label {
+  font: 600 13px/1.3 var(--seer-font-sans);
+  color: var(--seer-text);
+}
+.seer-hint {
+  font: 400 13px/1.45 var(--seer-font-sans);
+  color: var(--seer-muted);
+}
+.seer-error {
+  font: 600 13px/1.45 var(--seer-font-sans);
+  color: var(--seer-negative);
+}
+.seer-input,
+.seer-input-group {
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 1px solid var(--seer-border);
+  border-radius: var(--seer-radius-md);
+  background: var(--seer-surface);
+  color: var(--seer-text);
+  transition: border-color var(--seer-duration-fast) var(--seer-ease-out);
+}
+.seer-input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  font: 400 15px/1.4 var(--seer-font-sans);
+}
+.seer-input::placeholder {
+  color: var(--seer-muted);
+  opacity: 1;
+}
+.seer-input:hover,
+.seer-input-group:hover {
+  border-color: color-mix(in srgb, var(--seer-border), var(--seer-text) 22%);
+}
+.seer-input:focus-visible {
+  outline: 2px solid var(--seer-accent-text);
+  outline-offset: 2px;
+  border-color: var(--seer-accent-text);
+}
+/* Amounts line up digit for digit and do not shift while the value is typed. */
+.seer-input[inputmode="decimal"],
+.seer-input[inputmode="numeric"],
+.seer-input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+.seer-input:disabled,
+.seer-input-group:has(.seer-input:disabled) {
+  background: var(--seer-surface-raised);
+  color: var(--seer-muted);
+  cursor: not-allowed;
+}
+.seer-input[aria-invalid="true"],
+.seer-input-group:has([aria-invalid="true"]) {
+  border-color: var(--seer-negative);
+}
+textarea.seer-input {
+  min-height: 96px;
+  resize: vertical;
+}
+/* The chevron is drawn from two gradients so it takes the theme's muted colour. */
+select.seer-input {
+  appearance: none;
+  padding-right: 36px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--seer-muted) 50%),
+    linear-gradient(135deg, var(--seer-muted) 50%, transparent 50%);
+  background-position:
+    right 18px center,
+    right 13px center;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.seer-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 12px 6px;
+}
+.seer-input-group .seer-input {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.seer-input-group .seer-input:focus-visible {
+  outline: none;
+}
+.seer-input-group:focus-within {
+  outline: 2px solid var(--seer-accent-text);
+  outline-offset: 2px;
+  border-color: var(--seer-accent-text);
+}
+/* A button inside the group (Max, a token picker) keeps its own focus ring instead. */
+.seer-input-group:has(.seer-button:focus-visible) {
+  outline: none;
+}
+.seer-input-affix {
+  flex: none;
+  font: 600 13px/1 var(--seer-font-sans);
+  color: var(--seer-muted);
+}
+
+/* Dialog on the native <dialog>: showModal() gives focus containment, Escape and the top layer.
+   The panel fills the dialog, so a click whose target is the dialog itself landed on the backdrop.
+   On a phone it rises from the bottom edge as a sheet, within reach of the thumb. */
+.seer-dialog {
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--seer-border);
+  border-radius: var(--seer-radius-md);
+  background: var(--seer-surface);
+  color: var(--seer-text);
+  font-family: var(--seer-font-sans);
+  box-shadow: 0 24px 64px rgb(20 18 35 / 0.28);
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 180ms var(--seer-ease-out),
+    transform 240ms var(--seer-ease-out),
+    overlay 240ms allow-discrete,
+    display 240ms allow-discrete;
+}
+.seer-dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  .seer-dialog[open] {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.seer-dialog-wide {
+  width: min(640px, calc(100vw - 32px));
+}
+.seer-dialog::backdrop {
+  background: rgb(20 18 35 / 0);
+  transition:
+    background-color 240ms var(--seer-ease-out),
+    overlay 240ms allow-discrete,
+    display 240ms allow-discrete;
+}
+.seer-dialog[open]::backdrop {
+  background: rgb(20 18 35 / 0.56);
+}
+@starting-style {
+  .seer-dialog[open]::backdrop {
+    background: rgb(20 18 35 / 0);
+  }
+}
+.seer-dialog-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+.seer-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 0;
+}
+.seer-dialog-title {
+  margin: 0;
+  padding-top: 6px;
+  font: 600 18px/1.3 var(--seer-font-sans);
+  letter-spacing: -0.01em;
+}
+.seer-dialog-header .seer-button {
+  margin: 0 -8px 0 0;
+}
+.seer-dialog-body {
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.seer-dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--seer-border);
+}
+.seer-icon-close {
+  mask-image: url("../assets/icons/close.svg");
+  -webkit-mask-image: url("../assets/icons/close.svg");
+}
+@media (max-width: 640px) {
+  .seer-dialog,
+  .seer-dialog-wide {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    margin: auto 0 0;
+    border-width: 1px 0 0;
+    border-radius: var(--seer-radius-md) var(--seer-radius-md) 0 0;
+    transform: translateY(100%);
+  }
+  .seer-dialog[open] {
+    transform: none;
+  }
+  @starting-style {
+    .seer-dialog[open] {
+      transform: translateY(100%);
+    }
+  }
+  .seer-dialog-footer {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .seer-dialog-footer .seer-button {
+    flex: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seer-dialog,
+  .seer-dialog::backdrop {
+    transition-duration: 0s;
+  }
 }
 
 .seer-icon {

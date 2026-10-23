@@ -9,17 +9,19 @@ export type EcosystemFooterProps = {
   tagline?: string;
   /** Where the lockup leads. An app passes its own root, the landing keeps seer.pm. */
   homeUrl?: string;
+  /** The application's name in the lockup, as in the header. */
+  appName?: string;
 };
 
 /** The footer every Seer site closes with. Needs tokens.css and components.css. */
-export function EcosystemFooter({ groups = [], tagline, homeUrl = SEER_HOME_URL }: EcosystemFooterProps) {
+export function EcosystemFooter({ groups = [], tagline, homeUrl = SEER_HOME_URL, appName }: EcosystemFooterProps) {
   const id = useId();
   return (
     <footer className="seer-footer">
       <div className="seer-footer-inner seer-footer-top">
         <div>
-          <a href={homeUrl} aria-label="Seer home">
-            <BrandLockup />
+          <a href={homeUrl} aria-label={appName ? `Seer ${appName} home` : "Seer home"}>
+            <BrandLockup appName={appName} />
           </a>
           {tagline && <p className="seer-footer-tagline">{tagline}</p>}
         </div>

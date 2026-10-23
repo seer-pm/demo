@@ -18,6 +18,9 @@
   --color-seer-border: var(--seer-border);
   --color-seer-accent-soft: var(--seer-accent-soft);
   --color-seer-accent-text: var(--seer-accent-text);
+  --color-seer-positive: var(--seer-positive);
+  --color-seer-negative: var(--seer-negative);
+  --color-seer-warning: var(--seer-warning);
 
   --radius-control: var(--seer-radius-sm);
   --radius-surface: var(--seer-radius-md);

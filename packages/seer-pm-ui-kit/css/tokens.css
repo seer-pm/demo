@@ -40,6 +40,12 @@
   --seer-border: #e2e2e9;
   --seer-accent-soft: #efe9fc;
   --seer-accent-text: #6c2bd9;
+  /* Status text: gains and losses, errors, pending states. Each holds 4.5:1 on page, surface and
+     surface-raised, so it can carry text and not only marks. Warning is orange rather than amber so
+     it stays apart from gold, which charts use as a series colour. */
+  --seer-positive: #13795b;
+  --seer-negative: #c0283f;
+  --seer-warning: #ad4b00;
 }
 
 [data-theme="dark"],
@@ -53,4 +59,7 @@
   --seer-border: #34343c;
   --seer-accent-soft: #241e33;
   --seer-accent-text: #b18aff;
+  --seer-positive: #3ecf8e;
+  --seer-negative: #ff6b81;
+  --seer-warning: #ff9a52;
 }

@@ -25,6 +25,9 @@ module.exports = {
           border: token("--seer-border"),
           "accent-soft": token("--seer-accent-soft"),
           "accent-text": token("--seer-accent-text"),
+          positive: token("--seer-positive"),
+          negative: token("--seer-negative"),
+          warning: token("--seer-warning"),
         },
       },
       borderRadius: {
