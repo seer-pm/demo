@@ -22,6 +22,12 @@ interface IRouter {
         address market, 
         uint256 amount
     ) external;
+
+    function mergePositions(
+        address collateral,
+        address market,
+        uint256 amount
+    ) external;
 }
 
 interface IMarket {

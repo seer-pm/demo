@@ -1,15 +1,13 @@
 import { useGetTradeInfo } from "@/hooks/trade/useGetTradeInfo";
-import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import { filterChain } from "@/lib/chains";
 import { RightArrow } from "@/lib/icons";
 import { summarizeLeftovers } from "@/lib/leftovers";
 import { displayBalance, displayNumber, isTwoStringsEqual } from "@/lib/utils";
 import type { CompleteSetLeg, CompleteSetQuoteResult, CompleteSetSwapLeg, Token } from "@seer-pm/sdk";
-import { countCompleteSetBatches, getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
+import { getActiveCollateralProfile, getActiveCreditsSymbol } from "@seer-pm/sdk";
 import { type AmmTrade } from "@seer-pm/sdk";
 import { useEffect, useState } from "react";
 import { formatUnits } from "viem";
-import { useAccount } from "wagmi";
 import { Alert } from "../../Alert";
 import Button from "../../Form/Button";
 import { Spinner } from "../../Spinner";
@@ -335,8 +333,6 @@ function ShowCompleteSetSummary({
   collateral: Token;
 }) {
   const { maximumSlippage, minimumReceive, maximumSent } = useGetTradeInfo(trade)!;
-  const supports7702 = useCheck7702Support();
-  const { address: account } = useAccount();
   const leg = quoteData.completeSetLeg;
   const isSplitFirst = quoteData.route === "mintSell" || quoteData.route === "mintToCover";
 
@@ -376,35 +372,26 @@ function ShowCompleteSetSummary({
     </Alert>
   );
 
-  // Legs are packed into transactions under a gas budget; a market with many outcomes needs more than one.
-  let batchCount = 1;
-  if (supports7702 && leg && account) {
-    try {
-      batchCount = countCompleteSetBatches({ trade, account, isTradingCredits: false, completeSetLeg: leg });
-    } catch {
-      batchCount = 1;
-    }
-  }
-  const keptOnFailure = isSplitFirst
-    ? `you keep the minted tokens — you can merge them back into ${collateral.symbol} from the Merge tab`
-    : "you keep the outcome tokens already bought — you can merge them from the Merge tab once you hold the full set";
+  const partialFill = quoteData.partialFill;
+  const targetSymbol = leg?.targetOutcomeToken.symbol ?? "";
 
   return (
     <>
       <div className="min-w-[400px] min-h-[150px]">
         <CompleteSetBreakdown quoteData={quoteData} collateral={collateral} />
       </div>
-      {!supports7702 && (
+      {partialFill && (
         <Alert type="warning" className="mt-2">
-          This runs as separate transactions. If a later step fails {keptOnFailure}.
+          Only {displayBalance(partialFill.filledAmount, 18)}
+          {partialFill.requestedAmount !== undefined ? ` of ${displayBalance(partialFill.requestedAmount, 18)}` : ""}{" "}
+          {targetSymbol} can be sold right now: the pools for{" "}
+          {partialFill.limitingOutcomes.map((token) => token.symbol).join(", ")} lack liquidity. The rest stays in your
+          wallet.
         </Alert>
       )}
-      {supports7702 && batchCount > 1 && (
-        <Alert type="warning" className="mt-2">
-          This trade has too many swaps for one transaction, so it is sent as {batchCount} transactions, each confirmed
-          in your wallet. If a later one fails {keptOnFailure}.
-        </Alert>
-      )}
+      <Alert type="info" className="mt-2">
+        Runs as a single transaction through the Seer trade contract: every step succeeds or nothing changes.
+      </Alert>
       {slippageAlert}
     </>
   );

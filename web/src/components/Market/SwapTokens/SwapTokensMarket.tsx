@@ -346,7 +346,7 @@ export function SwapTokensMarket({
             (hasShortfall && !isMintToCover) ||
             lacksUpfrontCollateral
           }
-          text={isMintToCover ? "Mint & Sell" : undefined}
+          text={isMintToCover ? "Mint & Sell" : effectiveQuote.partialFill ? "Partial Swap" : undefined}
           missingApprovals={missingApprovals}
           isLoading={
             tradeTokens.isPending ||
@@ -699,6 +699,21 @@ export function SwapTokensMarket({
               {displayNumber(Number(effectiveQuote.sellAmount), 4)} {selectedCollateral.symbol}
             </span>
             .
+          </Alert>
+        )}
+        {effectiveQuote?.partialFill && (
+          <Alert type="warning">
+            Only{" "}
+            <span className="font-bold">
+              {displayBalance(effectiveQuote.partialFill.filledAmount, 18, false)}
+              {effectiveQuote.partialFill.requestedAmount !== undefined
+                ? ` of ${displayBalance(effectiveQuote.partialFill.requestedAmount, 18, false)}`
+                : ""}{" "}
+              {outcomeText}
+            </span>{" "}
+            can be sold right now: the pools for{" "}
+            {effectiveQuote.partialFill.limitingOutcomes.map((token) => token.symbol).join(", ")} lack liquidity. The
+            rest stays in your wallet.
           </Alert>
         )}
         {lacksUpfrontCollateral && requiredCollateral !== undefined && (

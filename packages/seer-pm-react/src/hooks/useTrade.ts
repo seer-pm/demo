@@ -5,7 +5,7 @@ import {
   type Psm3Leg,
   type TradeTokensProps as SdkTradeTokensProps,
   type TxNotifierFn,
-  buildTradeBatches7702,
+  buildTradeCalls7702,
   tradeTokens as sdkTradeTokens,
 } from "@seer-pm/sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,43 +36,35 @@ async function tradeTokens(
 }
 
 /**
- * A trade is usually one batch. A complete-set route with many legs can need several, sent in
- * order and each confirmed by the wallet; a failure in between leaves the earlier batches done.
+ * One `sendCalls` batch, required to be atomic: a complete-set route is a single trader call and
+ * every other trade is an approval plus a swap, and none of them may land half-way.
  */
 async function tradeTokens7702(
   props: TradeTokensProps,
   client: Client,
   txNotifier: TxNotifierFn,
 ): Promise<TransactionReceipt> {
-  const batches = await buildTradeBatches7702(props);
-  let receipt: TransactionReceipt | undefined;
+  const calls = await buildTradeCalls7702(props);
 
-  for (const [index, calls] of batches.entries()) {
-    const isLast = index === batches.length - 1;
-    const step = batches.length > 1 ? ` (${index + 1}/${batches.length})` : "";
-    const result = await txNotifier(
-      () =>
-        sendCalls(client, {
-          calls,
-          chain: client.chain,
-          account: client.account,
-        }),
-      {
-        txSent: { title: `Executing trade${step}...` },
-        txSuccess: { title: isLast ? "Trade executed!" : `Trade step ${index + 1} of ${batches.length} done` },
-      },
-    );
+  const result = await txNotifier(
+    () =>
+      sendCalls(client, {
+        calls,
+        chain: client.chain,
+        account: client.account,
+        forceAtomic: true,
+      }),
+    {
+      txSent: { title: "Executing trade..." },
+      txSuccess: { title: "Trade executed!" },
+    },
+  );
 
-    if (!result.status) {
-      throw result.error;
-    }
-    receipt = result.receipt as TransactionReceipt;
+  if (!result.status) {
+    throw result.error;
   }
 
-  if (!receipt) {
-    throw new Error("Trade has no calls to execute");
-  }
-  return receipt;
+  return result.receipt as TransactionReceipt;
 }
 
 function useTradeLegacy(

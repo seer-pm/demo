@@ -77,10 +77,19 @@ complete-set routes in `complete-set-quote.ts` / `complete-set-trade.ts`: buying
 collateral and sells every other outcome, selling it buys every other outcome and merges. Rules that
 follow from that:
 
-- A route has one AMM leg per other outcome (`CompleteSetLeg.swapLegs`). On a market with many
-  outcomes the 7702 calls are packed into several batches under `COMPLETE_SET_BATCH_GAS_BUDGET`
-  (EIP-7825 caps every transaction at 2^24 gas on every chain we support); the split opens the first
-  batch and the merge closes the last, so a failure in between leaves the user holding tokens, not short.
+- A route has one AMM leg per other outcome (`CompleteSetLeg.swapLegs`) and runs as **one transaction**
+  through `CompleteSetTrader` (`contracts/src/trade/CompleteSetTrader.sol`): the wallet approves the
+  trader for what it pulls (collateral, held outcome tokens) and sends a single call; the trader splits
+  or merges through the Router, runs the Lens swaps with itself as recipient (targets restricted to an
+  allowlist fixed at deployment) and sweeps everything back. On the buy side every sold token must end
+  at balance 0 or the trade reverts. Wallets with and without 7702 both use it (`complete-set-trade.ts`).
+- EIP-7825 caps every transaction at 2^24 gas, so `estimateCompleteSetGas` refuses routes with more
+  legs than fit `COMPLETE_SET_TX_GAS_BUDGET` at quote time.
+- The Lens quoter never reports a partial fill: past a pool's depth an exact-in sell quotes as fully
+  consumed at a collapsing price and an exact-out buy quotes too cheap. `complete-set-quote.ts` probes
+  depth with exact-in quotes instead: buying Invalid refuses (`CompleteSetLiquidityError`) when any
+  other outcome cannot be sold in full; selling Invalid caps the amount to what the pools can supply
+  and reports it in `partialFill` ("sell what you can").
 - `requiredCollateral` on the leg is what the wallet must hold up front (the whole split, or every buy
   at its slippage limit), far above the net cost the quote reports. Check balances against it.
 - Invalid is liquid when every other outcome is (`useMarketHasLiquidity`), and only market orders

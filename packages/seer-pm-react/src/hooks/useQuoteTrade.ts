@@ -262,9 +262,17 @@ export function useQuoteTrade(
     isLoading: directQuery.isLoading || (completeSetEnabled && completeSetQuery.isLoading),
     isFetching: directQuery.isFetching || completeSetQuery.isFetching,
     // Invalid has no pool, so its direct quote always fails with "No route found" while the
-    // complete-set route is the real answer: an error only stands when there is no quote at all.
-    error: data ? null : (directQuery.error ?? completeSetQuery.error),
+    // complete-set route is the real answer: an error only stands when there is no quote at all,
+    // and the complete-set one says why (which leg lacks liquidity) where the direct one cannot.
+    error: data ? null : pickQuoteError(directQuery.error, completeSetQuery.error),
   };
+}
+
+function pickQuoteError(directError: Error | null, completeSetError: Error | null): Error | null {
+  if (completeSetError && (!directError || directError.message === "No route found")) {
+    return completeSetError;
+  }
+  return directError ?? completeSetError;
 }
 
 export type { CompleteSetQuoteResult };

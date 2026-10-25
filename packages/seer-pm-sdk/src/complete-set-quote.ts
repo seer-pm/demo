@@ -13,6 +13,7 @@ import type { Address, Client, PublicClient } from "viem";
 import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
 import { multicall } from "viem/actions";
 import type { AmmTrade } from "./amm-trade";
+import { COMPLETE_SET_TX_GAS_BUDGET, estimateCompleteSetGas } from "./complete-set-trade";
 import { isCompleteSetMarket } from "./market";
 import type { Market } from "./market-types";
 import { isPsm3SwapToken } from "./psm3";
@@ -98,12 +99,55 @@ export interface CompleteSetLeg {
   invalidOutcomeToken?: Token;
 }
 
+/** buy+merge: the sell was capped by pool depth and covers part of what was asked ("sell what you can"). */
+export interface CompleteSetPartialFill {
+  /** Target outcome tokens the route sells. */
+  filledAmount: bigint;
+  /** Target outcome tokens asked for; absent on exact output, where the user asked for collateral. */
+  requestedAmount?: bigint;
+  /** Outcomes whose pools cannot supply more. */
+  limitingOutcomes: Token[];
+}
+
 export interface CompleteSetQuoteResult extends QuoteTradeResult {
   route: CompleteSetRoute;
   netCollateral: bigint;
   completeSetLeg?: CompleteSetLeg;
   /** Present when route is mintSell or buyMerge and beats direct. Never set for mintToCover. */
   savingsPercent?: number;
+  partialFill?: CompleteSetPartialFill;
+}
+
+/**
+ * A quote that failed because a pool cannot fill the leg, whatever way the quoter reports it: Lens
+ * reverts `NoRoute` on an empty pool, and its gas guard throws `SwapRevertsError` (the built swap
+ * reverts, e.g. an exact-out past the depth) or `InsufficientLiquidityError` (too many ticks).
+ */
+export function isLiquidityQuoteError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return (
+    error.message === "No route found" ||
+    error.name === "SwapRevertsError" ||
+    error.name === "InsufficientLiquidityError"
+  );
+}
+
+/** A complete-set route refused because some other outcome's pool cannot fill its leg. */
+export class CompleteSetLiquidityError extends Error {
+  readonly outcomes: Token[];
+
+  constructor(outcomes: Token[], direction: "sell" | "buy") {
+    const names = outcomes.map((token) => token.symbol).join(", ");
+    super(
+      direction === "sell"
+        ? `Not enough liquidity to sell ${names} for this amount. Try a smaller amount.`
+        : `Not enough liquidity to buy ${names} right now.`,
+    );
+    this.name = "CompleteSetLiquidityError";
+    this.outcomes = outcomes;
+  }
 }
 
 export function getOppositeOutcomeIndex(index: 0 | 1): 0 | 1 {
@@ -563,6 +607,50 @@ async function quoteSellLegs(ctx: CompleteSetQuoteContext, amount: bigint): Prom
   };
 }
 
+/** How much more than the leg the sell probe quotes, in basis points of the amount. */
+const SELL_PROBE_BPS = 10_100n;
+
+/**
+ * The quoter cannot say that a sell ran out of liquidity: past the pool's depth it reports the whole
+ * input as consumed at a collapsing price, and the swap would leave the remainder unsold. A slightly
+ * larger sell exposes it: no extra output means the pool was dry before `amount`. Throws
+ * `CompleteSetLiquidityError` naming every exhausted outcome.
+ */
+async function assertSellLegsFullyFilled(ctx: CompleteSetQuoteContext, sellQuote: SellLegsQuote): Promise<void> {
+  const probes = await Promise.all(
+    sellQuote.legs.map(async (leg): Promise<Token | undefined> => {
+      const probeAmount = (leg.amount * SELL_PROBE_BPS) / 10_000n;
+      try {
+        const probe = await fetchAmmQuote(
+          ctx.client,
+          TradeType.EXACT_INPUT,
+          ctx.market.chainId,
+          ctx.account,
+          formatUnits(probeAmount, leg.outcomeToken.decimals),
+          leg.outcomeToken,
+          ctx.poolCollateral,
+          "sell",
+          ctx.maxSlippage,
+        );
+        return probe.value <= leg.trade.amountOut ? leg.outcomeToken : undefined;
+      } catch (error) {
+        if (isLiquidityQuoteError(error)) {
+          return leg.outcomeToken;
+        }
+        throw error;
+      }
+    }),
+  );
+
+  const exhausted = probes.filter((token): token is Token => token !== undefined);
+  if (exhausted.length > 0) {
+    console.log("[complete-set] mint+sell refused: a pool cannot absorb its leg", {
+      outcomes: exhausted.map((token) => token.symbol),
+    });
+    throw new CompleteSetLiquidityError(exhausted, "sell");
+  }
+}
+
 interface BuyLegsQuote {
   legs: CompleteSetSwapLeg[];
   /** Collateral every buy costs at the quoted price, added up. */
@@ -572,46 +660,74 @@ interface BuyLegsQuote {
   heldOutcomeTokens: CompleteSetLeftover[];
 }
 
+/** One exact-out buy leg, or the liquidity error that stopped it. */
+interface BuyLegAttempt {
+  outcomeIndex: number;
+  outcomeToken: Token;
+  /** Outcome tokens taken from the wallet instead of bought. */
+  held: bigint;
+  buyAmount: bigint;
+  leg?: CompleteSetSwapLeg;
+  cost: bigint;
+  maxIn: bigint;
+  error?: unknown;
+}
+
+async function quoteBuyLeg(
+  ctx: CompleteSetQuoteContext,
+  outcomeIndex: number,
+  mergeAmount: bigint,
+  balances: WalletBalances | undefined,
+): Promise<BuyLegAttempt> {
+  const outcomeToken = getOutcomeToken(ctx.market, outcomeIndex);
+  const balance = balances?.outcomes[outcomeIndex] ?? 0n;
+  const held = balance < mergeAmount ? balance : mergeAmount;
+  const buyAmount = mergeAmount - held;
+  const attempt: BuyLegAttempt = { outcomeIndex, outcomeToken, held, buyAmount, cost: 0n, maxIn: 0n };
+  if (buyAmount === 0n) {
+    return attempt;
+  }
+  try {
+    const quote = await fetchAmmQuote(
+      ctx.client,
+      TradeType.EXACT_OUTPUT,
+      ctx.market.chainId,
+      ctx.account,
+      formatUnits(buyAmount, outcomeToken.decimals),
+      outcomeToken,
+      ctx.poolCollateral,
+      "buy",
+      ctx.maxSlippage,
+    );
+    return {
+      ...attempt,
+      leg: { outcomeIndex, outcomeToken, trade: quote.trade, amount: buyAmount },
+      cost: quote.value,
+      maxIn: getMaximumAmountIn(quote.trade),
+    };
+  } catch (error) {
+    if (isLiquidityQuoteError(error)) {
+      return { ...attempt, error };
+    }
+    throw error;
+  }
+}
+
 /**
  * Buy what is missing of every swapped outcome to merge `mergeAmount` sets. Outcome tokens the
  * wallet already holds are used first, so a user sitting on part of the set only buys the rest.
+ * Legs a pool cannot fill come back in `short` instead of failing the whole quote.
  */
-async function quoteBuyLegs(
+async function quoteBuyLegsAt(
   ctx: CompleteSetQuoteContext,
   mergeAmount: bigint,
   balances: WalletBalances | undefined,
-): Promise<BuyLegsQuote> {
-  const quoted = await Promise.all(
-    ctx.swapOutcomeIndexes.map(async (outcomeIndex) => {
-      const outcomeToken = getOutcomeToken(ctx.market, outcomeIndex);
-      const balance = balances?.outcomes[outcomeIndex] ?? 0n;
-      const held = balance < mergeAmount ? balance : mergeAmount;
-      const buyAmount = mergeAmount - held;
-      if (buyAmount === 0n) {
-        return { outcomeToken, held, leg: undefined, cost: 0n, maxIn: 0n };
-      }
-      const quote = await fetchAmmQuote(
-        ctx.client,
-        TradeType.EXACT_OUTPUT,
-        ctx.market.chainId,
-        ctx.account,
-        formatUnits(buyAmount, outcomeToken.decimals),
-        outcomeToken,
-        ctx.poolCollateral,
-        "buy",
-        ctx.maxSlippage,
-      );
-      return {
-        outcomeToken,
-        held,
-        leg: { outcomeIndex, outcomeToken, trade: quote.trade, amount: buyAmount },
-        cost: quote.value,
-        maxIn: getMaximumAmountIn(quote.trade),
-      };
-    }),
+): Promise<{ quote: BuyLegsQuote; short: BuyLegAttempt[] }> {
+  const attempts = await Promise.all(
+    ctx.swapOutcomeIndexes.map((outcomeIndex) => quoteBuyLeg(ctx, outcomeIndex, mergeAmount, balances)),
   );
 
-  const result: BuyLegsQuote = {
+  const quote: BuyLegsQuote = {
     legs: [],
     buyCost: 0n,
     maxCollateralIn: 0n,
@@ -620,17 +736,97 @@ async function quoteBuyLegs(
       amount: mergeAmount,
     })),
   };
-  for (const entry of quoted) {
-    if (entry.held > 0n) {
-      result.heldOutcomeTokens.push({ token: entry.outcomeToken, amount: entry.held });
+  for (const attempt of attempts) {
+    if (attempt.held > 0n) {
+      quote.heldOutcomeTokens.push({ token: attempt.outcomeToken, amount: attempt.held });
     }
-    if (entry.leg) {
-      result.legs.push(entry.leg);
-      result.buyCost += entry.cost;
-      result.maxCollateralIn += entry.maxIn;
+    if (attempt.leg) {
+      quote.legs.push(attempt.leg);
+      quote.buyCost += attempt.cost;
+      quote.maxCollateralIn += attempt.maxIn;
     }
   }
-  return result;
+  return { quote, short: attempts.filter((attempt) => attempt.error !== undefined) };
+}
+
+/** Collateral the depth probe offers, as a multiple of the buy it replaces. */
+const BUY_PROBE_MULTIPLIER = 2n;
+/** Share of the probed depth an exact-out buy may ask for, in basis points (the rest is rounding room). */
+const BUY_DEPTH_HAIRCUT_BPS = 9_950n;
+/** Re-quotes at a capped amount before giving up, shaving 1% each time a pool still refuses. */
+const BUY_CAP_MAX_ATTEMPTS = 3;
+
+/**
+ * Most outcome tokens a pool can sell. An exact-out past the depth fails without saying how far, but
+ * an exact-in *buy* with more collateral than needed drains the pool and reports what came out.
+ */
+async function probeMaxBuyable(ctx: CompleteSetQuoteContext, attempt: BuyLegAttempt): Promise<bigint> {
+  try {
+    const probe = await fetchAmmQuote(
+      ctx.client,
+      TradeType.EXACT_INPUT,
+      ctx.market.chainId,
+      ctx.account,
+      formatUnits(attempt.buyAmount * BUY_PROBE_MULTIPLIER, ctx.poolCollateral.decimals),
+      attempt.outcomeToken,
+      ctx.poolCollateral,
+      "buy",
+      ctx.maxSlippage,
+    );
+    return (probe.value * BUY_DEPTH_HAIRCUT_BPS) / 10_000n;
+  } catch (error) {
+    if (isLiquidityQuoteError(error)) {
+      return 0n;
+    }
+    throw error;
+  }
+}
+
+interface CappedBuyLegsQuote extends BuyLegsQuote {
+  /** Sets the legs cover: what was asked, or less when a pool cannot supply that many. */
+  mergeAmount: bigint;
+  /** Outcomes whose pools capped the amount; empty when nothing did. */
+  limitingOutcomes: Token[];
+}
+
+/**
+ * Buy legs for `mergeAmount` sets, or for as many as the pools can supply ("sell what you can").
+ * Legs that fail for lack of liquidity are probed for depth and the amount is cut to the smallest
+ * one; a failure the probe does not explain is rethrown as it came.
+ */
+async function quoteBuyLegsCapped(
+  ctx: CompleteSetQuoteContext,
+  mergeAmount: bigint,
+  balances: WalletBalances | undefined,
+): Promise<CappedBuyLegsQuote> {
+  let attempt = await quoteBuyLegsAt(ctx, mergeAmount, balances);
+  if (attempt.short.length === 0) {
+    return { ...attempt.quote, mergeAmount, limitingOutcomes: [] };
+  }
+
+  const depths = await Promise.all(
+    attempt.short.map(async (short) => ({ short, cap: short.held + (await probeMaxBuyable(ctx, short)) })),
+  );
+  const limiting = depths.filter((depth) => depth.cap < mergeAmount);
+  if (limiting.length === 0) {
+    throw attempt.short[0].error;
+  }
+  const limitingOutcomes = limiting.map((depth) => depth.short.outcomeToken);
+  let capped = limiting.reduce((min, depth) => (depth.cap < min ? depth.cap : min), mergeAmount);
+  console.log("[complete-set] buy+merge capped by pool depth", {
+    requested: formatUnits(mergeAmount, 18),
+    capped: formatUnits(capped, 18),
+    limitingOutcomes: limitingOutcomes.map((token) => token.symbol),
+  });
+
+  for (let tries = 0; tries < BUY_CAP_MAX_ATTEMPTS && capped > 0n; tries++) {
+    attempt = await quoteBuyLegsAt(ctx, capped, balances);
+    if (attempt.short.length === 0) {
+      return { ...attempt.quote, mergeAmount: capped, limitingOutcomes };
+    }
+    capped = (capped * 99n) / 100n;
+  }
+  throw new CompleteSetLiquidityError(limitingOutcomes, "buy");
 }
 
 const MINT_SELL_EXACT_INPUT_MAX_QUOTES = 6;
@@ -719,6 +915,8 @@ async function quoteMintSellBuy(params: {
     ({ splitAmount, sellQuote } = await findLargestSplitWithinBudget(ctx, parsedAmount, balances?.collateral));
   }
 
+  await assertSellLegsFullyFilled(ctx, sellQuote);
+
   const netCollateralIn = splitAmount > sellQuote.proceeds ? splitAmount - sellQuote.proceeds : 0n;
   const [firstLeg] = sellQuote.legs;
 
@@ -779,9 +977,15 @@ function getBuyMergeBalanceChecks(
 
 function buildBuyMergeResult(
   ctx: CompleteSetQuoteContext,
-  params: { mergeAmount: bigint; buyQuote: BuyLegsQuote; value: bigint; sellAmount: string },
+  params: {
+    mergeAmount: bigint;
+    buyQuote: BuyLegsQuote;
+    value: bigint;
+    sellAmount: string;
+    partialFill?: CompleteSetPartialFill;
+  },
 ): CompleteSetQuoteResult {
-  const { mergeAmount, buyQuote, value, sellAmount } = params;
+  const { mergeAmount, buyQuote, value, sellAmount, partialFill } = params;
   const [firstLeg] = buyQuote.legs;
   const invalidOutcomeIndex = getInvalidOutcomeIndex(ctx.market);
 
@@ -795,6 +999,7 @@ function buildBuyMergeResult(
     trade: firstLeg.trade,
     route: "buyMerge",
     netCollateral: buyQuote.buyCost,
+    partialFill,
     completeSetLeg: {
       route: "buyMerge",
       mergeAmount,
@@ -847,19 +1052,29 @@ async function quoteBuyMergeSellExactInput(params: {
     return undefined;
   }
 
-  const mergeAmount = parseUnits(amount, ctx.targetOutcomeToken.decimals);
-  if (mergeAmount <= 0n) {
+  const requestedAmount = parseUnits(amount, ctx.targetOutcomeToken.decimals);
+  if (requestedAmount <= 0n) {
     return undefined;
   }
 
   const balances = await fetchWalletBalances(ctx);
-  const buyQuote = await quoteBuyLegs(ctx, mergeAmount, balances);
+  const buyQuote = await quoteBuyLegsCapped(ctx, requestedAmount, balances);
+  const { mergeAmount } = buyQuote;
   if (!canExecuteBuyMerge(ctx, balances, mergeAmount, buyQuote)) {
     return undefined;
   }
 
   const netCollateralOut = mergeAmount > buyQuote.buyCost ? mergeAmount - buyQuote.buyCost : 0n;
-  return buildBuyMergeResult(ctx, { mergeAmount, buyQuote, value: netCollateralOut, sellAmount: amount });
+  return buildBuyMergeResult(ctx, {
+    mergeAmount,
+    buyQuote,
+    value: netCollateralOut,
+    sellAmount: formatUnits(mergeAmount, ctx.targetOutcomeToken.decimals),
+    partialFill:
+      mergeAmount < requestedAmount
+        ? { filledAmount: mergeAmount, requestedAmount, limitingOutcomes: buyQuote.limitingOutcomes }
+        : undefined,
+  });
 }
 
 const BUY_MERGE_SEARCH_MAX_EXPONENTIAL_STEPS = 32;
@@ -938,12 +1153,22 @@ export async function searchMinimalAmountForTargetNetOut<T>(params: {
   return { amount: bestAmount, netOut: bestEval.netOut, payload: bestEval.payload };
 }
 
-/** Minimal mergeAmount such that mergeAmount - buyCost(mergeAmount) >= desiredOut. */
+function getNetCollateralOut(buyQuote: CappedBuyLegsQuote): bigint {
+  return buyQuote.mergeAmount > buyQuote.buyCost ? buyQuote.mergeAmount - buyQuote.buyCost : 0n;
+}
+
+/**
+ * Minimal mergeAmount such that mergeAmount - buyCost(mergeAmount) >= desiredOut. When a pool caps
+ * the amount below what the target needs, the capped quote is returned as partial instead: it is the
+ * most that can be sold. Amounts past a cap reuse the capped quote rather than asking the pools again.
+ */
 async function findMinimalMergeAmountForDesiredOut(
   ctx: CompleteSetQuoteContext,
   desiredOut: bigint,
   balances: WalletBalances | undefined,
-): Promise<{ mergeAmount: bigint; buyQuote: BuyLegsQuote; netCollateralOut: bigint } | undefined> {
+): Promise<{ buyQuote: CappedBuyLegsQuote; netCollateralOut: bigint; isPartial: boolean } | undefined> {
+  let cappedQuote: CappedBuyLegsQuote | undefined;
+
   const searchResult = await searchMinimalAmountForTargetNetOut({
     desiredOut,
     initialGuess: desiredOut,
@@ -951,21 +1176,24 @@ async function findMinimalMergeAmountForDesiredOut(
       if (mergeAmount <= 0n) {
         return undefined;
       }
-      const buyQuote = await quoteBuyLegs(ctx, mergeAmount, balances);
-      const netOut = mergeAmount > buyQuote.buyCost ? mergeAmount - buyQuote.buyCost : 0n;
-      return { netOut, payload: buyQuote };
+      if (cappedQuote && mergeAmount >= cappedQuote.mergeAmount) {
+        return { netOut: getNetCollateralOut(cappedQuote), payload: cappedQuote };
+      }
+      const buyQuote = await quoteBuyLegsCapped(ctx, mergeAmount, balances);
+      if (buyQuote.mergeAmount < mergeAmount) {
+        cappedQuote = buyQuote;
+      }
+      return { netOut: getNetCollateralOut(buyQuote), payload: buyQuote };
     },
   });
 
-  if (!searchResult) {
-    return undefined;
+  if (searchResult && searchResult.netOut >= desiredOut) {
+    return { buyQuote: searchResult.payload, netCollateralOut: searchResult.netOut, isPartial: false };
   }
-
-  return {
-    mergeAmount: searchResult.amount,
-    buyQuote: searchResult.payload,
-    netCollateralOut: searchResult.netOut,
-  };
+  if (cappedQuote) {
+    return { buyQuote: cappedQuote, netCollateralOut: getNetCollateralOut(cappedQuote), isPartial: true };
+  }
+  return undefined;
 }
 
 async function quoteBuyMergeSellExactOutput(params: {
@@ -989,11 +1217,12 @@ async function quoteBuyMergeSellExactOutput(params: {
 
   const balances = await fetchWalletBalances(ctx);
   const searchResult = await findMinimalMergeAmountForDesiredOut(ctx, desiredOut, balances);
-  if (!searchResult || searchResult.netCollateralOut < desiredOut) {
+  if (!searchResult) {
     return undefined;
   }
 
-  const { mergeAmount, buyQuote } = searchResult;
+  const { buyQuote, isPartial } = searchResult;
+  const { mergeAmount } = buyQuote;
   if (!canExecuteBuyMerge(ctx, balances, mergeAmount, buyQuote)) {
     return undefined;
   }
@@ -1003,7 +1232,25 @@ async function quoteBuyMergeSellExactOutput(params: {
     buyQuote,
     value: mergeAmount,
     sellAmount: formatUnits(mergeAmount, ctx.targetOutcomeToken.decimals),
+    partialFill: isPartial ? { filledAmount: mergeAmount, limitingOutcomes: buyQuote.limitingOutcomes } : undefined,
   });
+}
+
+/**
+ * A route runs as one transaction, and EIP-7825 caps every transaction at 2^24 gas: a market with
+ * more outcomes than fit cannot trade this way at all.
+ */
+function assertFitsOneTransaction(market: Market, targetOutcomeIndex: number, swapType: "buy" | "sell"): void {
+  const gas = estimateCompleteSetGas({
+    chainId: market.chainId,
+    route: swapType === "buy" ? "mintSell" : "buyMerge",
+    legCount: getCompleteSetSwapOutcomeIndexes(market, targetOutcomeIndex).length,
+    outcomeCount: market.wrappedTokens.length,
+  });
+  if (gas > COMPLETE_SET_TX_GAS_BUDGET) {
+    const symbol = getOutcomeToken(market, targetOutcomeIndex).symbol;
+    throw new Error(`Too many outcomes to trade ${symbol} in one transaction.`);
+  }
 }
 
 export async function fetchCompleteSetAlternativeQuote(params: {
@@ -1024,6 +1271,7 @@ export async function fetchCompleteSetAlternativeQuote(params: {
   if (!client) {
     throw new Error("Public client is required for complete-set AMM quotes");
   }
+  assertFitsOneTransaction(market, targetOutcomeIndex, swapType);
 
   const quoteParams = {
     market,

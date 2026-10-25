@@ -33,7 +33,7 @@ contract BaseTest is Test {
     bytes32 constant INVALID_RESULT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     bytes32 constant ANSWERED_TOO_SOON = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
-    function setUp() public {
+    function setUp() public virtual {
         uint256 forkId = vm.createFork("https://rpc.gnosischain.com");
         vm.selectFork(forkId);
 

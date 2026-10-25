@@ -163,7 +163,6 @@ export type { QuoteAmmTradeParams } from "./amm-trade";
 export {
   executeAmmTrade,
   tradeTokens,
-  buildTradeBatches7702,
   buildTradeCalls7702,
   buildAmmTradeExecution,
   getMaximumAmountIn,
@@ -219,10 +218,12 @@ export {
 export type {
   CompleteSetLeftover,
   CompleteSetLeg,
+  CompleteSetPartialFill,
   CompleteSetQuoteResult,
   CompleteSetRoute,
   CompleteSetSwapLeg,
 } from "./complete-set-quote";
+export { CompleteSetLiquidityError, isLiquidityQuoteError } from "./complete-set-quote";
 export { buildMintToCoverQuote, isMintToCoverEligible } from "./mint-to-cover";
 export type { MintToCoverParams, MintToCoverStatus } from "./mint-to-cover";
 export {
@@ -231,15 +232,16 @@ export {
   getPsm3CompositeApprovalTokens,
 } from "./psm3-composite-trade";
 export {
-  COMPLETE_SET_BATCH_GAS_BUDGET,
-  buildCompleteSetTradeBatches7702,
+  COMPLETE_SET_TX_GAS_BUDGET,
   buildCompleteSetTradeCalls7702,
-  countCompleteSetBatches,
+  buildCompleteSetTraderExecution,
+  estimateCompleteSetGas,
   executeCompleteSetTrade,
   getCompleteSetApprovalTokens,
   getCompleteSetGasProfile,
 } from "./complete-set-trade";
 export type { CompleteSetGasProfile } from "./complete-set-trade";
+export { completeSetTraderAbi, completeSetTraderAddress, getCompleteSetTraderAddress } from "./complete-set-trader";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
 export { marketAbi } from "../generated/contracts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";

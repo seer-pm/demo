@@ -1,22 +1,35 @@
+/**
+ * Complete-set execution through the CompleteSetTrader: one trader call per route, preceded only
+ * by the approvals for what the trader pulls from the wallet.
+ */
 import {
   AmmTrade,
-  COMPLETE_SET_BATCH_GAS_BUDGET,
+  COMPLETE_SET_TX_GAS_BUDGET,
   type CompleteSetLeg,
   type TradeTokensProps,
-  buildCompleteSetTradeBatches7702,
   buildCompleteSetTradeCalls7702,
-  countCompleteSetBatches,
+  completeSetTraderAbi,
+  completeSetTraderAddress,
+  estimateCompleteSetGas,
   getCompleteSetApprovalTokens,
-  getCompleteSetGasProfile,
 } from "@seer-pm/sdk";
-import type { Address } from "viem";
-import { decodeFunctionData, erc20Abi, zeroAddress } from "viem";
-import { describe, expect, it } from "vitest";
+import type { Address, Hex } from "viem";
+import { decodeFunctionData, erc20Abi } from "viem";
+import { describe, expect, it, vi } from "vitest";
 
 const account = "0x0000000000000000000000000000000000000001" as Address;
 const collateralToken = "0x0000000000000000000000000000000000000002" as Address;
 const outcomeToken = "0x0000000000000000000000000000000000000003" as Address;
 const oppositeOutcomeToken = "0x0000000000000000000000000000000000000004" as Address;
+const invalidToken = "0x00000000000000000000000000000000000000ff" as Address;
+const dex = "0x00000000000000000000000000000000000000ab" as Address;
+const otherDex = "0x00000000000000000000000000000000000000cd" as Address;
+const trader = "0x0000000000000000000000000000000000007a5e" as Address;
+const marketId = "0x0000000000000000000000000000000000000abc" as Address;
+
+Object.assign(completeSetTraderAddress, { 100: trader });
+
+const lower = (address: string) => address.toLowerCase();
 
 function createMockAmmTrade(
   overrides: {
@@ -24,23 +37,21 @@ function createMockAmmTrade(
     maximumAmountIn?: () => bigint;
     tokenIn?: { address: Address; symbol: string; decimals: number; chainId: number };
     tokenOut?: { address: Address; symbol: string; decimals: number; chainId: number };
+    swapData?: Hex;
   } = {},
 ) {
+  const { swapData = "0x1234", ...rest } = overrides;
   const trade = Object.create(AmmTrade.prototype) as AmmTrade;
   Object.assign(trade, {
-    approveAddress: "0x00000000000000000000000000000000000000ab",
+    approveAddress: dex,
     chainId: 100,
     tokenIn: { address: collateralToken, symbol: "sDAI", decimals: 18, chainId: 100 },
     tokenOut: { address: outcomeToken, symbol: "YES", decimals: 18, chainId: 100 },
     amountIn: 1000000000000000000n,
     amountOut: 1000000000000000000n,
     maximumAmountIn: () => 1000000000000000000n,
-    swapTransaction: async () => ({
-      to: "0x00000000000000000000000000000000000000ab",
-      data: "0x",
-      value: 0n,
-    }),
-    ...overrides,
+    swapTransaction: vi.fn(async () => ({ to: rest.approveAddress ?? dex, data: swapData, value: 0n })),
+    ...rest,
   });
   return trade;
 }
@@ -52,7 +63,7 @@ function createBaseCompleteSetLeg(
   return {
     route,
     secondaryTrade: createMockAmmTrade(),
-    market: { id: zeroAddress, type: "Generic", chainId: 100 },
+    market: { id: marketId, type: "Generic", chainId: 100 },
     collateralToken,
     targetOutcomeIndex: 0,
     oppositeOutcomeIndex: 1,
@@ -71,6 +82,65 @@ function createProps(completeSetLeg: CompleteSetLeg, trade = createMockAmmTrade(
   };
 }
 
+const decodeApprove = (call: { to: Address; data: Hex }) => {
+  const decoded = decodeFunctionData({ abi: erc20Abi, data: call.data });
+  expect(decoded.functionName).toBe("approve");
+  // viem checksums decoded addresses; the fixtures are lowercase.
+  return {
+    token: call.to,
+    spender: lower(decoded.args?.[0] as string),
+    amount: decoded.args?.[1] as bigint,
+  };
+};
+
+function decodeMintAndSell(call: { to: Address; data: Hex }) {
+  expect(call.to).toBe(trader);
+  const decoded = decodeFunctionData({ abi: completeSetTraderAbi, data: call.data });
+  expect(decoded.functionName).toBe("mintAndSell");
+  const [collateral, market, splitAmount, heldTokens, heldAmounts, soldTokens, swaps] = decoded.args as readonly [
+    Address,
+    Address,
+    bigint,
+    readonly Address[],
+    readonly bigint[],
+    readonly Address[],
+    readonly { target: Address; data: Hex }[],
+  ];
+  return {
+    collateral: lower(collateral),
+    market: lower(market),
+    splitAmount,
+    heldTokens: heldTokens.map(lower),
+    heldAmounts: [...heldAmounts],
+    soldTokens: soldTokens.map(lower),
+    swaps: swaps.map((swap) => ({ target: lower(swap.target), data: swap.data })),
+  };
+}
+
+function decodeBuyAndMerge(call: { to: Address; data: Hex }) {
+  expect(call.to).toBe(trader);
+  const decoded = decodeFunctionData({ abi: completeSetTraderAbi, data: call.data });
+  expect(decoded.functionName).toBe("buyAndMerge");
+  const [collateral, market, mergeAmount, maxCollateralIn, heldTokens, heldAmounts, swaps] = decoded.args as readonly [
+    Address,
+    Address,
+    bigint,
+    bigint,
+    readonly Address[],
+    readonly bigint[],
+    readonly { target: Address; data: Hex }[],
+  ];
+  return {
+    collateral: lower(collateral),
+    market: lower(market),
+    mergeAmount,
+    maxCollateralIn,
+    heldTokens: heldTokens.map(lower),
+    heldAmounts: [...heldAmounts],
+    swaps: swaps.map((swap) => ({ target: lower(swap.target), data: swap.data })),
+  };
+}
+
 describe("validateCompleteSetTradeProps via buildCompleteSetTradeCalls7702", () => {
   it("throws when mintSell route is missing splitAmount", async () => {
     const props = createProps(createBaseCompleteSetLeg("mintSell", {}));
@@ -82,15 +152,6 @@ describe("validateCompleteSetTradeProps via buildCompleteSetTradeCalls7702", () 
     const props = createProps(createBaseCompleteSetLeg("buyMerge", {}));
 
     await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow("buyMerge route requires mergeAmount");
-  });
-
-  it("throws when trade.approveAddress is missing", async () => {
-    const trade = createMockAmmTrade({ approveAddress: undefined });
-    const props = createProps(createBaseCompleteSetLeg("mintSell", { splitAmount: 1_000n }), trade);
-
-    await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow(
-      "Complete-set trade requires trade.approveAddress",
-    );
   });
 
   it("throws for unsupported complete-set routes", async () => {
@@ -111,6 +172,15 @@ describe("validateCompleteSetTradeProps via buildCompleteSetTradeCalls7702", () 
 
     await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow(
       "Complete-set trade requires a positive maximum amount in",
+    );
+  });
+
+  it("throws when the trader is not deployed on the chain", async () => {
+    const leg = createBaseCompleteSetLeg("mintSell", { splitAmount: 1_000n });
+    leg.market = { ...leg.market, chainId: 10 };
+
+    await expect(buildCompleteSetTradeCalls7702(createProps(leg))).rejects.toThrow(
+      "CompleteSetTrader is not deployed on chain 10",
     );
   });
 });
@@ -135,89 +205,69 @@ describe("mintToCover route", () => {
     await expect(buildCompleteSetTradeCalls7702(props)).rejects.toThrow("mintToCover route requires splitAmount");
   });
 
-  it("splits the shortfall but approves the full sell amount", async () => {
-    const calls = await buildCompleteSetTradeCalls7702(createProps(createMintToCoverLeg()));
+  it("approves the split and the held tokens to the trader, then sells the whole balance", async () => {
+    const trade = createMockAmmTrade();
+    const calls = await buildCompleteSetTradeCalls7702(createProps(createMintToCoverLeg(), trade));
 
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(3);
+    expect(decodeApprove(calls[0])).toEqual({ token: collateralToken, spender: trader, amount: splitAmount });
+    // The regression this guards: the sell leg moves minted + already held tokens, so the held part
+    // has to reach the trader.
+    expect(decodeApprove(calls[1])).toEqual({ token: outcomeToken, spender: trader, amount: sellAmount - splitAmount });
 
-    const [collateralApproval, split, sellApproval] = calls;
-
-    const decodedCollateral = decodeFunctionData({ abi: erc20Abi, data: collateralApproval.data });
-    expect(collateralApproval.to).toBe(collateralToken);
-    expect(decodedCollateral.functionName).toBe("approve");
-    expect(decodedCollateral.args?.[1]).toBe(splitAmount);
-
-    expect(split.data.startsWith("0x")).toBe(true);
-
-    const decodedSell = decodeFunctionData({ abi: erc20Abi, data: sellApproval.data });
-    expect(sellApproval.to).toBe(outcomeToken);
-    expect(decodedSell.functionName).toBe("approve");
-    // The regression this guards: the sell leg moves minted + already held tokens, not just the split.
-    expect(decodedSell.args?.[1]).toBe(sellAmount);
-    expect(decodedSell.args?.[1]).not.toBe(splitAmount);
+    const call = decodeMintAndSell(calls[2]);
+    expect(call).toEqual({
+      collateral: collateralToken,
+      market: marketId,
+      splitAmount,
+      heldTokens: [outcomeToken],
+      heldAmounts: [sellAmount - splitAmount],
+      soldTokens: [outcomeToken],
+      swaps: [{ target: dex, data: "0x1234" }],
+    });
+    // The swap is rebuilt with the trader as recipient.
+    expect(trade.swapTransaction).toHaveBeenCalledWith({ recipient: trader });
   });
 
-  it("reports both approvals with their own spender and amount", () => {
-    const trade = createMockAmmTrade();
-    const { tokensAddresses, spenders, amounts } = getCompleteSetApprovalTokens(
-      createProps(createMintToCoverLeg(), trade),
+  it("reports both approvals against the trader", () => {
+    const { tokensAddresses, spenders, amounts } = getCompleteSetApprovalTokens(createProps(createMintToCoverLeg()));
+
+    expect(tokensAddresses).toEqual([collateralToken, outcomeToken]);
+    expect(spenders).toEqual([trader, trader]);
+    expect(amounts).toEqual([splitAmount, sellAmount - splitAmount]);
+  });
+
+  it("pulls nothing but the collateral when the user held none of the outcome", async () => {
+    const calls = await buildCompleteSetTradeCalls7702(
+      createProps(createMintToCoverLeg({ swapInputAmount: splitAmount, existingBalance: 0n })),
     );
 
-    expect(tokensAddresses).toEqual([collateralToken, outcomeToken]);
-    expect(spenders[1]).toBe(trade.approveAddress);
-    expect(amounts).toEqual([splitAmount, sellAmount]);
+    expect(calls).toHaveLength(2);
+    expect(decodeMintAndSell(calls[1]).heldTokens).toEqual([]);
   });
 
-  it("costs the same two approvals however many outcomes the split mints", async () => {
-    // A nine-outcome market: the leftovers are minted but never moved, so they are never approved.
-    const leftoverTokens = Array.from({ length: 9 }, (_, index) => ({
-      token: {
-        address: `0x${(0x30 + index).toString(16).padStart(40, "0")}` as Address,
-        symbol: `OUTCOME_${index}`,
-        decimals: 18,
-        chainId: 100,
-      },
-      amount: splitAmount,
-    }));
-    const leg = createMintToCoverLeg({ leftoverTokens });
-    const leftoverAddresses = leftoverTokens.map((leftover) => leftover.token.address);
-
-    const calls = await buildCompleteSetTradeCalls7702(createProps(leg));
-    expect(calls).toHaveLength(4);
-    expect(calls.map((call) => call.to)).not.toContain(leftoverAddresses[0]);
-
-    const { tokensAddresses, amounts } = getCompleteSetApprovalTokens(createProps(leg));
-    expect(tokensAddresses).toEqual([collateralToken, outcomeToken]);
-    expect(amounts).toEqual([splitAmount, sellAmount]);
-    for (const address of leftoverAddresses) {
-      expect(tokensAddresses).not.toContain(address);
-    }
-  });
-
-  it("leaves mintSell defaults untouched", async () => {
+  it("leaves mintSell defaults untouched: the opposite outcome is sold", async () => {
     const calls = await buildCompleteSetTradeCalls7702(
       createProps(createBaseCompleteSetLeg("mintSell", { splitAmount })),
     );
 
-    const decodedSell = decodeFunctionData({ abi: erc20Abi, data: calls[2].data });
-    expect(calls[2].to).toBe(oppositeOutcomeToken);
-    expect(decodedSell.args?.[1]).toBe(splitAmount);
+    expect(calls).toHaveLength(2);
+    expect(decodeApprove(calls[0])).toEqual({ token: collateralToken, spender: trader, amount: splitAmount });
+    const call = decodeMintAndSell(calls[1]);
+    expect(call.soldTokens).toEqual([oppositeOutcomeToken]);
+    expect(call.heldTokens).toEqual([]);
   });
 });
 
 describe("multi-leg routes", () => {
   const outcomeAddress = (index: number) => `0x${(0x20 + index).toString(16).padStart(40, "0")}` as Address;
-  const otherDex = "0x00000000000000000000000000000000000000cd" as Address;
 
-  function createLegTrade(
-    tokenIn: Address,
-    tokenOut: Address,
-    approveAddress: Address = "0x00000000000000000000000000000000000000ab",
-  ) {
+  function createLegTrade(tokenIn: Address, tokenOut: Address, approveAddress: Address = dex, swapData?: Hex) {
     return createMockAmmTrade({
       approveAddress,
       tokenIn: { address: tokenIn, symbol: "IN", decimals: 18, chainId: 100 },
       tokenOut: { address: tokenOut, symbol: "OUT", decimals: 18, chainId: 100 },
+      swapData,
     });
   }
 
@@ -225,173 +275,127 @@ describe("multi-leg routes", () => {
     count: number,
     direction: "sell" | "buy",
     amount: bigint,
-    spenderOf?: (index: number) => Address,
+    dexOf?: (index: number) => Address,
   ) {
     return Array.from({ length: count }, (_, index) => {
       const token = outcomeAddress(index);
+      const swapData = `0x${(index + 1).toString(16).padStart(4, "0")}` as Hex;
       return {
         outcomeIndex: index,
         outcomeToken: { address: token, symbol: `OUTCOME_${index}`, decimals: 18, chainId: 100 },
         trade:
           direction === "sell"
-            ? createLegTrade(token, collateralToken, spenderOf?.(index))
-            : createLegTrade(collateralToken, token, spenderOf?.(index)),
+            ? createLegTrade(token, collateralToken, dexOf?.(index), swapData)
+            : createLegTrade(collateralToken, token, dexOf?.(index), swapData),
         amount,
       };
     });
   }
 
-  const decodeApprove = (call: { to: Address; data: `0x${string}` }) => {
-    const decoded = decodeFunctionData({ abi: erc20Abi, data: call.data });
-    expect(decoded.functionName).toBe("approve");
-    // viem checksums decoded addresses; the fixtures are lowercase.
-    return {
-      token: call.to,
-      spender: (decoded.args?.[0] as string).toLowerCase() as Address,
-      amount: decoded.args?.[1] as bigint,
-    };
-  };
-
-  it("mint+sell: one approve + swap pair per leg after the split, all in one batch when they fit", async () => {
+  it("mint+sell: one collateral approval and one trader call selling every leg, in order", async () => {
     const splitAmount = 100n;
+    const swapLegs = createSwapLegs(3, "sell", splitAmount, (index) => (index === 1 ? otherDex : dex));
     const leg: CompleteSetLeg = {
       ...createBaseCompleteSetLeg("mintSell", { splitAmount }),
       oppositeOutcomeIndex: undefined,
       oppositeOutcomeToken: undefined,
-      swapLegs: createSwapLegs(3, "sell", splitAmount),
+      swapLegs,
     };
 
-    const batches = await buildCompleteSetTradeBatches7702(createProps(leg));
-    expect(batches).toHaveLength(1);
-    const calls = batches[0];
-    expect(calls).toHaveLength(2 + 3 * 2);
+    const calls = await buildCompleteSetTradeCalls7702(createProps(leg));
+    expect(calls).toHaveLength(2);
+    expect(decodeApprove(calls[0])).toEqual({ token: collateralToken, spender: trader, amount: splitAmount });
 
-    expect(decodeApprove(calls[0])).toEqual({
-      token: collateralToken,
-      spender: expect.any(String),
-      amount: splitAmount,
-    });
-    for (let index = 0; index < 3; index++) {
-      const approve = decodeApprove(calls[2 + index * 2]);
-      expect(approve.token).toBe(outcomeAddress(index));
-      expect(approve.amount).toBe(splitAmount);
-    }
-    expect(countCompleteSetBatches(createProps(leg))).toBe(1);
-  });
-
-  it("mint+sell: too many legs for one transaction spill into further batches, split first", async () => {
-    const splitAmount = 100n;
-    const leg: CompleteSetLeg = {
-      ...createBaseCompleteSetLeg("mintSell", { splitAmount }),
-      oppositeOutcomeIndex: undefined,
-      oppositeOutcomeToken: undefined,
-      swapLegs: createSwapLegs(34, "sell", splitAmount),
-    };
-
-    const batches = await buildCompleteSetTradeBatches7702(createProps(leg));
-    expect(batches.length).toBeGreaterThan(1);
-    expect(countCompleteSetBatches(createProps(leg))).toBe(batches.length);
-
-    // Every call is still there, in order: collateral approval, split, then the 34 pairs.
-    const calls = batches.flat();
-    expect(calls).toHaveLength(2 + 34 * 2);
-    expect(decodeApprove(calls[0]).token).toBe(collateralToken);
-    for (const batch of batches.slice(1)) {
-      expect(batch.length % 2).toBe(0);
-      expect(decodeApprove(batch[0]).token).not.toBe(collateralToken);
-    }
-
-    // Each batch fits the budget with the Gnosis profile: split + N legs.
-    const gas = getCompleteSetGasProfile(100);
-    const legGas = gas.approve + gas.swap + 2n * gas.callOverhead;
-    for (const batch of batches.slice(1)) {
-      expect((BigInt(batch.length) / 2n) * legGas).toBeLessThanOrEqual(COMPLETE_SET_BATCH_GAS_BUDGET);
+    const call = decodeMintAndSell(calls[1]);
+    expect(call.splitAmount).toBe(splitAmount);
+    expect(call.heldTokens).toEqual([]);
+    expect(call.soldTokens).toEqual([outcomeAddress(0), outcomeAddress(1), outcomeAddress(2)]);
+    expect(call.swaps).toEqual([
+      { target: dex, data: "0x0001" },
+      { target: otherDex, data: "0x0002" },
+      { target: dex, data: "0x0003" },
+    ]);
+    for (const swapLeg of swapLegs) {
+      expect(swapLeg.trade.swapTransaction).toHaveBeenCalledWith({ recipient: trader });
     }
   });
 
-  it("buy+merge: one collateral approval per spender, the swaps, then approvals for every burned token and the merge", async () => {
+  it("buy+merge: approves the collateral at the summed slippage limit and every contributed token", async () => {
     const mergeAmount = 100n;
-    const invalid = "0x00000000000000000000000000000000000000ff" as Address;
+    const held = 40n;
     const leg: CompleteSetLeg = {
       ...createBaseCompleteSetLeg("buyMerge", { mergeAmount }),
-      targetOutcomeToken: { address: invalid, symbol: "Invalid", decimals: 18, chainId: 100 },
+      targetOutcomeToken: { address: invalidToken, symbol: "Invalid", decimals: 18, chainId: 100 },
       oppositeOutcomeIndex: undefined,
       oppositeOutcomeToken: undefined,
-      swapLegs: createSwapLegs(3, "buy", mergeAmount, (index) =>
-        index === 2 ? otherDex : "0x00000000000000000000000000000000000000ab",
-      ),
+      swapLegs: createSwapLegs(3, "buy", mergeAmount, (index) => (index === 2 ? otherDex : dex)),
       heldOutcomeTokens: [
-        { token: { address: outcomeAddress(3), symbol: "HELD", decimals: 18, chainId: 100 }, amount: mergeAmount },
+        { token: { address: outcomeAddress(3), symbol: "HELD", decimals: 18, chainId: 100 }, amount: held },
       ],
     };
 
-    const batches = await buildCompleteSetTradeBatches7702(createProps(leg));
-    expect(batches).toHaveLength(1);
-    const calls = batches[0];
-    // 2 spender approvals + 3 swaps + 5 burned tokens (target, 3 bought, 1 held) + merge
-    expect(calls).toHaveLength(2 + 3 + 5 + 1);
-
-    const spenderApprovals = [decodeApprove(calls[0]), decodeApprove(calls[1])];
-    expect(spenderApprovals.map((approval) => approval.token)).toEqual([collateralToken, collateralToken]);
-    // Two legs share the first DEX: their limits add up into one approval.
+    const calls = await buildCompleteSetTradeCalls7702(createProps(leg));
+    expect(calls).toHaveLength(4);
     const maxIn = createMockAmmTrade().maximumAmountIn();
-    expect(spenderApprovals.find((approval) => approval.spender === otherDex)?.amount).toBe(maxIn);
-    expect(spenderApprovals.find((approval) => approval.spender !== otherDex)?.amount).toBe(2n * maxIn);
+    expect(decodeApprove(calls[0])).toEqual({ token: collateralToken, spender: trader, amount: 3n * maxIn });
+    expect(decodeApprove(calls[1])).toEqual({ token: invalidToken, spender: trader, amount: mergeAmount });
+    expect(decodeApprove(calls[2])).toEqual({ token: outcomeAddress(3), spender: trader, amount: held });
 
-    const burned = calls.slice(5, 10).map(decodeApprove);
-    expect(burned.map((approval) => approval.token)).toEqual([
-      invalid,
-      outcomeAddress(0),
-      outcomeAddress(1),
-      outcomeAddress(2),
-      outcomeAddress(3),
-    ]);
-    expect(burned.every((approval) => approval.amount === mergeAmount)).toBe(true);
+    const call = decodeBuyAndMerge(calls[3]);
+    expect(call.mergeAmount).toBe(mergeAmount);
+    expect(call.maxCollateralIn).toBe(3n * maxIn);
+    expect(call.heldTokens).toEqual([invalidToken, outcomeAddress(3)]);
+    expect(call.heldAmounts).toEqual([mergeAmount, held]);
+    expect(call.swaps.map((swap) => swap.target)).toEqual([dex, dex, otherDex]);
   });
 
-  it("buy+merge: many legs keep the merge in the last batch and re-approve collateral per batch", async () => {
+  it("buy+merge on a binary market: the user contributes the target and Invalid", async () => {
     const mergeAmount = 100n;
     const leg: CompleteSetLeg = {
       ...createBaseCompleteSetLeg("buyMerge", { mergeAmount }),
-      oppositeOutcomeIndex: undefined,
-      oppositeOutcomeToken: undefined,
-      swapLegs: createSwapLegs(34, "buy", mergeAmount),
+      invalidOutcomeToken: { address: invalidToken, symbol: "Invalid", decimals: 18, chainId: 100 },
     };
 
-    const batches = await buildCompleteSetTradeBatches7702(createProps(leg));
-    expect(batches.length).toBeGreaterThan(1);
-    expect(countCompleteSetBatches(createProps(leg))).toBe(batches.length);
-
-    for (const batch of batches.slice(0, -1)) {
-      expect(decodeApprove(batch[0]).token).toBe(collateralToken);
-    }
-    const last = batches[batches.length - 1];
-    const merge = last[last.length - 1];
-    const approveSelector = "0x095ea7b3";
-    expect(merge.data.slice(0, 10)).not.toBe(approveSelector);
-    // ...and no batch but the last carries the merge.
-    for (const batch of batches.slice(0, -1)) {
-      expect(batch.every((call) => call.data.slice(0, 10) === approveSelector || call.to !== merge.to)).toBe(true);
-    }
+    const calls = await buildCompleteSetTradeCalls7702(createProps(leg));
+    expect(calls).toHaveLength(4);
+    const call = decodeBuyAndMerge(calls[3]);
+    expect(call.heldTokens).toEqual([outcomeToken, invalidToken]);
+    expect(call.heldAmounts).toEqual([mergeAmount, mergeAmount]);
+    expect(call.swaps).toHaveLength(1);
   });
 
-  it("lists every approval the sequential path needs, grouped per spender for the buys", () => {
+  it("lists every approval the sequential path needs, all against the trader", () => {
     const mergeAmount = 100n;
     const leg: CompleteSetLeg = {
       ...createBaseCompleteSetLeg("buyMerge", { mergeAmount }),
       oppositeOutcomeIndex: undefined,
       oppositeOutcomeToken: undefined,
-      swapLegs: createSwapLegs(3, "buy", mergeAmount, (index) =>
-        index === 0 ? otherDex : "0x00000000000000000000000000000000000000ab",
-      ),
+      swapLegs: createSwapLegs(3, "buy", mergeAmount),
     };
 
     const { tokensAddresses, spenders, amounts } = getCompleteSetApprovalTokens(createProps(leg));
-    // collateral to two spenders, then target + 3 bought tokens to the router
-    expect(tokensAddresses).toHaveLength(2 + 4);
-    expect(tokensAddresses.slice(0, 2)).toEqual([collateralToken, collateralToken]);
-    expect(new Set(spenders.slice(0, 2))).toEqual(new Set([otherDex, "0x00000000000000000000000000000000000000ab"]));
-    expect(tokensAddresses.slice(2)).toEqual([outcomeToken, outcomeAddress(0), outcomeAddress(1), outcomeAddress(2)]);
-    expect(amounts.slice(2).every((amount) => amount === mergeAmount)).toBe(true);
+    expect(tokensAddresses).toEqual([collateralToken, outcomeToken]);
+    expect(spenders).toEqual([trader, trader]);
+    expect(amounts).toEqual([3n * createMockAmmTrade().maximumAmountIn(), mergeAmount]);
+  });
+});
+
+describe("estimateCompleteSetGas", () => {
+  it("fits a small market in one transaction and refuses the Gnosis long tail", () => {
+    expect(
+      estimateCompleteSetGas({ chainId: 100, route: "mintSell", legCount: 3, outcomeCount: 4 }),
+    ).toBeLessThanOrEqual(COMPLETE_SET_TX_GAS_BUDGET);
+    expect(
+      estimateCompleteSetGas({ chainId: 100, route: "buyMerge", legCount: 3, outcomeCount: 4 }),
+    ).toBeLessThanOrEqual(COMPLETE_SET_TX_GAS_BUDGET);
+    expect(estimateCompleteSetGas({ chainId: 100, route: "mintSell", legCount: 34, outcomeCount: 35 })).toBeGreaterThan(
+      COMPLETE_SET_TX_GAS_BUDGET,
+    );
+  });
+
+  it("plans Swapr swaps as dearer than Uniswap ones", () => {
+    const gnosis = estimateCompleteSetGas({ chainId: 100, route: "mintSell", legCount: 10, outcomeCount: 11 });
+    const mainnet = estimateCompleteSetGas({ chainId: 1, route: "mintSell", legCount: 10, outcomeCount: 11 });
+    expect(gnosis).toBeGreaterThan(mainnet);
   });
 });
