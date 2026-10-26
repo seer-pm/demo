@@ -12,12 +12,16 @@ const supabase = createClient(process.env.SUPABASE_PROJECT_URL!, process.env.SUP
 export default async () => {
   try {
     console.log("fetching markets...");
-    // ignore markets finalized more than two days ago
+    // Skip markets finalized more than two days ago, unless their stored liquidity is above dust. A
+    // skipped market keeps the figure of its last run, so one that still reads real liquidity is
+    // refreshed until a run sees its pools empty. The threshold sits above the few dollars a
+    // withdrawn pool keeps, so such a market leaves the rotation after that run.
     const twoDaysAgo = Math.round((Date.now() - 2 * 24 * 60 * 60 * 1000) / 1000);
 
     const { markets } = await searchMarkets({
       chainIds: chainIds.map((c) => c),
       finalizeTs: twoDaysAgo,
+      finalizedMinLiquidity: 100,
       orderBy: "oddsRunTimestamp",
       orderDirection: "asc",
       limit: 150, // 150 markets every 5 minutes = 1800 markets / hour

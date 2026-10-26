@@ -396,6 +396,8 @@ type SearchMarketsProps = {
   showMarketsWithRewards?: boolean | undefined;
   minLiquidity?: number | undefined;
   finalizeTs?: number | undefined;
+  /** With `finalizeTs`, markets finalized earlier still match while their stored liquidity is at least this. */
+  finalizedMinLiquidity?: number | undefined;
   creator?: Address | "";
   participant?: Address | "";
   marketIds?: string[] | undefined;
@@ -499,6 +501,7 @@ export async function searchMarkets({
   showMarketsWithRewards,
   minLiquidity,
   finalizeTs,
+  finalizedMinLiquidity,
   creator,
   participant,
   marketIds,
@@ -608,7 +611,10 @@ export async function searchMarkets({
   }
 
   if (finalizeTs) {
-    query = query.gt("finalize_ts", Number(finalizeTs));
+    query =
+      finalizedMinLiquidity === undefined
+        ? query.gt("finalize_ts", Number(finalizeTs))
+        : query.or(`finalize_ts.gt.${Number(finalizeTs)},liquidity.gte.${Number(finalizedMinLiquidity)}`);
   }
 
   if (participant) {
