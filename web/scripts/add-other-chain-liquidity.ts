@@ -2,9 +2,10 @@
  * Spreads an sDAI budget as Swapr (Algebra v1) concentrated liquidity over every outcome of a chain of
  * "Other" markets created by `create-other-chain-markets.ts`.
  *
- * The final outcomes are every named outcome plus the "Other" of the last market. The "Other" of a
- * non-leaf market is the collateral of the next one, so it gets split instead of pooled. Each final
- * outcome gets its own `outcome/sDAI` pool and one position over the same sDAI price range.
+ * The final outcomes are the named outcomes of every market. The "Other" of a non-leaf market is the
+ * collateral of the next one, so it gets split instead of pooled, and the "Other" of the last market
+ * gets no pool. Each final outcome gets its own `outcome/sDAI` pool and one position over the same sDAI
+ * price range.
  *
  * HOW THE BUDGET IS SPLIT: every outcome receives the same amount S of outcome tokens, so S complete
  * sets cover all of them: S sDAI are split in M1, the S "Other" of M1 are split in M2, and so on. When
@@ -46,7 +47,7 @@
  * price (anyone can initialize a pool from the UI at any price), so it is moved to the initial price
  * before minting: a seed position of 0.01 sDAI worth over the range, then a swap through the Swapr
  * router with the initial price as its limit. The seed is the only extra cost per such pool. The
- * Invalid tokens of every market (S each) also stay in the wallet.
+ * Invalid tokens of every market and the "Other" tokens of the last one (S each) also stay in the wallet.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -323,8 +324,8 @@ async function readOutcomes(markets: Address[]): Promise<Outcome[]> {
         ),
       }),
     ]);
-    const otherIndex = names.indexOf(OTHER_OUTCOME);
-    if (otherIndex === -1) {
+    // Only a market with a child needs an "Other" to split, so a single plain market is a chain of one.
+    if (m < markets.length - 1 && !names.includes(OTHER_OUTCOME)) {
       throw new Error(`M${m + 1} ${market} has no "${OTHER_OUTCOME}" outcome`);
     }
     const expectedParent = m === 0 ? zeroAddress : markets[m - 1];
@@ -341,8 +342,8 @@ async function readOutcomes(markets: Address[]): Promise<Outcome[]> {
       outcomes.push({ market: m, index, name, token: wrapped[index][0] });
     });
   }
-  // The "Other" of every market but the last is split into the next market instead of pooled.
-  return outcomes.filter((o) => o.name !== OTHER_OUTCOME || o.market === markets.length - 1);
+  // The "Other" of every market but the last is split into the next market, and the last one gets no pool.
+  return outcomes.filter((o) => o.name !== OTHER_OUTCOME);
 }
 
 function marketsFromArgs(): Address[] {
@@ -778,7 +779,9 @@ async function main() {
 
   console.log("\nDone:");
   printPlan(state, await readPools(state.outcomes), sets);
-  console.log(`Left in the wallet: ${formatEther(sets)} Invalid tokens of each market, skipped outcomes and dust.`);
+  console.log(
+    `Left in the wallet: ${formatEther(sets)} Invalid tokens of each market, ${formatEther(sets)} "${OTHER_OUTCOME}" of the last market, skipped outcomes and dust.`,
+  );
 }
 
 main().catch((err) => {
