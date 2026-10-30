@@ -10,6 +10,7 @@ IGNORED_ARTIFACTS=(
     "CollateralToken.json"
     "ConditionalTokens*"
     "LightGeneralizedTCR.json"
+    "RealitioArbitrator.json"
     "RealitioHomeArbitrationProxy.json"
     "Reality.json"
     "CreditsManager.json"
@@ -30,6 +31,7 @@ NETWORKS=(
     "Ethereum:ethereum:https://etherscan.io/address/"
     "Optimism:optimism:https://optimistic.etherscan.io/address/"
     "Base:base:https://basescan.org/address/"
+    "Rootstock:rootstock:https://rootstock.blockscout.com/address/"
 )
 
 function list_contract_files() {

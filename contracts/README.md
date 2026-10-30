@@ -34,6 +34,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | MarketFactory | [0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1](https://gnosisscan.io/address/0x83183DA839Ce8228E31Ae41222EaD9EDBb5cDcf1) |
 | MarketView | [0x010Bc82218C4857CBF5639B0046E0E05a678D8D4](https://gnosisscan.io/address/0x010Bc82218C4857CBF5639B0046E0E05a678D8D4) |
 | OpportunityCredits | [0xD2002562012BF42dEc477313CD1bcE1C24e780F6](https://gnosisscan.io/address/0xD2002562012BF42dEc477313CD1bcE1C24e780F6) |
+| QuestionsFactory | [0x42cE29eA4C658577295561f8e0d03314d7d845c9](https://gnosisscan.io/address/0x42cE29eA4C658577295561f8e0d03314d7d845c9) |
 | RealityProxy | [0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C](https://gnosisscan.io/address/0xc260ADfAC11f97c001dC143d2a4F45b98e0f2D6C) |
 | Wrapped1155Factory | [0xD194319D1804C1051DD21Ba1Dc931cA72410B79f](https://gnosisscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f) |
 
@@ -46,6 +47,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | Market | [0x8bdC504dC3A05310059c1c67E0A2667309D27B93](https://etherscan.io/address/0x8bdC504dC3A05310059c1c67E0A2667309D27B93) |
 | MarketFactory | [0x1F728c2fD6a3008935c1446a965a313E657b7904](https://etherscan.io/address/0x1F728c2fD6a3008935c1446a965a313E657b7904) |
 | MarketView | [0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA](https://etherscan.io/address/0xcBBbABD15895ae7b2e28BE6f250729098F1c69FA) |
+| QuestionsFactory | [0x9D2166667f497B57d1cE356ed4C6E244b511f7c2](https://etherscan.io/address/0x9D2166667f497B57d1cE356ed4C6E244b511f7c2) |
 | Realitio_v2_1_ArbitratorWithAppeals | [0x2018038203aEE8e7a29dABd73771b0355D4F85ad](https://etherscan.io/address/0x2018038203aEE8e7a29dABd73771b0355D4F85ad) |
 | RealityProxy | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://etherscan.io/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
 | Wrapped1155Factory | [0xD194319D1804C1051DD21Ba1Dc931cA72410B79f](https://etherscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f) |
@@ -58,6 +60,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | Market | [0xAb797C4C6022A401c31543E316D3cd04c67a87fC](https://optimistic.etherscan.io/address/0xAb797C4C6022A401c31543E316D3cd04c67a87fC) |
 | MarketFactory | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://optimistic.etherscan.io/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
 | MarketView | [0xDd193f64dbe184891f0beb3510AD69b5DC849BD1](https://optimistic.etherscan.io/address/0xDd193f64dbe184891f0beb3510AD69b5DC849BD1) |
+| QuestionsFactory | [0xa6E4286C32E68679181bEacAA8384894550C6f06](https://optimistic.etherscan.io/address/0xa6E4286C32E68679181bEacAA8384894550C6f06) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://optimistic.etherscan.io/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
 | Router | [0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD](https://optimistic.etherscan.io/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD) |
 | Wrapped1155Factory | [0xd194319d1804c1051dd21ba1dc931ca72410b79f](https://optimistic.etherscan.io/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f) |
@@ -70,9 +73,23 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | Market | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://basescan.org/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
 | MarketFactory | [0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6](https://basescan.org/address/0x886Ef0A78faBbAE942F1dA1791A8ed02a5aF8BC6) |
 | MarketView | [0xDd193f64dbe184891f0beb3510AD69b5DC849BD1](https://basescan.org/address/0xDd193f64dbe184891f0beb3510AD69b5DC849BD1) |
+| QuestionsFactory | [0xa6E4286C32E68679181bEacAA8384894550C6f06](https://basescan.org/address/0xa6E4286C32E68679181bEacAA8384894550C6f06) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://basescan.org/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
 | Router | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://basescan.org/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |
 | Wrapped1155Factory | [0xd194319d1804c1051dd21ba1dc931ca72410b79f](https://basescan.org/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f) |
+
+### Rootstock
+
+| Contract | Address |
+|----------|---------|
+| ConditionalRouter | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://rootstock.blockscout.com/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |
+| Market | [0xAb797C4C6022A401c31543E316D3cd04c67a87fC](https://rootstock.blockscout.com/address/0xAb797C4C6022A401c31543E316D3cd04c67a87fC) |
+| MarketFactory | [0x12BB49DeB8f293435e27F6F4Ab140184604cE346](https://rootstock.blockscout.com/address/0x12BB49DeB8f293435e27F6F4Ab140184604cE346) |
+| MarketView | [0x336695eC9eFbaFd6322Fb82EAAdbCDA02e38F348](https://rootstock.blockscout.com/address/0x336695eC9eFbaFd6322Fb82EAAdbCDA02e38F348) |
+| QuestionsFactory | [0xF5ccbf74121edBa492725F325D55356D517723B9](https://rootstock.blockscout.com/address/0xF5ccbf74121edBa492725F325D55356D517723B9) |
+| RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://rootstock.blockscout.com/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
+| Router | [0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD](https://rootstock.blockscout.com/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD) |
+| Wrapped1155Factory | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://rootstock.blockscout.com/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
 
 ## Installation
 
@@ -143,6 +160,12 @@ yarn hh-local-deploy
 yarn hardhat deploy --network gnosis
 ```
 
+**Rootstock**
+```
+yarn deploy:rootstock
+```
+This deploys only the market contracts (no futarchy, credits or airdrop). Rootstock has no canonical ConditionalTokens or Wrapped1155Factory, so the deploy creates both. The address table above leaves ConditionalTokens out on every network; the Rootstock one is [0x8bdC504dC3A05310059c1c67E0A2667309D27B93](https://rootstock.blockscout.com/address/0x8bdC504dC3A05310059c1c67E0A2667309D27B93).
+
 **Verify contracts**
 
 Run the verification right after deploying:
@@ -152,6 +175,11 @@ Gnosis contracts are verified on [Blockscout](https://gnosisscan.io) (the old Gn
 yarn verify:gnosis
 # optional: also submit the sources to Sourcify
 yarn sourcify:gnosis
+```
+
+Rootstock contracts are verified on its [Blockscout](https://rootstock.blockscout.com), also without an API key:
+```
+yarn verify:rootstock
 ```
 
 Ethereum, Optimism, Base and Sepolia are verified through the Etherscan API v2, which uses a single [etherscan.io](https://etherscan.io/apidashboard) key for every chain:
