@@ -114,6 +114,20 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
     },
+    rootstock: {
+      chainId: 30,
+      url: process.env.ROOTSTOCK_RPC || "https://public-node.rsk.co",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      saveDeployments: true,
+      // Rootstock has no Etherscan explorer. Its Blockscout instance serves the Etherscan-compatible
+      // API without a key.
+      verify: {
+        etherscan: {
+          apiKey: "blockscout",
+          apiUrl: "https://rootstock.blockscout.com",
+        },
+      },
+    },
     sepolia: {
       chainId: 11155111,
       url: process.env.SEPOLIA_RPC || "https://ethereum-sepolia-rpc.publicnode.com",

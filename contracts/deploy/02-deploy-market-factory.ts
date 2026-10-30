@@ -1,5 +1,14 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { mainnet, rootstock } from "viem/chains";
+
+// Mainnet asks Kleros directly, Rootstock uses a Reality arbitrator deployed there, and the other
+// chains reach Kleros on mainnet through a cross-chain home proxy.
+function arbitratorDeploymentName(chainId: number) {
+  if (chainId === mainnet.id) return "Realitio_v2_1_ArbitratorWithAppeals";
+  if (chainId === rootstock.id) return "RealitioArbitrator";
+  return "RealitioHomeArbitrationProxy";
+}
 
 const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const { deployments, getNamedAccounts, getChainId } = hre;
@@ -12,7 +21,7 @@ const deployMarketFactory: DeployFunction = async (hre: HardhatRuntimeEnvironmen
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const market = await deployments.get("Market");
-  const realitioArbitrator = await deployments.get(chainId === 1 ? "Realitio_v2_1_ArbitratorWithAppeals" : "RealitioHomeArbitrationProxy");
+  const realitioArbitrator = await deployments.get(arbitratorDeploymentName(chainId));
   const reality = await deployments.get("Reality");
   const wrapped1155Factory = await deployments.get("Wrapped1155Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");
