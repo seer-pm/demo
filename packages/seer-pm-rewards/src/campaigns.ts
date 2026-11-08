@@ -94,6 +94,46 @@ export function parseCampaigns(json: unknown): Campaign[] {
   });
 }
 
+export const toIsoSeconds = (t: number) => new Date(t * 1000).toISOString().replace(".000Z", "Z");
+
+/**
+ * Checks that `next` only changes what happens from `cutoff` on, the last published cutoff:
+ * everything emitted before it is frozen in the published state.
+ *
+ * - A published campaign cannot be removed (end it with a `perSecond: "0"` tier), and its chain,
+ *   pool, payout chain and token cannot change.
+ * - Its rate tiers starting before `cutoff` cannot change; new tiers must start at `cutoff` or later.
+ * - A new campaign cannot start before `cutoff`.
+ *
+ * `budget`, `minWidthTicks` and `excludeTokenIds` may change and apply from `cutoff` on.
+ */
+export function assertForwardOnly(published: Campaign[], next: Campaign[], cutoff: number): void {
+  const at = toIsoSeconds(cutoff);
+  const nextById = new Map(next.map((c) => [c.id, c]));
+  const pastTiers = (rates: RateTier[]) =>
+    rates
+      .filter((tier) => tier.from < cutoff)
+      .map((tier) => `${tier.from}:${tier.perSecond}`)
+      .join(",");
+
+  for (const old of published) {
+    const campaign = nextById.get(old.id);
+    if (!campaign) fail(old.id, 'a published campaign cannot be removed; end it with a { "perSecond": "0" } tier');
+    for (const field of ["chainId", "poolId", "payoutChainId", "rewardToken"] as const) {
+      if (campaign[field] !== old[field]) fail(old.id, `${field} cannot change once the campaign is published`);
+    }
+    if (pastTiers(campaign.rates) !== pastTiers(old.rates)) {
+      fail(old.id, `rate tiers before the last published cutoff ${at} cannot change; add a tier from ${at} or later`);
+    }
+  }
+  const publishedIds = new Set(published.map((c) => c.id));
+  for (const campaign of next) {
+    if (!publishedIds.has(campaign.id) && campaign.rates[0].from < cutoff) {
+      fail(campaign.id, `a new campaign cannot start before the last published cutoff ${at}`);
+    }
+  }
+}
+
 /** Amount the rate tiers emit over `[start, end)`, before any budget cap. */
 export function emittedBetween(rates: RateTier[], start: number, end: number): bigint {
   let total = 0n;

@@ -1,6 +1,6 @@
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { type Address, type Hex, getAddress, zeroHash } from "viem";
-import type { Campaign } from "./campaigns.ts";
+import { type Campaign, toIsoSeconds } from "./campaigns.ts";
 import { type PositionAccrual, Q128 } from "./engine.ts";
 
 /**
@@ -73,7 +73,7 @@ export function buildDistributions({
     const sourceChainIds = new Set(campaigns.filter((c) => c.payoutChainId === payoutChainId).map((c) => c.chainId));
     return {
       payoutChainId,
-      cutoff: new Date(cutoff * 1000).toISOString().replace(".000Z", "Z"),
+      cutoff: toIsoSeconds(cutoff),
       sourceBlocks: Object.fromEntries(
         [...sourceChainIds].sort((a, b) => a - b).map((id) => [String(id), sourceBlocks[id].toString()]),
       ),

@@ -1,60 +1,98 @@
-// Computes the weekly reward distributions: one JSON file per payout chain, ready for
-// `submitRoot(root, ipfsHash)` on that chain's Universal Rewards Distributor.
+// Computes one week of reward distributions: one JSON file per payout chain, ready for
+// `submitRoot(root, ipfsHash)` on that chain's Universal Rewards Distributor, plus one state file
+// per source chain from which the next week resumes.
 //
-//   yarn workspace @seer-pm/rewards compute [--cutoff 2026-11-09T00:00:00Z] [--previous <file>]...
+//   yarn workspace @seer-pm/rewards compute [--cutoff 2026-11-09T00:00:00Z] [--previous distributions/2026-11-02]
 //
-// --cutoff    Defaults to the last Monday 00:00 UTC. Blocks before this instant are included.
-// --previous  Previously published files. Each one is recomputed at its own cutoff with the current
-//             campaigns and must reproduce the published root: that rejects any campaign change that
-//             rewrites a published week. The new cumulative amounts may not be lower either.
+// --cutoff    A Monday 00:00 UTC, by default the last one. Blocks before this instant are included.
+// --previous  Directory of the last published week: its rewards-*.json as published and its
+//             state-*.json. The replay resumes from those states and reads only newer blocks, plus
+//             the history of pools and positions that are new to it. The states must reproduce the
+//             published roots, and campaign changes may only take effect from that cutoff on.
+//             Without it every chain is replayed from the hook deployment, which gives exactly the
+//             same result as long as budget, minWidthTicks and excludeTokenIds never changed.
 // --campaigns Defaults to campaigns.json next to this package's package.json.
-// --out       Output directory, default ./distributions.
+// --out       Files go to <out>/<cutoff date>/, default ./distributions.
 //
 // RPC endpoints come from PRIVATE_RPC_MAINNET / _OPTIMISM / _BASE, else viem's public endpoints.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { http, type PublicClient, createPublicClient } from "viem";
-import { type Campaign, parseCampaigns } from "./campaigns.ts";
+import { type Campaign, assertForwardOnly, parseCampaigns, toIsoSeconds } from "./campaigns.ts";
 import { SOURCE_CHAINS } from "./chains.ts";
 import { type Distribution, assertNoDecrease, buildDistributions } from "./distribution.ts";
-import { type PositionAccrual, accrueRewards } from "./engine.ts";
-import { type ChainEvent, fetchChainEvents, findLastBlockBefore } from "./events.ts";
+import {
+  type EngineStateJson,
+  type PositionAccrual,
+  accrueRewards,
+  parseState,
+  serializeState,
+  weekStart,
+} from "./engine.ts";
+import { fetchChainEvents, findLastBlockBefore } from "./events.ts";
 
-const DAY = 86_400;
-
-function lastMondayUtc(nowSeconds: number): number {
-  const midnight = Math.floor(nowSeconds / DAY) * DAY;
-  const weekday = new Date(midnight * 1000).getUTCDay(); // 0 = Sunday
-  return midnight - ((weekday + 6) % 7) * DAY;
-}
+type StateFile = { chainId: number; cutoff: string; toBlock: string; campaigns: unknown[]; engine: EngineStateJson };
 
 function parseCutoff(value: string): number {
   const ms = Date.parse(value);
-  if (!/Z$/.test(value) || Number.isNaN(ms) || ms % 1000 !== 0) {
-    throw new Error(`--cutoff must be a UTC instant such as 2026-11-09T00:00:00Z, got ${value}`);
+  const t = ms / 1000;
+  if (!/Z$/.test(value) || Number.isNaN(ms) || weekStart(t) !== t) {
+    throw new Error(`cutoffs must be a Monday 00:00 UTC such as 2026-11-09T00:00:00Z, got ${value}`);
   }
-  return ms / 1000;
+  return t;
 }
 
 const { values } = parseArgs({
   options: {
     cutoff: { type: "string" },
-    previous: { type: "string", multiple: true, default: [] },
+    previous: { type: "string" },
     campaigns: { type: "string", default: new URL("../campaigns.json", import.meta.url).pathname },
     out: { type: "string", default: "distributions" },
   },
 });
 
-const cutoff = values.cutoff ? parseCutoff(values.cutoff) : lastMondayUtc(Math.floor(Date.now() / 1000));
-const campaigns = parseCampaigns(JSON.parse(readFileSync(values.campaigns, "utf8")));
+const cutoff = values.cutoff ? parseCutoff(values.cutoff) : weekStart(Math.floor(Date.now() / 1000));
+const rawCampaigns: { chainId?: unknown }[] = JSON.parse(readFileSync(values.campaigns, "utf8")).campaigns ?? [];
+const campaigns = parseCampaigns({ campaigns: rawCampaigns });
 if (campaigns.length === 0) {
   console.log(`no campaigns in ${values.campaigns}`);
   process.exit(0);
 }
-const previous: Distribution[] = values.previous.map((file) => JSON.parse(readFileSync(file, "utf8")));
-for (const p of previous) {
-  if (parseCutoff(p.cutoff) > cutoff) throw new Error(`previous distribution ${p.cutoff} is after the cutoff`);
+
+let previous: { states: Map<number, StateFile>; published: Distribution[] } | undefined;
+if (values.previous) {
+  const dir = values.previous;
+  const files = readdirSync(dir);
+  const read = (file: string) => JSON.parse(readFileSync(join(dir, file), "utf8"));
+  const states: StateFile[] = files.filter((f) => /^state-\d+\.json$/.test(f)).map(read);
+  const published: Distribution[] = files.filter((f) => /^rewards-\d+\.json$/.test(f)).map(read);
+  if (states.length === 0) throw new Error(`no state-*.json in ${dir}`);
+  const previousCutoff = parseCutoff(states[0].cutoff);
+  for (const file of [...states, ...published]) {
+    if (file.cutoff !== states[0].cutoff)
+      throw new Error(`${dir} mixes cutoffs ${states[0].cutoff} and ${file.cutoff}`);
+  }
+  if (previousCutoff >= cutoff) throw new Error(`--previous ${states[0].cutoff} is not before the cutoff`);
+
+  // The states must be the ones behind the published roots, or the new roots would build on
+  // something no one can check against the distributor.
+  const publishedCampaigns = parseCampaigns({ campaigns: states.flatMap((s) => s.campaigns) });
+  const rebuilt = buildDistributions({
+    campaigns: publishedCampaigns,
+    accruals: states.flatMap((s) => [...parseState(s.engine).accrued.values()]),
+    cutoff: previousCutoff,
+    sourceBlocks: Object.fromEntries(states.map((s) => [s.chainId, BigInt(s.toBlock)])),
+  });
+  if (rebuilt.length !== published.length) throw new Error(`${dir}: state and rewards files cover different chains`);
+  for (const d of rebuilt) {
+    const root = published.find((p) => p.payoutChainId === d.payoutChainId)?.root;
+    if (root !== d.root) {
+      throw new Error(`${dir}: the states give root ${d.root} for chain ${d.payoutChainId}, published ${root}`);
+    }
+  }
+  assertForwardOnly(publishedCampaigns, campaigns, previousCutoff);
+  previous = { states: new Map(states.map((s) => [s.chainId, s])), published };
 }
 
 const campaignsByChain = new Map<number, Campaign[]>();
@@ -62,55 +100,58 @@ for (const campaign of campaigns) {
   campaignsByChain.set(campaign.chainId, [...(campaignsByChain.get(campaign.chainId) ?? []), campaign]);
 }
 
-const eventsByChain = new Map<number, ChainEvent[]>();
+const accruals: PositionAccrual[] = [];
 const sourceBlocks: Record<number, bigint> = {};
+const stateFiles: StateFile[] = [];
 for (const [chainId, chainCampaigns] of campaignsByChain) {
   const source = SOURCE_CHAINS[chainId];
   const client = createPublicClient({
     chain: source.chain,
     transport: http(process.env[source.rpcEnv] || undefined),
   }) as PublicClient;
-  const toBlock = await findLastBlockBefore(client, cutoff, source.fromBlock);
+
+  const resumed = previous?.states.get(chainId);
+  const state = resumed ? parseState(resumed.engine) : undefined;
+  const sinceBlock = resumed ? BigInt(resumed.toBlock) + 1n : source.fromBlock;
+  const toBlock = await findLastBlockBefore(client, cutoff, sinceBlock);
   const poolIds = [...new Set(chainCampaigns.map((c) => c.poolId))];
-  const events = await fetchChainEvents(client, source, poolIds, toBlock);
-  console.log(`chain ${chainId}: ${events.length} events in ${poolIds.length} pools through block ${toBlock}`);
-  eventsByChain.set(chainId, events);
+  const events = await fetchChainEvents(client, source, {
+    trackedPoolIds: poolIds.filter((id) => state?.pools.has(id)),
+    newPoolIds: poolIds.filter((id) => !state?.pools.has(id)),
+    knownTokenIds: [...(state?.owners.keys() ?? [])],
+    sinceBlock,
+    toBlock,
+  });
+  console.log(`chain ${chainId}: ${events.length} events in ${poolIds.length} pools, blocks ${sinceBlock}-${toBlock}`);
+
+  const next = accrueRewards({
+    positionManager: source.positionManager,
+    campaigns: chainCampaigns,
+    events,
+    cutoff,
+    state,
+  });
+  accruals.push(...next.accrued.values());
   sourceBlocks[chainId] = toBlock;
+  stateFiles.push({
+    chainId,
+    cutoff: toIsoSeconds(cutoff),
+    toBlock: toBlock.toString(),
+    campaigns: rawCampaigns.filter((c) => c.chainId === chainId),
+    engine: serializeState(next),
+  });
 }
 
-function distributionsAt(at: number): Distribution[] {
-  const accruals: PositionAccrual[] = [];
-  for (const [chainId, chainCampaigns] of campaignsByChain) {
-    accruals.push(
-      ...accrueRewards({
-        positionManager: SOURCE_CHAINS[chainId].positionManager,
-        campaigns: chainCampaigns,
-        events: eventsByChain.get(chainId)!,
-        cutoff: at,
-      }),
-    );
-  }
-  return buildDistributions({ campaigns, accruals, cutoff: at, sourceBlocks });
-}
-
-const distributions = distributionsAt(cutoff);
-
-for (const published of previous) {
-  const recomputed = distributionsAt(parseCutoff(published.cutoff)).find(
-    (d) => d.payoutChainId === published.payoutChainId,
-  );
-  if (recomputed?.root !== published.root) {
-    const at = `chain ${published.payoutChainId} at ${published.cutoff}`;
-    const roots = `${published.root}, now ${recomputed?.root}`;
-    const rule = "Campaign changes may only take effect at or after the last published cutoff.";
-    throw new Error(`the current campaigns no longer reproduce the published root for ${at} (${roots}). ${rule}`);
-  }
+const distributions = buildDistributions({ campaigns, accruals, cutoff, sourceBlocks });
+for (const published of previous?.published ?? []) {
   assertNoDecrease(published, distributions.find((d) => d.payoutChainId === published.payoutChainId)!);
 }
 
-mkdirSync(values.out, { recursive: true });
+const dir = join(values.out, toIsoSeconds(cutoff).slice(0, 10));
+mkdirSync(dir, { recursive: true });
+for (const file of stateFiles) writeFileSync(join(dir, `state-${file.chainId}.json`), `${JSON.stringify(file)}\n`);
 for (const distribution of distributions) {
-  const file = join(values.out, `rewards-${distribution.payoutChainId}-${distribution.cutoff.slice(0, 10)}.json`);
+  const file = join(dir, `rewards-${distribution.payoutChainId}.json`);
   writeFileSync(file, `${JSON.stringify(distribution, null, 2)}\n`);
   console.log(
     `chain ${distribution.payoutChainId}: root ${distribution.root}, totals`,

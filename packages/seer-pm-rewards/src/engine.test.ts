@@ -1,8 +1,8 @@
 import { type Address, type Hex, concat, encodeAbiParameters, getAddress, keccak256, numberToHex, pad } from "viem";
 import { describe, expect, it } from "vitest";
-import { type Campaign, parseCampaigns } from "./campaigns.ts";
+import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
-import { Q128, accrueRewards } from "./engine.ts";
+import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
 
 const PM = "0x00000000000000000000000000000000000000aa" as Address;
@@ -64,7 +64,12 @@ const liquidity = (
 
 function earned(c: Campaign, events: ChainEvent[], cutoff: number) {
   const result: Record<string, bigint> = {};
-  for (const a of accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + cutoff })) {
+  for (const a of accrueRewards({
+    positionManager: PM,
+    campaigns: [c],
+    events,
+    cutoff: T0 + cutoff,
+  }).accrued.values()) {
     const key = `${a.tokenId}:${a.owner}`;
     result[key] = (result[key] ?? 0n) + a.amountX128 / Q128;
   }
@@ -133,6 +138,89 @@ describe("accrueRewards", () => {
   });
 });
 
+describe("resuming from a weekly state", () => {
+  // Uneven liquidity so every interval rounds, a budget that runs out in week 2, and events on both
+  // sides of the boundary, including a transfer that does not touch liquidity.
+  const c = campaign({
+    rates: [{ from: "2026-11-02T00:00:00Z", perSecond: "7" }],
+    budget: String(7 * WEEK + 1_000_003),
+  });
+  const events = () => [
+    tick(0, 0),
+    mint(0, 1n, ALICE),
+    mint(0, 2n, BOB),
+    liquidity(0, 1n, 3n),
+    liquidity(0, 2n, 7n, [0, 120]),
+    tick(1_000, -30),
+    tick(WEEK - 13, 30),
+    tick(WEEK + 51, 90),
+    mint(WEEK + 80, 1n, BOB),
+    liquidity(WEEK + 100, 1n, 11n),
+    tick(WEEK + 200_000, 0),
+  ];
+  const all = (state: ReturnType<typeof accrueRewards>) =>
+    Object.fromEntries([...state.accrued.values()].map((a) => [`${a.tokenId}:${a.owner}`, a.amountX128]));
+
+  it("gives exactly the result of one replay from the start, through a JSON round trip", () => {
+    const evs = events();
+    const once = accrueRewards({ positionManager: PM, campaigns: [c], events: evs, cutoff: T0 + 2 * WEEK });
+    const week1 = accrueRewards({ positionManager: PM, campaigns: [c], events: evs, cutoff: T0 + WEEK });
+    const state = parseState(JSON.parse(JSON.stringify(serializeState(week1))));
+    const week2 = accrueRewards({
+      positionManager: PM,
+      campaigns: [c],
+      events: evs.filter((e) => e.timestamp >= T0 + WEEK),
+      cutoff: T0 + 2 * WEEK,
+      state,
+    });
+    expect(all(week2)).toEqual(all(once));
+    expect(week2.budgetUsed.get(c.id)).toBe(c.budget);
+    // The state passed in is not mutated.
+    expect(all(accrueRewards({ positionManager: PM, campaigns: [c], events: [], cutoff: T0 + WEEK, state }))).toEqual(
+      all(week1),
+    );
+  });
+
+  it("rejects events of tracked pools from before the state's cutoff", () => {
+    const evs = events();
+    const state = accrueRewards({ positionManager: PM, campaigns: [c], events: evs, cutoff: T0 + WEEK });
+    expect(() =>
+      accrueRewards({ positionManager: PM, campaigns: [c], events: evs, cutoff: T0 + 2 * WEEK, state }),
+    ).toThrow(/already applied/);
+  });
+});
+
+describe("assertForwardOnly", () => {
+  const cutoff = Date.parse("2026-11-09T00:00:00Z") / 1000;
+  const published = [campaign()];
+
+  it("accepts a new tier and a new campaign from the cutoff on", () => {
+    const next = [
+      campaign({
+        rates: [
+          { from: "2026-11-02T00:00:00Z", perSecond: "10" },
+          { from: "2026-11-09T00:00:00Z", perSecond: "0" },
+        ],
+      }),
+      { ...campaign({ rates: [{ from: "2026-11-10T12:00:00Z", perSecond: "5" }] }), id: "pool-b" },
+    ];
+    expect(() => assertForwardOnly(published, next, cutoff)).not.toThrow();
+  });
+
+  it("rejects tiers before the cutoff, early new campaigns and removed campaigns", () => {
+    const retroTier = campaign({
+      rates: [
+        { from: "2026-11-02T00:00:00Z", perSecond: "10" },
+        { from: "2026-11-08T23:59:59Z", perSecond: "0" },
+      ],
+    });
+    expect(() => assertForwardOnly(published, [retroTier], cutoff)).toThrow(/rate tiers before/);
+    const early = { ...campaign({ rates: [{ from: "2026-11-08T00:00:00Z", perSecond: "1" }] }), id: "pool-b" };
+    expect(() => assertForwardOnly(published, [...published, early], cutoff)).toThrow(/cannot start before/);
+    expect(() => assertForwardOnly(published, [], cutoff)).toThrow(/cannot be removed/);
+  });
+});
+
 describe("buildDistributions", () => {
   it("sums an account across positions before flooring and emits URD-compatible proofs", () => {
     const c = campaign();
@@ -148,7 +236,9 @@ describe("buildDistributions", () => {
       liquidity(0, 4n, 1n),
     ];
     // 10 units split four ways: 2.5 each. Flooring per position would give Alice 6; summing first gives 7.
-    const accruals = accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + 1 });
+    const accruals = [
+      ...accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + 1 }).accrued.values(),
+    ];
     const [d] = buildDistributions({ campaigns: [c], accruals, cutoff: T0 + 1, sourceBlocks: { 8453: 1n } });
 
     expect(d.claims[ALICE][TOKEN].claimable).toBe("7");
@@ -181,7 +271,9 @@ describe("buildDistributions", () => {
     const build = (cutoff: number) =>
       buildDistributions({
         campaigns: [c],
-        accruals: accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + cutoff }),
+        accruals: [
+          ...accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + cutoff }).accrued.values(),
+        ],
         cutoff: T0 + cutoff,
         sourceBlocks: { 8453: 1n },
       })[0];
