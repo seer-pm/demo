@@ -1,0 +1,25 @@
+{
+  "name": "@seer-pm/rewards",
+  "version": "0.0.1",
+  "description": "Offchain liquidity rewards for Seer's Uniswap V4 pools, claimed through a Morpho Universal Rewards Distributor",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compute": "node src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.5",
+    "viem": "2.38.3"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "typescript": "^5.2.2",
+    "vitest": "3.1.4"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

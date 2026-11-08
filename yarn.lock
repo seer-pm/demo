@@ -6606,6 +6606,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@seer-pm/rewards@workspace:packages/seer-pm-rewards":
+  version: 0.0.0-use.local
+  resolution: "@seer-pm/rewards@workspace:packages/seer-pm-rewards"
+  dependencies:
+    "@openzeppelin/merkle-tree": "npm:^1.0.5"
+    "@types/node": "npm:*"
+    typescript: "npm:^5.2.2"
+    viem: "npm:2.38.3"
+    vitest: "npm:3.1.4"
+  languageName: unknown
+  linkType: soft
+
 "@seer-pm/sdk@npm:*, @seer-pm/sdk@workspace:packages/seer-pm-sdk":
   version: 0.0.0-use.local
   resolution: "@seer-pm/sdk@workspace:packages/seer-pm-sdk"
