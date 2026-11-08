@@ -150,6 +150,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "../packages/seer-pm-sdk/abis/EternalFarmingAbi.ts"),
       },
       { find: "@seer-pm/sdk/sign-in", replacement: path.resolve(seerPmSdkSrc, "sign-in.ts") },
+      {
+        find: "@seer-pm/rewards/claims",
+        replacement: path.resolve(__dirname, "../packages/seer-pm-rewards/src/claims.ts"),
+      },
       // More specific /v4 alias must come before the main order-book alias.
       { find: "@seer-pm/order-book/v4", replacement: path.resolve(seerOrderBookSrc, "v4.ts") },
       { find: "@seer-pm/order-book", replacement: path.resolve(seerOrderBookSrc, "index.ts") },

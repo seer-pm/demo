@@ -1,6 +1,7 @@
 import { type Address, type Hex, concat, encodeAbiParameters, getAddress, keccak256, numberToHex, pad } from "viem";
 import { describe, expect, it } from "vitest";
 import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
+import { accountRewards } from "./claims.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
@@ -279,5 +280,37 @@ describe("buildDistributions", () => {
       })[0];
     expect(() => assertNoDecrease(build(10), build(20))).not.toThrow();
     expect(() => assertNoDecrease(build(20), build(10))).toThrow(/dropped from 200 to 100/);
+  });
+});
+
+describe("accountRewards", () => {
+  const OTHER = getAddress("0x00000000000000000000000000000000000000dd");
+  const CAROL = getAddress("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd");
+  const file = (amounts: Record<string, Record<string, string>>) =>
+    ({
+      claims: Object.fromEntries(
+        Object.entries(amounts).map(([account, tokens]) => [
+          account,
+          Object.fromEntries(
+            Object.entries(tokens).map(([token, claimable]) => [token, { claimable, proof: [`0x${"ab".repeat(32)}`] }]),
+          ),
+        ]),
+      ),
+    }) as unknown as Parameters<typeof accountRewards>[0]["active"];
+
+  it("claims the cumulative leaf amount and reports what is left and what the pending root adds", () => {
+    const active = file({ [CAROL]: { [TOKEN]: "100" } });
+    const pending = file({ [CAROL]: { [TOKEN]: "150", [OTHER]: "7" } });
+    // Lowercase input: the file is keyed by checksummed addresses.
+    const rewards = accountRewards({
+      account: CAROL.toLowerCase() as Address,
+      active,
+      pending,
+      claimed: new Map([[TOKEN, 40n]]),
+    });
+    expect(rewards).toEqual([
+      { token: TOKEN, earned: 100n, proof: [`0x${"ab".repeat(32)}`], claimed: 40n, claimable: 60n, upcoming: 50n },
+      { token: OTHER, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 7n },
+    ]);
   });
 });

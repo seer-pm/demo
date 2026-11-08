@@ -1,4 +1,3 @@
-import { base58 } from "@scure/base";
 import {
   type Account,
   type Address,
@@ -7,48 +6,18 @@ import {
   type PublicClient,
   type Transport,
   type WalletClient,
-  concat,
   decodeEventLog,
   encodeEventTopics,
   erc20Abi,
-  hexToBytes,
-  parseAbi,
-  toHex,
   zeroHash,
 } from "viem";
 import { PAYOUT_CHAINS } from "./chains.ts";
+import { IPFS_GATEWAY, bytes32ToCid, cidToBytes32, urdAbi } from "./claims.ts";
 import { weekStart } from "./engine.ts";
 import { getLogs } from "./events.ts";
 import { type RewardsFile, computeWeek, parseCutoff } from "./week.ts";
 
-export { PAYOUT_CHAINS } from "./chains.ts";
-export type { RewardsFile } from "./week.ts";
-
-/** The parts of the Morpho Universal Rewards Distributor the bot uses. */
-export const urdAbi = parseAbi([
-  "function root() view returns (bytes32)",
-  "function ipfsHash() view returns (bytes32)",
-  "function pendingRoot() view returns (bytes32 root, bytes32 ipfsHash, uint256 validAt)",
-  "function claimed(address account, address reward) view returns (uint256)",
-  "function submitRoot(bytes32 newRoot, bytes32 newIpfsHash)",
-  "function acceptRoot()",
-  "event PendingRootSet(address indexed caller, bytes32 indexed newRoot, bytes32 indexed newIpfsHash)",
-  "event PendingRootRevoked(address indexed caller)",
-]);
-
-/**
- * The distributor's `ipfsHash` is the sha256 digest of the file's CIDv0, so anyone can find the
- * file behind a root: CID = base58(0x1220 ‖ ipfsHash).
- */
-export function bytes32ToCid(hash: Hex): string {
-  return base58.encode(hexToBytes(concat(["0x1220", hash])));
-}
-
-export function cidToBytes32(cid: string): Hex {
-  const bytes = base58.decode(cid.replace(/^\/ipfs\//, ""));
-  if (bytes.length !== 34 || bytes[0] !== 0x12 || bytes[1] !== 0x20) throw new Error(`${cid} is not a CIDv0`);
-  return toHex(bytes.slice(2));
-}
+export * from "./claims.ts";
 
 export type Ipfs = {
   /** Uploads and pins `data`, returning its CIDv0. */
@@ -71,7 +40,7 @@ export const klerosIpfs: Ipfs = {
     return cids[0].replace(/^\/ipfs\//, "");
   },
   async fetch(cid) {
-    const res = await fetch(`https://cdn.kleros.link/ipfs/${cid}`, { signal: AbortSignal.timeout(60_000) });
+    const res = await fetch(`${IPFS_GATEWAY}${cid}`, { signal: AbortSignal.timeout(60_000) });
     if (!res.ok) throw new Error(`IPFS fetch of ${cid} failed: ${res.status}`);
     return res.text();
   },
