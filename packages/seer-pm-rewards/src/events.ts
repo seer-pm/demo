@@ -50,7 +50,7 @@ export function sortEvents(events: ChainEvent[]): ChainEvent[] {
  * Many providers cap `eth_getLogs` ranges or result sizes; a failed range is split in half and
  * retried, and the smaller range is kept for the rest of the scan.
  */
-async function getLogs(
+export async function getLogs(
   client: PublicClient,
   filter: { address: Address; topics: (Hex | Hex[] | null)[] },
   fromBlock: bigint,

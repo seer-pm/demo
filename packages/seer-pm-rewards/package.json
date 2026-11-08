@@ -5,6 +5,10 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/distributor.ts",
+    "./campaigns.json": "./campaigns.json"
+  },
   "scripts": {
     "compute": "node src/cli.ts",
     "test": "vitest run",
@@ -12,6 +16,7 @@
   },
   "dependencies": {
     "@openzeppelin/merkle-tree": "^1.0.5",
+    "@scure/base": "^1.2.6",
     "viem": "2.38.3"
   },
   "devDependencies": {

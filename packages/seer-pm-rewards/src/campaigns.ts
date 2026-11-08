@@ -1,5 +1,5 @@
 import { type Address, type Hex, getAddress, isAddress } from "viem";
-import { PAYOUT_CHAIN_IDS, SOURCE_CHAINS } from "./chains.ts";
+import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
 
 /** `perSecond` (reward token base units) applies from `from` (unix seconds) until the next tier. */
 export type RateTier = { from: number; perSecond: bigint };
@@ -58,7 +58,7 @@ export function parseCampaigns(json: unknown): Campaign[] {
     const chainId = raw.chainId;
     if (typeof chainId !== "number" || !SOURCE_CHAINS[chainId]) fail(id, `unsupported chainId ${chainId}`);
     const payoutChainId = raw.payoutChainId;
-    if (typeof payoutChainId !== "number" || !PAYOUT_CHAIN_IDS.includes(payoutChainId)) {
+    if (typeof payoutChainId !== "number" || !PAYOUT_CHAINS[payoutChainId]) {
       fail(id, `unsupported payoutChainId ${payoutChainId}`);
     }
     if (typeof raw.poolId !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(raw.poolId)) fail(id, "poolId must be 32 bytes");

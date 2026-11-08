@@ -32,6 +32,7 @@
     "@seer-pm/discussions": "*",
     "@seer-pm/order-book": "*",
     "@seer-pm/react": "*",
+    "@seer-pm/rewards": "*",
     "@seer-pm/sdk": "*",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@supabase/supabase-js": "^2.46.2",

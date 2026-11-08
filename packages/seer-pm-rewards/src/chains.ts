@@ -42,5 +42,20 @@ export const SOURCE_CHAINS: Record<number, SourceChain> = {
   },
 };
 
+export type PayoutChain = {
+  chain: Chain;
+  rpcEnv: string;
+  /**
+   * The chain's Morpho Universal Rewards Distributor and the block it was deployed in, from which
+   * the bot reads its root history. Unset until it is deployed; the bot skips the chain until then.
+   */
+  distributor?: { address: Address; fromBlock: bigint };
+};
+
 /** Chains a campaign may pay out on: any source chain, or Gnosis where SER-lpp already lives. */
-export const PAYOUT_CHAIN_IDS: readonly number[] = [mainnet.id, optimism.id, base.id, gnosis.id];
+export const PAYOUT_CHAINS: Record<number, PayoutChain> = {
+  [mainnet.id]: { chain: mainnet, rpcEnv: "PRIVATE_RPC_MAINNET" },
+  [optimism.id]: { chain: optimism, rpcEnv: "PRIVATE_RPC_OPTIMISM" },
+  [base.id]: { chain: base, rpcEnv: "PRIVATE_RPC_BASE" },
+  [gnosis.id]: { chain: gnosis, rpcEnv: "PRIVATE_RPC_GNOSIS" },
+};

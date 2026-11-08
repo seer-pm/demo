@@ -6606,11 +6606,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@seer-pm/rewards@workspace:packages/seer-pm-rewards":
+"@seer-pm/rewards@npm:*, @seer-pm/rewards@workspace:packages/seer-pm-rewards":
   version: 0.0.0-use.local
   resolution: "@seer-pm/rewards@workspace:packages/seer-pm-rewards"
   dependencies:
     "@openzeppelin/merkle-tree": "npm:^1.0.5"
+    "@scure/base": "npm:^1.2.6"
     "@types/node": "npm:*"
     typescript: "npm:^5.2.2"
     viem: "npm:2.38.3"
@@ -6662,6 +6663,7 @@ __metadata:
     "@seer-pm/discussions": "npm:*"
     "@seer-pm/order-book": "npm:*"
     "@seer-pm/react": "npm:*"
+    "@seer-pm/rewards": "npm:*"
     "@seer-pm/sdk": "npm:*"
     "@solana/wallet-adapter-react": "npm:^0.15.39"
     "@supabase/supabase-js": "npm:^2.46.2"
