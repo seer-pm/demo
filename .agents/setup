@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Prepares a fresh Amp orb: Yarn 4 through corepack, workspace dependencies and the generated
+# SDK sources. Runs again on top of a stale snapshot, so every step is idempotent.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+step() {
+  local name="$1"
+  shift
+  local start=$SECONDS
+  echo "==> $name"
+  "$@"
+  echo "<== $name ($((SECONDS - start))s)"
+}
+
+# The orb image ships Yarn 1 on PATH; `packageManager` pins Yarn 4, which corepack provides.
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+enable_corepack() {
+  if [[ "$(yarn --version 2>/dev/null)" != 4.* ]]; then
+    sudo corepack enable
+  fi
+  yarn --version
+}
+step "corepack" enable_corepack
+
+step "yarn install" yarn install --immutable
+
+# `generated/` is gitignored: wagmi contract bindings and the GraphQL SDK built from the
+# subgraph schemas. Typecheck, tests and the SDK build all import it.
+step "yarn generate" yarn workspace @seer-pm/web generate
+
+if [[ ! -f web/.env.local ]]; then
+  cp -- web/.env.local.dist web/.env.local
+fi
