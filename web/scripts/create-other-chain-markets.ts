@@ -47,7 +47,7 @@ import {
   MarketTypes,
   validateNewMarket,
 } from "@seer-pm/sdk";
-import { marketAbi, marketFactoryAbi } from "@seer-pm/sdk/contracts/market-factory";
+import { marketAbi, marketFactoryAbi } from "@seer-pm/contracts-ts/market-factory";
 import {
   type Abi,
   type Address,

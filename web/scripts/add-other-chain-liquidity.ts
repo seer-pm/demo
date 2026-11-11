@@ -52,7 +52,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { getRouterAddress, getSplitExecution, getToken0Token1 } from "@seer-pm/sdk";
-import { marketAbi } from "@seer-pm/sdk/contracts/market-factory";
+import { marketAbi } from "@seer-pm/contracts-ts/market-factory";
 import { TickMath } from "@uniswap/v3-sdk";
 import {
   type Address,
