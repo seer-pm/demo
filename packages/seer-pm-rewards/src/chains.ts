@@ -1,5 +1,5 @@
 import type { Address, Chain } from "viem";
-import { base, gnosis, mainnet, optimism } from "viem/chains";
+import { base, mainnet, optimism } from "viem/chains";
 
 export type SourceChain = {
   chain: Chain;
@@ -50,12 +50,17 @@ export type PayoutChain = {
    * the bot reads its root history. Unset until it is deployed; the bot skips the chain until then.
    */
   distributor?: { address: Address; fromBlock: bigint };
+  /**
+   * The chain's `RewardCampaigns` registry (`contracts/src/rewards/RewardCampaigns.sol`), which holds the
+   * campaigns paying out here and escrows their budgets, and the block it was deployed in, from which the bot
+   * reads its events. Unset until it is deployed; the chain has no campaigns until then.
+   */
+  registry?: { address: Address; fromBlock: bigint };
 };
 
-/** Chains a campaign may pay out on: any source chain, or Gnosis where SER-lpp already lives. */
+/** Chains rewards pay out on: the source chains, since a campaign pays out on its pool's chain in that chain's token. */
 export const PAYOUT_CHAINS: Record<number, PayoutChain> = {
   [mainnet.id]: { chain: mainnet, rpcEnv: "PRIVATE_RPC_MAINNET" },
   [optimism.id]: { chain: optimism, rpcEnv: "PRIVATE_RPC_OPTIMISM" },
   [base.id]: { chain: base, rpcEnv: "PRIVATE_RPC_BASE" },
-  [gnosis.id]: { chain: gnosis, rpcEnv: "PRIVATE_RPC_GNOSIS" },
 };

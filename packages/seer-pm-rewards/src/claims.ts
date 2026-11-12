@@ -4,7 +4,7 @@ import { base58 } from "@scure/base";
 import { type Address, type Hex, concat, getAddress, hexToBytes, parseAbi, toHex } from "viem";
 import type { Distribution } from "./distribution.ts";
 
-export { PAYOUT_CHAINS, type PayoutChain } from "./chains.ts";
+export { PAYOUT_CHAINS, SOURCE_CHAINS, type PayoutChain } from "./chains.ts";
 export type { Distribution } from "./distribution.ts";
 export type { RewardsFile } from "./week.ts";
 
@@ -19,6 +19,28 @@ export const urdAbi = parseAbi([
   "function acceptRoot()",
   "event PendingRootSet(address indexed caller, bytes32 indexed newRoot, bytes32 indexed newIpfsHash)",
   "event PendingRootRevoked(address indexed caller)",
+]);
+
+/** A payout chain's `RewardCampaigns` registry, read and released by the bot and written by the admin page. */
+export const rewardCampaignsAbi = parseAbi([
+  "struct Rate { uint64 from; uint256 perSecond; }",
+  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; Rate[] rates; uint256[] excludedTokenIds; }",
+  "struct Release { uint256 released; uint64 upTo; }",
+  "struct Deposit { address depositor; uint256 amount; }",
+  "function owner() view returns (address)",
+  "function isManager(address account) view returns (bool)",
+  "function getCampaigns() view returns (Campaign[])",
+  "function getReleases() view returns (Release[])",
+  "function getDeposits(uint256 id) view returns (Deposit[])",
+  "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks, uint256[] excludedTokenIds) returns (uint256 id)",
+  "function increaseBudget(uint256 id, uint256 amount)",
+  "function setRate(uint256 id, uint256 perSecond)",
+  "function updateSettings(uint256 id, uint32 minWidthTicks, uint256[] excludedTokenIds)",
+  "function release(uint256[] ids, uint256[] emitted, uint64 upTo)",
+  "function refundable(address token, address depositor) view returns (uint256)",
+  "function settleRefund(uint256 id)",
+  "function withdrawRefund(address token)",
+  "event CampaignSet(uint256 indexed id, Campaign campaign)",
 ]);
 
 /** Gateway of the Kleros IPFS node the bot pins to; it answers with `Access-Control-Allow-Origin: *`. */

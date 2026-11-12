@@ -11,11 +11,13 @@ import {
   erc20Abi,
   zeroHash,
 } from "viem";
+import { toIsoSeconds } from "./campaigns.ts";
 import { PAYOUT_CHAINS } from "./chains.ts";
-import { IPFS_GATEWAY, bytes32ToCid, cidToBytes32, urdAbi } from "./claims.ts";
+import { IPFS_GATEWAY, bytes32ToCid, cidToBytes32, rewardCampaignsAbi, urdAbi } from "./claims.ts";
 import { weekStart } from "./engine.ts";
 import { getLogs } from "./events.ts";
-import { type RewardsFile, computeWeek, parseCutoff } from "./week.ts";
+import { type RawCampaign, campaignHistory, emittedByCampaign } from "./registry.ts";
+import { type RewardsFile, computeWeeks, parseCutoff } from "./week.ts";
 
 export * from "./claims.ts";
 
@@ -58,8 +60,10 @@ type UpdaterWallet = WalletClient<Transport, Chain, Account>;
  * 1. Accepts the pending root once its timelock is over (anyone may; the bot does it so claims open
  *    on time).
  * 2. Once a new week has settled and no root is pending, resumes from the file behind the current
- *    root, computes the week and checks the distributor holds enough to pay every unclaimed amount.
- * 3. Uploads the file to IPFS, checks it reads back, and submits its root, which becomes claimable
+ *    root and computes the week from the chain's registry campaigns as of the cutoff.
+ * 3. Has the registry release to the distributor what each campaign emitted, then checks the
+ *    distributor holds enough to pay every unclaimed amount.
+ * 4. Uploads the file to IPFS, checks it reads back, and submits its root, which becomes claimable
  *    after the timelock.
  *
  * It never resubmits a root that was revoked, so revoking a bad root stops it until the campaigns
@@ -67,7 +71,6 @@ type UpdaterWallet = WalletClient<Transport, Chain, Account>;
  */
 export async function syncDistributor({
   payoutChainId,
-  rawCampaigns,
   payoutClient,
   wallet,
   clientFor,
@@ -75,7 +78,6 @@ export async function syncDistributor({
   now = Math.floor(Date.now() / 1000),
 }: {
   payoutChainId: number;
-  rawCampaigns: { payoutChainId?: unknown; chainId?: unknown }[];
   payoutClient: PublicClient;
   wallet: UpdaterWallet;
   /** Public clients of the source chains. */
@@ -83,8 +85,9 @@ export async function syncDistributor({
   ipfs?: Ipfs;
   now?: number;
 }): Promise<string> {
-  const distributor = PAYOUT_CHAINS[payoutChainId]?.distributor;
+  const { distributor, registry } = PAYOUT_CHAINS[payoutChainId] ?? {};
   if (!distributor) return "no distributor configured, skipped";
+  if (!registry) return "no campaign registry configured, skipped";
   const { address } = distributor;
 
   const read = async () => {
@@ -102,12 +105,18 @@ export async function syncDistributor({
     }
     return file;
   };
-  const send = async (functionName: "acceptRoot" | "submitRoot", args?: readonly [Hex, Hex]) => {
+  const send = async (
+    call:
+      | { functionName: "acceptRoot" }
+      | { functionName: "submitRoot"; args: readonly [Hex, Hex] }
+      | { functionName: "release"; args: readonly [bigint[], bigint[], bigint] },
+  ) => {
+    const { functionName } = call;
     const { request } = await payoutClient.simulateContract({
-      address,
-      abi: urdAbi,
-      functionName,
-      args,
+      ...call,
+      ...(functionName === "release"
+        ? { address: registry.address, abi: rewardCampaignsAbi }
+        : { address, abi: urdAbi }),
       account: wallet.account,
     } as Parameters<PublicClient["simulateContract"]>[0]);
     const hash = await wallet.writeContract(request as Parameters<UpdaterWallet["writeContract"]>[0]);
@@ -121,7 +130,7 @@ export async function syncDistributor({
   const { timestamp: chainNow } = await payoutClient.getBlock();
   if (state.pending.validAt !== 0n && chainNow >= state.pending.validAt) {
     try {
-      done.push(`accepted root ${state.pending.root} in ${await send("acceptRoot")}`);
+      done.push(`accepted root ${state.pending.root} in ${await send({ functionName: "acceptRoot" })}`);
     } catch (error) {
       // Anyone can accept, so someone may have done it first.
       if ((await read()).pending.validAt !== 0n) throw error;
@@ -144,15 +153,49 @@ export async function syncDistributor({
     return [...done, `up to date at ${previous.cutoff}`].join("; ");
   }
 
-  const file = await computeWeek({ payoutChainId, rawCampaigns, cutoff: target, previous, clientFor });
-  if (!previous && file.root === zeroHash) {
-    // An empty first root would only hold back the first real one for a whole timelock.
-    return [...done, `nothing earned by ${file.cutoff} yet`].join("; ");
-  }
+  const file = await computeWeeks({
+    payoutChainId,
+    campaignsAt: await campaignHistory(payoutClient, registry, payoutChainId, target),
+    cutoff: target,
+    previous,
+    clientFor,
+  });
+  if (!file) return [...done, `no campaigns by ${toIsoSeconds(target)}`].join("; ");
+  const rawCampaigns = file.campaigns as RawCampaign[];
 
   const revoked = await revokedRoots(payoutClient, address, distributor.fromBlock);
   if (revoked.has(file.root)) {
     throw new Error(`root ${file.root} for ${file.cutoff} was revoked before; fix the campaigns or the engine first`);
+  }
+
+  // Released before the root so the distributor can pay it, and before the empty-root return below so a
+  // campaign that ended without emitting anything still gets the release its refund waits for. Released
+  // campaigns are skipped, so the hourly retries of a failed upload send nothing again.
+  const releases = await payoutClient.readContract({
+    address: registry.address,
+    abi: rewardCampaignsAbi,
+    functionName: "getReleases",
+  });
+  // A campaign whose final week is already released is skipped, so the release does not grow with every
+  // campaign that ever ran.
+  const emitted = emittedByCampaign(file.states);
+  const due = rawCampaigns.flatMap((c): [string, bigint][] => {
+    const r = releases[Number(c.id)];
+    const total = emitted.get(c.id) ?? 0n;
+    const last = c.rates[c.rates.length - 1];
+    const final = last.perSecond === "0" && r.upTo >= BigInt(Date.parse(last.from) / 1000);
+    if (final && r.released >= total) return [];
+    return r.upTo < BigInt(target) || r.released < total ? [[c.id, total]] : [];
+  });
+  if (due.length > 0) {
+    const ids = due.map(([id]) => BigInt(id));
+    const tx = await send({ functionName: "release", args: [ids, due.map(([, e]) => e), BigInt(target)] });
+    done.push(`released campaigns ${ids.join(", ")} up to ${file.cutoff} in ${tx}`);
+  }
+
+  if (!previous && file.root === zeroHash) {
+    // An empty first root would only hold back the first real one for a whole timelock.
+    return [...done, `nothing earned by ${file.cutoff} yet`].join("; ");
   }
 
   // The distributor pays `claimable - claimed`, so this is what it must hold for everyone to claim.
@@ -198,7 +241,7 @@ export async function syncDistributor({
     }
   }
 
-  const tx = await send("submitRoot", [file.root, cidToBytes32(cid)]);
+  const tx = await send({ functionName: "submitRoot", args: [file.root, cidToBytes32(cid)] });
   return [...done, `submitted root ${file.root} for ${file.cutoff} (ipfs ${cid}) in ${tx}`].join("; ");
 }
 

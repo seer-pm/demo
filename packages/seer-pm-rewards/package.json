@@ -7,8 +7,7 @@
   "type": "module",
   "exports": {
     ".": "./src/distributor.ts",
-    "./claims": "./src/claims.ts",
-    "./campaigns.json": "./campaigns.json"
+    "./claims": "./src/claims.ts"
   },
   "scripts": {
     "compute": "node src/cli.ts",

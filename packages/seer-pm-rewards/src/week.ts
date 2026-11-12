@@ -5,12 +5,14 @@ import { type Distribution, assertNoDecrease, buildDistributions } from "./distr
 import {
   type EngineStateJson,
   type PositionAccrual,
+  WEEK,
   accrueRewards,
   parseState,
   serializeState,
   weekStart,
 } from "./engine.ts";
 import { fetchChainEvents, findLastBlockBefore } from "./events.ts";
+import type { RawCampaign } from "./registry.ts";
 
 /**
  * What gets published for one payout chain each week, and what its distributor's `ipfsHash`
@@ -48,7 +50,7 @@ export async function computeWeek({
   clientFor,
 }: {
   payoutChainId: number;
-  /** Every campaign in `campaigns.json`; only those paying on `payoutChainId` are used. */
+  /** The campaigns at `cutoff`, such as `campaignHistory` gives; only those paying on `payoutChainId` are used. */
   rawCampaigns: { payoutChainId?: unknown; chainId?: unknown }[];
   cutoff: number;
   previous?: RewardsFile;
@@ -118,4 +120,46 @@ export async function computeWeek({
   const [distribution] = buildDistributions({ campaigns, accruals, cutoff, sourceBlocks });
   if (previous) assertNoDecrease(previous, distribution);
   return { ...distribution, campaigns: raw, states };
+}
+
+/**
+ * Computes the rewards file of `payoutChainId` at `cutoff` one week at a time, from `previous` or, without it,
+ * from the first week a campaign ran, each week with `campaignsAt` of its own cutoff. A campaign's budget and
+ * settings at a cutoff apply to the whole week that ends there, so replaying several weeks with the campaigns of
+ * the last one would apply its settings to the earlier weeks too. Without `previous`, returns undefined when no
+ * campaign has run on `payoutChainId` before `cutoff`.
+ */
+export async function computeWeeks({
+  payoutChainId,
+  campaignsAt,
+  cutoff,
+  previous,
+  clientFor,
+}: {
+  payoutChainId: number;
+  /** The campaigns at a cutoff, such as `campaignHistory` gives. */
+  campaignsAt: (cutoff: number) => Promise<RawCampaign[]>;
+  cutoff: number;
+  previous?: RewardsFile;
+  clientFor: (chainId: number) => PublicClient;
+}): Promise<RewardsFile | undefined> {
+  let first: number;
+  if (previous) {
+    first = parseCutoff(previous.cutoff) + WEEK;
+    if (first > cutoff) throw new Error(`previous cutoff ${previous.cutoff} is not before the cutoff`);
+  } else {
+    // Campaigns are never removed, so the ones at `cutoff` include the first one that ran.
+    const campaigns = parseCampaigns({ campaigns: await campaignsAt(cutoff) }).filter(
+      (c) => c.payoutChainId === payoutChainId,
+    );
+    if (campaigns.length === 0) return undefined;
+    first = weekStart(Math.min(...campaigns.map((c) => c.rates[0].from))) + WEEK;
+  }
+
+  let file = previous;
+  for (let weekCutoff = first; weekCutoff <= cutoff; weekCutoff += WEEK) {
+    const rawCampaigns = await campaignsAt(weekCutoff);
+    file = await computeWeek({ payoutChainId, rawCampaigns, cutoff: weekCutoff, previous: file, clientFor });
+  }
+  return file;
 }

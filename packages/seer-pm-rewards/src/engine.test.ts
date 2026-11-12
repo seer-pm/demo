@@ -1,10 +1,27 @@
-import { type Address, type Hex, concat, encodeAbiParameters, getAddress, keccak256, numberToHex, pad } from "viem";
+import {
+  type AbiParameter,
+  type Address,
+  type Hex,
+  type PublicClient,
+  type RpcLog,
+  concat,
+  encodeAbiParameters,
+  encodeEventTopics,
+  getAddress,
+  keccak256,
+  numberToHex,
+  pad,
+  parseAbi,
+} from "viem";
 import { describe, expect, it } from "vitest";
 import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
-import { accountRewards } from "./claims.ts";
+import { SOURCE_CHAINS } from "./chains.ts";
+import { accountRewards, rewardCampaignsAbi } from "./claims.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
+import { type RawCampaign, campaignHistory, campaignsFromLogs, emittedByCampaign } from "./registry.ts";
+import { computeWeek, computeWeeks } from "./week.ts";
 
 const PM = "0x00000000000000000000000000000000000000aa" as Address;
 const HOOK = "0x00000000000000000000000000000000000000bb" as Address;
@@ -312,5 +329,222 @@ describe("accountRewards", () => {
       { token: TOKEN, earned: 100n, proof: [`0x${"ab".repeat(32)}`], claimed: 40n, claimable: 60n, upcoming: 50n },
       { token: OTHER, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 7n },
     ]);
+  });
+});
+
+describe("campaignsFromLogs", () => {
+  // The campaign is the only non-indexed input.
+  const event = rewardCampaignsAbi.find((item) => item.type === "event" && item.name === "CampaignSet")!;
+  const campaignSet = (id: bigint, campaign: Record<string, unknown>) =>
+    ({
+      topics: encodeEventTopics({ abi: rewardCampaignsAbi, eventName: "CampaignSet", args: { id } }),
+      data: encodeAbiParameters(event.inputs.slice(1), [
+        {
+          poolId: POOL,
+          rewardToken: TOKEN,
+          budget: 1000n,
+          minWidthTicks: 0,
+          rates: [{ from: BigInt(T0), perSecond: 10n }],
+          excludedTokenIds: [],
+          ...campaign,
+        },
+      ]),
+    }) as unknown as RpcLog;
+
+  it("keeps each campaign's last change and puts its pool and payout on the registry's chain", () => {
+    const ended = [
+      { from: BigInt(T0), perSecond: 10n },
+      { from: BigInt(T0 + WEEK), perSecond: 0n },
+    ];
+    const raw = campaignsFromLogs(
+      [
+        campaignSet(0n, {}),
+        campaignSet(1n, {}),
+        campaignSet(0n, { rates: ended, budget: 500n, excludedTokenIds: [7n] }),
+        campaignSet(2n, {}),
+      ],
+      10,
+    );
+
+    expect(raw.map((c) => c.id)).toEqual(["0", "1", "2"]);
+    expect(raw[0]).toMatchObject({
+      chainId: 10,
+      payoutChainId: 10,
+      rates: [
+        { from: "2026-11-02T00:00:00Z", perSecond: "10" },
+        { from: "2026-11-09T00:00:00Z", perSecond: "0" },
+      ],
+      budget: "500",
+      excludeTokenIds: ["7"],
+    });
+    const [parsed] = parseCampaigns({ campaigns: raw });
+    expect(parsed.budget).toBe(500n);
+    expect([parsed.chainId, parsed.payoutChainId]).toEqual([10, 10]);
+  });
+
+  it("gives the campaigns as of the last block before each cutoff from one read of the registry", async () => {
+    // One block a day, block n at T0 + n days. Block 7 is at the first cutoff, so its change belongs to week two.
+    const DAY = 86_400;
+    const registry = { address: "0x00000000000000000000000000000000000000dd" as Address, fromBlock: 1n };
+    const atBlock = (block: bigint, log: RpcLog) =>
+      ({ ...log, address: registry.address, blockNumber: numberToHex(block) }) as unknown as RpcLog;
+    const logs = [
+      atBlock(2n, campaignSet(0n, { minWidthTicks: 10 })),
+      atBlock(6n, campaignSet(1n, {})),
+      atBlock(7n, campaignSet(0n, { minWidthTicks: 20 })),
+      atBlock(13n, campaignSet(2n, {})),
+      atBlock(14n, campaignSet(0n, { minWidthTicks: 30 })),
+    ];
+    const client = {
+      chain: { id: 10 },
+      getBlock: async ({ blockNumber = 20n } = {}) => ({
+        number: blockNumber,
+        timestamp: BigInt(T0 + Number(blockNumber) * DAY),
+      }),
+      request: async ({ params: [filter] }: { params: [{ fromBlock: Hex; toBlock: Hex }] }) =>
+        logs.filter(
+          (l) => BigInt(l.blockNumber!) >= BigInt(filter.fromBlock) && BigInt(l.blockNumber!) <= BigInt(filter.toBlock),
+        ),
+    } as unknown as PublicClient;
+
+    const campaignsAt = await campaignHistory(client, registry, 10, T0 + 2 * WEEK);
+    const settings = async (cutoff: number) => (await campaignsAt(cutoff)).map((c) => [c.id, c.minWidthTicks]);
+
+    expect(await settings(T0 + WEEK)).toEqual([
+      ["0", 10],
+      ["1", 0],
+    ]);
+    expect(await settings(T0 + 2 * WEEK)).toEqual([
+      ["0", 20],
+      ["1", 0],
+      ["2", 0],
+    ]);
+    expect(() => campaignsAt(T0 + 3 * WEEK)).toThrow();
+  });
+});
+
+describe("emittedByCampaign", () => {
+  it("is what the engine charged to each campaign's budget, across the source chains", () => {
+    // In range for 100 seconds at 10/s would emit 1000, capped at the 700 budget; "b" on another chain emits nothing.
+    const state = accrueRewards({
+      positionManager: PM,
+      campaigns: [campaign({ id: "a", budget: "700" })],
+      events: [
+        { ...at(0), kind: "initialize", poolId: POOL, tick: 0 } as ChainEvent,
+        mint(0, 1n, ALICE),
+        liquidity(0, 1n, 100n),
+        tick(100, 500),
+      ],
+      cutoff: T0 + 200,
+    });
+    const emitted = emittedByCampaign({
+      "8453": serializeState(state),
+      "10": { ...serializeState(state), budgetUsed: { b: "0" } },
+    });
+    expect(emitted).toEqual(
+      new Map([
+        ["a", 700n],
+        ["b", 0n],
+      ]),
+    );
+  });
+});
+
+describe("computeWeeks", () => {
+  // One Base position of width 120, in range from T0 on. The fake chain has one block per Monday from the hook
+  // deployment block, which holds every event, and its head two weeks later.
+  const source = SOURCE_CHAINS[8453];
+  const first = source.fromBlock;
+  const abi = parseAbi([
+    "event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)",
+    "event ModifyLiquidity(bytes32 indexed id, address indexed sender, int24 tickLower, int24 tickUpper, int256 liquidityDelta, bytes32 salt)",
+    "event Transfer(address indexed from, address indexed to, uint256 indexed id)",
+  ]);
+  const event = (
+    address: Address,
+    eventName: (typeof abi)[number]["name"],
+    args: Record<string, unknown>,
+    i: number,
+  ) => {
+    const inputs = (
+      abi.find((item) => item.name === eventName)!.inputs as readonly (AbiParameter & { indexed?: boolean })[]
+    ).filter((input) => !input.indexed);
+    return {
+      address,
+      topics: encodeEventTopics({ abi, eventName, args } as Parameters<typeof encodeEventTopics>[0]),
+      data: encodeAbiParameters(inputs, inputs.map((input) => args[input.name!]) as never),
+      blockNumber: numberToHex(first),
+      logIndex: numberToHex(i),
+      blockTimestamp: numberToHex(T0),
+    };
+  };
+  const { poolManager, positionManager } = source;
+  const logs = [
+    event(
+      poolManager,
+      "Initialize",
+      {
+        id: POOL,
+        currency0: ALICE,
+        currency1: TOKEN,
+        fee: 3000,
+        tickSpacing: 60,
+        hooks: HOOK,
+        sqrtPriceX96: 2n ** 96n,
+        tick: 0,
+      },
+      0,
+    ),
+    event(positionManager, "Transfer", { from: ALICE, to: ALICE, id: 1n }, 1),
+    event(
+      poolManager,
+      "ModifyLiquidity",
+      { id: POOL, sender: positionManager, tickLower: -60, tickUpper: 60, liquidityDelta: 100n, salt: pad("0x1") },
+      2,
+    ),
+  ];
+  const client = {
+    chain: { id: 8453 },
+    getBlock: async ({ blockNumber = first + 2n } = {}) => ({
+      number: blockNumber,
+      timestamp: BigInt(T0 + Number(blockNumber - first) * WEEK),
+    }),
+    request: async ({ params: [filter] }: { params: [{ address: string; fromBlock: Hex; toBlock: Hex }] }) =>
+      logs.filter(
+        (l) =>
+          l.address === filter.address &&
+          BigInt(l.blockNumber) >= BigInt(filter.fromBlock) &&
+          BigInt(l.blockNumber) <= BigInt(filter.toBlock),
+      ),
+  } as unknown as PublicClient;
+
+  it("computes each missed week with the campaigns at its own cutoff", async () => {
+    const weekOne: RawCampaign = {
+      id: "0",
+      chainId: 8453,
+      payoutChainId: 8453,
+      poolId: POOL,
+      rewardToken: TOKEN,
+      budget: "2000000",
+      rates: [{ from: "2026-11-02T00:00:00Z", perSecond: "1" }],
+      minWidthTicks: 0,
+      excludeTokenIds: [],
+    };
+    // In week two the position becomes too narrow to earn, and the campaign ends.
+    const weekTwo = {
+      ...weekOne,
+      minWidthTicks: 121,
+      rates: [...weekOne.rates, { from: "2026-11-10T00:00:00Z", perSecond: "0" }],
+    };
+    const base = { payoutChainId: 8453, clientFor: () => client };
+    const campaignsAt = async (cutoff: number) => (cutoff <= T0 + WEEK ? [weekOne] : [weekTwo]);
+
+    const published = await computeWeek({ ...base, cutoff: T0 + WEEK, rawCampaigns: [weekOne] });
+    const weekly = await computeWeek({ ...base, cutoff: T0 + 2 * WEEK, rawCampaigns: [weekTwo], previous: published });
+    const caughtUp = await computeWeeks({ ...base, cutoff: T0 + 2 * WEEK, campaignsAt });
+
+    expect(weekly.claims[ALICE][TOKEN].claimable).toBe("604800");
+    expect(caughtUp?.root).toBe(weekly.root);
+    expect(await computeWeeks({ ...base, cutoff: T0, campaignsAt })).toBeUndefined();
   });
 });

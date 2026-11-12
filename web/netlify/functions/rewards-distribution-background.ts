@@ -1,5 +1,4 @@
-import { syncDistributor } from "@seer-pm/rewards";
-import campaignsFile from "@seer-pm/rewards/campaigns.json";
+import { PAYOUT_CHAINS, syncDistributor } from "@seer-pm/rewards";
 import type { Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { requireBackgroundSecret } from "./utils/backgroundAuth.ts";
@@ -7,9 +6,11 @@ import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/con
 
 /**
  * Weekly liquidity rewards for the V4 pools (`packages/seer-pm-rewards`): on every payout chain
- * with a distributor, accepts the pending root once its timelock is over and submits the root of
- * the week that just settled. `REWARDS_UPDATER_PRIVATE_KEY` is a hot wallet set as root updater on
- * the distributors; it can propose and revoke roots but not skip the timelock.
+ * with a distributor and a campaign registry, accepts the pending root once its timelock is over,
+ * releases what the campaigns emitted and submits the root of the week that just settled.
+ * `REWARDS_UPDATER_PRIVATE_KEY` is a hot wallet set as root updater on the distributors and as
+ * releaser on the registries; it can propose and revoke roots but not skip the timelock, and can only
+ * move escrowed budgets to the distributor, never beyond each campaign's deposit.
  */
 export default async (req: Request) => {
   const unauthorized = requireBackgroundSecret(req);
@@ -22,12 +23,10 @@ export default async (req: Request) => {
   }
   const account = privateKeyToAccount((privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`) as Hex);
 
-  const rawCampaigns: { payoutChainId: number }[] = campaignsFile.campaigns;
-  for (const payoutChainId of new Set(rawCampaigns.map((c) => c.payoutChainId))) {
+  for (const payoutChainId of Object.keys(PAYOUT_CHAINS).map(Number)) {
     try {
       const status = await syncDistributor({
         payoutChainId,
-        rawCampaigns,
         payoutClient: getPublicClientByChainId(payoutChainId),
         wallet: getWalletClientForNetwork(account, payoutChainId),
         clientFor: getPublicClientByChainId,

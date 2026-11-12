@@ -43,7 +43,7 @@ function parseInstant(id: string, value: unknown): number {
   return ms / 1000;
 }
 
-/** Parses and validates the contents of `campaigns.json`. */
+/** Parses and validates `{ campaigns: [...] }`, the form `campaignHistory` gives and the published files embed. */
 export function parseCampaigns(json: unknown): Campaign[] {
   const list = (json as { campaigns?: unknown })?.campaigns;
   if (!Array.isArray(list)) throw new Error('campaigns file must be { "campaigns": [...] }');
@@ -61,6 +61,7 @@ export function parseCampaigns(json: unknown): Campaign[] {
     if (typeof payoutChainId !== "number" || !PAYOUT_CHAINS[payoutChainId]) {
       fail(id, `unsupported payoutChainId ${payoutChainId}`);
     }
+    if (payoutChainId !== chainId) fail(id, "rewards pay out on the pool's chain, so payoutChainId must equal chainId");
     if (typeof raw.poolId !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(raw.poolId)) fail(id, "poolId must be 32 bytes");
     if (typeof raw.rewardToken !== "string" || !isAddress(raw.rewardToken)) fail(id, "invalid rewardToken");
 
