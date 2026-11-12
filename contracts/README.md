@@ -143,6 +143,14 @@ yarn hh-local-deploy
 yarn hardhat deploy --network gnosis
 ```
 
+**Rewards distributor**
+
+The weekly V4 liquidity rewards (`packages/seer-pm-rewards`) are paid by a Morpho [Universal Rewards Distributor](https://docs.morpho.org/developers/contracts/rewards/) ([source](https://github.com/morpho-org/universal-rewards-distributor/tree/v1.0.0)), created through Morpho's `UrdFactory` on Ethereum, Optimism and Base ([factory addresses](https://docs.morpho.org/developers/contracts/addresses/)). It needs no verification: the factory deploys the bytecode Morpho already verified.
+```
+URD_OWNER=<safe> URD_ROOT_UPDATER=<bot wallet> yarn hardhat deploy --network optimism --tags RewardsDistributor --no-compile
+```
+`URD_OWNER` is required and `URD_TIMELOCK` defaults to 172800 (48 h). With `URD_ROOT_UPDATER`, the deployer creates the distributor as its own owner, enables the updater and then calls `setOwner(URD_OWNER)`, so the owner sends nothing. `setOwner` has no acceptance step: check `URD_OWNER` before running. A run that stops halfway finishes on the next one. Then copy the printed address and block into `PAYOUT_CHAINS` in `packages/seer-pm-rewards/src/chains.ts`.
+
 **Verify contracts**
 
 Run the verification right after deploying:
