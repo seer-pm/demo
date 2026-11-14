@@ -1,0 +1,345 @@
+{
+  "address": "0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37",
+  "abi": [
+    {
+      "name": "root",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "bytes32"
+        }
+      ]
+    },
+    {
+      "name": "owner",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "address"
+        }
+      ]
+    },
+    {
+      "name": "timelock",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "name": "ipfsHash",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "bytes32"
+        }
+      ]
+    },
+    {
+      "name": "isUpdater",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [
+        {
+          "type": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "claimed",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [
+        {
+          "type": "address"
+        },
+        {
+          "type": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "name": "pendingRoot",
+      "type": "function",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "bytes32",
+          "name": "root"
+        },
+        {
+          "type": "bytes32",
+          "name": "ipfsHash"
+        },
+        {
+          "type": "uint256",
+          "name": "validAt"
+        }
+      ]
+    },
+    {
+      "name": "acceptRoot",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "setRoot",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "type": "bytes32",
+          "name": "newRoot"
+        },
+        {
+          "type": "bytes32",
+          "name": "newIpfsHash"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "name": "setTimelock",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "newTimelock"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "name": "setRootUpdater",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "updater"
+        },
+        {
+          "type": "bool",
+          "name": "active"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "name": "revokePendingRoot",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "setOwner",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "newOwner"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "name": "submitRoot",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "type": "bytes32",
+          "name": "newRoot"
+        },
+        {
+          "type": "bytes32",
+          "name": "ipfsHash"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "name": "claim",
+      "type": "function",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "account"
+        },
+        {
+          "type": "address",
+          "name": "reward"
+        },
+        {
+          "type": "uint256",
+          "name": "claimable"
+        },
+        {
+          "type": "bytes32[]",
+          "name": "proof"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": "amount"
+        }
+      ]
+    },
+    {
+      "name": "RootSet",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "bytes32",
+          "name": "newRoot",
+          "indexed": true
+        },
+        {
+          "type": "bytes32",
+          "name": "newIpfsHash",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "name": "PendingRootSet",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "caller",
+          "indexed": true
+        },
+        {
+          "type": "bytes32",
+          "name": "newRoot",
+          "indexed": true
+        },
+        {
+          "type": "bytes32",
+          "name": "newIpfsHash",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "name": "PendingRootRevoked",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "caller",
+          "indexed": true
+        }
+      ]
+    },
+    {
+      "name": "TimelockSet",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "newTimelock"
+        }
+      ]
+    },
+    {
+      "name": "RootUpdaterSet",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "rootUpdater",
+          "indexed": true
+        },
+        {
+          "type": "bool",
+          "name": "active"
+        }
+      ]
+    },
+    {
+      "name": "Claimed",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "account",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "reward",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "amount"
+        }
+      ]
+    },
+    {
+      "name": "OwnerSet",
+      "type": "event",
+      "inputs": [
+        {
+          "type": "address",
+          "name": "newOwner",
+          "indexed": true
+        }
+      ]
+    }
+  ],
+  "transactionHash": "0xa78900c63d56761f5134f44600c4bfcbcbd36a859b8fd4a1d220c036bb326130",
+  "receipt": {
+    "to": "0x7276454fc1cf9C408deeed722fd6b5E7A4CA25D8",
+    "from": "0x4edca105188a0783ab3a6f09c50567d1e3f8591d",
+    "contractAddress": "0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37",
+    "transactionIndex": 108,
+    "gasUsed": "813382",
+    "logsBloom": "0x00000000000000000004000000000020000000000000000000000000000040000100000000000000000000000000400000000000000000000000000000010000000000000080000000000000000000000000000000000000000000001000000000040000020000041000020000000800020000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004008000000000000000000000000000000000000000000000000000000008040000000000000000000000000040000000000000000000020000000000000000001000002000000000000000000140000000000000000000800",
+    "blockHash": "0xe274c7aeeab5cedfd2c5e56596da04444c7ecbe4c4be368a6643c777d31f1ecc",
+    "transactionHash": "0xa78900c63d56761f5134f44600c4bfcbcbd36a859b8fd4a1d220c036bb326130",
+    "logs": [],
+    "blockNumber": 57525130,
+    "cumulativeGasUsed": "14207355",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
+    "172800",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "0x35f3086e9a1db28a7653d8bee9ab0562c10131d288cb001241ffda5b11068beb"
+  ],
+  "numDeployments": 1
+}

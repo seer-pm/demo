@@ -60,7 +60,22 @@ export type PayoutChain = {
 
 /** Chains rewards pay out on: the source chains, since a campaign pays out on its pool's chain in that chain's token. */
 export const PAYOUT_CHAINS: Record<number, PayoutChain> = {
-  [mainnet.id]: { chain: mainnet, rpcEnv: "PRIVATE_RPC_MAINNET" },
-  [optimism.id]: { chain: optimism, rpcEnv: "PRIVATE_RPC_OPTIMISM" },
-  [base.id]: { chain: base, rpcEnv: "PRIVATE_RPC_BASE" },
+  [mainnet.id]: {
+    chain: mainnet,
+    rpcEnv: "PRIVATE_RPC_MAINNET",
+    distributor: { address: "0x64d89bb0e7BdB71f81E9bdA770036a9139B284AB", fromBlock: 26416221n },
+    registry: { address: "0x73f98977ba13ad71275ba5bBA0189E9dC2dc42B5", fromBlock: 26416223n },
+  },
+  [optimism.id]: {
+    chain: optimism,
+    rpcEnv: "PRIVATE_RPC_OPTIMISM",
+    distributor: { address: "0x880e41A11451a2DC6783997E94dab75D66eBbCfB", fromBlock: 159548304n },
+    registry: { address: "0x7563C95e6837D3256162eCAa7B5984681515eAa3", fromBlock: 159548307n },
+  },
+  [base.id]: {
+    chain: base,
+    rpcEnv: "PRIVATE_RPC_BASE",
+    distributor: { address: "0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37", fromBlock: 57525130n },
+    registry: { address: "0xe5a4dFff551aDD6efd317b11E1E3aab556aDD300", fromBlock: 57525147n },
+  },
 };
