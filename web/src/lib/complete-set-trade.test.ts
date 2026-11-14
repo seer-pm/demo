@@ -1,3 +1,4 @@
+import { routerAbi } from "@seer-pm/contracts-ts/router";
 import {
   AmmTrade,
   type CompleteSetLeg,
@@ -11,7 +12,6 @@ import {
 import type { Address } from "viem";
 import { decodeFunctionData, erc20Abi, zeroAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { routerAbi } from "../../../packages/seer-pm-sdk/generated/contracts/router";
 
 const account = "0x0000000000000000000000000000000000000001" as Address;
 const collateralToken = "0x0000000000000000000000000000000000000002" as Address;

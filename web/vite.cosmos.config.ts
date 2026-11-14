@@ -21,7 +21,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "node-fetch": "isomorphic-fetch",
       jsbi: path.resolve(__dirname, "./../node_modules/jsbi/dist/jsbi-cjs.js"),
-      "@seer-pm/sdk/contracts": path.resolve(__dirname, "../packages/seer-pm-sdk/generated/contracts"),
+      "@seer-pm/contracts-ts": path.resolve(__dirname, "../packages/seer-pm-contracts-ts/generated/contracts"),
       "@seer-pm/sdk/subgraph": path.resolve(__dirname, "../packages/seer-pm-sdk/generated/subgraph"),
       "@seer-pm/sdk/abis/eternal-farming": path.resolve(__dirname, "../packages/seer-pm-sdk/abis/EternalFarmingAbi.ts"),
       "@seer-pm/sdk/sign-in": path.resolve(__dirname, "../packages/seer-pm-sdk/src/sign-in.ts"),
