@@ -1,6 +1,6 @@
+import { marketAbi } from "@seer-pm/contracts-ts/market-factory";
 import { encodeFunctionData } from "viem";
 import type { Address } from "viem";
-import { marketAbi } from "../generated/contracts/market-factory";
 import type { Execution } from "./execution";
 
 /**

@@ -1,12 +1,12 @@
 import { type Address, zeroAddress } from "viem";
 import { getDefaultCollateralProfile } from "./collateral";
-import { tickToPrice } from "./liquidity-utils";
 import { getMarketUnit } from "./market";
 import { getMarketAllPoolsPairs, getOutcomePoolPairs, getTokensPairKey } from "./market-pools";
 import type { Market } from "./market-types";
 import { isTwoStringsEqual } from "./quote-utils";
 import { displayScalarBound } from "./reality";
 import { getPoolsStateFromSubgraph } from "./subgraph";
+import { tickToPrice } from "./tick-math";
 import { getTokenPriceFromSwap } from "./token-price";
 import type { Token } from "./tokens";
 

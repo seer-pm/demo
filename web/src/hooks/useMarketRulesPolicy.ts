@@ -1,12 +1,12 @@
 import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
-import type { SupportedChain } from "@seer-pm/sdk";
-import { graphQLClient } from "@seer-pm/sdk";
 import {
   realitioForeignArbitrationProxyWithAppealsAddress,
   realitioForeignProxyBaseAddress,
   realitioForeignProxyOptimismAddress,
   realitioV2_1ArbitratorWithAppealsAddress,
-} from "@seer-pm/sdk/contracts/arbitrators";
+} from "@seer-pm/contracts-ts/arbitrators";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { graphQLClient } from "@seer-pm/sdk";
 import { getSdk as getSeerSdk } from "@seer-pm/sdk/subgraph/seer";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";

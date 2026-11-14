@@ -7,6 +7,7 @@ import {
   waitForCallsStatus,
   waitForTransactionReceipt,
 } from "@wagmi/core";
+import type { ReactNode } from "react";
 import { Theme, ToastOptions, ToastPosition, toast } from "react-toastify";
 import {
   TransactionNotFoundError,
@@ -34,31 +35,31 @@ type ToastifyConfig = TxNotificationConfig & {
 
 interface ToastContentType {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   options?: ToastOptions;
 }
 
-function toastContent(title: string, subtitle: string) {
+function toastContent(title: string, subtitle?: ReactNode) {
   return (
     <>
       <div className="text-[16px] font-semibold">{title}</div>
-      {subtitle && <div className="text-[14px] font-normal">{subtitle}</div>}
+      {subtitle ? <div className="text-[14px] font-normal">{subtitle}</div> : null}
     </>
   );
 }
 
-export function toastInfo({ title, subtitle = "", options }: ToastContentType) {
+export function toastInfo({ title, subtitle, options }: ToastContentType) {
   toast.info(toastContent(title, subtitle), { ...{ ...DEFAULT_TOAST_OPTIONS, ...options }, icon: <LoadingIcon /> });
 }
 
-export function toastSuccess({ title, subtitle = "", options }: ToastContentType) {
+export function toastSuccess({ title, subtitle, options }: ToastContentType) {
   toast.success(toastContent(title, subtitle), {
     ...{ ...DEFAULT_TOAST_OPTIONS, ...options },
     icon: <CheckCircleIcon width={32} height={32} />,
   });
 }
 
-export function toastError({ title, subtitle = "", options }: ToastContentType) {
+export function toastError({ title, subtitle, options }: ToastContentType) {
   toast.error(toastContent(title, subtitle), {
     ...{ ...DEFAULT_TOAST_OPTIONS, ...options },
     icon: <CloseCircleIcon />,

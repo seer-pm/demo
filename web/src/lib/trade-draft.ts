@@ -1,7 +1,7 @@
 import type { TradeType } from "@seer-pm/sdk";
 
 /** Order types offered by the trade widget's order-type dropdown. */
-export type SwapOrderType = "market" | "limit" | "fill-to-estimate";
+export type SwapOrderType = "market" | "limit" | "fill-to-estimate" | "limit-order";
 
 export interface MarketDraft {
   /** Outcome the amounts belong to; a draft is dropped when the selected outcome moved on. */
@@ -24,18 +24,29 @@ export interface FillToEstimateDraft {
   maxCollateralToUse: string;
 }
 
+export interface LimitOrderDraft {
+  /** Outcome the shares and limit price belong to; a draft is dropped when the selected outcome moved on. */
+  outcomeToken: string;
+  swapType: "buy" | "sell";
+  shares: string;
+  limitPrice: string;
+  /** Price the pool is created at; only meaningful while the pool does not exist. */
+  startingPrice?: string;
+}
+
 /** What the user typed in one market's trade widget, kept across unmounts. */
 export interface TradeDraft {
   orderType?: SwapOrderType;
   market?: MarketDraft;
   limit?: LimitDraft;
   fillToEstimate?: FillToEstimateDraft;
+  limitOrder?: LimitOrderDraft;
 }
 
 export type TradeDrafts = Record<string, TradeDraft>;
 
 /** The panel-owned parts of a draft; the order type is not one of them. */
-export type TradeDraftSection = "market" | "limit" | "fillToEstimate";
+export type TradeDraftSection = "market" | "limit" | "fillToEstimate" | "limitOrder";
 
 /** Drafts are per market; keep only the last few so session storage cannot grow without bound. */
 export const MAX_TRADE_DRAFTS = 5;
@@ -96,16 +107,24 @@ export function isDraftForOutcome(draft: { outcomeToken: string } | undefined, o
 
 /**
  * A stored order type is only valid while the market still offers it: non-Generic
- * markets are market-order only, and fill-to-estimate is limited to scalar markets.
+ * markets are market-order only, fill-to-estimate is limited to scalar markets, and
+ * limit orders need an order-book pool.
  */
 export function readOrderType(
   orderType: SwapOrderType | undefined,
-  { isGeneric, allowFillToEstimate }: { isGeneric: boolean; allowFillToEstimate: boolean },
+  {
+    isGeneric,
+    allowFillToEstimate,
+    allowLimitOrder = false,
+  }: { isGeneric: boolean; allowFillToEstimate: boolean; allowLimitOrder?: boolean },
 ): SwapOrderType {
   if (!orderType || !isGeneric) {
     return "market";
   }
   if (orderType === "fill-to-estimate" && !allowFillToEstimate) {
+    return "market";
+  }
+  if (orderType === "limit-order" && !allowLimitOrder) {
     return "market";
   }
   return orderType;

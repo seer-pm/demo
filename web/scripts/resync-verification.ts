@@ -23,7 +23,7 @@
  */
 import { isVerificationEnabled } from "@/lib/config.ts";
 import type { SupportedChain, VerificationResult } from "@seer-pm/sdk";
-import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
+import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/contracts-ts/curate";
 import { createClient } from "@supabase/supabase-js";
 import { sepolia } from "viem/chains";
 import { readContract } from "viem/actions";

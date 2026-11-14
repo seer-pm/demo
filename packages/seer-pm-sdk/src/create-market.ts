@@ -1,12 +1,12 @@
-import { encodeFunctionData, isAddressEqual, zeroAddress } from "viem";
-import type { AbiParameterToPrimitiveType, Address } from "viem";
 import {
   circlesMarketFactoryAddress,
   futarchyFactoryAbi,
   futarchyFactoryAddress,
   marketFactoryAbi,
   marketFactoryAddress,
-} from "../generated/contracts/market-factory";
+} from "@seer-pm/contracts-ts/market-factory";
+import { encodeFunctionData, isAddressEqual, zeroAddress } from "viem";
+import type { AbiParameterToPrimitiveType, Address } from "viem";
 import { DEFAULT_COLLATERAL_PROFILE, getActiveCollateralProfileName } from "./collateral";
 import type { Execution } from "./execution";
 import { MarketTypes, getMarketName, getOutcomes, getQuestionParts } from "./market";

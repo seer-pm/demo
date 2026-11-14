@@ -1,5 +1,4 @@
 import type { Market, PoolHourDatasSets, SupportedChain, Token0Token1 } from "@seer-pm/sdk";
-import { tickToPrice } from "@seer-pm/sdk/liquidity-utils";
 import { getMarketPoolsPairs } from "@seer-pm/sdk/market-pools";
 import {
   type GetPoolHourDatasQuery,
@@ -9,8 +8,11 @@ import {
   Swap_OrderBy,
   GetPoolHourDatasDocument as SwaprGetPoolHourDatasDocument,
 } from "@seer-pm/sdk/subgraph/swapr";
-import { GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument } from "@seer-pm/sdk/subgraph/uniswap";
-import { TickMath } from "@uniswap/v3-sdk";
+import {
+  GetPoolHourDatasDocument as UniswapGetPoolHourDatasDocument,
+  getSdk as getUniswapSdk,
+} from "@seer-pm/sdk/subgraph/uniswap";
+import { getSqrtRatioAtTick, tickToPrice } from "@seer-pm/sdk/tick-math";
 import combineQuery from "graphql-combine-query";
 import pLimit from "p-limit";
 import { gnosis } from "viem/chains";
@@ -169,7 +171,7 @@ async function getSwapsByTokenAsPoolHourDatas(
         token0Price,
         token1Price,
         periodStartUnix: Number(swap.timestamp),
-        sqrtPrice: TickMath.getSqrtRatioAtTick(Number(swap.tick)).toString(),
+        sqrtPrice: getSqrtRatioAtTick(Number(swap.tick)).toString(),
         pool: swap.pool,
       };
     }) as GetPoolHourDatasQuery["poolHourDatas"];

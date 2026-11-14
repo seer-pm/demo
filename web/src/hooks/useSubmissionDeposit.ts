@@ -4,7 +4,7 @@ import {
   readLightGeneralizedTcrArbitrator,
   readLightGeneralizedTcrArbitratorExtraData,
   readLightGeneralizedTcrSubmissionBaseDeposit,
-} from "@seer-pm/sdk/contracts/curate";
+} from "@seer-pm/contracts-ts/curate";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 

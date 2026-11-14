@@ -32,7 +32,7 @@
   "scripts": {
     "hhf:mainnet": "npx hardhat node --fork https://eth-pokt.nodies.app --no-deploy --config mainnetforked.config.ts",
     "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
-    "hh-local-deploy": "npx hardhat deploy --network localhost && cp -r deployments/localhost/*.json deployments/hardhat && cd ../web && yarn wagmi generate",
+    "hh-local-deploy": "npx hardhat deploy --network localhost && cp -r deployments/localhost/*.json deployments/hardhat && yarn workspace @seer-pm/contracts-ts generate",
     "verify:gnosis": "npx hardhat --network gnosis verify-deployments",
     "verify:optimism": "npx hardhat --network optimism verify-deployments",
     "verify:base": "npx hardhat --network base verify-deployments",
@@ -77,6 +77,7 @@
     "@kleros/erc-792": "7.0.0",
     "@kleros/ethereum-libraries": "7.0.1",
     "@openzeppelin/contracts": "^5.0.1",
+    "@openzeppelin/uniswap-hooks": "1.1.1",
     "openzeppelin-contracts-1155-to-20": "npm:@openzeppelin/contracts@3.4.0",
     "openzeppelin-contracts-sdai-on-gnosis": "npm:@openzeppelin/contracts@5.0.2",
     "openzeppelin-solidity-conditional-tokens": "npm:openzeppelin-solidity@2.3.0",

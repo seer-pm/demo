@@ -2,7 +2,7 @@ import type { Address } from "viem";
 import { OrderDirection, Pool_OrderBy, getSdk as getSwaprSdk } from "../../generated/subgraph/swapr";
 import { getSdk as getUniswapSdk } from "../../generated/subgraph/uniswap";
 import type { Token } from "../collateral";
-import { tickToPrice } from "../liquidity-utils";
+import { sqrtPriceX96ToPrice } from "../liquidity-utils";
 import { getToken0Token1 } from "../market-pools";
 import { swaprGraphQLClient, uniswapGraphQLClient } from "./app-subgraph";
 import { CHAIN_IDS } from "./subgraph-endpoints";
@@ -36,10 +36,10 @@ export async function getTokenPriceFromSubgraph(
     if (!pool) {
       return Number.NaN;
     }
-    if (pool.tick === null || pool.tick === undefined) {
+    if (pool.sqrtPrice == null) {
       return Number.NaN;
     }
-    const [price0, price1] = tickToPrice(Number(pool.tick));
+    const [price0, price1] = sqrtPriceX96ToPrice(BigInt(pool.sqrtPrice));
     return wrappedAddress.toLowerCase() === token0.toLowerCase() ? Number(price0) : Number(price1);
   } catch (e) {
     console.error(e);

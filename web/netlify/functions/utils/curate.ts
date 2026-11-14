@@ -1,7 +1,7 @@
 import { isVerificationEnabled } from "@/lib/config.ts";
 import { isUndefined } from "@/lib/utils.ts";
+import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/contracts-ts/curate";
 import { CURATE_STATUS, type SupportedChain, type VerificationResult } from "@seer-pm/sdk";
-import { lightGeneralizedTcrAbi, lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { curateGraphQLClient } from "@seer-pm/sdk/subgraph";
 import {
   type GetImagesQuery,

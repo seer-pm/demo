@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/date";
 import { CheckCircleIcon, EtherscanIcon, QuestionIcon, RightArrow } from "@/lib/icons";
 import { paths } from "@/lib/paths";
 import { displayBalance, isUndefined } from "@/lib/utils";
+import { getLiquidityUrl, marketSupportsOrderBook } from "@seer-pm/order-book";
 import {
   NftPosition,
   PoolInfo,
@@ -18,14 +19,12 @@ import {
   useTokenBalances,
   useTokensInfo,
 } from "@seer-pm/react";
-import { getActivePrimaryCollateral } from "@seer-pm/sdk";
-import { getLiquidityUrl, getLiquidityUrlByMarket } from "@seer-pm/sdk";
-import type { SupportedChain } from "@seer-pm/sdk";
 import {
   Market,
   MarketStatus,
   MarketTypes,
   displayScalarBound,
+  getActivePrimaryCollateral,
   getMarketStatus,
   getMarketType,
   getMultiScalarEstimate,
@@ -36,6 +35,7 @@ import clsx from "clsx";
 import { differenceInSeconds, startOfDay } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { Address, formatUnits } from "viem";
+import { clientOnly } from "vike-react/clientOnly";
 import { useAccount } from "wagmi";
 import { Alert } from "../Alert";
 import Button from "../Form/Button";
@@ -44,6 +44,23 @@ import { DisplayOdds } from "./DisplayOdds";
 import { FarmingActions } from "./FarmingActions";
 import { OutcomeActivePanel } from "./OutcomeActivePanel";
 import { OutcomeImage } from "./OutcomeImage";
+import { getOutcomeActivePanelId } from "./outcomePanelId";
+
+const AddLiquidityV4Adapter = clientOnly(async () => {
+  const mod = await import("./AddLiquidity/AddLiquidityV4Adapter");
+  return mod.AddLiquidityV4Adapter;
+});
+
+function AddLiquidityV4Fallback() {
+  return (
+    <output className="block space-y-5" aria-busy="true" aria-label="Loading liquidity form">
+      <div className="shimmer-container w-[240px] h-[20px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[56px]" />
+      <div className="shimmer-container w-full h-[40px]" />
+    </output>
+  );
+}
 
 interface OutcomesProps {
   market: Market;
@@ -85,15 +102,20 @@ function poolRewardsInfo(pool: PoolInfo) {
   );
 }
 
+const V4_LIQUIDITY_FORM_ID = "v4-liquidity-form";
+
 function AddLiquidityInfo({
-  chainId,
+  market,
+  outcomeIndex,
   pools,
   closeModal,
 }: {
-  chainId: SupportedChain;
+  market: Market;
+  outcomeIndex: number;
   pools: PoolInfo[];
   closeModal: () => void;
 }) {
+  const chainId = market.chainId;
   const { address } = useAccount();
   const { data: deposits } = usePoolsDeposits(
     chainId,
@@ -127,14 +149,32 @@ function AddLiquidityInfo({
               <div className="flex justify-between items-center">
                 <div>{poolRewardsInfo(pool)}</div>
                 <div>
-                  <a
-                    href={getLiquidityUrl(chainId, pool.token0, pool.token1)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-purple-primary flex items-center space-x-2"
-                  >
-                    <span>Add liquidity</span> <RightArrow />
-                  </a>
+                  {pool.dex === "UniV4" ? (
+                    <button
+                      type="button"
+                      className="text-purple-primary flex items-center space-x-2"
+                      onClick={() =>
+                        document
+                          .getElementById(V4_LIQUIDITY_FORM_ID)
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    >
+                      <span>Manage in the V4 form</span> <RightArrow />
+                    </button>
+                  ) : (
+                    <a
+                      href={getLiquidityUrl(market, outcomeIndex, {
+                        dex: pool.dex,
+                        isPoolInitialized: true,
+                        poolId: pool.id,
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-primary flex items-center space-x-2"
+                    >
+                      <span>Add liquidity</span> <RightArrow />
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -228,13 +268,15 @@ function AddLiquidityLinks({
   pools: PoolInfo[][];
   openLiquidityModal?: () => void;
 }) {
+  const useInAppLiquidity = marketSupportsOrderBook(market);
+
   return (
     <>
-      {openLiquidityModal && !isUndefined(pools[outcomeIndex]) ? (
+      {useInAppLiquidity || (openLiquidityModal && !isUndefined(pools[outcomeIndex])) ? (
         <button
           type="button"
           onClick={() => {
-            openLiquidityModal();
+            openLiquidityModal?.();
           }}
           className="text-purple-primary hover:underline text-left"
         >
@@ -242,7 +284,7 @@ function AddLiquidityLinks({
         </button>
       ) : (
         <a
-          href={getLiquidityUrlByMarket(market, outcomeIndex)}
+          href={getLiquidityUrl(market, outcomeIndex)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-purple-primary flex items-center space-x-2 hover:underline text-left"
@@ -406,6 +448,8 @@ function OutcomeDetails({
           {market.type === "Generic" && onTogglePoolDetails && (
             <button
               type="button"
+              aria-expanded={!!isPoolDetailsOpen}
+              aria-controls={isPoolDetailsOpen ? getOutcomeActivePanelId(outcomeIndex) : undefined}
               onClick={(e) => {
                 e.stopPropagation();
                 onTogglePoolDetails();
@@ -519,7 +563,10 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
         {(market.type === "Generic" ? market.wrappedTokens : ["_", "_"]).map((_, j) => {
           const i = indexesOrderedByOdds ? indexesOrderedByOdds[j] : j;
           const openModalCallback =
-            !isUndefined(pools[i]) && pools[i].length > 0 && market.type !== "Futarchy" ? openModal : undefined;
+            market.type !== "Futarchy" &&
+            (marketSupportsOrderBook(market) || (!isUndefined(pools[i]) && pools[i].length > 0))
+              ? openModal
+              : undefined;
           const isActive = activeOutcome === i || (market.type === "Futarchy" && activeOutcome === i + 2);
           return (
             <div
@@ -614,14 +661,46 @@ export function Outcomes({ market, images, activeOutcome, onOutcomeChange }: Out
                   />
                 </div>
               </div>
-              {poolDetailsOutcomeIndex === i && <OutcomeActivePanel market={market} outcomeIndex={i} />}
+              {poolDetailsOutcomeIndex === i && (
+                <OutcomeActivePanel market={market} outcomeIndex={i} onAddLiquidity={openModalCallback} />
+              )}
             </div>
           );
         })}
         <Modal
-          title="Add Liquidity"
+          title={marketSupportsOrderBook(market) ? "Liquidity" : "Add Liquidity"}
           content={
-            <AddLiquidityInfo chainId={market.chainId} pools={pools[activeOutcome] || []} closeModal={closeModal} />
+            marketSupportsOrderBook(market) ? (
+              <div className="space-y-8" id={V4_LIQUIDITY_FORM_ID}>
+                {(pools[activeOutcome]?.length ?? 0) > 0 && (
+                  <Alert type="info" title="Uniswap V4">
+                    Add liquidity to the V4 pool below. Other pools are listed at the bottom.
+                  </Alert>
+                )}
+                <AddLiquidityV4Adapter
+                  market={market}
+                  outcomeIndex={activeOutcome}
+                  closeModal={closeModal}
+                  hideReturnButton={(pools[activeOutcome]?.length ?? 0) > 0}
+                  fallback={<AddLiquidityV4Fallback />}
+                />
+                {(pools[activeOutcome]?.length ?? 0) > 0 && (
+                  <AddLiquidityInfo
+                    market={market}
+                    outcomeIndex={activeOutcome}
+                    pools={pools[activeOutcome] || []}
+                    closeModal={closeModal}
+                  />
+                )}
+              </div>
+            ) : (
+              <AddLiquidityInfo
+                market={market}
+                outcomeIndex={activeOutcome}
+                pools={pools[activeOutcome] || []}
+                closeModal={closeModal}
+              />
+            )
           }
         />
       </div>
