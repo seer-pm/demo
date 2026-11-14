@@ -19,7 +19,6 @@ export type Campaign = {
   budget?: bigint;
   /** Positions narrower than this (`tickUpper - tickLower`) neither earn nor dilute. */
   minWidthTicks: number;
-  excludeTokenIds: Set<bigint>;
 };
 
 const UINT = /^\d+$/;
@@ -78,8 +77,6 @@ export function parseCampaigns(json: unknown): Campaign[] {
     if (typeof minWidthTicks !== "number" || !Number.isInteger(minWidthTicks) || minWidthTicks < 0) {
       fail(id, "minWidthTicks must be a non-negative integer");
     }
-    const excluded = raw.excludeTokenIds ?? [];
-    if (!Array.isArray(excluded)) fail(id, "excludeTokenIds must be a list");
 
     return {
       id,
@@ -90,7 +87,6 @@ export function parseCampaigns(json: unknown): Campaign[] {
       rates,
       budget: raw.budget === undefined ? undefined : parseUint(id, "budget", raw.budget),
       minWidthTicks,
-      excludeTokenIds: new Set(excluded.map((tokenId) => parseUint(id, "excludeTokenIds", String(tokenId)))),
     };
   });
 }
@@ -102,11 +98,11 @@ export const toIsoSeconds = (t: number) => new Date(t * 1000).toISOString().repl
  * everything emitted before it is frozen in the published state.
  *
  * - A published campaign cannot be removed (end it with a `perSecond: "0"` tier), and its chain,
- *   pool, payout chain and token cannot change.
+ *   pool, payout chain, token and minimum width cannot change.
  * - Its rate tiers starting before `cutoff` cannot change; new tiers must start at `cutoff` or later.
  * - A new campaign cannot start before `cutoff`.
  *
- * `budget`, `minWidthTicks` and `excludeTokenIds` may change and apply from `cutoff` on.
+ * `budget` may change and applies from `cutoff` on.
  */
 export function assertForwardOnly(published: Campaign[], next: Campaign[], cutoff: number): void {
   const at = toIsoSeconds(cutoff);
@@ -120,7 +116,7 @@ export function assertForwardOnly(published: Campaign[], next: Campaign[], cutof
   for (const old of published) {
     const campaign = nextById.get(old.id);
     if (!campaign) fail(old.id, 'a published campaign cannot be removed; end it with a { "perSecond": "0" } tier');
-    for (const field of ["chainId", "poolId", "payoutChainId", "rewardToken"] as const) {
+    for (const field of ["chainId", "poolId", "payoutChainId", "rewardToken", "minWidthTicks"] as const) {
       if (campaign[field] !== old[field]) fail(old.id, `${field} cannot change once the campaign is published`);
     }
     if (pastTiers(campaign.rates) !== pastTiers(old.rates)) {

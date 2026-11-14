@@ -14,7 +14,6 @@ export type RawCampaign = {
   rates: { from: string; perSecond: string }[];
   budget: string;
   minWidthTicks: number;
-  excludeTokenIds: string[];
 };
 
 /**
@@ -40,7 +39,6 @@ export function campaignsFromLogs(logs: RpcLog[], payoutChainId: number): RawCam
       rates: c.rates.map((rate) => ({ from: toIsoSeconds(Number(rate.from)), perSecond: rate.perSecond.toString() })),
       budget: c.budget.toString(),
       minWidthTicks: c.minWidthTicks,
-      excludeTokenIds: c.excludedTokenIds.map(String),
     });
   }
   return [...byId.values()];

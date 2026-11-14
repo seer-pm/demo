@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignStatus, refundShares, refundState } from "./reward-campaigns";
+import { campaignStatus, refundState } from "./reward-campaigns";
 
 describe("campaignStatus", () => {
   it("reads an ended campaign's end and the rate it paid last", () => {
@@ -10,21 +10,6 @@ describe("campaignStatus", () => {
     ];
     expect(campaignStatus(rates)).toEqual({ ended: true, current: rates[2], lastPaid: rates[1], start: 100, end: 300 });
   });
-
-  it("treats a campaign restarted after a zero rate as active", () => {
-    const rates = [
-      { from: 100n, perSecond: 5n },
-      { from: 300n, perSecond: 0n },
-      { from: 400n, perSecond: 2n },
-    ];
-    expect(campaignStatus(rates)).toEqual({
-      ended: false,
-      current: rates[2],
-      lastPaid: rates[2],
-      start: 100,
-      end: undefined,
-    });
-  });
 });
 
 describe("refundState", () => {
@@ -33,13 +18,38 @@ describe("refundState", () => {
     { from: 300n, perSecond: 0n },
   ];
 
-  it("waits for a release whose cutoff covers the end, then refunds what was not released", () => {
-    expect(refundState({ rates: ended, budget: 1000n, released: 400n, releasedUpTo: 299 })).toEqual({
-      kind: "waiting",
+  it("holds back what the rates since the last release can emit and refunds the rest now", () => {
+    expect(refundState({ rates: ended, budget: 3000n, released: 400n, releasedUpTo: 250 })).toEqual({
+      kind: "ready",
+      amount: 2350n,
+      held: 250n,
     });
+    // The last release covers the end, so the emission is final and nothing is held.
     expect(refundState({ rates: ended, budget: 1000n, released: 600n, releasedUpTo: 300 })).toEqual({
       kind: "ready",
       amount: 400n,
+      held: 0n,
+    });
+  });
+
+  it("counts each rate only from the last release on", () => {
+    const rates = [
+      { from: 100n, perSecond: 5n },
+      { from: 200n, perSecond: 3n },
+      { from: 300n, perSecond: 0n },
+    ];
+    // 5/s over 150..200, then 3/s over 200..300.
+    expect(refundState({ rates, budget: 10_000n, released: 0n, releasedUpTo: 150 })).toEqual({
+      kind: "ready",
+      amount: 10_000n - 550n,
+      held: 550n,
+    });
+  });
+
+  it("holds the whole rest when the campaign may have emitted it all", () => {
+    expect(refundState({ rates: ended, budget: 1000n, released: 0n, releasedUpTo: 0 })).toEqual({
+      kind: "held",
+      held: 1000n,
     });
   });
 
@@ -48,17 +58,5 @@ describe("refundState", () => {
       kind: "none",
     });
     expect(refundState({ rates: ended, budget: 600n, released: 600n, releasedUpTo: 300 })).toEqual({ kind: "none" });
-  });
-});
-
-describe("refundShares", () => {
-  it("splits in proportion to the deposits, adding up to the unspent amount", () => {
-    const shares = refundShares(2000n, [{ amount: 1001n }, { amount: 3000n }]);
-    expect(shares.map((d) => d.share)).toEqual([500n, 1500n]);
-  });
-
-  it("never gives a depositor more than it deposited when the shares round", () => {
-    const shares = refundShares(200n, [{ amount: 100n }, { amount: 100n }, { amount: 1n }]);
-    expect(shares.map((d) => d.share)).toEqual([99n, 100n, 1n]);
   });
 });

@@ -27,7 +27,11 @@ export type RewardCampaign = {
   payoutChainId: number;
   poolId: Hex;
   rewardToken: Address;
-  /** Everything deposited, minus what was refunded. */
+  /** The wallet that deposited the budget: it changes the campaign and gets its refund. */
+  funder: Address;
+  /** The registry's owner, which may change any campaign of it. */
+  registryOwner: Address;
+  /** The deposit, minus what was refunded. */
   budget: bigint;
   /** Sent to the distributor so far: what the campaign emitted up to `releasedUpTo`. */
   released: bigint;
@@ -35,7 +39,6 @@ export type RewardCampaign = {
   releasedUpTo: number;
   minWidthTicks: number;
   rates: RewardRate[];
-  excludedTokenIds: bigint[];
   /** Undefined when the token cannot be read on the payout chain. */
   token?: { symbol: string; decimals: number };
 };
@@ -58,14 +61,14 @@ export async function readTokenMeta(token: Address, chainId: number) {
 }
 
 async function fetchChainCampaigns(payoutChainId: number, address: Address): Promise<RewardCampaign[]> {
-  const read = <T>(functionName: "getCampaigns" | "getReleases") =>
+  const read = <T>(functionName: "getCampaigns" | "getReleases" | "getFunders" | "owner") =>
     readContract(config, {
       address,
       abi: rewardCampaignsAbi,
       functionName,
       chainId: payoutChainId as ConfigChainId,
     }) as Promise<T>;
-  const [campaigns, releases] = await Promise.all([
+  const [campaigns, releases, funders, registryOwner] = await Promise.all([
     read<
       readonly {
         poolId: Hex;
@@ -73,10 +76,11 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
         budget: bigint;
         minWidthTicks: number;
         rates: readonly RewardRate[];
-        excludedTokenIds: readonly bigint[];
       }[]
     >("getCampaigns"),
     read<readonly { released: bigint; upTo: bigint }[]>("getReleases"),
+    read<readonly Address[]>("getFunders"),
+    read<Address>("owner"),
   ]);
   const tokens = new Map<string, Promise<RewardCampaign["token"]>>();
   for (const c of campaigns) {
@@ -89,12 +93,13 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
       payoutChainId,
       poolId: c.poolId,
       rewardToken: c.rewardToken,
+      funder: funders[i],
+      registryOwner,
       budget: c.budget,
       released: releases[i].released,
       releasedUpTo: Number(releases[i].upTo),
       minWidthTicks: c.minWidthTicks,
       rates: c.rates.map((rate) => ({ from: rate.from, perSecond: rate.perSecond })),
-      excludedTokenIds: [...c.excludedTokenIds],
       token: await tokens.get(c.rewardToken.toLowerCase()),
     })),
   );
@@ -112,63 +117,7 @@ export function useRewardCampaigns() {
   });
 }
 
-export type RefundCredit = {
-  payoutChainId: number;
-  token: Address;
-  meta?: RewardCampaign["token"];
-  amount: bigint;
-};
-
-/**
- * Refunds credited to `account` and not yet withdrawn, one per payout chain and reward token of `campaigns`.
- * Credits are kept per token, so one withdrawal collects them across campaigns.
- */
-export function useRefundCredits(account: Address | undefined, campaigns: RewardCampaign[]) {
-  const pairs = [...new Map(campaigns.map((c) => [`${c.payoutChainId}:${c.rewardToken.toLowerCase()}`, c])).values()];
-  return useQuery({
-    queryKey: [
-      REWARD_CAMPAIGNS_QUERY_KEY,
-      "refundable",
-      account?.toLowerCase(),
-      pairs.map((c) => `${c.payoutChainId}:${c.rewardToken}`),
-    ],
-    enabled: Boolean(account) && pairs.length > 0,
-    queryFn: async (): Promise<RefundCredit[]> => {
-      const credits = await Promise.all(
-        pairs.map(async (c) => ({
-          payoutChainId: c.payoutChainId,
-          token: c.rewardToken,
-          meta: c.token,
-          amount: await readContract(config, {
-            address: registryAddress(c.payoutChainId),
-            abi: rewardCampaignsAbi,
-            functionName: "refundable",
-            args: [c.rewardToken, account!],
-            chainId: c.payoutChainId as ConfigChainId,
-          }),
-        })),
-      );
-      return credits.filter((c) => c.amount > 0n);
-    },
-  });
-}
-
-/** The deposits of `campaign` not yet spent or refunded, which share its next refund. */
-export function useCampaignDeposits(campaign: RewardCampaign) {
-  return useQuery({
-    queryKey: [REWARD_CAMPAIGNS_QUERY_KEY, "deposits", campaign.payoutChainId, campaign.id.toString()],
-    queryFn: () =>
-      readContract(config, {
-        address: registryAddress(campaign.payoutChainId),
-        abi: rewardCampaignsAbi,
-        functionName: "getDeposits",
-        args: [campaign.id],
-        chainId: campaign.payoutChainId as ConfigChainId,
-      }),
-  });
-}
-
-/** Payout chains where `account` may change campaigns: it owns the registry or is one of its managers. */
+/** Payout chains where `account` may create campaigns: it owns the registry or is one of its managers. */
 export function useRewardCampaignManagerChains(account: Address | undefined) {
   return useQuery({
     queryKey: [REWARD_CAMPAIGNS_QUERY_KEY, "manager", account?.toLowerCase()],
@@ -192,26 +141,20 @@ export function useRewardCampaignManagerChains(account: Address | undefined) {
 export type RewardCampaignWrite =
   | {
       functionName: "createCampaign";
-      args: readonly [Hex, Address, bigint, bigint, number, readonly bigint[]];
+      args: readonly [Hex, Address, bigint, bigint, number];
     }
-  | { functionName: "increaseBudget"; args: readonly [bigint, bigint] }
   | { functionName: "setRate"; args: readonly [bigint, bigint] }
-  | { functionName: "updateSettings"; args: readonly [bigint, number, readonly bigint[]] }
-  | { functionName: "settleRefund"; args: readonly [bigint] }
-  | { functionName: "withdrawRefund"; args: readonly [Address] };
+  | { functionName: "settleRefund"; args: readonly [bigint] };
 
 const TOAST_TITLES: Record<RewardCampaignWrite["functionName"], [string, string]> = {
   createCampaign: ["Creating campaign...", "Campaign created!"],
-  increaseBudget: ["Adding funds...", "Funds added!"],
   setRate: ["Updating rate...", "Rate updated!"],
-  updateSettings: ["Updating settings...", "Settings updated!"],
-  settleRefund: ["Settling refund...", "Refund credited to the depositors!"],
-  withdrawRefund: ["Withdrawing refund...", "Refund withdrawn!"],
+  settleRefund: ["Refunding...", "Refund sent to the funder!"],
 };
 
 /**
- * Sends one registry transaction from the connected wallet on `payoutChainId`. A deposit (`createCampaign`,
- * `increaseBudget`) first approves the registry for `deposit.amount` of `deposit.token` when the allowance is short.
+ * Sends one registry transaction from the connected wallet on `payoutChainId`. A deposit (`createCampaign`) first
+ * approves the registry for `deposit.amount` of `deposit.token` when the allowance is short.
  */
 export function useWriteRewardCampaigns(onSuccess?: () => void) {
   const queryClient = useQueryClient();

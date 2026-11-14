@@ -24,22 +24,17 @@ export const urdAbi = parseAbi([
 /** A payout chain's `RewardCampaigns` registry, read and released by the bot and written by the admin page. */
 export const rewardCampaignsAbi = parseAbi([
   "struct Rate { uint64 from; uint256 perSecond; }",
-  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; Rate[] rates; uint256[] excludedTokenIds; }",
+  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; Rate[] rates; }",
   "struct Release { uint256 released; uint64 upTo; }",
-  "struct Deposit { address depositor; uint256 amount; }",
   "function owner() view returns (address)",
   "function isManager(address account) view returns (bool)",
   "function getCampaigns() view returns (Campaign[])",
   "function getReleases() view returns (Release[])",
-  "function getDeposits(uint256 id) view returns (Deposit[])",
-  "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks, uint256[] excludedTokenIds) returns (uint256 id)",
-  "function increaseBudget(uint256 id, uint256 amount)",
+  "function getFunders() view returns (address[])",
+  "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks) returns (uint256 id)",
   "function setRate(uint256 id, uint256 perSecond)",
-  "function updateSettings(uint256 id, uint32 minWidthTicks, uint256[] excludedTokenIds)",
   "function release(uint256[] ids, uint256[] emitted, uint64 upTo)",
-  "function refundable(address token, address depositor) view returns (uint256)",
   "function settleRefund(uint256 id)",
-  "function withdrawRefund(address token)",
   "event CampaignSet(uint256 indexed id, Campaign campaign)",
 ]);
 

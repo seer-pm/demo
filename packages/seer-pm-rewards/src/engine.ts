@@ -82,11 +82,7 @@ export function accrueRewards({
     if (tick === undefined) return;
     for (const campaign of campaignsByPool.get(poolId) ?? []) {
       const eligible = [...positions].filter(
-        ([tokenId, p]) =>
-          p.tickLower <= tick &&
-          tick < p.tickUpper &&
-          p.tickUpper - p.tickLower >= campaign.minWidthTicks &&
-          !campaign.excludeTokenIds.has(tokenId),
+        ([, p]) => p.tickLower <= tick && tick < p.tickUpper && p.tickUpper - p.tickLower >= campaign.minWidthTicks,
       );
       if (eligible.length === 0) continue;
 

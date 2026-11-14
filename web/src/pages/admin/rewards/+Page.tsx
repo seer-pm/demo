@@ -1,53 +1,44 @@
 import { Alert } from "@/components/Alert";
 import Button from "@/components/Form/Button";
-import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
-import {
-  CreateRewardCampaignForm,
-  RewardFundsForm,
-  RewardRatesForm,
-  RewardRefundForm,
-  RewardSettingsForm,
-} from "@/components/admin/RewardCampaignForms";
+import { CreateRewardCampaignForm, RewardRatesForm, RewardRefundForm } from "@/components/admin/RewardCampaignForms";
 import { RewardsHowItWorks } from "@/components/admin/RewardsHowItWorks";
 import {
   REGISTRY_CHAINS,
-  type RefundCredit,
   type RewardCampaign,
-  useRefundCredits,
   useRewardCampaignManagerChains,
   useRewardCampaigns,
-  useWriteRewardCampaigns,
 } from "@/hooks/admin/useRewardCampaigns";
 import { useModal } from "@/hooks/useModal";
 import { campaignStatus, chainName, formatWeekly, refundState, toDate } from "@/lib/reward-campaigns";
 import { shortenAddress } from "@/lib/utils";
 import { getV4PoolExplorerUrl } from "@seer-pm/order-book";
-import type { SupportedChain } from "@seer-pm/sdk";
 import { useState } from "react";
-import { formatUnits } from "viem";
+import { type Address, formatUnits, isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
 
-type ActionKind = "rate" | "end" | "funds" | "refund" | "settings";
+type ActionKind = "rate" | "end" | "refund";
 type Action = { kind: ActionKind; campaign: RewardCampaign };
 
 const ACTION_TITLES: Record<ActionKind, string> = {
   rate: "Change rate",
   end: "End",
-  funds: "Add funds",
   refund: "Refund",
-  settings: "Settings",
 };
 
 function CampaignRow({
   campaign,
-  canEdit,
+  account,
   onAction,
 }: {
   campaign: RewardCampaign;
-  canEdit: boolean;
+  account: Address | undefined;
   onAction: (action: Action) => void;
 }) {
   const status = campaignStatus(campaign.rates);
+  // The registry lets only the campaign's funder and its own owner change a campaign.
+  const canEdit =
+    account !== undefined &&
+    (isAddressEqual(campaign.funder, account) || isAddressEqual(campaign.registryOwner, account));
   const refund = refundState(campaign);
   const { token } = campaign;
   const amount = (value: bigint) =>
@@ -83,6 +74,10 @@ function CampaignRow({
       </td>
       <td className="whitespace-nowrap">{token?.symbol ?? shortenAddress(campaign.rewardToken)}</td>
       <td className="whitespace-nowrap">
+        {shortenAddress(campaign.funder)}
+        {account && isAddressEqual(campaign.funder, account) && " (you)"}
+      </td>
+      <td className="whitespace-nowrap">
         {/* An ended campaign shows the rate it paid last rather than its closing zero rate. */}
         {formatWeekly(status.lastPaid, token)}
       </td>
@@ -101,77 +96,28 @@ function CampaignRow({
         </div>
       </td>
       <td className="whitespace-nowrap space-x-3">
-        {canEdit && action("rate", status.ended ? "Restart" : "Change rate")}
+        {canEdit && !status.ended && action("rate", "Change rate")}
         {canEdit && !status.ended && action("end", "End")}
-        {canEdit && !status.ended && action("funds", "Add funds")}
-        {/* Refunds only credit the depositors, so any wallet may settle one. */}
+        {/* A refund only goes to the funder, so any wallet may send it. */}
         {refund.kind === "ready" && action("refund", "Refund")}
-        {refund.kind === "waiting" && (
-          <span className="text-[12px] text-base-content/60">refund after the next weekly release</span>
+        {refund.kind !== "none" && refund.held > 0n && (
+          <div className="!ml-0 text-[12px] text-base-content/60">up to {amount(refund.held)} held until Monday</div>
         )}
-        {canEdit && action("settings", "Settings")}
       </td>
     </tr>
-  );
-}
-
-/** The connected wallet's refund credits, each withdrawn with its own transaction. */
-function RefundCredits({ credits }: { credits: RefundCredit[] }) {
-  const withdraw = useWriteRewardCampaigns();
-  return (
-    <div className="card shadow-sm border border-separator-100 p-5 space-y-3">
-      <h2 className="text-lg font-semibold">Your refunds</h2>
-      <ul className="space-y-2">
-        {credits.map((credit) => (
-          <li key={`${credit.payoutChainId}-${credit.token}`} className="flex items-center justify-between gap-4">
-            <span>
-              <strong>
-                {credit.meta
-                  ? `${Number(formatUnits(credit.amount, credit.meta.decimals)).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${credit.meta.symbol}`
-                  : `${credit.amount} of ${shortenAddress(credit.token)}`}
-              </strong>
-              <span className="text-base-content/60"> on {chainName(credit.payoutChainId)}</span>
-            </span>
-            <div>
-              <SwitchChainButtonWrapper chainId={credit.payoutChainId as SupportedChain} size="small">
-                <Button
-                  text="Withdraw"
-                  type="button"
-                  size="small"
-                  isLoading={withdraw.isPending && withdraw.variables?.write.args[0] === credit.token}
-                  disabled={withdraw.isPending}
-                  onClick={() =>
-                    withdraw.mutate({
-                      payoutChainId: credit.payoutChainId,
-                      write: {
-                        functionName: "withdrawRefund",
-                        args: [credit.token],
-                      },
-                    })
-                  }
-                />
-              </SwitchChainButtonWrapper>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 
 function ActionForm({ action, onClose }: { action: Action; onClose: () => void }) {
   const { kind, campaign } = action;
   if (kind === "rate" || kind === "end") return <RewardRatesForm campaign={campaign} mode={kind} onClose={onClose} />;
-  if (kind === "funds") return <RewardFundsForm campaign={campaign} onClose={onClose} />;
-  if (kind === "refund") return <RewardRefundForm campaign={campaign} onClose={onClose} />;
-  return <RewardSettingsForm campaign={campaign} onClose={onClose} />;
+  return <RewardRefundForm campaign={campaign} onClose={onClose} />;
 }
 
 function AdminRewardsPage() {
   const { address } = useAccount();
   const { data: campaigns = [], isLoading, error } = useRewardCampaigns();
   const { data: managerChains = [] } = useRewardCampaignManagerChains(address);
-  const { data: credits = [] } = useRefundCredits(address, campaigns);
   const { Modal: CreateModal, openModal: openCreate, closeModal: closeCreate } = useModal("reward-campaign-create");
   const {
     Modal: ActionModal,
@@ -255,10 +201,9 @@ function AdminRewardsPage() {
       )}
       {REGISTRY_CHAINS.length > 0 && address && managerChains.length === 0 && (
         <p className="text-sm text-base-content/70">
-          {shortenAddress(address)} is not a manager of any registry, so the campaigns are read-only.
+          {shortenAddress(address)} is not a manager of any registry, so it cannot create campaigns.
         </p>
       )}
-      {credits.length > 0 && <RefundCredits credits={credits} />}
       {error && (
         <Alert type="error" title="Could not load campaigns">
           {error.message}
@@ -272,6 +217,7 @@ function AdminRewardsPage() {
               <th>Campaign</th>
               <th>Pool</th>
               <th>Reward</th>
+              <th>Funder</th>
               <th>Rate</th>
               <th>Status (UTC)</th>
               <th>Released / budget</th>
@@ -281,14 +227,14 @@ function AdminRewardsPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="shimmer-container h-10 rounded" />
                 </td>
               </tr>
             )}
             {!isLoading && !error && campaigns.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center text-base-content/60 py-8">
+                <td colSpan={8} className="text-center text-base-content/60 py-8">
                   No campaigns yet.
                 </td>
               </tr>
@@ -297,7 +243,7 @@ function AdminRewardsPage() {
               <CampaignRow
                 key={`${campaign.payoutChainId}-${campaign.id}`}
                 campaign={campaign}
-                canEdit={managerChains.includes(campaign.payoutChainId)}
+                account={address}
                 onAction={openAction}
               />
             ))}

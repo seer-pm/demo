@@ -34,36 +34,33 @@ export function campaignStatus(rates: readonly RewardRate[]): CampaignStatus {
   };
 }
 
+/** What the rates of an ended campaign emit from `from` to its end, as the registry's `_maxEmittedSince` does. */
+function maxEmittedSince(rates: readonly RewardRate[], from: bigint): bigint {
+  let total = 0n;
+  for (let i = rates.length - 1; i > 0 && rates[i].from > from; i--) {
+    const start = rates[i - 1].from > from ? rates[i - 1].from : from;
+    total += rates[i - 1].perSecond * (rates[i].from - start);
+  }
+  return total;
+}
+
 /**
- * Whether an ended campaign has budget to refund. The registry settles a refund only once the bot released a week whose
- * cutoff is at or after the end ("waiting" until then), because emission up to the end is final only then.
+ * What a refund of an ended campaign sends now (`amount`), and what the registry holds back (`held`) because the
+ * campaign may have emitted it since the bot's last release. `held` comes back after the release of the week the
+ * campaign ended in, minus what it did emit.
  */
 export function refundState(campaign: {
   rates: readonly RewardRate[];
   budget: bigint;
   released: bigint;
   releasedUpTo: number;
-}): { kind: "none" } | { kind: "waiting" } | { kind: "ready"; amount: bigint } {
-  const { ended, end } = campaignStatus(campaign.rates);
-  if (!ended || campaign.budget <= campaign.released) return { kind: "none" };
-  if (campaign.releasedUpTo < end!) return { kind: "waiting" };
-  return { kind: "ready", amount: campaign.budget - campaign.released };
-}
-
-/**
- * How the registry splits `unspent` among `deposits` on refund: each share is the step between floored cumulative
- * proportional shares, so they add up to `unspent` and none exceeds its deposit.
- */
-export function refundShares<T extends { amount: bigint }>(unspent: bigint, deposits: readonly T[]) {
-  const total = deposits.reduce((sum, d) => sum + d.amount, 0n);
-  let cumulative = 0n;
-  let credited = 0n;
-  return deposits.map((d) => {
-    cumulative += d.amount;
-    const share = (unspent * cumulative) / total - credited;
-    credited += share;
-    return { ...d, share };
-  });
+}): { kind: "none" } | { kind: "held"; held: bigint } | { kind: "ready"; amount: bigint; held: bigint } {
+  if (!campaignStatus(campaign.rates).ended) return { kind: "none" };
+  const max = maxEmittedSince(campaign.rates, BigInt(campaign.releasedUpTo));
+  const remaining = campaign.budget - campaign.released;
+  const held = max < remaining ? max : remaining;
+  if (remaining > held) return { kind: "ready", amount: remaining - held, held };
+  return held > 0n ? { kind: "held", held } : { kind: "none" };
 }
 
 export const chainName = (chainId: number) => PAYOUT_CHAINS[chainId]?.chain.name ?? `Chain ${chainId}`;

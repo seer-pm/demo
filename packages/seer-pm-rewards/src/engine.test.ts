@@ -126,16 +126,14 @@ describe("accrueRewards", () => {
     expect(earned(campaign(), events, 100)).toEqual({ [`1:${ALICE}`]: 400n, [`1:${BOB}`]: 600n });
   });
 
-  it("gives nothing to liquidity added and removed within one block, nor to hook or excluded liquidity", () => {
-    const c = campaign({ excludeTokenIds: ["3"] });
+  it("gives nothing to liquidity added and removed within one block, nor to hook liquidity", () => {
+    const c = campaign();
     const events = [
       tick(0, 0),
       mint(0, 1n, ALICE),
       mint(0, 2n, BOB),
-      mint(0, 3n, BOB),
       liquidity(0, 1n, 100n),
       liquidity(0, 9n, 10_000n, [-60, 60], HOOK),
-      liquidity(0, 3n, 10_000n),
       // Bob joins and leaves inside block 50 with 100x Alice's liquidity.
       liquidity(50, 2n, 10_000n, [-60, 60], PM, 50n),
       liquidity(50, 2n, -10_000n, [-60, 60], PM, 50n),
@@ -236,6 +234,8 @@ describe("assertForwardOnly", () => {
     const early = { ...campaign({ rates: [{ from: "2026-11-08T00:00:00Z", perSecond: "1" }] }), id: "pool-b" };
     expect(() => assertForwardOnly(published, [...published, early], cutoff)).toThrow(/cannot start before/);
     expect(() => assertForwardOnly(published, [], cutoff)).toThrow(/cannot be removed/);
+    const wider = campaign({ minWidthTicks: 60 });
+    expect(() => assertForwardOnly(published, [wider], cutoff)).toThrow(/minWidthTicks cannot change/);
   });
 });
 
@@ -345,7 +345,6 @@ describe("campaignsFromLogs", () => {
           budget: 1000n,
           minWidthTicks: 0,
           rates: [{ from: BigInt(T0), perSecond: 10n }],
-          excludedTokenIds: [],
           ...campaign,
         },
       ]),
@@ -360,7 +359,7 @@ describe("campaignsFromLogs", () => {
       [
         campaignSet(0n, {}),
         campaignSet(1n, {}),
-        campaignSet(0n, { rates: ended, budget: 500n, excludedTokenIds: [7n] }),
+        campaignSet(0n, { rates: ended, budget: 500n, minWidthTicks: 7 }),
         campaignSet(2n, {}),
       ],
       10,
@@ -375,7 +374,7 @@ describe("campaignsFromLogs", () => {
         { from: "2026-11-09T00:00:00Z", perSecond: "0" },
       ],
       budget: "500",
-      excludeTokenIds: ["7"],
+      minWidthTicks: 7,
     });
     const [parsed] = parseCampaigns({ campaigns: raw });
     expect(parsed.budget).toBe(500n);
@@ -389,11 +388,11 @@ describe("campaignsFromLogs", () => {
     const atBlock = (block: bigint, log: RpcLog) =>
       ({ ...log, address: registry.address, blockNumber: numberToHex(block) }) as unknown as RpcLog;
     const logs = [
-      atBlock(2n, campaignSet(0n, { minWidthTicks: 10 })),
+      atBlock(2n, campaignSet(0n, { budget: 10n })),
       atBlock(6n, campaignSet(1n, {})),
-      atBlock(7n, campaignSet(0n, { minWidthTicks: 20 })),
+      atBlock(7n, campaignSet(0n, { budget: 20n })),
       atBlock(13n, campaignSet(2n, {})),
-      atBlock(14n, campaignSet(0n, { minWidthTicks: 30 })),
+      atBlock(14n, campaignSet(0n, { budget: 30n })),
     ];
     const client = {
       chain: { id: 10 },
@@ -408,16 +407,16 @@ describe("campaignsFromLogs", () => {
     } as unknown as PublicClient;
 
     const campaignsAt = await campaignHistory(client, registry, 10, T0 + 2 * WEEK);
-    const settings = async (cutoff: number) => (await campaignsAt(cutoff)).map((c) => [c.id, c.minWidthTicks]);
+    const budgets = async (cutoff: number) => (await campaignsAt(cutoff)).map((c) => [c.id, c.budget]);
 
-    expect(await settings(T0 + WEEK)).toEqual([
-      ["0", 10],
-      ["1", 0],
+    expect(await budgets(T0 + WEEK)).toEqual([
+      ["0", "10"],
+      ["1", "1000"],
     ]);
-    expect(await settings(T0 + 2 * WEEK)).toEqual([
-      ["0", 20],
-      ["1", 0],
-      ["2", 0],
+    expect(await budgets(T0 + 2 * WEEK)).toEqual([
+      ["0", "20"],
+      ["1", "1000"],
+      ["2", "1000"],
     ]);
     expect(() => campaignsAt(T0 + 3 * WEEK)).toThrow();
   });
@@ -528,12 +527,10 @@ describe("computeWeeks", () => {
       budget: "2000000",
       rates: [{ from: "2026-11-02T00:00:00Z", perSecond: "1" }],
       minWidthTicks: 0,
-      excludeTokenIds: [],
     };
-    // In week two the position becomes too narrow to earn, and the campaign ends.
+    // The campaign ends a day into week two.
     const weekTwo = {
       ...weekOne,
-      minWidthTicks: 121,
       rates: [...weekOne.rates, { from: "2026-11-10T00:00:00Z", perSecond: "0" }],
     };
     const base = { payoutChainId: 8453, clientFor: () => client };
@@ -543,7 +540,7 @@ describe("computeWeeks", () => {
     const weekly = await computeWeek({ ...base, cutoff: T0 + 2 * WEEK, rawCampaigns: [weekTwo], previous: published });
     const caughtUp = await computeWeeks({ ...base, cutoff: T0 + 2 * WEEK, campaignsAt });
 
-    expect(weekly.claims[ALICE][TOKEN].claimable).toBe("604800");
+    expect(weekly.claims[ALICE][TOKEN].claimable).toBe(String(WEEK + 86_400));
     expect(caughtUp?.root).toBe(weekly.root);
     expect(await computeWeeks({ ...base, cutoff: T0, campaignsAt })).toBeUndefined();
   });

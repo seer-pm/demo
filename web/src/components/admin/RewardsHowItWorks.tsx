@@ -12,9 +12,9 @@ const STEPS: { title: string; body: ReactNode }[] = [
           token (each chain has its own bridged SER-LP).
         </p>
         <p>
-          The whole budget is deposited into the registry when the campaign is created, and the campaign starts paying
-          from that block. The registry holds it in escrow: nothing reaches liquidity providers until the bot releases
-          what was earned.
+          The manager deposits the whole budget into the registry when it creates the campaign, and the campaign starts
+          paying from that block. The registry holds it in escrow: nothing reaches liquidity providers until the bot
+          releases what was earned.
         </p>
       </>
     ),
@@ -25,12 +25,12 @@ const STEPS: { title: string; body: ReactNode }[] = [
       <>
         <p>
           Each second, the campaign's rate is split by liquidity among the positions that are in range (lower tick ≤
-          current tick &lt; upper tick). A position earns only if it was opened through the Uniswap PositionManager, is
-          at least the campaign's minimum width, and is not excluded. Limit orders held by the hook do not earn.
+          current tick &lt; upper tick). A position earns only if it was opened through the Uniswap PositionManager and
+          is at least the campaign's minimum width. Limit orders held by the hook do not earn.
         </p>
         <p>
           Seconds with no eligible liquidity in range pay nothing and spend no budget. Rewards go to whoever owned the
-          position NFT at the time, and once the budget is spent the campaign pays nothing more until funds are added.
+          position NFT at the time, and once the budget is spent the campaign pays nothing more.
         </p>
       </>
     ),
@@ -61,27 +61,27 @@ const STEPS: { title: string; body: ReactNode }[] = [
     ),
   },
   {
-    title: "5. Managers adjust running campaigns",
+    title: "5. The funder adjusts its running campaign",
     body: (
       <>
         <p>
-          A new rate applies from the block it is set in. Setting it to 0 ends the campaign, and Restart gives an ended
-          campaign a new rate from that moment.
+          Only the wallet that funded a campaign, or the registry's owner, can change its rate. A new rate applies from
+          the block it is set in, and setting it to 0 ends the campaign for good.
         </p>
         <p>
-          Managers can also add funds. The budget and the settings (minimum width and excluded positions) that the
-          registry holds at a Monday cutoff apply to the whole week that ends there.
+          The budget and the minimum width never change: to add rewards to a pool, or to pay a different width, create
+          another campaign on it. Campaigns on the same pool pay at the same time, so their rates add up.
         </p>
       </>
     ),
   },
   {
-    title: "6. Unspent budget goes back to the depositors",
+    title: "6. Unspent budget goes back to the funder",
     body: (
       <p>
-        Once a campaign has ended and the bot has released its final week, any wallet can settle its refund. That
-        credits what the campaign did not emit to the wallets that deposited it, in proportion to their deposits. Each
-        wallet then withdraws its own credit under Your refunds on this page.
+        Once a campaign has ended, any wallet can send its refund, which goes back to the wallet that funded it. It
+        sends at once what the campaign can no longer emit. What it may have emitted since the last weekly release stays
+        in escrow until the bot releases the week it ended in, and what it did not emit can then be refunded too.
       </p>
     ),
   },

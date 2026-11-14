@@ -169,7 +169,7 @@ export async function syncDistributor({
   }
 
   // Released before the root so the distributor can pay it, and before the empty-root return below so a
-  // campaign that ended without emitting anything still gets the release its refund waits for. Released
+  // campaign that ended without emitting anything still gets the release the rest of its refund waits for. Released
   // campaigns are skipped, so the hourly retries of a failed upload send nothing again.
   const releases = await payoutClient.readContract({
     address: registry.address,

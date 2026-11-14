@@ -124,9 +124,9 @@ export async function computeWeek({
 
 /**
  * Computes the rewards file of `payoutChainId` at `cutoff` one week at a time, from `previous` or, without it,
- * from the first week a campaign ran, each week with `campaignsAt` of its own cutoff. A campaign's budget and
- * settings at a cutoff apply to the whole week that ends there, so replaying several weeks with the campaigns of
- * the last one would apply its settings to the earlier weeks too. Without `previous`, returns undefined when no
+ * from the first week a campaign ran, each week with `campaignsAt` of its own cutoff. A campaign's budget at a
+ * cutoff applies to the whole week that ends there, so replaying several weeks with the campaigns of the last one
+ * would apply its budget to the earlier weeks too. Without `previous`, returns undefined when no
  * campaign has run on `payoutChainId` before `cutoff`.
  */
 export async function computeWeeks({

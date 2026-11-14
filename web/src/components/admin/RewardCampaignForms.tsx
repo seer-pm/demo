@@ -6,7 +6,6 @@ import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWra
 import {
   type RewardCampaign,
   readTokenMeta,
-  useCampaignDeposits,
   useTokenBalance,
   useWriteRewardCampaigns,
 } from "@/hooks/admin/useRewardCampaigns";
@@ -16,9 +15,7 @@ import {
   chainName,
   formatWeekly,
   perSecondFromWeekly,
-  refundShares,
   refundState,
-  toDate,
 } from "@/lib/reward-campaigns";
 import { shortenAddress } from "@/lib/utils";
 import { getOrderBookPoolParams, getV4PoolId, marketSupportsOrderBook } from "@seer-pm/order-book";
@@ -30,7 +27,8 @@ import { useState } from "react";
 import { type Address, type Hex, formatUnits, isAddress, isAddressEqual, parseUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
-const MAX_UINT32 = 2 ** 32 - 1;
+/** `MAX_WIDTH_TICKS` of the registry: the full Uniswap V4 tick range, which no position exceeds. */
+const MAX_WIDTH_TICKS = 1_774_544;
 
 /** A decimal token amount in base units, or undefined when it is not a plain non-negative number. */
 const parseAmount = (value: string, decimals: number) =>
@@ -155,7 +153,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
   if (balanceError && !errors.budget) errors.budget = balanceError;
 
   const minWidthTicks = Number(form.minWidthTicks);
-  if (!Number.isInteger(minWidthTicks) || minWidthTicks < 0 || minWidthTicks > MAX_UINT32) {
+  if (!Number.isInteger(minWidthTicks) || minWidthTicks < 0 || minWidthTicks > MAX_WIDTH_TICKS) {
     errors.minWidthTicks = "A whole number of ticks, 0 for any width.";
   }
 
@@ -170,7 +168,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
       payoutChainId: chainId,
       write: {
         functionName: "createCampaign",
-        args: [poolId!, rewardToken as Address, perSecond!, budget!, minWidthTicks, []],
+        args: [poolId!, rewardToken as Address, perSecond!, budget!, minWidthTicks],
       },
       deposit: { token: rewardToken as Address, symbol: token.data.symbol, amount: budget! },
     });
@@ -270,7 +268,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
         id="reward-min-width"
         label="Minimum range width (ticks)"
         error={visible("minWidthTicks")}
-        hint="Narrower positions neither earn nor dilute. 0 accepts any range."
+        hint="Narrower positions neither earn nor dilute. 0 accepts any range. It cannot change later."
       >
         <Input
           id="reward-min-width"
@@ -297,7 +295,8 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
       )}
       <p className="text-[12px] text-base-content/70">
         Creating it approves and deposits the budget, and the campaign starts paying when the transaction is mined. The
-        pool and token cannot change once created.
+        pool, token, budget and minimum width cannot change once created: to add rewards later, create another campaign
+        on the same pool.
       </p>
 
       <SubmitRow
@@ -311,7 +310,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
   );
 }
 
-/** Sets a new weekly rate (`mode` "rate") or ends the campaign, from the moment the transaction is mined. */
+/** Sets a new weekly rate (`mode` "rate") or ends the campaign for good, from the moment the transaction is mined. */
 export function RewardRatesForm({
   campaign,
   mode,
@@ -345,7 +344,7 @@ export function RewardRatesForm({
   return (
     <div className="space-y-4">
       <p className="text-sm">
-        Now: <strong>{status.ended ? `ended ${toDate(status.end!)}` : formatWeekly(status.current, token)}</strong> ·{" "}
+        Now: <strong>{formatWeekly(status.current, token)}</strong> ·{" "}
         {formatAmount(campaign.budget - campaign.released, token)} left in escrow
       </p>
       {mode === "rate" ? (
@@ -365,198 +364,60 @@ export function RewardRatesForm({
         </Field>
       ) : (
         <p className="text-sm">
-          The campaign stops paying when the transaction is mined. What was earned until then is kept. Once the bot
-          releases that week (after the next Monday 00:00 UTC), the rest of the budget can be refunded to the wallets
-          that deposited it.
+          The campaign stops paying when the transaction is mined, and it cannot be restarted. What was earned until
+          then is kept. The budget it can no longer emit can then be refunded to {shortenAddress(campaign.funder)}, the
+          wallet that funded it, at once. What it may have emitted since the last weekly release is held until the bot
+          releases that week (after the next Monday 00:00 UTC), and what it did not emit can be refunded then.
         </p>
       )}
       <SubmitRow
         chainId={campaign.payoutChainId}
         onClose={onClose}
         isPending={write.isPending}
-        text={mode === "end" ? "End campaign" : status.ended ? "Restart" : "Change rate"}
+        text={mode === "end" ? "End campaign" : "Change rate"}
         onSubmit={handleSubmit}
       />
     </div>
   );
 }
 
-/** Deposits more of the reward token from the connected wallet and adds it to the budget. */
-export function RewardFundsForm({ campaign, onClose }: { campaign: RewardCampaign; onClose: () => void }) {
-  const [amountInput, setAmountInput] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const write = useWriteRewardCampaigns(onClose);
-  const token = campaign.token;
-  const amount = token ? parseAmount(amountInput, token.decimals) : undefined;
-  const balanceError = useBalanceError(
-    token ? { address: campaign.rewardToken, ...token } : undefined,
-    amount,
-    campaign.payoutChainId,
-  );
-
-  if (!token) {
-    return <Alert type="error">The reward token cannot be read on {chainName(campaign.payoutChainId)}.</Alert>;
-  }
-  const error = !amount ? "Enter an amount." : balanceError;
-
-  const handleSubmit = () => {
-    setSubmitted(true);
-    if (error) return;
-    write.mutate({
-      payoutChainId: campaign.payoutChainId,
-      write: { functionName: "increaseBudget", args: [campaign.id, amount!] },
-      deposit: { token: campaign.rewardToken, symbol: token.symbol, amount: amount! },
-    });
-  };
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm">
-        Budget <strong>{formatAmount(campaign.budget, token)}</strong>, of which{" "}
-        {formatAmount(campaign.released, token)} was released to the distributor.
-      </p>
-      <Field
-        id="reward-funds-amount"
-        label={`Amount to add (${token.symbol})`}
-        error={submitted || amountInput ? error : undefined}
-        hint="Deposited from your wallet now."
-      >
-        <Input
-          id="reward-funds-amount"
-          className="w-full"
-          inputMode="decimal"
-          value={amountInput}
-          onChange={(e) => setAmountInput(e.target.value)}
-        />
-      </Field>
-      <SubmitRow
-        chainId={campaign.payoutChainId}
-        onClose={onClose}
-        isPending={write.isPending}
-        text="Add funds"
-        onSubmit={handleSubmit}
-      />
-    </div>
-  );
-}
-
-/**
- * Credits what an ended campaign did not emit to the wallets that deposited it. Each of them then withdraws its
- * own credit, so a wallet the token refuses to pay holds back nobody else.
- */
+/** Sends what an ended campaign did not emit back to the wallet that funded it. */
 export function RewardRefundForm({ campaign, onClose }: { campaign: RewardCampaign; onClose: () => void }) {
   const { address } = useAccount();
   const write = useWriteRewardCampaigns(onClose);
-  const { data: deposits, isLoading } = useCampaignDeposits(campaign);
   const state = refundState(campaign);
   const token = campaign.token;
-  const show = (amount: bigint) => (token ? formatAmount(amount, token) : amount.toString());
   if (state.kind !== "ready") {
     return <Alert type="info">Nothing to refund yet.</Alert>;
   }
   return (
     <div className="space-y-4">
       <p className="text-sm">
-        Credits <strong>{show(state.amount)}</strong>, what the campaign did not emit, to the wallets that deposited it,
-        in proportion to their deposits:
+        Sends <strong>{token ? formatAmount(state.amount, token) : state.amount.toString()}</strong>, what the campaign
+        cannot have emitted, back to {shortenAddress(campaign.funder)}
+        {address && isAddressEqual(campaign.funder, address) && " (you)"}, the wallet that funded it.
       </p>
-      {isLoading ? (
-        <div className="shimmer-container h-10 rounded" />
-      ) : (
-        <ul className="text-sm space-y-1">
-          {refundShares(state.amount, deposits ?? []).map((d) => (
-            <li key={d.depositor} className="flex justify-between gap-4">
-              <span>
-                {shortenAddress(d.depositor)}
-                {address && isAddressEqual(d.depositor, address) && " (you)"}
-              </span>
-              <span>
-                {show(d.share)} <span className="text-base-content/60">of {show(d.amount)} deposited</span>
-              </span>
-            </li>
-          ))}
-        </ul>
+      {state.held > 0n && (
+        <p className="text-sm">
+          Up to <strong>{token ? formatAmount(state.held, token) : state.held.toString()}</strong> stays in escrow: the
+          campaign may have emitted it since the last weekly release. After the bot releases the week the campaign ended
+          in (after the next Monday 00:00 UTC), what it did not emit can be refunded too.
+        </p>
       )}
       <p className="text-[12px] text-base-content/70">
-        No funds move yet: each wallet then withdraws its own credit from this page. Any wallet can settle it, since the
-        credits only go to the depositors. The budget then equals what was released, so restarting the campaign needs
-        new funds.
+        Any wallet can send it, since the tokens only go to the funder.
       </p>
       <SubmitRow
         chainId={campaign.payoutChainId}
         onClose={onClose}
         isPending={write.isPending}
-        text="Settle refund"
+        text="Refund"
         onSubmit={() =>
           write.mutate({
             payoutChainId: campaign.payoutChainId,
             write: { functionName: "settleRefund", args: [campaign.id] },
           })
         }
-      />
-    </div>
-  );
-}
-
-/** Minimum range width and excluded positions, which apply to the whole week in progress. */
-export function RewardSettingsForm({ campaign, onClose }: { campaign: RewardCampaign; onClose: () => void }) {
-  const [form, setForm] = useState({
-    minWidthTicks: String(campaign.minWidthTicks),
-    excluded: campaign.excludedTokenIds.join(", "),
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const write = useWriteRewardCampaigns(onClose);
-
-  const errors: Partial<Record<keyof typeof form, string>> = {};
-  const minWidthTicks = Number(form.minWidthTicks);
-  if (!Number.isInteger(minWidthTicks) || minWidthTicks < 0 || minWidthTicks > MAX_UINT32) {
-    errors.minWidthTicks = "A whole number of ticks, 0 for any width.";
-  }
-  const excludedParts = form.excluded.split(/[\s,]+/).filter(Boolean);
-  if (excludedParts.some((part) => !/^\d+$/.test(part))) errors.excluded = "Position ids separated by commas.";
-
-  const handleSubmit = () => {
-    setSubmitted(true);
-    if (Object.keys(errors).length > 0) return;
-    write.mutate({
-      payoutChainId: campaign.payoutChainId,
-      write: { functionName: "updateSettings", args: [campaign.id, minWidthTicks, excludedParts.map(BigInt)] },
-    });
-  };
-  const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  const visible = (field: keyof typeof form) => (submitted || form[field] ? errors[field] : undefined);
-
-  return (
-    <div className="space-y-4">
-      <Field id="reward-settings-min-width" label="Minimum range width (ticks)" error={visible("minWidthTicks")}>
-        <Input
-          id="reward-settings-min-width"
-          className="w-full"
-          type="number"
-          min={0}
-          step={1}
-          value={form.minWidthTicks}
-          onChange={set("minWidthTicks")}
-        />
-      </Field>
-      <Field
-        id="reward-settings-excluded"
-        label="Excluded positions"
-        error={visible("excluded")}
-        hint="PositionManager token ids that neither earn nor dilute, such as the team's own liquidity."
-      >
-        <Input id="reward-settings-excluded" className="w-full" value={form.excluded} onChange={set("excluded")} />
-      </Field>
-      <p className="text-[12px] text-base-content/70">
-        These apply to the whole week in progress: the bot reads them when the week closes on Monday 00:00 UTC.
-      </p>
-      <SubmitRow
-        chainId={campaign.payoutChainId}
-        onClose={onClose}
-        isPending={write.isPending}
-        text="Save"
-        onSubmit={handleSubmit}
       />
     </div>
   );
