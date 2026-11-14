@@ -153,11 +153,11 @@ URD_OWNER=<safe> URD_ROOT_UPDATER=<bot wallet> yarn hardhat deploy --network opt
 
 **Reward campaigns registry**
 
-Each chain with Seer V4 pools has a `RewardCampaigns` registry next to its distributor. It holds the campaigns of that chain's pools, which pay out on the same chain in its own (bridged) reward token, and escrows their budgets: a campaign deposits its budget when it is created, the rewards bot releases what it emitted to the distributor every week, and once it ends, what it did not emit is credited to the wallets that deposited it, in proportion to their deposits, and each wallet withdraws its own credit. Deploy the distributor first.
+Each chain with Seer V4 pools has a `RewardCampaigns` registry next to its distributor. It holds the campaigns of that chain's pools, which pay out on the same chain in its own (bridged) reward token, and escrows their budgets: the manager who creates a campaign deposits its whole budget and becomes its funder, the rewards bot releases what it emitted to the distributor every week, and once it ends, what it cannot have emitted goes back to the funder at once, and what it may have emitted since the last weekly release comes back after that week is released, minus what it did emit. A budget never grows, so more rewards for a pool are a new campaign on it. Deploy the distributor first.
 ```
 REWARD_CAMPAIGNS_OWNER=<safe> REWARD_CAMPAIGNS_MANAGERS=<wallet>,<wallet> REWARD_CAMPAIGNS_RELEASER=<bot wallet> yarn hardhat deploy --network optimism --tags RewardCampaigns
 ```
-Without `REWARD_CAMPAIGNS_OWNER` the deploy skips the registry, and so does a network with no distributor. The releaser is the same bot wallet as `URD_ROOT_UPDATER`; without it, the owner calls `setReleaser` before the first week. The owner appoints and removes managers with `setManager`; managers create, fund and change campaigns from `/admin/rewards`. Copy the printed address and block into `PAYOUT_CHAINS[<chain>].registry` in `packages/seer-pm-rewards/src/chains.ts`.
+Without `REWARD_CAMPAIGNS_OWNER` the deploy skips the registry, and so does a network with no distributor. The releaser is the same bot wallet as `URD_ROOT_UPDATER`; without it, the owner calls `setReleaser` before the first week. The owner appoints and removes managers with `setManager`; managers create campaigns from `/admin/rewards`, and only a campaign's funder or the owner changes it. Copy the printed address and block into `PAYOUT_CHAINS[<chain>].registry` in `packages/seer-pm-rewards/src/chains.ts`.
 
 **Verify contracts**
 

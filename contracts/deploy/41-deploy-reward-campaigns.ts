@@ -13,7 +13,7 @@ const DEPLOYMENT_NAME = "RewardCampaigns";
  *
  * - `REWARD_CAMPAIGNS_OWNER` (required): appoints managers and the releaser, usually a Safe.
  *   It has no default, so a full deploy never leaves the registry owned by whichever key ran it; that run skips it.
- * - `REWARD_CAMPAIGNS_MANAGERS`: comma-separated accounts that create, fund and update campaigns.
+ * - `REWARD_CAMPAIGNS_MANAGERS`: comma-separated accounts that create and fund campaigns, each then updating its own.
  * - `REWARD_CAMPAIGNS_RELEASER`: the bot's wallet (`REWARDS_UPDATER_PRIVATE_KEY`), the same as `URD_ROOT_UPDATER`.
  *
  * An existing deployment on the network is kept; delete `deployments/<network>/RewardCampaigns.json` to deploy

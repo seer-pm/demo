@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title RewardCampaigns
 /// @notice Liquidity reward campaigns of Seer's Uniswap V4 pools on this chain, and the escrow of their budgets.
@@ -11,17 +10,29 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /// Universal Rewards Distributor. The weekly rewards bot (`packages/seer-pm-rewards`) rebuilds the campaigns from `CampaignSet`
 /// events up to each Monday cutoff, releases what each one emitted to the distributor and then submits the root
 /// that lets users claim it.
-/// @dev A campaign's budget is deposited when it is created or increased, and the engine never emits more than
-/// the budget, so the distributor can always be paid in full; what was not emitted is credited to the wallets
-/// that deposited it once the campaign ended, and each of them withdraws its own credit. The bot refuses campaign changes that would alter what an already published week emitted, and every
-/// change here takes effect from the block that makes it, so none can:
-/// - A campaign is never removed, and its pool and reward token never change.
+/// @dev Each campaign has one funder, the manager who created it and deposited its whole budget. The engine never
+/// emits more than the budget, so the distributor can always be paid in full, and what was not emitted goes back to
+/// the funder once the campaign ended. More rewards for a pool are a new campaign on the same pool, so a budget never
+/// mixes the tokens of two wallets. The bot refuses campaign changes that would alter what an already published week
+/// emitted, and every change here takes effect from the block that makes it, so none can:
+/// - A campaign is never removed, and its pool, reward token, `minWidthTicks` and funder never change. Its budget
+///   only drops, when a refund sends what the campaign cannot emit back to the funder.
 /// - A campaign starts when it is created, and a rate change applies from the block it is mined in. Rate history
-///   is append-only; ending a campaign is a rate of 0.
-/// - `minWidthTicks` and `excludedTokenIds` may change at any time. The bot reads them at the end of each week,
-///   so they apply to the whole week in progress.
-contract RewardCampaigns is ReentrancyGuard {
+///   is append-only; a rate of 0 ends the campaign for good, so its rates bound everything it can still emit.
+/// Reward tokens must transfer exactly the amount requested: fee-on-transfer and rebasing tokens are not supported.
+/// The registry records the nominal budget and every campaign of a token shares one balance, so such a token would
+/// pay one campaign's releases and refund out of the escrow of the others.
+/// Reward tokens must also never revert a transfer, so tokens with a pause, a blocklist or transfer hooks are not
+/// supported either. `release` pays every due campaign in one call, so one failing transfer would stop the release
+/// and the weekly root of every campaign on the chain, and a blocked funder would never get its refund.
+/// Managers are trusted team wallets. `createCampaign` checks neither the token nor that the pool uses the Seer hook,
+/// and the bot replays each pool from the hook deployment, so an older pool would stop it for every campaign.
+contract RewardCampaigns {
     using SafeERC20 for IERC20;
+
+    /// @dev `TickMath.MAX_TICK - TickMath.MIN_TICK` of Uniswap V4: no position is wider, so a larger minimum width
+    /// would leave every position out and the campaign would never emit.
+    uint32 public constant MAX_WIDTH_TICKS = 1_774_544;
 
     /// @dev `perSecond` reward token base units are emitted from `from` (unix seconds) until the next rate.
     struct Rate {
@@ -35,7 +46,6 @@ contract RewardCampaigns is ReentrancyGuard {
         uint256 budget; // Total the campaign may ever emit, held here until it is released or refunded.
         uint32 minWidthTicks; // Positions narrower than this (`tickUpper - tickLower`) neither earn nor dilute.
         Rate[] rates; // Strictly increasing `from`; the first one is the start of the campaign.
-        uint256[] excludedTokenIds; // PositionManager token ids that neither earn nor dilute.
     }
 
     /// @dev Kept apart from `Campaign` so the weekly releases do not re-emit the whole campaign.
@@ -44,27 +54,20 @@ contract RewardCampaigns is ReentrancyGuard {
         uint64 upTo; // Weekly cutoff of the last release.
     }
 
-    struct Deposit {
-        address depositor;
-        uint256 amount;
-    }
-
     address public immutable distributor; // This chain's Universal Rewards Distributor.
-    address public owner; // Appoints managers and the releaser.
+    address public owner; // Appoints managers and the releaser, and may change any campaign.
     address public releaser; // The rewards bot.
-    mapping(address => bool) public isManager; // Accounts that create, fund and update campaigns.
+    mapping(address => bool) public isManager; // Accounts that create campaigns.
     Campaign[] internal campaigns; // Campaign id = index.
     Release[] internal releases; // By campaign id.
-    /// @dev By campaign id: the deposits not yet spent or refunded, one entry per depositor.
-    mapping(uint256 => Deposit[]) internal deposits;
-    /// @notice Refunds credited to each depositor and not yet withdrawn, by token and depositor.
-    mapping(address => mapping(address => uint256)) public refundable;
+    /// @dev By campaign id: the wallet that deposited the budget, which changes the campaign and gets its refund.
+    /// Kept apart from `Campaign` so `CampaignSet` carries only what the bot reads.
+    address[] internal funders;
 
     /// @dev Emitted with the whole campaign after every change, so the state at any block can be rebuilt from logs.
     event CampaignSet(uint256 indexed id, Campaign campaign);
     event Released(uint256 indexed id, uint256 amount, uint256 released, uint64 upTo);
-    event RefundCredited(uint256 indexed id, address indexed depositor, uint256 amount);
-    event RefundWithdrawn(address indexed token, address indexed depositor, uint256 amount);
+    event Refunded(uint256 indexed id, address indexed funder, uint256 amount);
     event ManagerSet(address indexed account, bool active);
     event ReleaserSet(address indexed releaser);
     event OwnerSet(address indexed owner);
@@ -76,6 +79,13 @@ contract RewardCampaigns is ReentrancyGuard {
 
     modifier onlyManager() {
         require(msg.sender == owner || isManager[msg.sender], "Only a manager");
+        _;
+    }
+
+    /// @dev The funder alone decides how its own deposit is spent; the owner may step in on any campaign.
+    modifier onlyFunderOrOwner(uint256 id) {
+        _campaign(id);
+        require(msg.sender == funders[id] || msg.sender == owner, "Only the funder or the owner");
         _;
     }
 
@@ -112,61 +122,43 @@ contract RewardCampaigns is ReentrancyGuard {
     }
 
     /// @notice Creates a campaign that emits `perSecond` from this block on, and deposits its whole `budget` from
-    /// the caller, who must have approved this contract for it.
+    /// the caller, who must have approved this contract for it and becomes its funder.
     /// @return id The id of the new campaign.
     function createCampaign(
         bytes32 poolId,
         address rewardToken,
         uint256 perSecond,
         uint256 budget,
-        uint32 minWidthTicks,
-        uint256[] calldata excludedTokenIds
-    ) external onlyManager nonReentrant returns (uint256 id) {
+        uint32 minWidthTicks
+    ) external onlyManager returns (uint256 id) {
         require(poolId != bytes32(0), "Missing pool id");
         require(rewardToken != address(0), "Missing reward token");
         require(perSecond != 0, "Missing rate");
         require(budget != 0, "Missing budget");
+        require(minWidthTicks <= MAX_WIDTH_TICKS, "Width too wide");
 
         id = campaigns.length;
         Campaign storage campaign = campaigns.push();
         releases.push();
+        funders.push(msg.sender);
         campaign.poolId = poolId;
         campaign.rewardToken = rewardToken;
         campaign.budget = budget;
         campaign.minWidthTicks = minWidthTicks;
-        campaign.excludedTokenIds = excludedTokenIds;
         campaign.rates.push(Rate(uint64(block.timestamp), perSecond));
-        _deposit(id, rewardToken, budget);
         emit CampaignSet(id, campaign);
+        IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), budget);
     }
 
-    /// @notice Deposits `amount` more from the caller and adds it to the budget.
-    function increaseBudget(uint256 id, uint256 amount) external onlyManager nonReentrant {
-        require(amount != 0, "Missing amount");
-        Campaign storage campaign = _campaign(id);
-        campaign.budget += amount;
-        _deposit(id, campaign.rewardToken, amount);
-        emit CampaignSet(id, campaign);
-    }
-
-    /// @notice Sets the rate from this block on. A rate of 0 ends the campaign, and a later rate restarts it.
-    function setRate(uint256 id, uint256 perSecond) external onlyManager {
-        Campaign storage campaign = _campaign(id);
+    /// @notice Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool
+    /// are a new campaign.
+    function setRate(uint256 id, uint256 perSecond) external onlyFunderOrOwner(id) {
+        Campaign storage campaign = campaigns[id];
         Rate storage last = campaign.rates[campaign.rates.length - 1];
+        require(last.perSecond != 0, "Campaign ended");
         // Rates are keyed by timestamp, so a second change in the same block replaces the first.
         if (last.from == block.timestamp) last.perSecond = perSecond;
         else campaign.rates.push(Rate(uint64(block.timestamp), perSecond));
-        emit CampaignSet(id, campaign);
-    }
-
-    /// @notice Updates the settings that may change at any time. They apply to the whole week in progress.
-    function updateSettings(uint256 id, uint32 minWidthTicks, uint256[] calldata excludedTokenIds)
-        external
-        onlyManager
-    {
-        Campaign storage campaign = _campaign(id);
-        campaign.minWidthTicks = minWidthTicks;
-        campaign.excludedTokenIds = excludedTokenIds;
         emit CampaignSet(id, campaign);
     }
 
@@ -174,7 +166,7 @@ contract RewardCampaigns is ReentrancyGuard {
     /// cumulative `emitted` of each, so a repeated call sends nothing more.
     /// @dev A total below what was already released sends nothing: the release stays, as the distributor cannot
     /// return it.
-    function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo) external nonReentrant {
+    function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo) external {
         require(msg.sender == releaser, "Only the releaser");
         require(ids.length == emitted.length, "Length mismatch");
         require(upTo <= block.timestamp, "Cutoff in the future");
@@ -190,54 +182,26 @@ contract RewardCampaigns is ReentrancyGuard {
         }
     }
 
-    /// @notice Credits what an ended campaign did not emit to the wallets that deposited its budget, in proportion
-    /// to their deposits; each then calls `withdrawRefund`. Nothing is transferred here, so a depositor the token
-    /// refuses to pay (such as a blacklisted address) only holds back its own withdrawal. Anyone may call it, since
-    /// the credits can only go to the depositors, so a depositor who is no longer a manager still gets them. It is
-    /// allowed once the bot released a week whose cutoff is at or after the end; the budget then becomes what was
-    /// released, so a restart first needs funds.
-    /// @dev Every function that moves tokens or reads deposits is `nonReentrant`: a token callback during a deposit
-    /// could otherwise settle a campaign whose budget already counts the deposit but whose depositor is not recorded.
-    function settleRefund(uint256 id) external nonReentrant {
+    /// @notice Sends what an ended campaign cannot have emitted back to its funder. Anyone may call it, since the
+    /// tokens can only go to the funder, so a funder who is no longer a manager still gets them.
+    /// @dev Until the bot releases a week whose cutoff is at or after the end, the emission since the last release is
+    /// unknown here, so the budget keeps the most the rates can have emitted since then and the rest goes back at
+    /// once. Once that week is released, a second call sends back what the campaign did not emit after all. The
+    /// engine never emits more than the rates do, so the final release always fits in the budget that is kept.
+    function settleRefund(uint256 id) external {
         Campaign storage campaign = _campaign(id);
-        Rate storage last = campaign.rates[campaign.rates.length - 1];
-        require(last.perSecond == 0, "Campaign not ended");
+        Rate[] storage rates = campaign.rates;
+        require(rates[rates.length - 1].perSecond == 0, "Campaign not ended");
         Release storage r = releases[id];
-        require(r.upTo >= last.from, "Final week not released");
-        uint256 unspent = campaign.budget - r.released;
-        campaign.budget = r.released;
-
-        // Every earlier deposit was spent or refunded by the previous refund, so the remaining deposits cover
-        // `unspent`.
-        Deposit[] storage list = deposits[id];
-        uint256 total;
-        for (uint256 i = 0; i < list.length; i++) {
-            total += list[i].amount;
-        }
-        // Each share is the step between floored cumulative shares, so the shares add up to `unspent` exactly and
-        // none exceeds its deposit (`unspent <= total`).
-        uint256 cumulative;
-        uint256 credited;
-        for (uint256 i = 0; i < list.length; i++) {
-            cumulative += list[i].amount;
-            uint256 share = (unspent * cumulative) / total - credited;
-            credited += share;
-            if (share > 0) {
-                refundable[campaign.rewardToken][list[i].depositor] += share;
-                emit RefundCredited(id, list[i].depositor, share);
-            }
-        }
-        delete deposits[id];
+        uint256 keep = r.released + _maxEmittedSince(rates, r.upTo);
+        // Nothing is left to send when the whole budget may still be owed, and some tokens revert on a transfer of 0.
+        require(campaign.budget > keep, "Nothing to refund");
+        uint256 unspent = campaign.budget - keep;
+        campaign.budget = keep;
+        address funder = funders[id];
+        emit Refunded(id, funder, unspent);
         emit CampaignSet(id, campaign);
-    }
-
-    /// @notice Sends the caller every refund of `token` credited to it, across campaigns.
-    function withdrawRefund(address token) external nonReentrant {
-        uint256 amount = refundable[token][msg.sender];
-        require(amount != 0, "Nothing to withdraw");
-        refundable[token][msg.sender] = 0;
-        IERC20(token).safeTransfer(msg.sender, amount);
-        emit RefundWithdrawn(token, msg.sender, amount);
+        IERC20(campaign.rewardToken).safeTransfer(funder, unspent);
     }
 
     function campaignCount() external view returns (uint256) {
@@ -253,10 +217,9 @@ contract RewardCampaigns is ReentrancyGuard {
         return campaigns;
     }
 
-    /// @notice The deposits of campaign `id` not yet spent or refunded, which share its next refund.
-    function getDeposits(uint256 id) external view returns (Deposit[] memory) {
-        _campaign(id);
-        return deposits[id];
+    /// @notice The funder of every campaign, in id order.
+    function getFunders() external view returns (address[] memory) {
+        return funders;
     }
 
     /// @notice The release state of every campaign, in id order.
@@ -264,17 +227,14 @@ contract RewardCampaigns is ReentrancyGuard {
         return releases;
     }
 
-    /// @dev Takes `amount` of `token` from the caller and records it as the caller's deposit in campaign `id`.
-    function _deposit(uint256 id, address token, uint256 amount) internal {
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        Deposit[] storage list = deposits[id];
-        for (uint256 i = 0; i < list.length; i++) {
-            if (list[i].depositor == msg.sender) {
-                list[i].amount += amount;
-                return;
-            }
+    /// @dev What the rates of an ended campaign emit from `from` to its end, before the budget cap: 0 once `from` is
+    /// at or after the end.
+    function _maxEmittedSince(Rate[] storage rates, uint64 from) internal view returns (uint256 total) {
+        for (uint256 i = rates.length - 1; i > 0 && rates[i].from > from; i--) {
+            Rate storage rate = rates[i - 1];
+            uint64 start = rate.from > from ? rate.from : from;
+            total += rate.perSecond * (rates[i].from - start);
         }
-        list.push(Deposit(msg.sender, amount));
     }
 
     function _campaign(uint256 id) internal view returns (Campaign storage) {
