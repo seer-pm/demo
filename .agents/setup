@@ -18,7 +18,17 @@ step() {
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 enable_corepack() {
   if [[ "$(yarn --version 2>/dev/null)" != 4.* ]]; then
-    sudo corepack enable
+    # The image's Yarn 1 sits next to `node`, so the corepack shims go there to replace it.
+    local bin_dir
+    bin_dir="$(dirname "$(command -v node)")"
+    if ! command -v corepack >/dev/null; then
+      # Node 25 and later do not bundle corepack. Its npm package also declares `pnpm` and `yarn`
+      # binaries, which collide with the image's global ones, so it gets a prefix of its own and
+      # only the yarn shims are enabled below.
+      sudo npm install --global --prefix /opt/corepack corepack
+      sudo ln -sf /opt/corepack/bin/corepack "$bin_dir/corepack"
+    fi
+    sudo corepack enable --install-directory "$bin_dir" yarn
   fi
   yarn --version
 }
