@@ -18,7 +18,7 @@ import {
   refundState,
 } from "@/lib/reward-campaigns";
 import { shortenAddress } from "@/lib/utils";
-import { getOrderBookPoolParams, getV4PoolId, marketSupportsOrderBook } from "@seer-pm/order-book";
+import { V4_TICK_SPACING, getOrderBookPoolParams, getV4PoolId, marketSupportsOrderBook } from "@seer-pm/order-book";
 import { useMarket } from "@seer-pm/react";
 import { PAYOUT_CHAINS } from "@seer-pm/rewards/claims";
 import type { SupportedChain } from "@seer-pm/sdk";
@@ -239,6 +239,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           id="reward-weekly"
           label={`Per week${token.data ? ` (${token.data.symbol})` : ""}`}
           error={visible("weekly")}
+          hint="In token units, split among in-range positions by liquidity. Stored per second, rounded down. The rate can change later, and 0 ends the campaign."
         >
           <Input
             id="reward-weekly"
@@ -252,7 +253,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           id="reward-budget"
           label={`Budget${token.data ? ` (${token.data.symbol})` : ""}`}
           error={visible("budget")}
-          hint="Deposited from your wallet now."
+          hint="Deposited from your wallet now. It caps the total payout and lasts (budget ÷ per week) weeks, longer while no eligible liquidity is in range. It cannot be topped up later."
         >
           <Input
             id="reward-budget"
@@ -268,7 +269,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
         id="reward-min-width"
         label="Minimum range width (ticks)"
         error={visible("minWidthTicks")}
-        hint="Narrower positions neither earn nor dilute. 0 accepts any range. It cannot change later."
+        hint={`Positions whose tickUpper - tickLower is below this neither earn nor dilute. 0 accepts any range. Pools use a tick spacing of ${V4_TICK_SPACING}, so use a multiple of it: 600 ticks is about a 6% price range. It cannot change later.`}
       >
         <Input
           id="reward-min-width"
