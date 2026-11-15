@@ -241,7 +241,14 @@ describe("getMarketsLiquidity volume", () => {
   });
 
   it("adds up every fee tier of a pair while only the deepest one prices it", async () => {
-    const deep = pool(ROOT, ROOT_YES, SDAI, 0.6, { outcome: 100, counterparty: 60 }, { outcome: 100, counterparty: 60 });
+    const deep = pool(
+      ROOT,
+      ROOT_YES,
+      SDAI,
+      0.6,
+      { outcome: 100, counterparty: 60 },
+      { outcome: 100, counterparty: 60 },
+    );
     const shallow = {
       ...pool(ROOT, ROOT_YES, SDAI, 0.5, { outcome: 2, counterparty: 1 }, { outcome: 30, counterparty: 15 }),
       id: "shallow",
