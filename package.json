@@ -18,7 +18,7 @@
     "@uniswap/v4-sdk/ethers": "^5.0.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "packageManager": "yarn@4.13.0"
 }
