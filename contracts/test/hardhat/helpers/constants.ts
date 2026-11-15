@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 export const GnosisAddress = {
-  RPC_URL: process.env.GNOSIS_RPC || "https://gnosis-pokt.nodies.app",
+  RPC_URL: process.env.GNOSIS_RPC || "https://rpc.gnosischain.com",
   ARBITRATOR: "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd",
   REALITIO: "0xE78996A233895bE74a66F451f1019cA9734205cc",
   CONDITIONAL_TOKENS: "0xCeAfDD6bc0bEF976fdCd1112955828E00543c0Ce",
@@ -16,7 +16,7 @@ export const GnosisAddress = {
 };
 
 export const MainnetAddress = {
-  RPC_URL: "https://eth-pokt.nodies.app",
+  RPC_URL: process.env.MAINNET_RPC || "https://ethereum-rpc.publicnode.com",
   DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
   S_DAI: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
   WHALE: "0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf", //Polygon (Matic): ERC20 Bridge

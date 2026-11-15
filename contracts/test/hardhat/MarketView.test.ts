@@ -4,6 +4,7 @@ import { ethers, network } from "hardhat";
 import {
   MarketFactory,
   MarketView,
+  MarketView__factory,
   RealityETH_v3_0,
 } from "../../typechain-types";
 import {
@@ -34,7 +35,8 @@ describe("MarketView", function () {
     marketFactory = _marketFactory;
     realitio = _realitio;
     arbitrator = _arbitrator;
-    marketView = await ethers.deployContract("MarketView");
+    const [deployer] = await ethers.getSigners();
+    marketView = await new MarketView__factory(deployer).deploy();
   });
 
   describe("getMarket", function () {

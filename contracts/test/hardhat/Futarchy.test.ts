@@ -10,7 +10,8 @@ import {
   IERC20,
   RealityETH_v3_0,
 } from "../../typechain-types";
-import { Addressable, Signer } from "ethers";
+import { Addressable, EventLog, Signer } from "ethers";
+import { GnosisAddress } from "./helpers/constants";
 
 // Test suite for the price-based futarchy markets
 describe("FutarchyFactory Simple Tests", function () {
@@ -36,7 +37,7 @@ describe("FutarchyFactory Simple Tests", function () {
       params: [
         {
           forking: {
-            jsonRpcUrl: "https://gnosis-pokt.nodies.app",
+            jsonRpcUrl: GnosisAddress.RPC_URL,
           },
         },
       ],
@@ -107,7 +108,7 @@ describe("FutarchyFactory Simple Tests", function () {
 
     // Extract the new proposal's address from event logs
     const event = receipt?.logs.find(
-      (log) => log?.fragment?.name === "NewProposal"
+      (log): log is EventLog => log instanceof EventLog && log.fragment.name === "NewProposal"
     );
     const proposalAddress = event?.args?.[0];
 
