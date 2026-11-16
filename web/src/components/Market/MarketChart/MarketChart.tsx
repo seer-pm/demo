@@ -14,6 +14,7 @@ import slug from "slug";
 import DateRangePicker from "../../Portfolio/DateRangePicker";
 import { Spinner } from "../../Spinner";
 import Legend from "./Legend";
+import { formatChartValue } from "./format";
 
 export interface IOutcomeData {
   outcome: {
@@ -536,7 +537,9 @@ function LightweightChart({
               <div key={index} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-sm">{item.name}:</span>
-                <span className="text-sm text-gray-700">{item.value.toFixed(market.type === "Futarchy" ? 3 : 2)}%</span>
+                <span className="text-sm text-gray-700">
+                  {formatChartValue(market, item.value, market.type === "Futarchy" ? 3 : 2)}
+                </span>
               </div>
             ))}
           </div>

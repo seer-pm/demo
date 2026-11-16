@@ -2,6 +2,7 @@ import { Market } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import { IOutcomeData } from "./MarketChart";
+import { formatChartValue } from "./format";
 
 interface LegendProps {
   outcomesData: IOutcomeData[];
@@ -64,11 +65,7 @@ const Legend: React.FC<LegendProps> = ({ outcomesData, visibleOutcomes, onToggle
           const isVisible = visibleOutcomes.has(outcome.name);
           const lastValue = data.slice(-1)?.[0]?.value;
           const decimalPlaces = market.type === "Futarchy" ? 3 : 1;
-          const formattedValue = lastValue
-            ? lastValue % 1 === 0
-              ? `${lastValue}%`
-              : `${lastValue.toFixed(decimalPlaces)}%`
-            : "0%";
+          const formattedValue = formatChartValue(market, lastValue ?? 0, decimalPlaces);
 
           return (
             <div
