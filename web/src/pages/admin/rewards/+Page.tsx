@@ -116,8 +116,9 @@ function ActionForm({ action, onClose }: { action: Action; onClose: () => void }
 
 function AdminRewardsPage() {
   const { address } = useAccount();
-  const { data: campaigns = [], isLoading, error } = useRewardCampaigns();
-  const { data: managerChains = [] } = useRewardCampaignManagerChains(address);
+  const { data: managerChains = [], isLoading: isManagerLoading } = useRewardCampaignManagerChains(address);
+  const isManager = managerChains.length > 0;
+  const { data: campaigns = [], isLoading, error } = useRewardCampaigns(isManager);
   const { Modal: CreateModal, openModal: openCreate, closeModal: closeCreate } = useModal("reward-campaign-create");
   const {
     Modal: ActionModal,
@@ -135,6 +136,29 @@ function AdminRewardsPage() {
   const actionTitle = action
     ? `${ACTION_TITLES[action.kind]}: ${chainName(action.campaign.payoutChainId)} #${action.campaign.id}`
     : "";
+
+  // Only a wallet that can create campaigns (a registry's owner or a manager) sees the page.
+  if (!isManager) {
+    let message = "Connect a manager wallet to manage liquidity reward campaigns.";
+    if (REGISTRY_CHAINS.length === 0) {
+      message =
+        "No RewardCampaigns registry is deployed. Deploy one (hardhat tag RewardCampaigns) and set its PAYOUT_CHAINS registry in packages/seer-pm-rewards/src/chains.ts.";
+    } else if (address && isManagerLoading) {
+      return (
+        <div className="container-fluid py-12">
+          <div className="shimmer-container h-64 rounded-lg" />
+        </div>
+      );
+    } else if (address) {
+      message = `${shortenAddress(address)} is not a manager of any rewards registry.`;
+    }
+    return (
+      <div className="container-fluid py-12">
+        <h1 className="text-2xl font-semibold mb-4">Liquidity Rewards Admin</h1>
+        <p className="text-base-content/70">{message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid py-12 space-y-6">
@@ -178,32 +202,16 @@ function AdminRewardsPage() {
             </button>
           </p>
         </div>
-        {managerChains.length > 0 && (
-          <Button
-            text="New campaign"
-            type="button"
-            onClick={() => {
-              setCreateKey((key) => key + 1);
-              openCreate();
-            }}
-          />
-        )}
+        <Button
+          text="New campaign"
+          type="button"
+          onClick={() => {
+            setCreateKey((key) => key + 1);
+            openCreate();
+          }}
+        />
       </div>
 
-      {REGISTRY_CHAINS.length === 0 && (
-        <Alert type="warning" title="No registry deployed">
-          Deploy RewardCampaigns on a chain with pools (hardhat tag RewardCampaigns) and set its PAYOUT_CHAINS registry
-          in packages/seer-pm-rewards/src/chains.ts.
-        </Alert>
-      )}
-      {REGISTRY_CHAINS.length > 0 && !address && (
-        <p className="text-sm">Connect a manager wallet to create or change campaigns.</p>
-      )}
-      {REGISTRY_CHAINS.length > 0 && address && managerChains.length === 0 && (
-        <p className="text-sm text-base-content/70">
-          {shortenAddress(address)} is not a manager of any registry, so it cannot create campaigns.
-        </p>
-      )}
       {error && (
         <Alert type="error" title="Could not load campaigns">
           {error.message}

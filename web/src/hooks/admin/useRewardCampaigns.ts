@@ -106,10 +106,10 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
 }
 
 /** Every campaign of every deployed registry, newest first within each payout chain. */
-export function useRewardCampaigns() {
+export function useRewardCampaigns(enabled: boolean) {
   return useQuery({
     queryKey: [REWARD_CAMPAIGNS_QUERY_KEY, "list"],
-    enabled: REGISTRY_CHAINS.length > 0,
+    enabled: enabled && REGISTRY_CHAINS.length > 0,
     queryFn: async (): Promise<RewardCampaign[]> => {
       const chains = await Promise.all(REGISTRY_CHAINS.map((r) => fetchChainCampaigns(r.chainId, r.address)));
       return chains.flatMap((campaigns) => campaigns.reverse());
