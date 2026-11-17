@@ -100,14 +100,15 @@ function SubmitRow({
 }
 
 /**
- * Creates a campaign for a pool on one of `managerChains`, depositing its whole budget from the connected wallet.
- * Rewards pay out on the pool's chain, so its registry is the one on that chain.
+ * Creates one campaign per selected outcome pool of a market on one of `managerChains`, each with the same rate and
+ * budget, depositing every budget from the connected wallet. Rewards pay out on the pool's chain, so its registry
+ * is the one on that chain.
  */
 export function CreateRewardCampaignForm({ managerChains, onClose }: { managerChains: number[]; onClose: () => void }) {
+  const [outcomes, setOutcomes] = useState<number[]>([0]);
   const [form, setForm] = useState({
     chainId: String(managerChains[0]),
     market: "",
-    outcome: "0",
     rewardToken: "",
     weekly: "",
     budget: "",
@@ -124,15 +125,23 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
   const rewardToken = form.rewardToken.trim();
   const token = useTokenMeta(rewardToken, chainId);
 
-  const errors: Partial<Record<keyof typeof form, string>> = {};
-  let poolId: Hex | undefined;
+  const errors: Partial<Record<keyof typeof form | "outcomes", string>> = {};
+  let poolIds: Hex[] | undefined;
   if (marketId === zeroAddress) errors.market = "Enter the market address.";
   else if (!isMarketLoading && !market) errors.market = `No market at this address on ${chainName(chainId)}.`;
   else if (market && !marketSupportsOrderBook(market)) errors.market = "This market has no V4 order book pools.";
-  // The outcome resets with the market and chain, but the market query may still hold the previous one.
-  else if (market && Number(form.outcome) < market.wrappedTokens.length) {
-    poolId = getV4PoolId(getOrderBookPoolParams(market, Number(form.outcome)).poolKey);
+  // The selection resets with the market and chain, but the market query may still hold the previous one.
+  else if (market && outcomes.every((i) => i < market.wrappedTokens.length)) {
+    poolIds = outcomes.map((i) => getV4PoolId(getOrderBookPoolParams(market, i).poolKey));
+    if (poolIds.length === 0) errors.outcomes = "Select at least one outcome pool.";
   }
+  const pools = poolIds?.length ?? 0;
+  const toggleOutcome = (i: number, checked: boolean) =>
+    setOutcomes((prev) => (checked ? [...prev, i].sort((a, b) => a - b) : prev.filter((o) => o !== i)));
+  const selectMarket = (patch: Partial<typeof form>) => {
+    setForm((prev) => ({ ...prev, ...patch }));
+    setOutcomes([0]);
+  };
 
   if (!isAddress(rewardToken)) errors.rewardToken = "Enter the token address.";
   else if (token.data === null) errors.rewardToken = `Not an ERC20 token on ${chainName(chainId)}.`;
@@ -145,9 +154,11 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
 
   const budget = decimals === undefined ? undefined : parseAmount(form.budget, decimals);
   if (decimals !== undefined && !budget) errors.budget = "Enter the amount to deposit.";
+  // Every selected pool gets its own campaign with this budget, so the deposit is the budget times the pools.
+  const deposit = budget === undefined ? undefined : budget * BigInt(Math.max(pools, 1));
   const balanceError = useBalanceError(
     token.data ? { address: rewardToken as Address, ...token.data } : undefined,
-    budget,
+    deposit,
     chainId,
   );
   if (balanceError && !errors.budget) errors.budget = balanceError;
@@ -158,7 +169,11 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
   }
 
   const isValid =
-    Object.keys(errors).length === 0 && poolId !== undefined && perSecond !== undefined && budget !== undefined;
+    Object.keys(errors).length === 0 &&
+    pools > 0 &&
+    perSecond !== undefined &&
+    budget !== undefined &&
+    deposit !== undefined;
   const visible = (field: keyof typeof form) => (submitted || form[field] ? errors[field] : undefined);
 
   const handleSubmit = () => {
@@ -166,11 +181,11 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
     if (!isValid || !token.data) return;
     write.mutate({
       payoutChainId: chainId,
-      write: {
-        functionName: "createCampaign",
-        args: [poolId!, rewardToken as Address, perSecond!, budget!, minWidthTicks],
-      },
-      deposit: { token: rewardToken as Address, symbol: token.data.symbol, amount: budget! },
+      writes: poolIds!.map((poolId) => ({
+        functionName: "createCampaign" as const,
+        args: [poolId, rewardToken as Address, perSecond!, budget!, minWidthTicks] as const,
+      })),
+      deposit: { token: rewardToken as Address, symbol: token.data.symbol, amount: deposit! },
     });
   };
 
@@ -188,7 +203,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           className="w-full"
           options={managerChains.map((id) => ({ value: String(id), text: chainName(id) }))}
           value={form.chainId}
-          onChange={(e) => setForm((prev) => ({ ...prev, chainId: e.target.value, outcome: "0" }))}
+          onChange={(e) => selectMarket({ chainId: e.target.value })}
         />
       </Field>
 
@@ -203,20 +218,40 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           className="w-full"
           placeholder="0x…"
           value={form.market}
-          onChange={(e) => setForm((prev) => ({ ...prev, market: e.target.value, outcome: "0" }))}
+          onChange={(e) => selectMarket({ market: e.target.value })}
         />
       </Field>
 
-      {market && poolId && (
-        <Field id="reward-outcome" label="Outcome pool" hint={<span className="break-all">Pool id {poolId}</span>}>
-          <Select
-            id="reward-outcome"
-            className="w-full"
-            options={market.wrappedTokens.map((_, i) => ({ value: String(i), text: market.outcomes[i] }))}
-            value={form.outcome}
-            onChange={set("outcome")}
-          />
-        </Field>
+      {market && poolIds && (
+        <fieldset>
+          <legend className="text-sm font-semibold mb-1">Outcome pools</legend>
+          {/* About five outcomes tall: markets with many outcomes scroll instead of pushing the form off screen. */}
+          <div className="space-y-1 max-h-[7.5rem] overflow-y-auto pr-2">
+            {market.wrappedTokens.map((_, i) => (
+              <label
+                key={market.outcomes[i]}
+                htmlFor={`reward-outcome-${i}`}
+                className="cursor-pointer flex items-center gap-2 text-sm"
+              >
+                <input
+                  id={`reward-outcome-${i}`}
+                  type="checkbox"
+                  className="cursor-pointer checkbox checkbox-sm"
+                  checked={outcomes.includes(i)}
+                  onChange={(e) => toggleOutcome(i, e.target.checked)}
+                />
+                {market.outcomes[i]}
+              </label>
+            ))}
+          </div>
+          {errors.outcomes ? (
+            <p className="text-[12px] text-error-primary mt-1">{errors.outcomes}</p>
+          ) : (
+            <p className="text-[12px] text-base-content/70 mt-1">
+              Each selected pool gets its own campaign with the rate and budget below.
+            </p>
+          )}
+        </fieldset>
       )}
 
       <Field
@@ -237,7 +272,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
       <div className="grid grid-cols-2 gap-4">
         <Field
           id="reward-weekly"
-          label={`Per week${token.data ? ` (${token.data.symbol})` : ""}`}
+          label={`Per week, each pool${token.data ? ` (${token.data.symbol})` : ""}`}
           error={visible("weekly")}
           hint="In token units, split among in-range positions by liquidity. Stored per second, rounded down. The rate can change later, and 0 ends the campaign."
         >
@@ -251,7 +286,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
         </Field>
         <Field
           id="reward-budget"
-          label={`Budget${token.data ? ` (${token.data.symbol})` : ""}`}
+          label={`Budget, each pool${token.data ? ` (${token.data.symbol})` : ""}`}
           error={visible("budget")}
           hint="Deposited from your wallet now. It caps the total payout and lasts (budget ÷ per week) weeks, longer while no eligible liquidity is in range. It cannot be topped up later."
         >
@@ -290,8 +325,14 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
       )}
       {weeks !== undefined && (
         <p className="text-sm">
-          The budget lasts about <strong>{weeks.toLocaleString("en-US", { maximumFractionDigits: 1 })} weeks</strong> of
-          rewards at this rate. Liquidity out of range consumes none of it.
+          Each budget lasts about <strong>{weeks.toLocaleString("en-US", { maximumFractionDigits: 1 })} weeks</strong>{" "}
+          of rewards at this rate. Liquidity out of range consumes none of it.
+          {pools > 1 && token.data && (
+            <>
+              {" "}
+              You deposit <strong>{formatAmount(deposit!, token.data)}</strong> in total for {pools} campaigns.
+            </>
+          )}
         </p>
       )}
       <p className="text-[12px] text-base-content/70">
@@ -304,7 +345,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
         chainId={chainId}
         onClose={onClose}
         isPending={write.isPending}
-        text="Create and deposit"
+        text={pools > 1 ? `Create ${pools} campaigns and deposit` : "Create and deposit"}
         onSubmit={handleSubmit}
       />
     </div>
@@ -338,7 +379,7 @@ export function RewardRatesForm({
     if (error || perSecond === undefined) return;
     write.mutate({
       payoutChainId: campaign.payoutChainId,
-      write: { functionName: "setRate", args: [campaign.id, perSecond] },
+      writes: [{ functionName: "setRate", args: [campaign.id, perSecond] }],
     });
   };
 
@@ -416,7 +457,7 @@ export function RewardRefundForm({ campaign, onClose }: { campaign: RewardCampai
         onSubmit={() =>
           write.mutate({
             payoutChainId: campaign.payoutChainId,
-            write: { functionName: "settleRefund", args: [campaign.id] },
+            writes: [{ functionName: "settleRefund", args: [campaign.id] }],
           })
         }
       />

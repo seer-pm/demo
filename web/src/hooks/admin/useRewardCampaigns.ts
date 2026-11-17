@@ -1,10 +1,12 @@
+import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import type { RewardRate } from "@/lib/reward-campaigns";
-import { toastifyTx } from "@/lib/toastify";
+import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { PAYOUT_CHAINS, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccount, readContract, writeContract } from "@wagmi/core";
-import { type Address, type Hex, erc20Abi, isAddressEqual } from "viem";
+import { type Address, type Hex, type TransactionReceipt, encodeFunctionData, erc20Abi, isAddressEqual } from "viem";
 
 const REWARD_CAMPAIGNS_QUERY_KEY = "rewardCampaigns";
 
@@ -153,23 +155,52 @@ const TOAST_TITLES: Record<RewardCampaignWrite["functionName"], [string, string]
 };
 
 /**
- * Sends one registry transaction from the connected wallet on `payoutChainId`. A deposit (`createCampaign`) first
- * approves the registry for `deposit.amount` of `deposit.token` when the allowance is short.
+ * Sends registry transactions from the connected wallet on `payoutChainId`, one per entry of `writes`. A deposit
+ * (`createCampaign`) first approves the registry for `deposit.amount`, the sum of every budget, when the allowance
+ * is short. With EIP-7702 the approval and every write go in one batch, so several campaigns take one signature.
  */
 export function useWriteRewardCampaigns(onSuccess?: () => void) {
   const queryClient = useQueryClient();
+  const supports7702 = useCheck7702Support();
   return useMutation({
     mutationFn: async ({
       payoutChainId,
-      write,
+      writes,
       deposit,
     }: {
       payoutChainId: number;
-      write: RewardCampaignWrite;
+      writes: RewardCampaignWrite[];
       deposit?: { token: Address; symbol: string; amount: bigint };
     }) => {
       const address = registryAddress(payoutChainId);
       const chainId = payoutChainId as ConfigChainId;
+      const [sent, success] = TOAST_TITLES[writes[0].functionName];
+
+      if (supports7702 && writes.length > 1) {
+        const approve = deposit
+          ? [
+              {
+                to: deposit.token,
+                value: 0n,
+                chainId,
+                data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [address, deposit.amount] }),
+              },
+            ]
+          : [];
+        const calls = writes.map((write) => ({
+          to: address,
+          value: 0n,
+          chainId,
+          data: encodeFunctionData({ abi: rewardCampaignsAbi, ...write } as Parameters<typeof encodeFunctionData>[0]),
+        }));
+        const result = await toastifySendCallsTx([...approve, ...calls], payoutChainId as SupportedChain, config, {
+          txSent: { title: sent.replace("campaign", `${writes.length} campaigns`) },
+          txSuccess: { title: success.replace("Campaign", `${writes.length} campaigns`) },
+        });
+        if (!result.status) throw result.error;
+        return result.receipt;
+      }
+
       if (deposit) {
         const account = getAccount(config).address;
         if (!account) throw new Error("Connect a wallet first");
@@ -198,19 +229,23 @@ export function useWriteRewardCampaigns(onSuccess?: () => void) {
           if (!approved.status) throw approved.error;
         }
       }
-      const [sent, success] = TOAST_TITLES[write.functionName];
-      const result = await toastifyTx(
-        () =>
-          writeContract(config, {
-            address,
-            abi: rewardCampaignsAbi,
-            chainId,
-            ...write,
-          } as Parameters<typeof writeContract>[1]),
-        { txSent: { title: sent }, txSuccess: { title: success } },
-      );
-      if (!result.status) throw result.error;
-      return result.receipt;
+      let receipt: TransactionReceipt | undefined;
+      for (const [i, write] of writes.entries()) {
+        const step = writes.length > 1 ? ` ${i + 1}/${writes.length}` : "";
+        const result = await toastifyTx(
+          () =>
+            writeContract(config, {
+              address,
+              abi: rewardCampaignsAbi,
+              chainId,
+              ...write,
+            } as Parameters<typeof writeContract>[1]),
+          { txSent: { title: `${sent.replace("...", "")}${step}...` }, txSuccess: { title: success } },
+        );
+        if (!result.status) throw result.error;
+        receipt = result.receipt;
+      }
+      return receipt;
     },
     onSuccess: () => onSuccess?.(),
     onSettled: () => queryClient.invalidateQueries({ queryKey: [REWARD_CAMPAIGNS_QUERY_KEY] }),
