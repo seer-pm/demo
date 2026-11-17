@@ -76,7 +76,9 @@ function CampaignRow({
             </a>
           </>
         ) : (
-          <div className="text-base-content/70">Pool not created</div>
+          <div className="text-base-content/70">
+            {campaign.poolCreated === false ? "Pool not created" : "Pool not indexed yet"}
+          </div>
         )}
         <a
           href={getV4PoolExplorerUrl(campaign.payoutChainId, campaign.poolId)}

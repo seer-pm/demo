@@ -2,6 +2,7 @@ import { useCheck7702Support } from "@/hooks/useCheck7702Support";
 import type { RewardRate } from "@/lib/reward-campaigns";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
+import { V4_STATE_VIEW_ADDRESS, stateViewAbi } from "@seer-pm/order-book";
 import { PAYOUT_CHAINS, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
 import { type SupportedChain, orderBookGraphQLClient } from "@seer-pm/sdk";
 import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
@@ -46,6 +47,11 @@ export type RewardCampaign = {
   token?: { symbol: string; decimals: number };
   /** The outcome token the pool trades. Undefined until the pool is initialized and indexed. */
   outcome?: { name: string; marketId: Address; marketName: string };
+  /**
+   * False when StateView reports the pool was never initialized. The indexer records a pool only at its first
+   * limit order, so a pool with liquidity but no order has no `outcome` and is still created.
+   */
+  poolCreated?: boolean;
 };
 
 /**
@@ -81,6 +87,25 @@ async function fetchPoolOutcomes(chainId: number, poolIds: Hex[]) {
     });
   }
   return outcomes;
+}
+
+/** Whether pool `poolId` on `chainId` is initialized, or undefined when StateView cannot be read. */
+async function readPoolCreated(chainId: number, poolId: Hex) {
+  const stateView = V4_STATE_VIEW_ADDRESS[chainId as keyof typeof V4_STATE_VIEW_ADDRESS];
+  if (!stateView) return undefined;
+  try {
+    const [sqrtPriceX96] = await readContract(config, {
+      address: stateView,
+      abi: stateViewAbi,
+      functionName: "getSlot0",
+      args: [poolId],
+      chainId: chainId as ConfigChainId,
+    });
+    // StateView answers zeros for a pool that was never initialized.
+    return sqrtPriceX96 !== 0n;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Reads `symbol` and `decimals` of `token` on `chainId`, or undefined when it is not an ERC20 there. */
@@ -132,6 +157,7 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
     const key = c.rewardToken.toLowerCase();
     if (!tokens.has(key)) tokens.set(key, readTokenMeta(c.rewardToken, payoutChainId));
   }
+  const outcomes = await poolOutcomes;
   return Promise.all(
     campaigns.map(async (c, i) => ({
       id: BigInt(i),
@@ -146,7 +172,9 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
       minWidthTicks: c.minWidthTicks,
       rates: c.rates.map((rate) => ({ from: rate.from, perSecond: rate.perSecond })),
       token: await tokens.get(c.rewardToken.toLowerCase()),
-      outcome: (await poolOutcomes).get(c.poolId.toLowerCase()),
+      outcome: outcomes.get(c.poolId.toLowerCase()),
+      // An indexed pool is initialized, so only the others need the RPC read.
+      poolCreated: outcomes.has(c.poolId.toLowerCase()) ? true : await readPoolCreated(payoutChainId, c.poolId),
     })),
   );
 }
