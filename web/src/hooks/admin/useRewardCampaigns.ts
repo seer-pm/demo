@@ -3,7 +3,8 @@ import type { RewardRate } from "@/lib/reward-campaigns";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { PAYOUT_CHAINS, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
-import type { SupportedChain } from "@seer-pm/sdk";
+import { type SupportedChain, orderBookGraphQLClient } from "@seer-pm/sdk";
+import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccount, readContract, writeContract } from "@wagmi/core";
 import { type Address, type Hex, type TransactionReceipt, encodeFunctionData, erc20Abi, isAddressEqual } from "viem";
@@ -43,7 +44,44 @@ export type RewardCampaign = {
   rates: RewardRate[];
   /** Undefined when the token cannot be read on the payout chain. */
   token?: { symbol: string; decimals: number };
+  /** The outcome token the pool trades. Undefined until the pool is initialized and indexed. */
+  outcome?: { name: string; marketId: Address; marketName: string };
 };
+
+/**
+ * Outcome and market of each pool in `poolIds` that the indexer has seen initialized, from its two currencies:
+ * the one that is a market's outcome token. A pool id is a hash of its key, so a pool not created yet stays
+ * unnamed rather than being searched for among every market of the chain.
+ */
+async function fetchPoolOutcomes(chainId: number, poolIds: Hex[]) {
+  const outcomes = new Map<string, NonNullable<RewardCampaign["outcome"]>>();
+  const client = orderBookGraphQLClient(chainId);
+  if (!client || poolIds.length === 0) return outcomes;
+  const sdk = getLimitOrderSdk(client);
+  const { LimitOrderPool: pools } = await sdk.GetLimitOrderPoolsById({
+    chainId: String(chainId),
+    poolIds: poolIds.map((id) => id.toLowerCase()),
+  });
+  if (pools.length === 0) return outcomes;
+  const { OutcomeTokenMarket: tokens } = await sdk.GetOutcomeTokenMarkets({
+    chainId: String(chainId),
+    tokens: pools.flatMap((p) => [p.currency0.toLowerCase(), p.currency1.toLowerCase()]),
+  });
+  const marketByToken = new Map(tokens.map((t) => [t.token.toLowerCase(), t.market]));
+  for (const pool of pools) {
+    const token = [pool.currency0, pool.currency1].map((c) => c.toLowerCase()).find((c) => marketByToken.get(c));
+    const market = token && marketByToken.get(token);
+    if (!market) continue;
+    const index = market.wrappedTokens.findIndex((w) => w.toLowerCase() === token);
+    outcomes.set(pool.poolId.toLowerCase(), {
+      name: market.outcomes[index] ?? token,
+      // The indexer keys markets as `<chainId>:<address>`.
+      marketId: market.id.split(":").pop() as Address,
+      marketName: market.marketName,
+    });
+  }
+  return outcomes;
+}
 
 /** Reads `symbol` and `decimals` of `token` on `chainId`, or undefined when it is not an ERC20 there. */
 export async function readTokenMeta(token: Address, chainId: number) {
@@ -84,6 +122,11 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
     read<readonly Address[]>("getFunders"),
     read<Address>("owner"),
   ]);
+  // The names are a convenience: a failed lookup leaves the pool id, never the campaigns, unreadable.
+  const poolOutcomes = fetchPoolOutcomes(
+    payoutChainId,
+    campaigns.map((c) => c.poolId),
+  ).catch(() => new Map<string, NonNullable<RewardCampaign["outcome"]>>());
   const tokens = new Map<string, Promise<RewardCampaign["token"]>>();
   for (const c of campaigns) {
     const key = c.rewardToken.toLowerCase();
@@ -103,6 +146,7 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
       minWidthTicks: c.minWidthTicks,
       rates: c.rates.map((rate) => ({ from: rate.from, perSecond: rate.perSecond })),
       token: await tokens.get(c.rewardToken.toLowerCase()),
+      outcome: (await poolOutcomes).get(c.poolId.toLowerCase()),
     })),
   );
 }

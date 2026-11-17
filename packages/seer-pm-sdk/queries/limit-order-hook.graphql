@@ -82,3 +82,23 @@ query GetOrderEvents(
     liquidity
   }
 }
+
+query GetLimitOrderPoolsById($chainId: numeric!, $poolIds: [String!]!) {
+  LimitOrderPool(where: { chainId: { _eq: $chainId }, poolId: { _in: $poolIds } }) {
+    poolId
+    currency0
+    currency1
+  }
+}
+
+query GetOutcomeTokenMarkets($chainId: numeric!, $tokens: [String!]!) {
+  OutcomeTokenMarket(where: { chainId: { _eq: $chainId }, token: { _in: $tokens } }) {
+    token
+    market {
+      id
+      marketName
+      outcomes
+      wrappedTokens
+    }
+  }
+}

@@ -9,6 +9,7 @@ import {
   useRewardCampaigns,
 } from "@/hooks/admin/useRewardCampaigns";
 import { useModal } from "@/hooks/useModal";
+import { paths } from "@/lib/paths";
 import { campaignStatus, chainName, formatWeekly, refundState, toDate } from "@/lib/reward-campaigns";
 import { shortenAddress } from "@/lib/utils";
 import { getV4PoolExplorerUrl } from "@seer-pm/order-book";
@@ -40,7 +41,7 @@ function CampaignRow({
     account !== undefined &&
     (isAddressEqual(campaign.funder, account) || isAddressEqual(campaign.registryOwner, account));
   const refund = refundState(campaign);
-  const { token } = campaign;
+  const { token, outcome } = campaign;
   const amount = (value: bigint) =>
     token
       ? Number(formatUnits(value, token.decimals)).toLocaleString("en-US", {
@@ -62,24 +63,37 @@ function CampaignRow({
       <td className="whitespace-nowrap">
         {chainName(campaign.payoutChainId)} #{campaign.id.toString()}
       </td>
-      <td className="whitespace-nowrap">
+      <td className="max-w-[20rem]">
+        {outcome ? (
+          <>
+            <div className="font-semibold">{outcome.name}</div>
+            <a
+              href={paths.market(outcome.marketId, campaign.payoutChainId)}
+              title={outcome.marketName}
+              className="block truncate text-[12px] text-base-content/70 hover:underline"
+            >
+              {outcome.marketName}
+            </a>
+          </>
+        ) : (
+          <div className="text-base-content/70">Pool not created</div>
+        )}
         <a
           href={getV4PoolExplorerUrl(campaign.payoutChainId, campaign.poolId)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-purple-primary dark:text-purple-secondary hover:underline"
+          className="text-[12px] text-purple-primary dark:text-purple-secondary hover:underline"
         >
           {`${campaign.poolId.slice(0, 10)}…${campaign.poolId.slice(-6)}`}
         </a>
       </td>
-      <td className="whitespace-nowrap">{token?.symbol ?? shortenAddress(campaign.rewardToken)}</td>
-      <td className="whitespace-nowrap">
-        {shortenAddress(campaign.funder)}
-        {account && isAddressEqual(campaign.funder, account) && " (you)"}
-      </td>
-      <td className="whitespace-nowrap">
+      <td className="whitespace-nowrap tabular-nums">
         {/* An ended campaign shows the rate it paid last rather than its closing zero rate. */}
-        {formatWeekly(status.lastPaid, token)}
+        {token ? formatWeekly(status.lastPaid, token) : shortenAddress(campaign.rewardToken)}
+        <div className="text-[12px] text-base-content/70">
+          Funded by {shortenAddress(campaign.funder)}
+          {account && isAddressEqual(campaign.funder, account) && " (you)"}
+        </div>
       </td>
       <td className="whitespace-nowrap">
         <span className={status.ended ? "text-base-content/50" : "text-success-primary"}>
@@ -89,8 +103,8 @@ function CampaignRow({
           {toDate(status.start)} → {status.end !== undefined ? toDate(status.end) : "open"}
         </div>
       </td>
-      <td className="whitespace-nowrap">
-        {amount(campaign.released)} / {amount(campaign.budget)}
+      <td className="whitespace-nowrap tabular-nums">
+        {amount(campaign.released)} / {amount(campaign.budget)} {token?.symbol}
         <div className="text-[12px] text-base-content/60">
           {campaign.releasedUpTo > 0 ? `released up to ${toDate(campaign.releasedUpTo)}` : "nothing released yet"}
         </div>
@@ -223,10 +237,8 @@ function AdminRewardsPage() {
           <thead>
             <tr>
               <th>Campaign</th>
-              <th>Pool</th>
+              <th>Outcome pool</th>
               <th>Reward</th>
-              <th>Funder</th>
-              <th>Rate</th>
               <th>Status (UTC)</th>
               <th>Released / budget</th>
               <th />
@@ -235,14 +247,14 @@ function AdminRewardsPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={6}>
                   <div className="shimmer-container h-10 rounded" />
                 </td>
               </tr>
             )}
             {!isLoading && !error && campaigns.length === 0 && (
               <tr>
-                <td colSpan={8} className="text-center text-base-content/60 py-8">
+                <td colSpan={6} className="text-center text-base-content/60 py-8">
                   No campaigns yet.
                 </td>
               </tr>
