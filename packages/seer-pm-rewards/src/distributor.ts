@@ -23,7 +23,7 @@ import {
 } from "./claims.ts";
 import { weekStart } from "./engine.ts";
 import { getLogs } from "./events.ts";
-import { type RawCampaign, campaignHistory, emittedByCampaign } from "./registry.ts";
+import { type RawCampaign, campaignHistory, dueReleases, emittedByCampaign } from "./registry.ts";
 import { type RewardsFile, computeWeek, computeWeeks, parseCutoff } from "./week.ts";
 
 export * from "./claims.ts";
@@ -179,24 +179,13 @@ export async function syncDistributor({
   }
 
   // Released before the root so the distributor can pay it, and before the empty-root return below so a
-  // campaign that ended without emitting anything still gets the release the rest of its refund waits for. Released
-  // campaigns are skipped, so the hourly retries of a failed upload send nothing again.
+  // campaign that ended without emitting anything still gets the release the rest of its refund waits for.
   const releases = await payoutClient.readContract({
     address: registry.address,
     abi: rewardCampaignsAbi,
     functionName: "getReleases",
   });
-  // A campaign whose final week is already released is skipped, so the release does not grow with every
-  // campaign that ever ran.
-  const emitted = emittedByCampaign(file.states);
-  const due = rawCampaigns.flatMap((c): [string, bigint][] => {
-    const r = releases[Number(c.id)];
-    const total = emitted.get(c.id) ?? 0n;
-    const last = c.rates[c.rates.length - 1];
-    const final = last.perSecond === "0" && r.upTo >= BigInt(Date.parse(last.from) / 1000);
-    if (final && r.released >= total) return [];
-    return r.upTo < BigInt(target) || r.released < total ? [[c.id, total]] : [];
-  });
+  const due = dueReleases(rawCampaigns, releases, emittedByCampaign(file.states));
   if (due.length > 0) {
     const ids = due.map(([id]) => BigInt(id));
     const tx = await send({ functionName: "release", args: [ids, due.map(([, e]) => e), BigInt(target)] });

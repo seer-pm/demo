@@ -20,7 +20,7 @@ import { accountRewards, rewardCampaignsAbi } from "./claims.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
-import { type RawCampaign, campaignHistory, campaignsFromLogs, emittedByCampaign } from "./registry.ts";
+import { type RawCampaign, campaignHistory, campaignsFromLogs, dueReleases, emittedByCampaign } from "./registry.ts";
 import { computeWeek, computeWeeks } from "./week.ts";
 
 const PM = "0x00000000000000000000000000000000000000aa" as Address;
@@ -459,6 +459,45 @@ describe("emittedByCampaign", () => {
         ["b", 0n],
       ]),
     );
+  });
+});
+
+describe("dueReleases", () => {
+  it("releases what has something new to pay and the final week of an ended campaign, and nothing else", () => {
+    const raw = (id: string, ended: boolean): RawCampaign => ({
+      id,
+      chainId: 8453,
+      payoutChainId: 8453,
+      poolId: POOL,
+      rewardToken: TOKEN,
+      budget: "1000",
+      rates: [
+        { from: "2026-11-02T00:00:00Z", perSecond: "1" },
+        ...(ended ? [{ from: "2026-11-05T00:00:00Z", perSecond: "0" }] : []),
+      ],
+      minWidthTicks: 0,
+    });
+    const end = BigInt(Date.parse("2026-11-05T00:00:00Z") / 1000);
+    const lastCutoff = BigInt(T0);
+    const campaigns = [raw("0", false), raw("1", false), raw("2", false), raw("3", true), raw("4", true)];
+    const releases = [
+      { released: 300n, upTo: lastCutoff }, // Active, emitted more since.
+      { released: 1000n, upTo: lastCutoff }, // Active, spent its whole budget.
+      { released: 0n, upTo: lastCutoff }, // Active, nothing in range: a dead pool nobody ended.
+      { released: 0n, upTo: lastCutoff }, // Ended without emitting, its cutoff still before the end.
+      { released: 200n, upTo: end + 1n }, // Ended, final week already released.
+    ];
+    const emitted = new Map([
+      ["0", 450n],
+      ["1", 1000n],
+      ["2", 0n],
+      ["3", 0n],
+      ["4", 200n],
+    ]);
+    expect(dueReleases(campaigns, releases, emitted)).toEqual([
+      ["0", 450n],
+      ["3", 0n],
+    ]);
   });
 });
 

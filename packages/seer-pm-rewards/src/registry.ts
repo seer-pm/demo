@@ -90,3 +90,27 @@ export function emittedByCampaign(states: Record<string, EngineStateJson>): Map<
     Object.values(states).flatMap((state) => Object.entries(state.budgetUsed).map(([id, used]) => [id, BigInt(used)])),
   );
 }
+
+/**
+ * The `[id, emitted]` pairs the registry's `release` must get: campaigns with something new to pay, and ended
+ * campaigns whose cutoff is not past their end yet, which `settleRefund` needs before it returns the rest. The
+ * others are left out, so the batch does not grow with campaigns that spent their budget or no longer earn, and the
+ * hourly retries of a failed upload send nothing again.
+ * A campaign left out keeps its cutoff, and `release` caps each total at what the rates emit since that cutoff, so a
+ * campaign that stops earning (a dead pool after its market resolves) exposes more of its escrow to the releaser key
+ * every week. End it with a rate of 0: its final release then goes through and its funder gets the rest back.
+ */
+export function dueReleases(
+  campaigns: RawCampaign[],
+  releases: readonly { released: bigint; upTo: bigint }[],
+  emitted: Map<string, bigint>,
+): [string, bigint][] {
+  return campaigns.flatMap((c): [string, bigint][] => {
+    const r = releases[Number(c.id)];
+    const total = emitted.get(c.id) ?? 0n;
+    if (r.released < total) return [[c.id, total]];
+    const last = c.rates[c.rates.length - 1];
+    const ended = last.perSecond === "0";
+    return ended && r.upTo < BigInt(Date.parse(last.from) / 1000) ? [[c.id, total]] : [];
+  });
+}
