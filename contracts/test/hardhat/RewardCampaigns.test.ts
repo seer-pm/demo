@@ -122,7 +122,9 @@ describe("RewardCampaigns", function () {
     const cutoff = (await time.latest()) + DAY;
     await time.increaseTo(cutoff + 3600);
 
-    await expect(registry.connect(other).release([0], [300n], cutoff)).to.be.revertedWith("Only the releaser");
+    await expect(registry.connect(other).release([0], [300n], cutoff)).to.be.revertedWith(
+      "Only the releaser or the owner",
+    );
     await expect(registry.connect(bot).release([0], [1001n], cutoff)).to.be.revertedWith("Over budget");
     await expect(registry.connect(bot).release([0], [1n], cutoff + 7200)).to.be.revertedWith("Cutoff in the future");
 
@@ -159,6 +161,27 @@ describe("RewardCampaigns", function () {
     expect(await token.balanceOf(distributor)).to.equal(max + 30n);
     const [r] = await registry.getReleases();
     expect([r.released, Number(r.upTo)]).to.deep.equal([max + 30n, second]);
+  });
+
+  it("lets the owner release a recomputed week above the rate cap, still within the budget", async function () {
+    const start = await minedAt(await create(1n, 1000n));
+    await time.increase(200);
+    const cutoff = start + 100;
+    await registry.connect(bot).release([0], [60n], cutoff);
+    // The week is recomputed at 90: its window is already released, so nothing more fits the releaser's cap.
+    await expect(registry.connect(bot).release([0], [90n], cutoff)).to.be.revertedWith("Over rate");
+    await expect(registry.connect(other).release([0], [90n], cutoff)).to.be.revertedWith(
+      "Only the releaser or the owner",
+    );
+    await expect(registry.connect(owner).release([0], [1001n], cutoff)).to.be.revertedWith("Over budget");
+
+    await registry.connect(owner).release([0], [90n], cutoff);
+    expect(await token.balanceOf(distributor)).to.equal(90n);
+    const [r] = await registry.getReleases();
+    expect([r.released, Number(r.upTo)]).to.deep.equal([90n, cutoff]);
+    // The releaser's next week is capped from the same cutoff again.
+    await expect(registry.connect(bot).release([0], [141n], cutoff + 50)).to.be.revertedWith("Over rate");
+    await registry.connect(bot).release([0], [140n], cutoff + 50);
   });
 
   it("keeps the cutoff when a release comes in below what was released, so the refund keeps what is owed", async function () {

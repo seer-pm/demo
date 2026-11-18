@@ -479,13 +479,15 @@ describe("dueReleases", () => {
     });
     const end = BigInt(Date.parse("2026-11-05T00:00:00Z") / 1000);
     const lastCutoff = BigInt(T0);
-    const campaigns = [raw("0", false), raw("1", false), raw("2", false), raw("3", true), raw("4", true)];
+    const target = T0 + WEEK;
+    const campaigns = [false, false, false, true, true, true].map((ended, id) => raw(String(id), ended));
     const releases = [
       { released: 300n, upTo: lastCutoff }, // Active, emitted more since.
       { released: 1000n, upTo: lastCutoff }, // Active, spent its whole budget.
       { released: 0n, upTo: lastCutoff }, // Active, nothing in range: a dead pool nobody ended.
       { released: 0n, upTo: lastCutoff }, // Ended without emitting, its cutoff still before the end.
       { released: 200n, upTo: end + 1n }, // Ended, final week already released.
+      { released: 200n, upTo: lastCutoff }, // Ended, its final week recomputed below what was released.
     ];
     const emitted = new Map([
       ["0", 450n],
@@ -493,11 +495,41 @@ describe("dueReleases", () => {
       ["2", 0n],
       ["3", 0n],
       ["4", 200n],
+      ["5", 150n],
     ]);
-    expect(dueReleases(campaigns, releases, emitted)).toEqual([
-      ["0", 450n],
-      ["3", 0n],
-    ]);
+    expect(dueReleases(campaigns, releases, emitted, target)).toEqual({
+      due: [
+        ["0", 450n],
+        ["3", 0n],
+        ["5", 150n],
+      ],
+      stuck: ["5"],
+    });
+  });
+
+  it("names the campaign and the owner's call when a total is over what the rates allow since the last cutoff", () => {
+    const c: RawCampaign = {
+      id: "7",
+      chainId: 8453,
+      payoutChainId: 8453,
+      poolId: POOL,
+      rewardToken: TOKEN,
+      budget: "10000000",
+      rates: [
+        { from: "2026-11-02T00:00:00Z", perSecond: "2" },
+        { from: "2026-11-08T23:59:55Z", perSecond: "3" },
+      ],
+      minWidthTicks: 0,
+    };
+    const target = T0 + WEEK;
+    const releases = Array.from({ length: 8 }, () => ({ released: 300n, upTo: BigInt(target - 10) }));
+    // 2 per second for the 5 seconds before the rate change, then 3 per second up to the cutoff.
+    const cap = 300n + 2n * 5n + 3n * 5n;
+    expect(dueReleases([c], releases, new Map([["7", cap]]), target).due).toEqual([["7", cap]]);
+    expect(() => dueReleases([c], releases, new Map([["7", cap + 1n]]), target)).toThrow(
+      `campaign 7 emitted ${cap + 1n}, 1 over what the releaser may send since its last cutoff ${target - 10}; ` +
+        `the registry owner must call release([7], [${cap + 1n}], ${target})`,
+    );
   });
 });
 

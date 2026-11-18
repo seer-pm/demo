@@ -1,5 +1,5 @@
 import { type Address, type Hex, type PublicClient, type RpcLog, decodeEventLog, encodeEventTopics } from "viem";
-import { toIsoSeconds } from "./campaigns.ts";
+import { emittedBetween, toIsoSeconds } from "./campaigns.ts";
 import { rewardCampaignsAbi } from "./claims.ts";
 import type { EngineStateJson } from "./engine.ts";
 import { findLastBlockBefore, getLogs } from "./events.ts";
@@ -92,25 +92,52 @@ export function emittedByCampaign(states: Record<string, EngineStateJson>): Map<
 }
 
 /**
- * The `[id, emitted]` pairs the registry's `release` must get: campaigns with something new to pay, and ended
- * campaigns whose cutoff is not past their end yet, which `settleRefund` needs before it returns the rest. The
- * others are left out, so the batch does not grow with campaigns that spent their budget or no longer earn, and the
- * hourly retries of a failed upload send nothing again.
+ * The `[id, emitted]` pairs the registry's `release` must get up to `target`: campaigns with something new to pay,
+ * and ended campaigns whose cutoff is not past their end yet, which `settleRefund` needs before it returns the rest.
+ * The others are left out, so the batch does not grow with campaigns that spent their budget or no longer earn, and
+ * the hourly retries of a failed upload send nothing again.
  * A campaign left out keeps its cutoff, and `release` caps each total at what the rates emit since that cutoff, so a
  * campaign that stops earning (a dead pool after its market resolves) exposes more of its escrow to the releaser key
  * every week. End it with a rate of 0: its final release then goes through and its funder gets the rest back.
+ *
+ * Throws when a total is over that cap, which happens when a week is recomputed with a higher total after its
+ * release: the whole batch would revert, so the error names each campaign and the owner's call that releases it.
+ *
+ * `stuck` lists the ended campaigns whose total came out below what was already released (a final week recomputed
+ * lower). `release` sends them nothing and leaves their cutoff before the end, so `settleRefund` holds back what the
+ * rates could emit after it for good. The releaser frees it by hand with `release([id], [released], cutoff)` at a
+ * cutoff at or after the end, which moves the cutoff without sending anything.
  */
 export function dueReleases(
   campaigns: RawCampaign[],
   releases: readonly { released: bigint; upTo: bigint }[],
   emitted: Map<string, bigint>,
-): [string, bigint][] {
-  return campaigns.flatMap((c): [string, bigint][] => {
+  target: number,
+): { due: [string, bigint][]; stuck: string[] } {
+  const due: [string, bigint][] = [];
+  const stuck: string[] = [];
+  const overCap: string[] = [];
+  for (const c of campaigns) {
     const r = releases[Number(c.id)];
     const total = emitted.get(c.id) ?? 0n;
-    if (r.released < total) return [[c.id, total]];
-    const last = c.rates[c.rates.length - 1];
-    const ended = last.perSecond === "0";
-    return ended && r.upTo < BigInt(Date.parse(last.from) / 1000) ? [[c.id, total]] : [];
-  });
+    const rates = c.rates.map((rate) => ({ from: Date.parse(rate.from) / 1000, perSecond: BigInt(rate.perSecond) }));
+    if (r.released < total) {
+      const cap = r.released + emittedBetween(rates, Number(r.upTo), target);
+      if (total > cap) {
+        overCap.push(
+          `campaign ${c.id} emitted ${total}, ${total - cap} over what the releaser may send since its last cutoff ` +
+            `${r.upTo}; the registry owner must call release([${c.id}], [${total}], ${target})`,
+        );
+      }
+      due.push([c.id, total]);
+      continue;
+    }
+    const last = rates[rates.length - 1];
+    if (last.perSecond === 0n && r.upTo < BigInt(last.from)) {
+      due.push([c.id, total]);
+      if (r.released > total) stuck.push(c.id);
+    }
+  }
+  if (overCap.length > 0) throw new Error(`not releasing: ${overCap.join("; ")}`);
+  return { due, stuck };
 }

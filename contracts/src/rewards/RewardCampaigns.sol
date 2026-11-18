@@ -168,19 +168,27 @@ contract RewardCampaigns {
 
     /// @notice Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the
     /// cumulative `emitted` of each, so a repeated call sends nothing more.
-    /// @dev Each total is capped by what the rates emit from the campaign's last cutoff to `upTo`, as the engine never
-    /// emits more, so the releaser can only send the distributor what the campaigns were due and never their whole
-    /// escrow. A total below what was already released sends nothing, as the distributor cannot return it, and
-    /// leaves the cutoff where it is: `settleRefund` counts `released` as everything emitted up to `upTo`.
+    /// @dev For the releaser, each total is capped by what the rates emit from the campaign's last cutoff to `upTo`,
+    /// as the engine never emits more, so a stolen releaser key can only send the distributor what the campaigns were
+    /// due and never their whole escrow. A week recomputed with a higher total after its release does not fit that
+    /// cap, so the owner releases without it, bounded only by the budget: the tokens can still only go to the
+    /// distributor. The owner passes as `upTo` the cutoff the total was computed for, as the cutoff then counts the
+    /// total as everything emitted up to it.
+    /// A total below what was already released sends nothing, as the distributor cannot return it, and leaves the
+    /// cutoff where it is: `settleRefund` counts `released` as everything emitted up to `upTo`.
     function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo) external {
-        require(msg.sender == releaser, "Only the releaser");
+        bool capped = msg.sender != owner;
+        require(!capped || msg.sender == releaser, "Only the releaser or the owner");
         require(ids.length == emitted.length, "Length mismatch");
         require(upTo <= block.timestamp, "Cutoff in the future");
         for (uint256 i = 0; i < ids.length; i++) {
             Campaign storage campaign = _campaign(ids[i]);
             Release storage r = releases[ids[i]];
             require(emitted[i] <= campaign.budget, "Over budget");
-            require(emitted[i] <= r.released + _emittedBetween(campaign.rates, r.upTo, upTo), "Over rate");
+            require(
+                !capped || emitted[i] <= r.released + _emittedBetween(campaign.rates, r.upTo, upTo),
+                "Over rate"
+            );
             uint256 amount = emitted[i] > r.released ? emitted[i] - r.released : 0;
             r.released += amount;
             if (emitted[i] >= r.released && upTo > r.upTo) r.upTo = upTo;

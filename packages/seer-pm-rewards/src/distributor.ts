@@ -185,7 +185,11 @@ export async function syncDistributor({
     abi: rewardCampaignsAbi,
     functionName: "getReleases",
   });
-  const due = dueReleases(rawCampaigns, releases, emittedByCampaign(file.states));
+  const { due, stuck } = dueReleases(rawCampaigns, releases, emittedByCampaign(file.states), target);
+  if (stuck.length > 0) {
+    const ids = stuck.join(", ");
+    done.push(`ended campaigns ${ids} emitted below their release, so their refund stays held: release each by hand`);
+  }
   if (due.length > 0) {
     const ids = due.map(([id]) => BigInt(id));
     const tx = await send({ functionName: "release", args: [ids, due.map(([, e]) => e), BigInt(target)] });
