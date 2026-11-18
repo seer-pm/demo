@@ -1,8 +1,8 @@
 [build]
   base = "/"
   publish = "/web/dist/client/"
-  # Netlify functions import @seer-pm/sdk and @seer-pm/contracts-ts; the SDK build compiles contracts-ts first so both dist outputs exist at bundle time.
-  command = "NODE_ENV=production yarn workspace @seer-pm/sdk build && yarn workspace @seer-pm/web build"
+  # Netlify functions import @seer-pm/sdk, @seer-pm/contracts-ts and @seer-pm/rewards through their dist outputs; the SDK build compiles contracts-ts first.
+  command = "NODE_ENV=production yarn workspace @seer-pm/sdk build && yarn workspace @seer-pm/rewards build && yarn workspace @seer-pm/web build"
   edge_functions = "web/netlify/edge-functions"
 
 [build.environment]

@@ -5,11 +5,26 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "main": "./dist/distributor.cjs",
+  "module": "./dist/distributor.js",
+  "types": "./dist/distributor.d.ts",
   "exports": {
-    ".": "./src/distributor.ts",
-    "./claims": "./src/claims.ts"
+    ".": {
+      "types": "./dist/distributor.d.ts",
+      "import": "./dist/distributor.js",
+      "require": "./dist/distributor.cjs"
+    },
+    "./claims": {
+      "types": "./dist/claims.d.ts",
+      "import": "./dist/claims.js",
+      "require": "./dist/claims.cjs"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsup",
     "compute": "node src/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -21,6 +36,7 @@
   },
   "devDependencies": {
     "@types/node": "*",
+    "tsup": "^8.0.2",
     "typescript": "^5.2.2",
     "vitest": "3.1.4"
   },

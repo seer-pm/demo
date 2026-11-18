@@ -86,6 +86,10 @@ injected from the linked site. Notes:
 - Functions import `@seer-pm/sdk` through the package `exports` map, i.e. through `dist/`. Build it
   first or they fail at runtime with `Cannot find module '…/@seer-pm/sdk/dist/market.mjs'`:
   `yarn workspace @seer-pm/sdk build` (needs `generated/` — run `yarn generate` if it is missing).
+- Every workspace package a function imports must resolve to built JavaScript. Netlify's bundler
+  writes a TypeScript file traced from `node_modules` over the V2 function's entry file, so an
+  `exports` map that points at `src/*.ts` deploys a function with no default export
+  (`D.handler is not a function`).
 
 ### Edge functions need a CLI patch
 

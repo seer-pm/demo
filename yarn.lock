@@ -6613,6 +6613,7 @@ __metadata:
     "@openzeppelin/merkle-tree": "npm:^1.0.5"
     "@scure/base": "npm:^1.2.6"
     "@types/node": "npm:*"
+    tsup: "npm:^8.0.2"
     typescript: "npm:^5.2.2"
     viem: "npm:2.38.3"
     vitest: "npm:3.1.4"
