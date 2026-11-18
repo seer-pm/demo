@@ -4,8 +4,9 @@ import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { V4_STATE_VIEW_ADDRESS, stateViewAbi } from "@seer-pm/order-book";
 import { PAYOUT_CHAINS, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
-import { type SupportedChain, orderBookGraphQLClient } from "@seer-pm/sdk";
+import { type SupportedChain, orderBookGraphQLClient, uniswapV4GraphQLClient } from "@seer-pm/sdk";
 import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+import { getSdk as getUniswapV4Sdk } from "@seer-pm/sdk/subgraph/uniswap-v4";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccount, readContract, writeContract } from "@wagmi/core";
 import { type Address, type Hex, type TransactionReceipt, encodeFunctionData, erc20Abi, isAddressEqual } from "viem";
@@ -48,38 +49,36 @@ export type RewardCampaign = {
   /** The outcome token the pool trades. Undefined until the pool is initialized and indexed. */
   outcome?: { name: string; marketId: Address; marketName: string };
   /**
-   * False when StateView reports the pool was never initialized. The indexer records a pool only at its first
-   * limit order, so a pool with liquidity but no order has no `outcome` and is still created.
+   * False when StateView reports the pool was never initialized. A pool the subgraph has not indexed yet has no
+   * `outcome` and may still be created.
    */
   poolCreated?: boolean;
 };
 
 /**
- * Outcome and market of each pool in `poolIds` that the indexer has seen initialized, from its two currencies:
- * the one that is a market's outcome token. A pool id is a hash of its key, so a pool not created yet stays
- * unnamed rather than being searched for among every market of the chain.
+ * Outcome and market of each pool in `poolIds` that the V4 pools subgraph has seen initialized, from its two
+ * currencies: the one that is a market's outcome token. That subgraph keeps every pool of the Seer hook from its
+ * `Initialize`, while the order-book indexer records a pool only at its first limit order. A pool id is a hash of
+ * its key, so a pool not created yet stays unnamed rather than being searched for among every market of the chain.
  */
 async function fetchPoolOutcomes(chainId: number, poolIds: Hex[]) {
   const outcomes = new Map<string, NonNullable<RewardCampaign["outcome"]>>();
-  const client = orderBookGraphQLClient(chainId);
-  if (!client || poolIds.length === 0) return outcomes;
-  const sdk = getLimitOrderSdk(client);
-  const { LimitOrderPool: pools } = await sdk.GetLimitOrderPoolsById({
-    chainId: String(chainId),
-    poolIds: poolIds.map((id) => id.toLowerCase()),
-  });
+  const poolsClient = uniswapV4GraphQLClient(chainId);
+  const marketsClient = orderBookGraphQLClient(chainId);
+  if (!poolsClient || !marketsClient || poolIds.length === 0) return outcomes;
+  const { pools } = await getUniswapV4Sdk(poolsClient).GetV4Pools({ ids: poolIds.map((id) => id.toLowerCase()) });
   if (pools.length === 0) return outcomes;
-  const { OutcomeTokenMarket: tokens } = await sdk.GetOutcomeTokenMarkets({
+  const { OutcomeTokenMarket: tokens } = await getLimitOrderSdk(marketsClient).GetOutcomeTokenMarkets({
     chainId: String(chainId),
-    tokens: pools.flatMap((p) => [p.currency0.toLowerCase(), p.currency1.toLowerCase()]),
+    tokens: pools.flatMap((p) => [p.token0.id.toLowerCase(), p.token1.id.toLowerCase()]),
   });
   const marketByToken = new Map(tokens.map((t) => [t.token.toLowerCase(), t.market]));
   for (const pool of pools) {
-    const token = [pool.currency0, pool.currency1].map((c) => c.toLowerCase()).find((c) => marketByToken.get(c));
+    const token = [pool.token0.id, pool.token1.id].map((c) => c.toLowerCase()).find((c) => marketByToken.get(c));
     const market = token && marketByToken.get(token);
     if (!market) continue;
     const index = market.wrappedTokens.findIndex((w) => w.toLowerCase() === token);
-    outcomes.set(pool.poolId.toLowerCase(), {
+    outcomes.set(pool.id.toLowerCase(), {
       name: market.outcomes[index] ?? token,
       // The indexer keys markets as `<chainId>:<address>`.
       marketId: market.id.split(":").pop() as Address,
