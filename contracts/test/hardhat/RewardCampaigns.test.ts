@@ -40,6 +40,7 @@ describe("RewardCampaigns", function () {
     await expect(create(1n, 1000n, other)).to.be.revertedWith("Only a manager");
     await expect(create(0n)).to.be.revertedWith("Missing rate");
     await expect(create(1n, 0n)).to.be.revertedWith("Missing budget");
+    await expect(create(1001n, 1000n)).to.be.revertedWith("Rate over budget");
     const createdAt = await minedAt(await create(5n, 1000n));
 
     const campaign = await registry.getCampaign(0);
@@ -89,6 +90,7 @@ describe("RewardCampaigns", function () {
     await registry.setManager(other, true);
     await create(5n);
     await expect(registry.connect(other).setRate(0, 1n)).to.be.revertedWith("Only the funder or the owner");
+    await expect(registry.connect(manager).setRate(0, 1001n)).to.be.revertedWith("Rate over budget");
     await registry.connect(owner).setRate(0, 2n);
     // A funder removed as manager keeps control of what it funded.
     await registry.setManager(manager, false);
@@ -130,11 +132,62 @@ describe("RewardCampaigns", function () {
     await registry.connect(bot).release([0], [200n], cutoff);
     expect(await token.balanceOf(distributor)).to.equal(300n);
 
-    await registry.connect(bot).release([0], [450n], cutoff);
+    await registry.connect(bot).release([0], [450n], cutoff + 1800);
     expect(await token.balanceOf(distributor)).to.equal(450n);
     expect(await token.balanceOf(registry)).to.equal(550n);
     const [r] = await registry.getReleases();
-    expect([r.released, Number(r.upTo)]).to.deep.equal([450n, cutoff]);
+    expect([r.released, Number(r.upTo)]).to.deep.equal([450n, cutoff + 1800]);
+  });
+
+  it("releases no more than the rates emitted since the last cutoff, so the releaser cannot drain the escrow", async function () {
+    const start = await minedAt(await create(2n, 1000n));
+    await time.increase(10);
+    const changed = await minedAt(await registry.connect(manager).setRate(0, 3n));
+    await time.increase(30);
+    const first = changed + 5;
+    // 2 per second until the rate change, then 3 per second up to the cutoff.
+    const max = BigInt(2 * (changed - start) + 3 * 5);
+
+    await expect(registry.connect(bot).release([0], [1000n], await time.latest())).to.be.revertedWith("Over rate");
+    await expect(registry.connect(bot).release([0], [max + 1n], first)).to.be.revertedWith("Over rate");
+    await registry.connect(bot).release([0], [max], first);
+
+    // The next window starts at the last cutoff, not at the start of the campaign.
+    const second = first + 10;
+    await expect(registry.connect(bot).release([0], [max + 31n], second)).to.be.revertedWith("Over rate");
+    await registry.connect(bot).release([0], [max + 30n], second);
+    expect(await token.balanceOf(distributor)).to.equal(max + 30n);
+    const [r] = await registry.getReleases();
+    expect([r.released, Number(r.upTo)]).to.deep.equal([max + 30n, second]);
+  });
+
+  it("keeps the cutoff when a release comes in below what was released, so the refund keeps what is owed", async function () {
+    const start = await minedAt(await create(1n, 1000n));
+    await create(1n, 500n);
+    await time.increase(200);
+    await registry.connect(bot).release([0], [100n], start + 100);
+    const end = await minedAt(await registry.connect(manager).setRate(0, 0n));
+    await registry.connect(manager).setRate(1, 0n);
+    await time.increase(DAY);
+    const cutoff = await time.latest();
+
+    // A stale total sends nothing and leaves campaign 0 at its last cutoff. Campaign 1 never had liquidity in
+    // range, and a total equal to what was released still moves its cutoff past the end.
+    await registry.connect(bot).release([0, 1], [90n, 0n], cutoff);
+    const [r0, r1] = await registry.getReleases();
+    expect([r0.released, Number(r0.upTo)]).to.deep.equal([100n, start + 100]);
+    expect([r1.released, Number(r1.upTo)]).to.deep.equal([0n, cutoff]);
+
+    // Campaign 0 still holds what it may have emitted after its last cutoff, so the real total pays out.
+    const owed = BigInt(end - start);
+    await registry.connect(other).settleRefund(0);
+    expect((await registry.getCampaign(0)).budget).to.equal(owed);
+    await registry.connect(bot).release([0], [owed], cutoff);
+    expect(await token.balanceOf(distributor)).to.equal(owed);
+    await expect(registry.connect(other).settleRefund(0)).to.be.revertedWith("Nothing to refund");
+
+    await registry.connect(other).settleRefund(1);
+    expect(await token.balanceOf(manager)).to.equal(10_000n - owed);
   });
 
   it("refunds at once what an ended campaign cannot have emitted, and the rest once its final week is released", async function () {
@@ -200,9 +253,10 @@ describe("RewardCampaigns", function () {
   it("keeps each campaign's escrow apart", async function () {
     await create(5n, 1000n);
     await create(5n, 500n);
-    const end = await minedAt(await registry.connect(manager).setRate(1, 0n));
     await time.increase(DAY);
-    await registry.connect(bot).release([0, 1], [900n, 100n], end + 1);
+    await registry.connect(manager).setRate(1, 0n);
+    await time.increase(DAY);
+    await registry.connect(bot).release([0, 1], [900n, 100n], await time.latest());
     await registry.connect(other).settleRefund(1);
     expect(await token.balanceOf(manager)).to.equal(10_000n - 1500n + 400n);
     // Campaign 0 still holds what it has not emitted.

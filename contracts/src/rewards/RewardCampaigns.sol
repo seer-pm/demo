@@ -135,6 +135,7 @@ contract RewardCampaigns {
         require(rewardToken != address(0), "Missing reward token");
         require(perSecond != 0, "Missing rate");
         require(budget != 0, "Missing budget");
+        require(perSecond <= budget, "Rate over budget");
         require(minWidthTicks <= MAX_WIDTH_TICKS, "Width too wide");
 
         id = campaigns.length;
@@ -152,8 +153,11 @@ contract RewardCampaigns {
 
     /// @notice Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool
     /// are a new campaign.
+    /// @dev A rate is at most the budget, so `release` and `settleRefund` can multiply it by any span of time without
+    /// overflowing; one overflowing campaign would revert the weekly release of every campaign on the chain.
     function setRate(uint256 id, uint256 perSecond) external onlyFunderOrOwner(id) {
         Campaign storage campaign = campaigns[id];
+        require(perSecond <= campaign.budget, "Rate over budget");
         Rate storage last = campaign.rates[campaign.rates.length - 1];
         require(last.perSecond != 0, "Campaign ended");
         // Rates are keyed by timestamp, so a second change in the same block replaces the first.
@@ -164,8 +168,10 @@ contract RewardCampaigns {
 
     /// @notice Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the
     /// cumulative `emitted` of each, so a repeated call sends nothing more.
-    /// @dev A total below what was already released sends nothing: the release stays, as the distributor cannot
-    /// return it.
+    /// @dev Each total is capped by what the rates emit from the campaign's last cutoff to `upTo`, as the engine never
+    /// emits more, so the releaser can only send the distributor what the campaigns were due and never their whole
+    /// escrow. A total below what was already released sends nothing, as the distributor cannot return it, and
+    /// leaves the cutoff where it is: `settleRefund` counts `released` as everything emitted up to `upTo`.
     function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo) external {
         require(msg.sender == releaser, "Only the releaser");
         require(ids.length == emitted.length, "Length mismatch");
@@ -174,9 +180,10 @@ contract RewardCampaigns {
             Campaign storage campaign = _campaign(ids[i]);
             Release storage r = releases[ids[i]];
             require(emitted[i] <= campaign.budget, "Over budget");
+            require(emitted[i] <= r.released + _emittedBetween(campaign.rates, r.upTo, upTo), "Over rate");
             uint256 amount = emitted[i] > r.released ? emitted[i] - r.released : 0;
             r.released += amount;
-            if (upTo > r.upTo) r.upTo = upTo;
+            if (emitted[i] >= r.released && upTo > r.upTo) r.upTo = upTo;
             if (amount > 0) IERC20(campaign.rewardToken).safeTransfer(distributor, amount);
             emit Released(ids[i], amount, r.released, r.upTo);
         }
@@ -225,6 +232,15 @@ contract RewardCampaigns {
     /// @notice The release state of every campaign, in id order.
     function getReleases() external view returns (Release[] memory) {
         return releases;
+    }
+
+    /// @dev What the rates emit from `from` to `to`, before the budget cap: 0 when `to` is not after `from`.
+    function _emittedBetween(Rate[] storage rates, uint64 from, uint64 to) internal view returns (uint256 total) {
+        for (uint256 i = 0; i < rates.length; i++) {
+            uint64 lo = rates[i].from > from ? rates[i].from : from;
+            uint64 hi = i + 1 < rates.length && rates[i + 1].from < to ? rates[i + 1].from : to;
+            if (hi > lo) total += rates[i].perSecond * (hi - lo);
+        }
     }
 
     /// @dev What the rates of an ended campaign emit from `from` to its end, before the budget cap: 0 once `from` is
