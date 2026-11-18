@@ -315,19 +315,32 @@ describe("accountRewards", () => {
       ),
     }) as unknown as Parameters<typeof accountRewards>[0]["active"];
 
-  it("claims the cumulative leaf amount and reports what is left and what the pending root adds", () => {
+  it("claims the cumulative leaf amount and reports what is left, what the pending root adds and what accrues after it", () => {
     const active = file({ [CAROL]: { [TOKEN]: "100" } });
     const pending = file({ [CAROL]: { [TOKEN]: "150", [OTHER]: "7" } });
+    const NEW = getAddress("0x00000000000000000000000000000000000000ee");
+    // The estimate builds on the pending root, so TOKEN accrues 170 - 150, not 170 - 100.
+    const estimate = { payoutChainId: 8453, asOf: "", claims: { [CAROL]: { [TOKEN]: "170", [NEW]: "9" } }, emitted: {} };
     // Lowercase input: the file is keyed by checksummed addresses.
     const rewards = accountRewards({
       account: CAROL.toLowerCase() as Address,
       active,
       pending,
       claimed: new Map([[TOKEN, 40n]]),
+      estimate,
     });
     expect(rewards).toEqual([
-      { token: TOKEN, earned: 100n, proof: [`0x${"ab".repeat(32)}`], claimed: 40n, claimable: 60n, upcoming: 50n },
-      { token: OTHER, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 7n },
+      {
+        token: TOKEN,
+        earned: 100n,
+        proof: [`0x${"ab".repeat(32)}`],
+        claimed: 40n,
+        claimable: 60n,
+        upcoming: 50n,
+        accruing: 20n,
+      },
+      { token: OTHER, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 7n, accruing: 0n },
+      { token: NEW, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 0n, accruing: 9n },
     ]);
   });
 });

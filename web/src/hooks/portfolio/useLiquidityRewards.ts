@@ -5,6 +5,7 @@ import {
   type Distribution,
   IPFS_GATEWAY,
   PAYOUT_CHAINS,
+  type RewardsEstimate,
   accountRewards,
   accountTokens,
   bytes32ToCid,
@@ -29,7 +30,22 @@ export type LiquidityRewardsData = {
   liveChainIds: number[];
   /** When each chain's pending root becomes claimable (unix seconds), if one is pending. */
   pendingValidAt: Map<number, number>;
+  /** When each chain's estimate of `accruing` was computed (unix seconds), if there is one. */
+  estimatedAt: Map<number, number>;
 };
+
+/**
+ * The account's latest rewards estimate per payout chain. It only adds `accruing`, so a failure
+ * leaves the on-chain figures intact rather than failing the tab.
+ */
+async function fetchEstimates(account: Address): Promise<RewardsEstimate[]> {
+  try {
+    const res = await fetch(`/.netlify/functions/get-liquidity-rewards-estimate?account=${account}`);
+    return res.ok ? await res.json() : [];
+  } catch {
+    return [];
+  }
+}
 
 async function fetchDistribution(hash: Hex, root: Hex, chainId: number): Promise<Distribution> {
   const cid = bytes32ToCid(hash);
@@ -44,7 +60,12 @@ async function fetchDistribution(hash: Hex, root: Hex, chainId: number): Promise
   return file;
 }
 
-async function fetchChainRewards(account: Address, chainId: number, distributor: Address) {
+async function fetchChainRewards(
+  account: Address,
+  chainId: number,
+  distributor: Address,
+  estimate: RewardsEstimate | undefined,
+) {
   const read = <T>(functionName: "root" | "ipfsHash" | "pendingRoot") =>
     readContract(config, { address: distributor, abi: urdAbi, functionName, chainId }) as Promise<T>;
   const [root, ipfsHash, [pendingRootHash, pendingIpfsHash, validAt]] = await Promise.all([
@@ -57,7 +78,7 @@ async function fetchChainRewards(account: Address, chainId: number, distributor:
     validAt === 0n ? undefined : fetchDistribution(pendingIpfsHash, pendingRootHash, chainId),
   ]);
 
-  const tokens = accountTokens(account, active, pending);
+  const tokens = accountTokens(account, active, pending, estimate);
   const meta = await Promise.all(
     tokens.map(async (token) => {
       const [claimed, symbol, decimals] = await Promise.all([
@@ -75,7 +96,7 @@ async function fetchChainRewards(account: Address, chainId: number, distributor:
     }),
   );
   const claimed = new Map(meta.map((m) => [m.token, m.claimed]));
-  const rows = accountRewards({ account, active, pending, claimed }).map((reward) => {
+  const rows = accountRewards({ account, active, pending, claimed, estimate }).map((reward) => {
     const { symbol, decimals } = meta.find((m) => m.token === reward.token)!;
     return { ...reward, chainId, distributor, symbol, decimals };
   });
@@ -90,11 +111,29 @@ export function useLiquidityRewards(account: Address | undefined) {
   return useQuery({
     queryKey: [LIQUIDITY_REWARDS_QUERY_KEY, account?.toLowerCase()],
     enabled: Boolean(account),
+    // The estimate is recomputed every 2 hours, so an open tab follows it.
+    refetchInterval: 15 * 60 * 1000,
     queryFn: async (): Promise<LiquidityRewardsData> => {
-      const chains = await Promise.all(live.map((d) => fetchChainRewards(account!, d.chainId, d.address)));
+      const estimates = await fetchEstimates(account!);
+      const chains = await Promise.all(
+        live.map((d) =>
+          fetchChainRewards(
+            account!,
+            d.chainId,
+            d.address,
+            estimates.find((e) => e.payoutChainId === d.chainId),
+          ),
+        ),
+      );
       const pendingValidAt = new Map<number, number>();
       chains.forEach((c, i) => c.pendingValidAt !== undefined && pendingValidAt.set(live[i].chainId, c.pendingValidAt));
-      return { rows: chains.flatMap((c) => c.rows), liveChainIds: live.map((d) => d.chainId), pendingValidAt };
+      const estimatedAt = new Map(estimates.map((e) => [e.payoutChainId, Date.parse(e.asOf) / 1000]));
+      return {
+        rows: chains.flatMap((c) => c.rows),
+        liveChainIds: live.map((d) => d.chainId),
+        pendingValidAt,
+        estimatedAt,
+      };
     },
   });
 }

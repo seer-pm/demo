@@ -55,6 +55,18 @@ export function cidToBytes32(cid: string): Hex {
   return toHex(bytes.slice(2));
 }
 
+/**
+ * Cumulative amounts per account and reward token up to `asOf`, computed like a weekly root but
+ * for the latest block. Nothing in it can be claimed until a root includes it.
+ */
+export type RewardsEstimate = {
+  payoutChainId: number;
+  asOf: string;
+  claims: Record<Address, Record<Address, string>>;
+  /** What each campaign has emitted in total up to `asOf`, by campaign id (registry index). */
+  emitted: Record<string, string>;
+};
+
 /** One reward token of one account on one distributor. */
 export type AccountReward = {
   token: Address;
@@ -69,37 +81,47 @@ export type AccountReward = {
   claimable: bigint;
   /** What the pending root adds once its timelock ends. */
   upcoming: bigint;
+  /** Earned after the newest root (pending, else active), by the estimate; no root includes it yet. */
+  accruing: bigint;
 };
 
 const leafOf = (file: Distribution | undefined, account: Address, token: Address) => file?.claims[account]?.[token];
 
-/** Tokens `account` has a leaf for in the active or the pending distribution. */
-export function accountTokens(account: Address, ...files: (Distribution | undefined)[]): Address[] {
+/** Tokens `account` has an amount for in any of `sources` (distributions or an estimate). */
+export function accountTokens(
+  account: Address,
+  ...sources: ({ claims: Record<Address, Record<Address, unknown>> } | undefined)[]
+): Address[] {
   const key = getAddress(account);
-  return [...new Set(files.flatMap((file) => Object.keys(file?.claims[key] ?? {})))] as Address[];
+  return [...new Set(sources.flatMap((source) => Object.keys(source?.claims[key] ?? {})))] as Address[];
 }
 
 /**
- * Rewards of `account` given the active distribution, the pending one if any, and what the
- * distributor says it already claimed per token.
+ * Rewards of `account` given the active distribution, the pending one if any, what the
+ * distributor says it already claimed per token, and the estimate up to the latest block if any.
  */
 export function accountRewards({
   account,
   active,
   pending,
   claimed,
+  estimate,
 }: {
   account: Address;
   active: Distribution | undefined;
   pending: Distribution | undefined;
   claimed: Map<Address, bigint>;
+  estimate?: RewardsEstimate;
 }): AccountReward[] {
   const key = getAddress(account);
-  return accountTokens(key, active, pending).map((token) => {
+  return accountTokens(key, active, pending, estimate).map((token) => {
     const leaf = leafOf(active, key, token);
     const earned = BigInt(leaf?.claimable ?? 0);
     const paid = claimed.get(token) ?? 0n;
     const next = BigInt(leafOf(pending, key, token)?.claimable ?? 0);
+    // Cumulative amounts only grow, so the newest root's amount is the larger of the two.
+    const published = next > earned ? next : earned;
+    const estimated = BigInt(estimate?.claims[key]?.[token] ?? 0);
     return {
       token,
       earned,
@@ -107,6 +129,7 @@ export function accountRewards({
       claimed: paid,
       claimable: earned > paid ? earned - paid : 0n,
       upcoming: next > earned ? next - earned : 0n,
+      accruing: estimated > published ? estimated - published : 0n,
     };
   });
 }

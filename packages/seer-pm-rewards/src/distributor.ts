@@ -13,11 +13,18 @@ import {
 } from "viem";
 import { toIsoSeconds } from "./campaigns.ts";
 import { PAYOUT_CHAINS } from "./chains.ts";
-import { IPFS_GATEWAY, bytes32ToCid, cidToBytes32, rewardCampaignsAbi, urdAbi } from "./claims.ts";
+import {
+  IPFS_GATEWAY,
+  type RewardsEstimate,
+  bytes32ToCid,
+  cidToBytes32,
+  rewardCampaignsAbi,
+  urdAbi,
+} from "./claims.ts";
 import { weekStart } from "./engine.ts";
 import { getLogs } from "./events.ts";
 import { type RawCampaign, campaignHistory, emittedByCampaign } from "./registry.ts";
-import { type RewardsFile, computeWeeks, parseCutoff } from "./week.ts";
+import { type RewardsFile, computeWeek, computeWeeks, parseCutoff } from "./week.ts";
 
 export * from "./claims.ts";
 
@@ -47,6 +54,15 @@ export const klerosIpfs: Ipfs = {
     return res.text();
   },
 };
+
+/** The file behind `root` on `payoutChainId`'s distributor, whose `ipfsHash` is `hash`. */
+async function readRewardsFile(ipfs: Ipfs, hash: Hex, root: Hex, payoutChainId: number): Promise<RewardsFile> {
+  const file: RewardsFile = JSON.parse(await ipfs.fetch(bytes32ToCid(hash)));
+  if (file.root !== root || file.payoutChainId !== payoutChainId) {
+    throw new Error(`IPFS file ${bytes32ToCid(hash)} is not the one behind root ${root} on chain ${payoutChainId}`);
+  }
+  return file;
+}
 
 /** Seconds to wait after the Monday cutoff so the blocks before it are final on every source chain. */
 export const SETTLE_SECONDS = 3600;
@@ -98,13 +114,7 @@ export async function syncDistributor({
     ]);
     return { root, ipfsHash, pending: { root: pendingRoot, ipfsHash: pendingIpfsHash, validAt } };
   };
-  const readFile = async (hash: Hex, root: Hex): Promise<RewardsFile> => {
-    const file: RewardsFile = JSON.parse(await ipfs.fetch(bytes32ToCid(hash)));
-    if (file.root !== root || file.payoutChainId !== payoutChainId) {
-      throw new Error(`IPFS file ${bytes32ToCid(hash)} is not the one behind root ${root} on chain ${payoutChainId}`);
-    }
-    return file;
-  };
+  const readFile = (hash: Hex, root: Hex) => readRewardsFile(ipfs, hash, root, payoutChainId);
   const send = async (
     call:
       | { functionName: "acceptRoot" }
@@ -243,6 +253,77 @@ export async function syncDistributor({
 
   const tx = await send({ functionName: "submitRoot", args: [file.root, cidToBytes32(cid)] });
   return [...done, `submitted root ${file.root} for ${file.cutoff} (ipfs ${cid}) in ${tx}`].join("; ");
+}
+
+/**
+ * What every account has earned on `payoutChainId` up to the latest block. It resumes from the
+ * newest published file (the pending one, else the active one), catches up any week the bot has
+ * not published yet, and replays the current week up to the chain head with the registry's
+ * campaigns as they are now: the same computation as the next root, read-only. A budget change
+ * before the next Monday applies to the whole week in the weekly run, so the final amount can
+ * still differ from the estimate. Undefined when the chain has no distributor, registry or
+ * campaign yet.
+ */
+export async function estimateRewards({
+  payoutChainId,
+  payoutClient,
+  clientFor,
+  ipfs = klerosIpfs,
+}: {
+  payoutChainId: number;
+  payoutClient: PublicClient;
+  /** Public clients of the source chains. */
+  clientFor: (chainId: number) => PublicClient;
+  ipfs?: Ipfs;
+}): Promise<RewardsEstimate | undefined> {
+  const { distributor, registry } = PAYOUT_CHAINS[payoutChainId] ?? {};
+  if (!distributor || !registry) return undefined;
+  const { address } = distributor;
+
+  const [root, ipfsHash, [pendingRoot, pendingIpfsHash, validAt]] = await Promise.all([
+    payoutClient.readContract({ address, abi: urdAbi, functionName: "root" }),
+    payoutClient.readContract({ address, abi: urdAbi, functionName: "ipfsHash" }),
+    payoutClient.readContract({ address, abi: urdAbi, functionName: "pendingRoot" }),
+  ]);
+  const newest =
+    validAt !== 0n
+      ? await readRewardsFile(ipfs, pendingIpfsHash, pendingRoot, payoutChainId)
+      : ipfsHash === zeroHash
+        ? undefined
+        : await readRewardsFile(ipfs, ipfsHash, root, payoutChainId);
+
+  const now = Number((await payoutClient.getBlock()).timestamp);
+  const campaignsAt = await campaignHistory(payoutClient, registry, payoutChainId, now);
+  if ((await campaignsAt(now)).length === 0) return undefined;
+
+  // Whole weeks first, each with the campaigns of its own cutoff, as the weekly run computes them.
+  const lastMonday = weekStart(now);
+  const weekly =
+    newest && parseCutoff(newest.cutoff) >= lastMonday
+      ? newest
+      : await computeWeeks({ payoutChainId, campaignsAt, cutoff: lastMonday, previous: newest, clientFor });
+  const file =
+    weekly && parseCutoff(weekly.cutoff) >= now
+      ? weekly
+      : await computeWeek({
+          payoutChainId,
+          rawCampaigns: await campaignsAt(now),
+          cutoff: now,
+          previous: weekly,
+          clientFor,
+        });
+
+  return {
+    payoutChainId,
+    asOf: file.cutoff,
+    claims: Object.fromEntries(
+      Object.entries(file.claims).map(([account, tokens]) => [
+        account,
+        Object.fromEntries(Object.entries(tokens).map(([token, { claimable }]) => [token, claimable])),
+      ]),
+    ) as RewardsEstimate["claims"],
+    emitted: Object.fromEntries([...emittedByCampaign(file.states)].map(([id, total]) => [id, total.toString()])),
+  };
 }
 
 /** Every root that was pending and then revoked on the distributor. */

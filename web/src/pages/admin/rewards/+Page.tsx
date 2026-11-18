@@ -3,10 +3,12 @@ import Button from "@/components/Form/Button";
 import { CreateRewardCampaignForm, RewardRatesForm, RewardRefundForm } from "@/components/admin/RewardCampaignForms";
 import { RewardsHowItWorks } from "@/components/admin/RewardsHowItWorks";
 import {
+  type CampaignEmitted,
   REGISTRY_CHAINS,
   type RewardCampaign,
   useRewardCampaignManagerChains,
   useRewardCampaigns,
+  useRewardCampaignsEmitted,
 } from "@/hooks/admin/useRewardCampaigns";
 import { useModal } from "@/hooks/useModal";
 import { paths } from "@/lib/paths";
@@ -26,12 +28,17 @@ const ACTION_TITLES: Record<ActionKind, string> = {
   refund: "Refund",
 };
 
+const toDateTime = (t: number) => new Date(t * 1000).toISOString().slice(0, 16).replace("T", " ");
+
 function CampaignRow({
   campaign,
+  emitted,
   account,
   onAction,
 }: {
   campaign: RewardCampaign;
+  /** Undefined while the estimate has not covered this campaign yet. */
+  emitted: CampaignEmitted | undefined;
   account: Address | undefined;
   onAction: (action: Action) => void;
 }) {
@@ -111,6 +118,16 @@ function CampaignRow({
           {campaign.releasedUpTo > 0 ? `released up to ${toDate(campaign.releasedUpTo)}` : "nothing released yet"}
         </div>
       </td>
+      <td className="whitespace-nowrap tabular-nums">
+        {emitted ? (
+          <>
+            {amount(emitted.amount)} {token?.symbol}
+            <div className="text-[12px] text-base-content/60">estimate at {toDateTime(emitted.asOf)}</div>
+          </>
+        ) : (
+          <span className="text-base-content/60">no estimate yet</span>
+        )}
+      </td>
       <td className="whitespace-nowrap space-x-3">
         {canEdit && !status.ended && action("rate", "Change rate")}
         {canEdit && !status.ended && action("end", "End")}
@@ -135,6 +152,8 @@ function AdminRewardsPage() {
   const { data: managerChains = [], isLoading: isManagerLoading } = useRewardCampaignManagerChains(address);
   const isManager = managerChains.length > 0;
   const { data: campaigns = [], isLoading, error } = useRewardCampaigns(isManager);
+  // The estimate only adds a column, so a failure leaves the rest of the table as it is.
+  const { data: emitted } = useRewardCampaignsEmitted(isManager);
   const { Modal: CreateModal, openModal: openCreate, closeModal: closeCreate } = useModal("reward-campaign-create");
   const {
     Modal: ActionModal,
@@ -208,7 +227,7 @@ function AdminRewardsPage() {
           <p className="text-sm text-base-content/70">
             Each chain's RewardCampaigns registry holds the campaigns of its pools and their budgets, and rewards pay
             out on that chain. Every Monday 00:00 UTC the rewards bot releases what each campaign emitted to the chain's
-            distributor.{" "}
+            distributor. What they emitted since is estimated every 2 hours.{" "}
             <button
               type="button"
               className="text-purple-primary dark:text-purple-secondary hover:underline"
@@ -243,20 +262,21 @@ function AdminRewardsPage() {
               <th>Reward</th>
               <th>Status (UTC)</th>
               <th>Released / budget</th>
+              <th>Emitted so far</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="shimmer-container h-10 rounded" />
                 </td>
               </tr>
             )}
             {!isLoading && !error && campaigns.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center text-base-content/60 py-8">
+                <td colSpan={7} className="text-center text-base-content/60 py-8">
                   No campaigns yet.
                 </td>
               </tr>
@@ -265,6 +285,7 @@ function AdminRewardsPage() {
               <CampaignRow
                 key={`${campaign.payoutChainId}-${campaign.id}`}
                 campaign={campaign}
+                emitted={emitted?.get(`${campaign.payoutChainId}-${campaign.id}`)}
                 account={address}
                 onAction={openAction}
               />

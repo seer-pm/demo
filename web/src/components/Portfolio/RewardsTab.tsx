@@ -19,12 +19,14 @@ const formatDate = (unixSeconds: number) =>
 export function RewardsTable({
   rows,
   pendingValidAt,
+  estimatedAt,
   claimLabel,
   claimingKey,
   onClaim,
 }: {
   rows: LiquidityRewardRow[];
   pendingValidAt: Map<number, number>;
+  estimatedAt: Map<number, number>;
   /** `undefined` hides the claim action (no wallet connected). */
   claimLabel: string | undefined;
   claimingKey: string | undefined;
@@ -33,14 +35,17 @@ export function RewardsTable({
   return (
     <div className="space-y-4">
       <p className="text-[14px] text-base-content/70 max-w-3xl">
-        Rewards for Uniswap V4 liquidity are computed every Monday at 00:00 UTC and become claimable 48 hours later.
-        Anyone can send a claim; the tokens always go to this account.
+        Rewards for Uniswap V4 liquidity are settled every Monday at 00:00 UTC and become claimable 48 hours later. What
+        was earned since then is estimated every 2 hours. Anyone can send a claim; the tokens always go to this account.
       </p>
       <ul className="border-t border-separator-100">
         {rows.map((row) => {
           const key = `${row.chainId}-${row.token}`;
           const amount = (value: bigint) => displayBalance(value, row.decimals, true);
           const validAt = pendingValidAt.get(row.chainId);
+          const estimateTime = estimatedAt.get(row.chainId);
+          const showUpcoming = row.upcoming > 0n && validAt !== undefined;
+          const showAccruing = row.accruing > 0n && estimateTime !== undefined;
           const chainName = SUPPORTED_CHAINS[row.chainId as SupportedChain]?.name ?? `chain ${row.chainId}`;
           return (
             <li
@@ -60,14 +65,23 @@ export function RewardsTable({
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <p className="text-[13px] text-base-content/70">Next update</p>
-                {row.upcoming > 0n && validAt !== undefined ? (
+                {showUpcoming ? (
                   <p className="text-[14px]">
                     <span className="tabular-nums font-semibold">+{amount(row.upcoming)}</span>{" "}
-                    <span className="text-base-content/70">claimable from {formatDate(validAt)}</span>
+                    <span className="text-base-content/70">claimable from {formatDate(validAt!)}</span>
                   </p>
-                ) : (
+                ) : null}
+                {showAccruing ? (
+                  <p className="text-[14px]">
+                    <span className="tabular-nums font-semibold">+{amount(row.accruing)}</span>{" "}
+                    <span className="text-base-content/70">
+                      earned since the last update (estimate, {formatDate(estimateTime!)}), settled next Monday
+                    </span>
+                  </p>
+                ) : null}
+                {!showUpcoming && !showAccruing ? (
                   <p className="text-[14px] text-base-content/70">Nothing pending</p>
-                )}
+                ) : null}
               </div>
               <div className="col-span-2 sm:col-span-1 sm:text-right">
                 {row.claimable === 0n ? (
@@ -131,8 +145,8 @@ function RewardsTab({ account }: { account: Address | undefined }) {
       <>
         {refreshNotice}
         <Alert type="info" title="No liquidity rewards yet">
-          Liquidity that stays in range in a rewarded pool earns every second. What it earns shows up here after the
-          next Monday update.
+          Liquidity that stays in range in a rewarded pool earns every second. What it earns shows up here within about
+          2 hours, as an estimate until the next Monday update.
         </Alert>
       </>
     );
@@ -145,6 +159,7 @@ function RewardsTab({ account }: { account: Address | undefined }) {
       <RewardsTable
         rows={data.rows}
         pendingValidAt={data.pendingValidAt}
+        estimatedAt={data.estimatedAt}
         claimLabel={connectedAddress === undefined ? undefined : isOwn ? "Claim" : "Claim for this account"}
         claimingKey={
           claim.isPending && claim.variables ? `${claim.variables.chainId}-${claim.variables.token}` : undefined

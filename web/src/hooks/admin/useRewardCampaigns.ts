@@ -3,7 +3,7 @@ import type { RewardRate } from "@/lib/reward-campaigns";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { V4_STATE_VIEW_ADDRESS, stateViewAbi } from "@seer-pm/order-book";
-import { PAYOUT_CHAINS, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
+import { PAYOUT_CHAINS, type RewardsEstimate, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
 import { type SupportedChain, orderBookGraphQLClient, uniswapV4GraphQLClient } from "@seer-pm/sdk";
 import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { getSdk as getUniswapV4Sdk } from "@seer-pm/sdk/subgraph/uniswap-v4";
@@ -186,6 +186,34 @@ export function useRewardCampaigns(enabled: boolean) {
     queryFn: async (): Promise<RewardCampaign[]> => {
       const chains = await Promise.all(REGISTRY_CHAINS.map((r) => fetchChainCampaigns(r.chainId, r.address)));
       return chains.flatMap((campaigns) => campaigns.reverse());
+    },
+  });
+}
+
+/** What a campaign has emitted up to `asOf` (unix seconds), by the latest rewards estimate. */
+export type CampaignEmitted = { amount: bigint; asOf: number };
+
+/**
+ * What each campaign has emitted so far, keyed `<payoutChainId>-<id>`, from the estimate
+ * `rewards-estimate-background` writes every 2 hours. Empty when there is none yet.
+ */
+export function useRewardCampaignsEmitted(enabled: boolean) {
+  return useQuery({
+    queryKey: [REWARD_CAMPAIGNS_QUERY_KEY, "emitted"],
+    enabled,
+    refetchInterval: 15 * 60 * 1000,
+    queryFn: async (): Promise<Map<string, CampaignEmitted>> => {
+      const res = await fetch("/.netlify/functions/get-liquidity-rewards-estimate");
+      if (!res.ok) throw new Error(`Couldn't read the rewards estimate (${res.status})`);
+      const estimates: RewardsEstimate[] = await res.json();
+      return new Map(
+        estimates.flatMap((e) =>
+          Object.entries(e.emitted).map(([id, amount]) => [
+            `${e.payoutChainId}-${id}`,
+            { amount: BigInt(amount), asOf: Date.parse(e.asOf) / 1000 },
+          ]),
+        ),
+      );
     },
   });
 }
