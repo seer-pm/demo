@@ -160,11 +160,14 @@ export async function syncDistributor({
   }
 
   const previous = state.ipfsHash === zeroHash ? undefined : await readFile(state.ipfsHash, state.root);
-  const readRegistry = <F extends "getCampaigns" | "getReleases">(functionName: F) =>
-    payoutClient.readContract({ address: registry.address, abi: rewardCampaignsAbi, functionName });
-  const [onchain, releases] = await Promise.all([readRegistry("getCampaigns"), readRegistry("getReleases")]);
+  const onchain = await payoutClient.readContract({
+    address: registry.address,
+    abi: rewardCampaignsAbi,
+    functionName: "getCampaigns",
+  });
   for (const [id, settlement] of Object.entries(previous?.settlements ?? {})) {
-    if (onchain[Number(id)].budget > releases[Number(id)].released) {
+    const { budget, released } = onchain[Number(id)];
+    if (budget > released) {
       try {
         const tx = await send({
           functionName: "settleRefund",
@@ -197,8 +200,7 @@ export async function syncDistributor({
   }
 
   // Released before the root so the distributor can pay it.
-  const budgets = onchain.map((c) => c.budget);
-  const { due, stuck } = dueReleases(rawCampaigns, releases, budgets, emittedByCampaign(file.states), target);
+  const { due, stuck } = dueReleases(rawCampaigns, onchain, emittedByCampaign(file.states), target);
   if (stuck.length > 0) {
     done.push(`campaigns ${stuck.join(", ")} emitted less than was already released to the distributor`);
   }

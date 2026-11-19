@@ -50,13 +50,9 @@ contract RewardCampaigns {
         address rewardToken; // Token on this chain.
         uint256 budget; // Total the campaign may ever emit, held here until it is released or refunded.
         uint32 minWidthTicks; // Positions narrower than this (`tickUpper - tickLower`) neither earn nor dilute.
+        address funder; // Deposits the budget, controls the rate and receives refunds.
+        uint256 released; // Cumulative amount transferred to the distributor.
         Rate[] rates; // Strictly increasing `from`; the first one is the start of the campaign.
-    }
-
-    /// @dev Kept apart from `Campaign` so the weekly releases do not re-emit the whole campaign.
-    struct Release {
-        uint256 released; // Sent to the distributor so far: what the campaign emitted up to `upTo`.
-        uint64 upTo; // Weekly cutoff of the last release.
     }
 
     address public immutable distributor; // This chain's Universal Rewards Distributor.
@@ -64,13 +60,10 @@ contract RewardCampaigns {
     address public releaser; // The rewards bot.
     mapping(address => bool) public isManager; // Accounts that create campaigns.
     Campaign[] internal campaigns; // Campaign id = index.
-    Release[] internal releases; // By campaign id.
-    /// @dev By campaign id: the wallet that deposited the budget, which changes the campaign and gets its refund.
-    /// Kept apart from `Campaign` so `CampaignSet` carries only what the bot reads.
-    address[] internal funders;
 
-    /// @dev Emitted with the whole campaign after every change, so the state at any block can be rebuilt from logs.
+    /// @dev Snapshots the earning rules and budget. Subsequent payouts update `released` through `Released` only.
     event CampaignSet(uint256 indexed id, Campaign campaign);
+    /// @param upTo The cutoff supplied for this call, including corrections to earlier cutoffs.
     event Released(uint256 indexed id, uint256 amount, uint256 released, uint64 upTo);
     event Refunded(uint256 indexed id, address indexed funder, uint256 amount);
     event ManagerSet(address indexed account, bool active);
@@ -84,12 +77,6 @@ contract RewardCampaigns {
 
     modifier onlyManager() {
         require(isManager[msg.sender], "Only a manager");
-        _;
-    }
-
-    modifier onlyFunder(uint256 id) {
-        _campaign(id);
-        require(msg.sender == funders[id], "Only the funder");
         _;
     }
 
@@ -145,8 +132,7 @@ contract RewardCampaigns {
 
         id = campaigns.length;
         Campaign storage campaign = campaigns.push();
-        releases.push();
-        funders.push(msg.sender);
+        campaign.funder = msg.sender;
         campaign.poolId = poolId;
         campaign.rewardToken = rewardToken;
         campaign.budget = budget;
@@ -161,8 +147,9 @@ contract RewardCampaigns {
     /// @dev A rate is at most the budget, which fits in 128 bits, so `release` and `settleRefund` multiply it by a
     /// `uint64` span of seconds without overflowing; one overflowing campaign would revert the weekly release of every
     /// campaign on the chain.
-    function setRate(uint256 id, uint256 perSecond) external onlyFunder(id) {
-        Campaign storage campaign = campaigns[id];
+    function setRate(uint256 id, uint256 perSecond) external {
+        Campaign storage campaign = _campaign(id);
+        require(msg.sender == campaign.funder, "Only the funder");
         require(perSecond <= campaign.budget, "Rate over budget");
         Rate storage last = campaign.rates[campaign.rates.length - 1];
         require(last.perSecond != 0, "Campaign ended");
@@ -183,14 +170,14 @@ contract RewardCampaigns {
         require(upTo <= block.timestamp, "Cutoff in the future");
         for (uint256 i = 0; i < ids.length; i++) {
             Campaign storage campaign = _campaign(ids[i]);
-            Release storage r = releases[ids[i]];
             require(emitted[i] <= campaign.budget, "Over budget");
             require(emitted[i] <= _maxEmission(campaign.rates, upTo), "Over rate");
-            uint256 amount = emitted[i] > r.released ? emitted[i] - r.released : 0;
-            r.released += amount;
-            if (amount > 0 && upTo > r.upTo) r.upTo = upTo;
-            if (amount > 0) IERC20(campaign.rewardToken).safeTransfer(distributor, amount);
-            emit Released(ids[i], amount, r.released, r.upTo);
+            uint256 amount = emitted[i] > campaign.released ? emitted[i] - campaign.released : 0;
+            if (amount > 0) {
+                campaign.released = emitted[i];
+                IERC20(campaign.rewardToken).safeTransfer(distributor, amount);
+            }
+            emit Released(ids[i], amount, campaign.released, upTo);
         }
     }
 
@@ -199,7 +186,7 @@ contract RewardCampaigns {
         Campaign storage campaign = _campaign(id);
         Rate storage end = campaign.rates[campaign.rates.length - 1];
         require(end.perSecond == 0, "Campaign not ended");
-        uint256 paid = releases[id].released;
+        uint256 paid = campaign.released;
         require(emitted <= paid, "Not released");
         // The five-word preimage cannot be interpreted as a three-word URD claim. Bind to this deployment and end.
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(block.chainid, address(this), id, end.from, emitted))));
@@ -211,8 +198,8 @@ contract RewardCampaigns {
         if (keep >= campaign.budget) return false;
         uint256 amount = campaign.budget - keep;
         campaign.budget = keep;
-        emit Refunded(id, funders[id], amount);
-        IERC20(campaign.rewardToken).safeTransfer(funders[id], amount);
+        emit Refunded(id, campaign.funder, amount);
+        IERC20(campaign.rewardToken).safeTransfer(campaign.funder, amount);
         return true;
     }
 
@@ -227,16 +214,6 @@ contract RewardCampaigns {
     /// @notice Every campaign, in id order.
     function getCampaigns() external view returns (Campaign[] memory) {
         return campaigns;
-    }
-
-    /// @notice The funder of every campaign, in id order.
-    function getFunders() external view returns (address[] memory) {
-        return funders;
-    }
-
-    /// @notice The release state of every campaign, in id order.
-    function getReleases() external view returns (Release[] memory) {
-        return releases;
     }
 
     function _maxEmission(Rate[] storage rates, uint64 to) private view returns (uint256 total) {

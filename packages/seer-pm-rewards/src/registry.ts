@@ -99,8 +99,7 @@ export function emittedByCampaign(states: Record<string, EngineStateJson>): Map<
  */
 export function dueReleases(
   campaigns: RawCampaign[],
-  releases: readonly { released: bigint; upTo: bigint }[],
-  budgets: readonly bigint[],
+  onchain: readonly { released: bigint; budget: bigint }[],
   emitted: Map<string, bigint>,
   target: number,
 ): { due: [string, bigint][]; stuck: string[] } {
@@ -108,11 +107,10 @@ export function dueReleases(
   const stuck: string[] = [];
   const blocked: string[] = [];
   for (const c of campaigns) {
-    const r = releases[Number(c.id)];
-    const budget = budgets[Number(c.id)];
+    const { budget, released } = onchain[Number(c.id)];
     const total = emitted.get(c.id) ?? 0n;
-    if (total < r.released) stuck.push(c.id);
-    if (total <= r.released) continue;
+    if (total < released) stuck.push(c.id);
+    if (total <= released) continue;
     const rates = c.rates.map((rate) => ({ from: Date.parse(rate.from) / 1000, perSecond: BigInt(rate.perSecond) }));
     const cap = emittedBetween(rates, 0, target);
     if (total > budget) {

@@ -36,10 +36,8 @@ export type RewardCampaign = {
   funder: Address;
   /** The deposit, minus what was refunded. */
   budget: bigint;
-  /** Sent to the distributor so far: what the campaign emitted up to `releasedUpTo`. */
+  /** Cumulative amount sent to the distributor. */
   released: bigint;
-  /** Weekly cutoff (unix seconds) of the last release, 0 before the first. */
-  releasedUpTo: number;
   minWidthTicks: number;
   rates: RewardRate[];
   /** Undefined when the token cannot be read on the payout chain. */
@@ -123,26 +121,12 @@ export async function readTokenMeta(token: Address, chainId: number) {
 }
 
 async function fetchChainCampaigns(payoutChainId: number, address: Address): Promise<RewardCampaign[]> {
-  const read = <T>(functionName: "getCampaigns" | "getReleases" | "getFunders") =>
-    readContract(config, {
-      address,
-      abi: rewardCampaignsAbi,
-      functionName,
-      chainId: payoutChainId as ConfigChainId,
-    }) as Promise<T>;
-  const [campaigns, releases, funders] = await Promise.all([
-    read<
-      readonly {
-        poolId: Hex;
-        rewardToken: Address;
-        budget: bigint;
-        minWidthTicks: number;
-        rates: readonly RewardRate[];
-      }[]
-    >("getCampaigns"),
-    read<readonly { released: bigint; upTo: bigint }[]>("getReleases"),
-    read<readonly Address[]>("getFunders"),
-  ]);
+  const campaigns = await readContract(config, {
+    address,
+    abi: rewardCampaignsAbi,
+    functionName: "getCampaigns",
+    chainId: payoutChainId as ConfigChainId,
+  });
   // The names are a convenience: a failed lookup leaves the pool id, never the campaigns, unreadable.
   const poolOutcomes = fetchPoolOutcomes(
     payoutChainId,
@@ -158,14 +142,8 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
     campaigns.map(async (c, i) => ({
       id: BigInt(i),
       payoutChainId,
-      poolId: c.poolId,
-      rewardToken: c.rewardToken,
-      funder: funders[i],
-      budget: c.budget,
-      released: releases[i].released,
-      releasedUpTo: Number(releases[i].upTo),
-      minWidthTicks: c.minWidthTicks,
-      rates: c.rates.map((rate) => ({ from: rate.from, perSecond: rate.perSecond })),
+      ...c,
+      rates: [...c.rates],
       token: await tokens.get(c.rewardToken.toLowerCase()),
       outcome: outcomes.get(c.poolId.toLowerCase()),
       // An indexed pool is initialized, so only the others need the RPC read.

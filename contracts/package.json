@@ -30,6 +30,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "test": "yarn workspace @seer-pm/rewards build && hardhat test",
     "hhf:mainnet": "npx hardhat node --fork https://eth-pokt.nodies.app --no-deploy --config mainnetforked.config.ts",
     "hhf:gnosis": "npx hardhat node --fork https://gnosis-pokt.nodies.app --port 8546 --no-deploy --config gnosisforked.config.ts",
     "hh-local-deploy": "npx hardhat deploy --network localhost && cp -r deployments/localhost/*.json deployments/hardhat && yarn workspace @seer-pm/contracts-ts generate",
@@ -54,6 +55,7 @@
     "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.3",
     "@nomicfoundation/hardhat-viem": "^1.0.0",
+    "@seer-pm/rewards": "workspace:*",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
     "@types/chai": "^4.2.0",

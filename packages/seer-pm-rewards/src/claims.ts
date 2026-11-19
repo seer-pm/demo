@@ -24,13 +24,10 @@ export const urdAbi = parseAbi([
 /** A payout chain's `RewardCampaigns` registry, read and released by the bot and written by the admin page. */
 export const rewardCampaignsAbi = parseAbi([
   "struct Rate { uint64 from; uint256 perSecond; }",
-  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; Rate[] rates; }",
-  "struct Release { uint256 released; uint64 upTo; }",
+  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; address funder; uint256 released; Rate[] rates; }",
   "function owner() view returns (address)",
   "function isManager(address account) view returns (bool)",
   "function getCampaigns() view returns (Campaign[])",
-  "function getReleases() view returns (Release[])",
-  "function getFunders() view returns (address[])",
   "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks) returns (uint256 id)",
   "function setRate(uint256 id, uint256 perSecond)",
   "function release(uint256[] ids, uint256[] emitted, uint64 upTo)",

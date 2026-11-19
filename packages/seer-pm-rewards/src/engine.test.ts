@@ -391,6 +391,8 @@ describe("campaignsFromLogs", () => {
           rewardToken: TOKEN,
           budget: 1000n,
           minWidthTicks: 0,
+          funder: ALICE,
+          released: 0n,
           rates: [{ from: BigInt(T0), perSecond: 10n }],
           ...campaign,
         },
@@ -426,6 +428,11 @@ describe("campaignsFromLogs", () => {
     const [parsed] = parseCampaigns({ campaigns: raw });
     expect(parsed.budget).toBe(500n);
     expect([parsed.chainId, parsed.payoutChainId]).toEqual([10, 10]);
+  });
+
+  it("keeps payout accounting out of the weekly replay inputs", () => {
+    const replay = (released: bigint) => campaignsFromLogs([campaignSet(0n, { released })], 10);
+    expect(replay(450n)).toEqual(replay(0n));
   });
 
   it("gives the campaigns as of the last block before each cutoff from one read of the registry", async () => {
@@ -513,14 +520,7 @@ describe("dueReleases", () => {
     const running = [{ from: "2026-11-02T00:00:00Z", perSecond: "1" }];
     const ended = [...running, { from: "2026-11-05T00:00:00Z", perSecond: "0" }];
     const campaigns = [running, running, running, ended, ended].map((rates, id) => raw(String(id), rates));
-    const lastCutoff = BigInt(T0);
-    const releases = [
-      { released: 300n, upTo: lastCutoff }, // Active, emitted more since.
-      { released: 1000n, upTo: lastCutoff }, // Active, spent its whole budget.
-      { released: 0n, upTo: lastCutoff }, // Active, nothing in range: a dead pool nobody ended.
-      { released: 0n, upTo: lastCutoff }, // Ended without emitting.
-      { released: 200n, upTo: lastCutoff }, // Ended, its final week recomputed below what was released.
-    ];
+    const onchain = [300n, 1000n, 0n, 0n, 200n].map((released) => ({ released, budget: 1000n }));
     const emitted = new Map([
       ["0", 450n],
       ["1", 1000n],
@@ -528,22 +528,29 @@ describe("dueReleases", () => {
       ["3", 0n],
       ["4", 150n],
     ]);
-    expect(dueReleases(campaigns, releases, Array(5).fill(1000n), emitted, target)).toEqual({
+    expect(dueReleases(campaigns, onchain, emitted, target)).toEqual({
       due: [["0", 450n]],
       stuck: ["4"],
     });
   });
 
-  it("names what blocks a total over the rates since the last cutoff, or over the budget a refund left", () => {
+  it("names what blocks a total over the cumulative rates or the budget a refund left", () => {
     const c = raw("1", [
       { from: "2026-11-02T00:00:00Z", perSecond: "2" },
       { from: "2026-11-08T23:59:55Z", perSecond: "3" },
     ]);
-    const releases = [0, 1].map(() => ({ released: 300n, upTo: BigInt(target - 10) }));
-    // 2 per second for the 5 seconds before the rate change, then 3 per second up to the cutoff.
+    // The final five seconds pay 3 per second; the rest of the week pays 2.
     const cap = 2n * BigInt(WEEK - 5) + 3n * 5n;
     const due = (total: bigint, budget = cap + 2n) =>
-      dueReleases([c], releases, [0n, budget], new Map([["1", total]]), target);
+      dueReleases(
+        [c],
+        [
+          { released: 0n, budget: 0n },
+          { released: 300n, budget },
+        ],
+        new Map([["1", total]]),
+        target,
+      );
     expect(due(cap).due).toEqual([["1", cap]]);
     expect(() => due(cap + 1n)).toThrow(`campaign 1 emitted ${cap + 1n}, 1 over the cumulative rate cap`);
     expect(() => due(cap, cap - 2n)).toThrow(`campaign 1 emitted ${cap}, 2 over the budget a refund left it`);

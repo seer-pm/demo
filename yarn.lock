@@ -6503,6 +6503,7 @@ __metadata:
     "@nomicfoundation/hardhat-viem": "npm:^1.0.0"
     "@openzeppelin/contracts": "npm:^5.0.1"
     "@openzeppelin/uniswap-hooks": "npm:1.1.1"
+    "@seer-pm/rewards": "workspace:*"
     "@typechain/ethers-v6": "npm:^0.5.1"
     "@typechain/hardhat": "npm:^9.1.0"
     "@types/chai": "npm:^4.2.0"
@@ -6606,7 +6607,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@seer-pm/rewards@npm:*, @seer-pm/rewards@workspace:packages/seer-pm-rewards":
+"@seer-pm/rewards@npm:*, @seer-pm/rewards@workspace:*, @seer-pm/rewards@workspace:packages/seer-pm-rewards":
   version: 0.0.0-use.local
   resolution: "@seer-pm/rewards@workspace:packages/seer-pm-rewards"
   dependencies:

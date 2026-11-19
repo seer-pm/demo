@@ -1,5 +1,6 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { rewardCampaignsAbi } from "@seer-pm/rewards/claims";
 import { expect } from "chai";
 import type { ContractTransactionResponse } from "ethers";
 import { ethers, network } from "hardhat";
@@ -52,7 +53,8 @@ describe("RewardCampaigns", function () {
     expect(await rates()).to.deep.equal([[createdAt, 5n]]);
     expect(await token.balanceOf(registry)).to.equal(1000n);
     expect(await token.balanceOf(manager)).to.equal(9000n);
-    expect(await registry.getFunders()).to.deep.equal([manager.address]);
+    expect(campaign.funder).to.equal(manager.address);
+    expect(campaign.released).to.equal(0n);
   });
 
   it("accepts a minimum width up to the full V4 tick range and no wider", async function () {
@@ -140,12 +142,18 @@ describe("RewardCampaigns", function () {
     await registry.connect(bot).release([0], [450n], cutoff + 1800);
     expect(await token.balanceOf(distributor)).to.equal(450n);
     expect(await token.balanceOf(registry)).to.equal(550n);
-    const [r] = await registry.getReleases();
-    expect([r.released, Number(r.upTo)]).to.deep.equal([450n, cutoff + 1800]);
-
-    // A correction for an earlier cutoff cannot move the release timestamp backwards.
-    await registry.connect(bot).release([0], [451n], cutoff);
-    expect((await registry.getReleases())[0].upTo).to.equal(cutoff + 1800);
+    // A correction pays only the difference and records its own cutoff, not the latest cutoff.
+    const correction = await registry.connect(bot).release([0], [451n], cutoff);
+    await expect(correction).to.emit(registry, "Released").withArgs(0, 1n, 451n, cutoff);
+    expect((await registry.getCampaigns())[0].released).to.equal(451n);
+    const snapshots = await registry.queryFilter(registry.filters.CampaignSet());
+    expect(snapshots).to.have.length(1); // Weekly payments do not change the bot's earning history.
+    const botInterface = new ethers.Interface(rewardCampaignsAbi);
+    const snapshot = botInterface.parseLog(snapshots[0])!.args.campaign;
+    expect([snapshot.poolId, snapshot.rewardToken, snapshot.funder, snapshot.budget, snapshot.released,
+      snapshot.minWidthTicks, snapshot.rates[0].perSecond]).to.deep.equal([
+      POOL_ID, await token.getAddress(), manager.address, 1000n, 0n, 60n, 5n,
+    ]);
   });
 
   it("bounds cumulative releases by all rate tiers through the cutoff", async function () {
@@ -166,8 +174,7 @@ describe("RewardCampaigns", function () {
     await expect(registry.connect(bot).release([0], [max + 31n], second)).to.be.revertedWith("Over rate");
     await registry.connect(bot).release([0], [max + 30n], second);
     expect(await token.balanceOf(distributor)).to.equal(max + 30n);
-    const [r] = await registry.getReleases();
-    expect([r.released, Number(r.upTo)]).to.deep.equal([max + 30n, second]);
+    expect((await registry.getCampaign(0)).released).to.equal(max + 30n);
   });
 
   for (const closeFirst of [true, false]) {
@@ -180,6 +187,7 @@ describe("RewardCampaigns", function () {
       await time.increase(100);
       const pay = () => registry.connect(bot).release([0, 1], [60n, 30n], start + 100);
       if (!closeFirst) await pay();
+      await registry.setManager(manager, false);
       const end = await minedAt(await registry.connect(manager).setRate(0, 0));
       expect((await registry.getCampaign(0)).budget).to.equal(BigInt(end - start));
       expect(await token.balanceOf(manager)).to.equal(9000n - BigInt(end - start));

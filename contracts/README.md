@@ -139,8 +139,10 @@ forge coverage
 
 **Hardhat**
 ```bash
-# run test
-yarn hardhat test
+# Build the bot's current ABI and run the tests (from contracts/).
+yarn test
+# Run only the campaign suite, with the same ABI build.
+yarn test test/hardhat/RewardCampaigns.test.ts
 # run coverage
 yarn hardhat coverage
 ```
@@ -195,5 +197,4 @@ Ethereum, Optimism, Base and Sepolia are verified through the Etherscan API v2, 
    To verify a single deployment: `npx hardhat --network base verify-deployments --contract MarketView`
 
    `verify-deployments` compares the deployed bytecode with the current local artifacts, so run it right after deploying. Deployments whose source changed since they were deployed will report a bytecode mismatch (they are normally already verified). External contracts saved in `deployments/` without compiler metadata are skipped.
-
 

@@ -109,11 +109,6 @@ function CampaignRow({
       </td>
       <td className="whitespace-nowrap tabular-nums">
         {amount(campaign.released)} / {amount(campaign.budget)} {token?.symbol}
-        <div className="text-[12px] text-base-content/60">
-          {campaign.releasedUpTo > 0
-            ? `last release covers up to ${toDate(campaign.releasedUpTo)}`
-            : "nothing released yet"}
-        </div>
       </td>
       <td className="whitespace-nowrap tabular-nums">
         {emitted ? (
