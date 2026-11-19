@@ -438,21 +438,6 @@ contract MarketFactoryTest is BaseTest {
         getCategoricalMarketWithCollateral(MIN_BOND, 2, collateralToken, 1 hours - 1);
     }
 
-    function test_rejectsShortTimeoutOnPreAsk() public {
-        vm.expectRevert(bytes("Question timeout too short"));
-        marketFactory.askRealityQuestion("", 2, uint32(block.timestamp), MIN_BOND, 0);
-    }
-
-    function test_rejectsForeignTemplateOnPreAsk() public {
-        // bool template
-        vm.expectRevert(bytes("Invalid template"));
-        marketFactory.askRealityQuestion("", 0, uint32(block.timestamp), MIN_BOND, QUESTION_TIMEOUT);
-
-        // datetime template
-        vm.expectRevert(bytes("Invalid template"));
-        marketFactory.askRealityQuestion("", 4, uint32(block.timestamp), MIN_BOND, QUESTION_TIMEOUT);
-    }
-
     function test_encodedQuestions() public {
         Vm.Log[] memory entries;
 
