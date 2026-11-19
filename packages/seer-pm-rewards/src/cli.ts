@@ -18,7 +18,7 @@ import { http, type PublicClient, createPublicClient } from "viem";
 import { toIsoSeconds } from "./campaigns.ts";
 import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
 import { weekStart } from "./engine.ts";
-import { type RawCampaign, campaignHistory } from "./registry.ts";
+import { type RawCampaign, campaignHistory, emittedByCampaign } from "./registry.ts";
 import { type RewardsFile, computeWeeks, parseCutoff } from "./week.ts";
 
 const { values } = parseArgs({
@@ -73,4 +73,5 @@ for (const payoutChainId of payoutChainIds) {
   const path = join(dir, `rewards-${payoutChainId}.json`);
   writeFileSync(path, `${JSON.stringify(file)}\n`);
   console.log(`chain ${payoutChainId}: root ${file.root}, totals`, file.totals, "->", path);
+  console.log(`chain ${payoutChainId}: emitted by campaign id`, Object.fromEntries(emittedByCampaign(file.states)));
 }

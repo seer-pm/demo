@@ -1,6 +1,6 @@
 import { Alert } from "@/components/Alert";
 import Button from "@/components/Form/Button";
-import { CreateRewardCampaignForm, RewardRatesForm, RewardRefundForm } from "@/components/admin/RewardCampaignForms";
+import { CreateRewardCampaignForm, RewardRatesForm } from "@/components/admin/RewardCampaignForms";
 import { RewardsHowItWorks } from "@/components/admin/RewardsHowItWorks";
 import {
   type CampaignEmitted,
@@ -12,20 +12,19 @@ import {
 } from "@/hooks/admin/useRewardCampaigns";
 import { useModal } from "@/hooks/useModal";
 import { paths } from "@/lib/paths";
-import { campaignStatus, chainName, formatWeekly, refundState, toDate } from "@/lib/reward-campaigns";
+import { campaignStatus, chainName, formatWeekly, toDate } from "@/lib/reward-campaigns";
 import { shortenAddress } from "@/lib/utils";
 import { getV4PoolExplorerUrl } from "@seer-pm/order-book";
 import { useState } from "react";
 import { type Address, formatUnits, isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
 
-type ActionKind = "rate" | "end" | "refund";
+type ActionKind = "rate" | "end";
 type Action = { kind: ActionKind; campaign: RewardCampaign };
 
 const ACTION_TITLES: Record<ActionKind, string> = {
   rate: "Change rate",
   end: "End",
-  refund: "Refund",
 };
 
 const toDateTime = (t: number) => new Date(t * 1000).toISOString().slice(0, 16).replace("T", " ");
@@ -43,11 +42,7 @@ function CampaignRow({
   onAction: (action: Action) => void;
 }) {
   const status = campaignStatus(campaign.rates);
-  // The registry lets only the campaign's funder and its own owner change a campaign.
-  const canEdit =
-    account !== undefined &&
-    (isAddressEqual(campaign.funder, account) || isAddressEqual(campaign.registryOwner, account));
-  const refund = refundState(campaign);
+  const canEdit = account !== undefined && isAddressEqual(campaign.funder, account);
   const { token, outcome } = campaign;
   const amount = (value: bigint) =>
     token
@@ -133,10 +128,10 @@ function CampaignRow({
       <td className="whitespace-nowrap space-x-3">
         {canEdit && !status.ended && action("rate", "Change rate")}
         {canEdit && !status.ended && action("end", "End")}
-        {/* A refund only goes to the funder, so any wallet may send it. */}
-        {refund.kind === "ready" && action("refund", "Refund")}
-        {refund.kind !== "none" && refund.held > 0n && (
-          <div className="!ml-0 text-[12px] text-base-content/60">up to {amount(refund.held)} held until Monday</div>
+        {status.ended && campaign.budget > campaign.released && (
+          <div className="text-[12px] text-base-content/60">
+            {amount(campaign.budget - campaign.released)} in escrow pending final settlement
+          </div>
         )}
       </td>
     </tr>
@@ -145,8 +140,7 @@ function CampaignRow({
 
 function ActionForm({ action, onClose }: { action: Action; onClose: () => void }) {
   const { kind, campaign } = action;
-  if (kind === "rate" || kind === "end") return <RewardRatesForm campaign={campaign} mode={kind} onClose={onClose} />;
-  return <RewardRefundForm campaign={campaign} onClose={onClose} />;
+  return <RewardRatesForm campaign={campaign} mode={kind} onClose={onClose} />;
 }
 
 function AdminRewardsPage() {
@@ -174,7 +168,6 @@ function AdminRewardsPage() {
     ? `${ACTION_TITLES[action.kind]}: ${chainName(action.campaign.payoutChainId)} #${action.campaign.id}`
     : "";
 
-  // Only a wallet that can create campaigns (a registry's owner or a manager) sees the page.
   if (!isManager) {
     let message = "Connect a manager wallet to manage liquidity reward campaigns.";
     if (REGISTRY_CHAINS.length === 0) {

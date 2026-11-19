@@ -65,12 +65,12 @@ const STEPS: { title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>
-          Only the wallet that funded a campaign, or the registry's owner, can change its rate. A new rate applies from
-          the block it is set in, and setting it to 0 ends the campaign for good.
+          Only the wallet that funded a campaign can change its rate. A new rate applies from the block it is set in,
+          and setting it to 0 ends the campaign for good.
         </p>
         <p>
-          The budget and the minimum width never change: to add rewards to a pool, or to pay a different width, create
-          another campaign on it. Campaigns on the same pool pay at the same time, so their rates add up.
+          To add rewards to a pool, or to pay a different width, create another campaign on it. Campaigns on the same
+          pool pay at the same time, so their rates add up.
         </p>
       </>
     ),
@@ -79,9 +79,9 @@ const STEPS: { title: string; body: ReactNode }[] = [
     title: "6. Unspent budget goes back to the funder",
     body: (
       <p>
-        Once a campaign has ended, any wallet can send its refund, which goes back to the wallet that funded it. It
-        sends at once what the campaign can no longer emit. What it may have emitted since the last weekly release stays
-        in escrow until the bot releases the week it ended in, and what it did not emit can then be refunded too.
+        Closing a campaign immediately returns what it could not have earned. The registry keeps enough to pay LPs
+        through the closing block. Once the distributor accepts the final total and the registry has released it, anyone
+        can use the published proof to return the remaining escrow to the funder. The bot does this automatically.
       </p>
     ),
   },

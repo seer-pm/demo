@@ -12,16 +12,24 @@ import {
   numberToHex,
   pad,
   parseAbi,
+  zeroHash,
 } from "viem";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
-import { SOURCE_CHAINS } from "./chains.ts";
-import { accountRewards, rewardCampaignsAbi } from "./claims.ts";
+import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
+import { accountRewards, rewardCampaignsAbi, urdAbi } from "./claims.ts";
+import { revocationKey, revokedRoots } from "./distributor.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
 import { type RawCampaign, campaignHistory, campaignsFromLogs, dueReleases, emittedByCampaign } from "./registry.ts";
 import { computeWeek, computeWeeks } from "./week.ts";
+
+vi.mock(import("./chains.ts"), async (importOriginal) => {
+  const chains = await importOriginal();
+  const registry = { address: "0x0000000000000000000000000000000000000007" as Address, fromBlock: 1n };
+  return { ...chains, PAYOUT_CHAINS: { ...chains.PAYOUT_CHAINS, 8453: { ...chains.PAYOUT_CHAINS[8453], registry } } };
+});
 
 const PM = "0x00000000000000000000000000000000000000aa" as Address;
 const HOOK = "0x00000000000000000000000000000000000000bb" as Address;
@@ -257,7 +265,27 @@ describe("buildDistributions", () => {
     const accruals = [
       ...accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + 1 }).accrued.values(),
     ];
-    const [d] = buildDistributions({ campaigns: [c], accruals, cutoff: T0 + 1, sourceBlocks: { 8453: 1n } });
+    const ended = { ...c, id: "7", rates: [...c.rates, { from: T0 + 1, perSecond: 0n }] };
+    const [d] = buildDistributions({
+      campaigns: [c, ended],
+      emitted: new Map([["7", 0n]]),
+      accruals,
+      cutoff: T0 + 1,
+      sourceBlocks: { 8453: 1n },
+    });
+    expect(d.settlements[7].emitted).toBe("0");
+    let settlement = keccak256(
+      keccak256(
+        encodeAbiParameters(
+          [{ type: "uint256" }, { type: "address" }, { type: "uint256" }, { type: "uint64" }, { type: "uint256" }],
+          [8453n, PAYOUT_CHAINS[8453].registry!.address, 7n, BigInt(T0 + 1), 0n],
+        ),
+      ),
+    );
+    for (const sibling of d.settlements[7].proof) {
+      settlement = keccak256(concat([settlement, sibling].sort()));
+    }
+    expect(settlement).toBe(d.root);
 
     expect(d.claims[ALICE][TOKEN].claimable).toBe("7");
     expect(d.claims[BOB][TOKEN].claimable).toBe("2");
@@ -288,6 +316,7 @@ describe("buildDistributions", () => {
     const events = [tick(0, 0), mint(0, 1n, ALICE), liquidity(0, 1n, 1n)];
     const build = (cutoff: number) =>
       buildDistributions({
+        emitted: new Map(),
         campaigns: [c],
         accruals: [
           ...accrueRewards({ positionManager: PM, campaigns: [c], events, cutoff: T0 + cutoff }).accrued.values(),
@@ -320,7 +349,12 @@ describe("accountRewards", () => {
     const pending = file({ [CAROL]: { [TOKEN]: "150", [OTHER]: "7" } });
     const NEW = getAddress("0x00000000000000000000000000000000000000ee");
     // The estimate builds on the pending root, so TOKEN accrues 170 - 150, not 170 - 100.
-    const estimate = { payoutChainId: 8453, asOf: "", claims: { [CAROL]: { [TOKEN]: "170", [NEW]: "9" } }, emitted: {} };
+    const estimate = {
+      payoutChainId: 8453,
+      asOf: "",
+      claims: { [CAROL]: { [TOKEN]: "170", [NEW]: "9" } },
+      emitted: {},
+    };
     // Lowercase input: the file is keyed by checksummed addresses.
     const rewards = accountRewards({
       account: CAROL.toLowerCase() as Address,
@@ -463,30 +497,28 @@ describe("emittedByCampaign", () => {
 });
 
 describe("dueReleases", () => {
-  it("releases what has something new to pay and the final week of an ended campaign, and nothing else", () => {
-    const raw = (id: string, ended: boolean): RawCampaign => ({
-      id,
-      chainId: 8453,
-      payoutChainId: 8453,
-      poolId: POOL,
-      rewardToken: TOKEN,
-      budget: "1000",
-      rates: [
-        { from: "2026-11-02T00:00:00Z", perSecond: "1" },
-        ...(ended ? [{ from: "2026-11-05T00:00:00Z", perSecond: "0" }] : []),
-      ],
-      minWidthTicks: 0,
-    });
-    const end = BigInt(Date.parse("2026-11-05T00:00:00Z") / 1000);
+  const raw = (id: string, rates: { from: string; perSecond: string }[]): RawCampaign => ({
+    id,
+    chainId: 8453,
+    payoutChainId: 8453,
+    poolId: POOL,
+    rewardToken: TOKEN,
+    budget: "1000",
+    rates,
+    minWidthTicks: 0,
+  });
+  const target = T0 + WEEK;
+
+  it("releases only what has something new to pay", () => {
+    const running = [{ from: "2026-11-02T00:00:00Z", perSecond: "1" }];
+    const ended = [...running, { from: "2026-11-05T00:00:00Z", perSecond: "0" }];
+    const campaigns = [running, running, running, ended, ended].map((rates, id) => raw(String(id), rates));
     const lastCutoff = BigInt(T0);
-    const target = T0 + WEEK;
-    const campaigns = [false, false, false, true, true, true].map((ended, id) => raw(String(id), ended));
     const releases = [
       { released: 300n, upTo: lastCutoff }, // Active, emitted more since.
       { released: 1000n, upTo: lastCutoff }, // Active, spent its whole budget.
       { released: 0n, upTo: lastCutoff }, // Active, nothing in range: a dead pool nobody ended.
-      { released: 0n, upTo: lastCutoff }, // Ended without emitting, its cutoff still before the end.
-      { released: 200n, upTo: end + 1n }, // Ended, final week already released.
+      { released: 0n, upTo: lastCutoff }, // Ended without emitting.
       { released: 200n, upTo: lastCutoff }, // Ended, its final week recomputed below what was released.
     ];
     const emitted = new Map([
@@ -494,42 +526,52 @@ describe("dueReleases", () => {
       ["1", 1000n],
       ["2", 0n],
       ["3", 0n],
-      ["4", 200n],
-      ["5", 150n],
+      ["4", 150n],
     ]);
-    expect(dueReleases(campaigns, releases, emitted, target)).toEqual({
-      due: [
-        ["0", 450n],
-        ["3", 0n],
-        ["5", 150n],
-      ],
-      stuck: ["5"],
+    expect(dueReleases(campaigns, releases, Array(5).fill(1000n), emitted, target)).toEqual({
+      due: [["0", 450n]],
+      stuck: ["4"],
     });
   });
 
-  it("names the campaign and the owner's call when a total is over what the rates allow since the last cutoff", () => {
-    const c: RawCampaign = {
-      id: "7",
-      chainId: 8453,
-      payoutChainId: 8453,
-      poolId: POOL,
-      rewardToken: TOKEN,
-      budget: "10000000",
-      rates: [
-        { from: "2026-11-02T00:00:00Z", perSecond: "2" },
-        { from: "2026-11-08T23:59:55Z", perSecond: "3" },
-      ],
-      minWidthTicks: 0,
-    };
-    const target = T0 + WEEK;
-    const releases = Array.from({ length: 8 }, () => ({ released: 300n, upTo: BigInt(target - 10) }));
+  it("names what blocks a total over the rates since the last cutoff, or over the budget a refund left", () => {
+    const c = raw("1", [
+      { from: "2026-11-02T00:00:00Z", perSecond: "2" },
+      { from: "2026-11-08T23:59:55Z", perSecond: "3" },
+    ]);
+    const releases = [0, 1].map(() => ({ released: 300n, upTo: BigInt(target - 10) }));
     // 2 per second for the 5 seconds before the rate change, then 3 per second up to the cutoff.
-    const cap = 300n + 2n * 5n + 3n * 5n;
-    expect(dueReleases([c], releases, new Map([["7", cap]]), target).due).toEqual([["7", cap]]);
-    expect(() => dueReleases([c], releases, new Map([["7", cap + 1n]]), target)).toThrow(
-      `campaign 7 emitted ${cap + 1n}, 1 over what the releaser may send since its last cutoff ${target - 10}; ` +
-        `the registry owner must call release([7], [${cap + 1n}], ${target})`,
-    );
+    const cap = 2n * BigInt(WEEK - 5) + 3n * 5n;
+    const due = (total: bigint, budget = cap + 2n) =>
+      dueReleases([c], releases, [0n, budget], new Map([["1", total]]), target);
+    expect(due(cap).due).toEqual([["1", cap]]);
+    expect(() => due(cap + 1n)).toThrow(`campaign 1 emitted ${cap + 1n}, 1 over the cumulative rate cap`);
+    expect(() => due(cap, cap - 2n)).toThrow(`campaign 1 emitted ${cap}, 2 over the budget a refund left it`);
+  });
+});
+
+describe("revokedRoots", () => {
+  it("names a revoked empty root by its file, so the empty files of later weeks still go through", async () => {
+    const urd = "0x00000000000000000000000000000000000000ee" as Address;
+    const hash = (n: number) => pad(numberToHex(n), { size: 32 });
+    const root = hash(0xabc);
+    const caller = ALICE;
+    const set = (newRoot: Hex, newIpfsHash: Hex) =>
+      encodeEventTopics({ abi: urdAbi, eventName: "PendingRootSet", args: { caller, newRoot, newIpfsHash } });
+    const revoke = encodeEventTopics({ abi: urdAbi, eventName: "PendingRootRevoked", args: { caller } });
+    // An empty root revoked, a real root revoked, and an empty root still pending.
+    const logs = [set(zeroHash, hash(1)), revoke, set(root, hash(2)), revoke, set(zeroHash, hash(3))].map((topics) => ({
+      address: urd,
+      topics,
+      data: "0x",
+    }));
+    const client = { getBlockNumber: async () => 100n, request: async () => logs } as unknown as PublicClient;
+
+    const revoked = await revokedRoots(client, urd, 1n);
+    expect(revoked).toEqual(new Set([revocationKey(zeroHash, hash(1)), root]));
+    expect(revoked.has(revocationKey(zeroHash, hash(4)))).toBe(false);
+    // A real root stays revoked under any file.
+    expect(revoked.has(revocationKey(root, hash(5)))).toBe(true);
   });
 });
 

@@ -3,6 +3,11 @@ pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
+interface IRewardsRoot {
+    function root() external view returns (bytes32);
+}
 
 /// @title RewardCampaigns
 /// @notice Liquidity reward campaigns of Seer's Uniswap V4 pools on this chain, and the escrow of their budgets.
@@ -55,7 +60,7 @@ contract RewardCampaigns {
     }
 
     address public immutable distributor; // This chain's Universal Rewards Distributor.
-    address public owner; // Appoints managers and the releaser, and may change any campaign.
+    address public owner; // Appoints managers and the releaser.
     address public releaser; // The rewards bot.
     mapping(address => bool) public isManager; // Accounts that create campaigns.
     Campaign[] internal campaigns; // Campaign id = index.
@@ -78,14 +83,13 @@ contract RewardCampaigns {
     }
 
     modifier onlyManager() {
-        require(msg.sender == owner || isManager[msg.sender], "Only a manager");
+        require(isManager[msg.sender], "Only a manager");
         _;
     }
 
-    /// @dev The funder alone decides how its own deposit is spent; the owner may step in on any campaign.
-    modifier onlyFunderOrOwner(uint256 id) {
+    modifier onlyFunder(uint256 id) {
         _campaign(id);
-        require(msg.sender == funders[id] || msg.sender == owner, "Only the funder or the owner");
+        require(msg.sender == funders[id], "Only the funder");
         _;
     }
 
@@ -135,6 +139,7 @@ contract RewardCampaigns {
         require(rewardToken != address(0), "Missing reward token");
         require(perSecond != 0, "Missing rate");
         require(budget != 0, "Missing budget");
+        require(budget <= type(uint128).max, "Budget too large");
         require(perSecond <= budget, "Rate over budget");
         require(minWidthTicks <= MAX_WIDTH_TICKS, "Width too wide");
 
@@ -153,9 +158,10 @@ contract RewardCampaigns {
 
     /// @notice Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool
     /// are a new campaign.
-    /// @dev A rate is at most the budget, so `release` and `settleRefund` can multiply it by any span of time without
-    /// overflowing; one overflowing campaign would revert the weekly release of every campaign on the chain.
-    function setRate(uint256 id, uint256 perSecond) external onlyFunderOrOwner(id) {
+    /// @dev A rate is at most the budget, which fits in 128 bits, so `release` and `settleRefund` multiply it by a
+    /// `uint64` span of seconds without overflowing; one overflowing campaign would revert the weekly release of every
+    /// campaign on the chain.
+    function setRate(uint256 id, uint256 perSecond) external onlyFunder(id) {
         Campaign storage campaign = campaigns[id];
         require(perSecond <= campaign.budget, "Rate over budget");
         Rate storage last = campaign.rates[campaign.rates.length - 1];
@@ -163,60 +169,51 @@ contract RewardCampaigns {
         // Rates are keyed by timestamp, so a second change in the same block replaces the first.
         if (last.from == block.timestamp) last.perSecond = perSecond;
         else campaign.rates.push(Rate(uint64(block.timestamp), perSecond));
+        if (perSecond == 0) _refund(id, campaign, _maxEmission(campaign.rates, uint64(block.timestamp)));
         emit CampaignSet(id, campaign);
     }
 
     /// @notice Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the
     /// cumulative `emitted` of each, so a repeated call sends nothing more.
-    /// @dev For the releaser, each total is capped by what the rates emit from the campaign's last cutoff to `upTo`,
-    /// as the engine never emits more, so a stolen releaser key can only send the distributor what the campaigns were
-    /// due and never their whole escrow. A week recomputed with a higher total after its release does not fit that
-    /// cap, so the owner releases without it, bounded only by the budget: the tokens can still only go to the
-    /// distributor. The owner passes as `upTo` the cutoff the total was computed for, as the cutoff then counts the
-    /// total as everything emitted up to it.
-    /// A total below what was already released sends nothing, as the distributor cannot return it, and leaves the
-    /// cutoff where it is: `settleRefund` counts `released` as everything emitted up to `upTo`.
+    /// @dev Cumulative emission is bounded by the integral of the rates, including for corrections to the same week.
+    /// The releaser cannot transfer to any other destination or authorize a refund.
     function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo) external {
-        bool capped = msg.sender != owner;
-        require(!capped || msg.sender == releaser, "Only the releaser or the owner");
+        require(msg.sender == releaser, "Only the releaser");
         require(ids.length == emitted.length, "Length mismatch");
         require(upTo <= block.timestamp, "Cutoff in the future");
         for (uint256 i = 0; i < ids.length; i++) {
             Campaign storage campaign = _campaign(ids[i]);
             Release storage r = releases[ids[i]];
             require(emitted[i] <= campaign.budget, "Over budget");
-            require(
-                !capped || emitted[i] <= r.released + _emittedBetween(campaign.rates, r.upTo, upTo),
-                "Over rate"
-            );
+            require(emitted[i] <= _maxEmission(campaign.rates, upTo), "Over rate");
             uint256 amount = emitted[i] > r.released ? emitted[i] - r.released : 0;
             r.released += amount;
-            if (emitted[i] >= r.released && upTo > r.upTo) r.upTo = upTo;
+            if (amount > 0 && upTo > r.upTo) r.upTo = upTo;
             if (amount > 0) IERC20(campaign.rewardToken).safeTransfer(distributor, amount);
             emit Released(ids[i], amount, r.released, r.upTo);
         }
     }
 
-    /// @notice Sends what an ended campaign cannot have emitted back to its funder. Anyone may call it, since the
-    /// tokens can only go to the funder, so a funder who is no longer a manager still gets them.
-    /// @dev Until the bot releases a week whose cutoff is at or after the end, the emission since the last release is
-    /// unknown here, so the budget keeps the most the rates can have emitted since then and the rest goes back at
-    /// once. Once that week is released, a second call sends back what the campaign did not emit after all. The
-    /// engine never emits more than the rates do, so the final release always fits in the budget that is kept.
-    function settleRefund(uint256 id) external {
+    /// @notice Returns the remaining escrow to the funder once the accepted distribution covers the end.
+    function settleRefund(uint256 id, uint256 emitted, bytes32[] calldata proof) external {
         Campaign storage campaign = _campaign(id);
-        Rate[] storage rates = campaign.rates;
-        require(rates[rates.length - 1].perSecond == 0, "Campaign not ended");
-        Release storage r = releases[id];
-        uint256 keep = r.released + _maxEmittedSince(rates, r.upTo);
-        // Nothing is left to send when the whole budget may still be owed, and some tokens revert on a transfer of 0.
-        require(campaign.budget > keep, "Nothing to refund");
-        uint256 unspent = campaign.budget - keep;
+        Rate storage end = campaign.rates[campaign.rates.length - 1];
+        require(end.perSecond == 0, "Campaign not ended");
+        uint256 paid = releases[id].released;
+        require(emitted <= paid, "Not released");
+        // The five-word preimage cannot be interpreted as a three-word URD claim. Bind to this deployment and end.
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(block.chainid, address(this), id, end.from, emitted))));
+        require(MerkleProof.verifyCalldata(proof, IRewardsRoot(distributor).root(), leaf), "Invalid settlement proof");
+        if (_refund(id, campaign, paid)) emit CampaignSet(id, campaign);
+    }
+
+    function _refund(uint256 id, Campaign storage campaign, uint256 keep) private returns (bool) {
+        if (keep >= campaign.budget) return false;
+        uint256 amount = campaign.budget - keep;
         campaign.budget = keep;
-        address funder = funders[id];
-        emit Refunded(id, funder, unspent);
-        emit CampaignSet(id, campaign);
-        IERC20(campaign.rewardToken).safeTransfer(funder, unspent);
+        emit Refunded(id, funders[id], amount);
+        IERC20(campaign.rewardToken).safeTransfer(funders[id], amount);
+        return true;
     }
 
     function campaignCount() external view returns (uint256) {
@@ -242,22 +239,10 @@ contract RewardCampaigns {
         return releases;
     }
 
-    /// @dev What the rates emit from `from` to `to`, before the budget cap: 0 when `to` is not after `from`.
-    function _emittedBetween(Rate[] storage rates, uint64 from, uint64 to) internal view returns (uint256 total) {
-        for (uint256 i = 0; i < rates.length; i++) {
-            uint64 lo = rates[i].from > from ? rates[i].from : from;
-            uint64 hi = i + 1 < rates.length && rates[i + 1].from < to ? rates[i + 1].from : to;
-            if (hi > lo) total += rates[i].perSecond * (hi - lo);
-        }
-    }
-
-    /// @dev What the rates of an ended campaign emit from `from` to its end, before the budget cap: 0 once `from` is
-    /// at or after the end.
-    function _maxEmittedSince(Rate[] storage rates, uint64 from) internal view returns (uint256 total) {
-        for (uint256 i = rates.length - 1; i > 0 && rates[i].from > from; i--) {
-            Rate storage rate = rates[i - 1];
-            uint64 start = rate.from > from ? rate.from : from;
-            total += rate.perSecond * (rates[i].from - start);
+    function _maxEmission(Rate[] storage rates, uint64 to) private view returns (uint256 total) {
+        for (uint256 i; i < rates.length && rates[i].from < to; i++) {
+            uint64 until = i + 1 < rates.length && rates[i + 1].from < to ? rates[i + 1].from : to;
+            total += rates[i].perSecond * (until - rates[i].from);
         }
     }
 

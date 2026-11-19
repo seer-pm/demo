@@ -9,7 +9,7 @@ import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-ho
 import { getSdk as getUniswapV4Sdk } from "@seer-pm/sdk/subgraph/uniswap-v4";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccount, readContract, writeContract } from "@wagmi/core";
-import { type Address, type Hex, type TransactionReceipt, encodeFunctionData, erc20Abi, isAddressEqual } from "viem";
+import { type Address, type Hex, type TransactionReceipt, encodeFunctionData, erc20Abi } from "viem";
 
 const REWARD_CAMPAIGNS_QUERY_KEY = "rewardCampaigns";
 
@@ -34,8 +34,6 @@ export type RewardCampaign = {
   rewardToken: Address;
   /** The wallet that deposited the budget: it changes the campaign and gets its refund. */
   funder: Address;
-  /** The registry's owner, which may change any campaign of it. */
-  registryOwner: Address;
   /** The deposit, minus what was refunded. */
   budget: bigint;
   /** Sent to the distributor so far: what the campaign emitted up to `releasedUpTo`. */
@@ -125,14 +123,14 @@ export async function readTokenMeta(token: Address, chainId: number) {
 }
 
 async function fetchChainCampaigns(payoutChainId: number, address: Address): Promise<RewardCampaign[]> {
-  const read = <T>(functionName: "getCampaigns" | "getReleases" | "getFunders" | "owner") =>
+  const read = <T>(functionName: "getCampaigns" | "getReleases" | "getFunders") =>
     readContract(config, {
       address,
       abi: rewardCampaignsAbi,
       functionName,
       chainId: payoutChainId as ConfigChainId,
     }) as Promise<T>;
-  const [campaigns, releases, funders, registryOwner] = await Promise.all([
+  const [campaigns, releases, funders] = await Promise.all([
     read<
       readonly {
         poolId: Hex;
@@ -144,7 +142,6 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
     >("getCampaigns"),
     read<readonly { released: bigint; upTo: bigint }[]>("getReleases"),
     read<readonly Address[]>("getFunders"),
-    read<Address>("owner"),
   ]);
   // The names are a convenience: a failed lookup leaves the pool id, never the campaigns, unreadable.
   const poolOutcomes = fetchPoolOutcomes(
@@ -164,7 +161,6 @@ async function fetchChainCampaigns(payoutChainId: number, address: Address): Pro
       poolId: c.poolId,
       rewardToken: c.rewardToken,
       funder: funders[i],
-      registryOwner,
       budget: c.budget,
       released: releases[i].released,
       releasedUpTo: Number(releases[i].upTo),
@@ -218,7 +214,7 @@ export function useRewardCampaignsEmitted(enabled: boolean) {
   });
 }
 
-/** Payout chains where `account` may create campaigns: it owns the registry or is one of its managers. */
+/** Payout chains where `account` may create campaigns: it is a registered manager. */
 export function useRewardCampaignManagerChains(account: Address | undefined) {
   return useQuery({
     queryKey: [REWARD_CAMPAIGNS_QUERY_KEY, "manager", account?.toLowerCase()],
@@ -227,11 +223,8 @@ export function useRewardCampaignManagerChains(account: Address | undefined) {
       const chains = await Promise.all(
         REGISTRY_CHAINS.map(async ({ chainId, address }) => {
           const common = { address, abi: rewardCampaignsAbi, chainId: chainId as ConfigChainId } as const;
-          const [owner, isManager] = await Promise.all([
-            readContract(config, { ...common, functionName: "owner" }),
-            readContract(config, { ...common, functionName: "isManager", args: [account!] }),
-          ]);
-          return isManager || isAddressEqual(owner, account!) ? [chainId] : [];
+          const isManager = await readContract(config, { ...common, functionName: "isManager", args: [account!] });
+          return isManager ? [chainId] : [];
         }),
       );
       return chains.flat();
@@ -244,13 +237,11 @@ export type RewardCampaignWrite =
       functionName: "createCampaign";
       args: readonly [Hex, Address, bigint, bigint, number];
     }
-  | { functionName: "setRate"; args: readonly [bigint, bigint] }
-  | { functionName: "settleRefund"; args: readonly [bigint] };
+  | { functionName: "setRate"; args: readonly [bigint, bigint] };
 
 const TOAST_TITLES: Record<RewardCampaignWrite["functionName"], [string, string]> = {
   createCampaign: ["Creating campaign...", "Campaign created!"],
   setRate: ["Updating rate...", "Rate updated!"],
-  settleRefund: ["Refunding...", "Refund sent to the funder!"],
 };
 
 /**

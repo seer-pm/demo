@@ -119,12 +119,13 @@ export async function syncDistributor({
     call:
       | { functionName: "acceptRoot" }
       | { functionName: "submitRoot"; args: readonly [Hex, Hex] }
+      | { functionName: "settleRefund"; args: readonly [bigint, bigint, Hex[]] }
       | { functionName: "release"; args: readonly [bigint[], bigint[], bigint] },
   ) => {
     const { functionName } = call;
     const { request } = await payoutClient.simulateContract({
       ...call,
-      ...(functionName === "release"
+      ...(functionName === "release" || functionName === "settleRefund"
         ? { address: registry.address, abi: rewardCampaignsAbi }
         : { address, abi: urdAbi }),
       account: wallet.account,
@@ -159,6 +160,23 @@ export async function syncDistributor({
   }
 
   const previous = state.ipfsHash === zeroHash ? undefined : await readFile(state.ipfsHash, state.root);
+  const readRegistry = <F extends "getCampaigns" | "getReleases">(functionName: F) =>
+    payoutClient.readContract({ address: registry.address, abi: rewardCampaignsAbi, functionName });
+  const [onchain, releases] = await Promise.all([readRegistry("getCampaigns"), readRegistry("getReleases")]);
+  for (const [id, settlement] of Object.entries(previous?.settlements ?? {})) {
+    if (onchain[Number(id)].budget > releases[Number(id)].released) {
+      try {
+        const tx = await send({
+          functionName: "settleRefund",
+          args: [BigInt(id), BigInt(settlement.emitted), settlement.proof],
+        });
+        done.push(`refunded campaign ${id} in ${tx}`);
+      } catch (error) {
+        // A token refusing the funder's transfer must not block publication for the other campaigns.
+        done.push(`refund for campaign ${id} deferred: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
   if (previous && parseCutoff(previous.cutoff) >= target) {
     return [...done, `up to date at ${previous.cutoff}`].join("; ");
   }
@@ -178,17 +196,11 @@ export async function syncDistributor({
     throw new Error(`root ${file.root} for ${file.cutoff} was revoked before; fix the campaigns or the engine first`);
   }
 
-  // Released before the root so the distributor can pay it, and before the empty-root return below so a
-  // campaign that ended without emitting anything still gets the release the rest of its refund waits for.
-  const releases = await payoutClient.readContract({
-    address: registry.address,
-    abi: rewardCampaignsAbi,
-    functionName: "getReleases",
-  });
-  const { due, stuck } = dueReleases(rawCampaigns, releases, emittedByCampaign(file.states), target);
+  // Released before the root so the distributor can pay it.
+  const budgets = onchain.map((c) => c.budget);
+  const { due, stuck } = dueReleases(rawCampaigns, releases, budgets, emittedByCampaign(file.states), target);
   if (stuck.length > 0) {
-    const ids = stuck.join(", ");
-    done.push(`ended campaigns ${ids} emitted below their release, so their refund stays held: release each by hand`);
+    done.push(`campaigns ${stuck.join(", ")} emitted less than was already released to the distributor`);
   }
   if (due.length > 0) {
     const ids = due.map(([id]) => BigInt(id));
@@ -197,8 +209,7 @@ export async function syncDistributor({
   }
 
   if (!previous && file.root === zeroHash) {
-    // An empty first root would only hold back the first real one for a whole timelock.
-    return [...done, `nothing earned by ${file.cutoff} yet`].join("; ");
+    return [...done, `nothing earned or awaiting settlement by ${file.cutoff} yet`].join("; ");
   }
 
   // The distributor pays `claimable - claimed`, so this is what it must hold for everyone to claim.
@@ -244,7 +255,11 @@ export async function syncDistributor({
     }
   }
 
-  const tx = await send({ functionName: "submitRoot", args: [file.root, cidToBytes32(cid)] });
+  const ipfsHash = cidToBytes32(cid);
+  if (revoked.has(revocationKey(file.root, ipfsHash))) {
+    throw new Error(`empty root for ${file.cutoff} (ipfs ${cid}) was revoked before; fix the campaigns or the engine`);
+  }
+  const tx = await send({ functionName: "submitRoot", args: [file.root, ipfsHash] });
   return [...done, `submitted root ${file.root} for ${file.cutoff} (ipfs ${cid}) in ${tx}`].join("; ");
 }
 
@@ -319,8 +334,15 @@ export async function estimateRewards({
   };
 }
 
-/** Every root that was pending and then revoked on the distributor. */
-async function revokedRoots(client: PublicClient, address: Address, fromBlock: bigint): Promise<Set<Hex>> {
+/**
+ * How `revokedRoots` names a revoked root: by the root, which a fixed file changes, except for the empty root, which
+ * every file without claims shares. That one is named with its IPFS hash, which the cutoff in the file changes, so a
+ * revoked empty file does not stop the empty files of later weeks.
+ */
+export const revocationKey = (root: Hex, ipfsHash: Hex): string => (root === zeroHash ? `${root}:${ipfsHash}` : root);
+
+/** Every root that was pending and then revoked on the distributor, by `revocationKey`. */
+export async function revokedRoots(client: PublicClient, address: Address, fromBlock: bigint): Promise<Set<string>> {
   const topics = (["PendingRootSet", "PendingRootRevoked"] as const).map(
     (eventName) => encodeEventTopics({ abi: urdAbi, eventName })[0],
   );
@@ -331,11 +353,11 @@ async function revokedRoots(client: PublicClient, address: Address, fromBlock: b
     await client.getBlockNumber(),
     1_000_000n,
   );
-  const revoked = new Set<Hex>();
-  let pending: Hex | undefined;
+  const revoked = new Set<string>();
+  let pending: string | undefined;
   for (const log of logs) {
     const event = decodeEventLog({ abi: urdAbi, topics: log.topics, data: log.data });
-    if (event.eventName === "PendingRootSet") pending = event.args.newRoot;
+    if (event.eventName === "PendingRootSet") pending = revocationKey(event.args.newRoot, event.args.newIpfsHash);
     else if (pending) revoked.add(pending);
   }
   return revoked;

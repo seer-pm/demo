@@ -34,35 +34,6 @@ export function campaignStatus(rates: readonly RewardRate[]): CampaignStatus {
   };
 }
 
-/** What the rates of an ended campaign emit from `from` to its end, as the registry's `_maxEmittedSince` does. */
-function maxEmittedSince(rates: readonly RewardRate[], from: bigint): bigint {
-  let total = 0n;
-  for (let i = rates.length - 1; i > 0 && rates[i].from > from; i--) {
-    const start = rates[i - 1].from > from ? rates[i - 1].from : from;
-    total += rates[i - 1].perSecond * (rates[i].from - start);
-  }
-  return total;
-}
-
-/**
- * What a refund of an ended campaign sends now (`amount`), and what the registry holds back (`held`) because the
- * campaign may have emitted it since the bot's last release. `held` comes back after the release of the week the
- * campaign ended in, minus what it did emit.
- */
-export function refundState(campaign: {
-  rates: readonly RewardRate[];
-  budget: bigint;
-  released: bigint;
-  releasedUpTo: number;
-}): { kind: "none" } | { kind: "held"; held: bigint } | { kind: "ready"; amount: bigint; held: bigint } {
-  if (!campaignStatus(campaign.rates).ended) return { kind: "none" };
-  const max = maxEmittedSince(campaign.rates, BigInt(campaign.releasedUpTo));
-  const remaining = campaign.budget - campaign.released;
-  const held = max < remaining ? max : remaining;
-  if (remaining > held) return { kind: "ready", amount: remaining - held, held };
-  return held > 0n ? { kind: "held", held } : { kind: "none" };
-}
-
 export const chainName = (chainId: number) => PAYOUT_CHAINS[chainId]?.chain.name ?? `Chain ${chainId}`;
 
 /** `yyyy-mm-dd` of a unix time, in UTC. */

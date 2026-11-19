@@ -34,7 +34,7 @@ export const rewardCampaignsAbi = parseAbi([
   "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks) returns (uint256 id)",
   "function setRate(uint256 id, uint256 perSecond)",
   "function release(uint256[] ids, uint256[] emitted, uint64 upTo)",
-  "function settleRefund(uint256 id)",
+  "function settleRefund(uint256 id, uint256 emitted, bytes32[] proof)",
   "event CampaignSet(uint256 indexed id, Campaign campaign)",
 ]);
 

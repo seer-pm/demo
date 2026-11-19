@@ -9,14 +9,7 @@ import {
   useTokenBalance,
   useWriteRewardCampaigns,
 } from "@/hooks/admin/useRewardCampaigns";
-import {
-  WEEK_SECONDS,
-  campaignStatus,
-  chainName,
-  formatWeekly,
-  perSecondFromWeekly,
-  refundState,
-} from "@/lib/reward-campaigns";
+import { WEEK_SECONDS, campaignStatus, chainName, formatWeekly, perSecondFromWeekly } from "@/lib/reward-campaigns";
 import { shortenAddress } from "@/lib/utils";
 import { V4_TICK_SPACING, getOrderBookPoolParams, getV4PoolId, marketSupportsOrderBook } from "@seer-pm/order-book";
 import { useMarket } from "@seer-pm/react";
@@ -24,7 +17,7 @@ import { PAYOUT_CHAINS } from "@seer-pm/rewards/claims";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Address, type Hex, formatUnits, isAddress, isAddressEqual, parseUnits, zeroAddress } from "viem";
+import { type Address, type Hex, formatUnits, isAddress, maxUint128, parseUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 /** `MAX_WIDTH_TICKS` of the registry: the full Uniswap V4 tick range, which no position exceeds. */
@@ -154,6 +147,8 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
 
   const budget = decimals === undefined ? undefined : parseAmount(form.budget, decimals);
   if (decimals !== undefined && !budget) errors.budget = "Enter the amount to deposit.";
+  // The registry caps a budget at 128 bits, so a larger one would revert after the approval.
+  else if (budget !== undefined && budget > maxUint128) errors.budget = "Too large for the campaign registry.";
   // Every selected pool gets its own campaign with this budget, so the deposit is the budget times the pools.
   const deposit = budget === undefined ? undefined : budget * BigInt(Math.max(pools, 1));
   const balanceError = useBalanceError(
@@ -406,10 +401,9 @@ export function RewardRatesForm({
         </Field>
       ) : (
         <p className="text-sm">
-          The campaign stops paying when the transaction is mined, and it cannot be restarted. What was earned until
-          then is kept. The budget it can no longer emit can then be refunded to {shortenAddress(campaign.funder)}, the
-          wallet that funded it, at once. What it may have emitted since the last weekly release is held until the bot
-          releases that week (after the next Monday 00:00 UTC), and what it did not emit can be refunded then.
+          Closing stops rewards at the block where this transaction is mined. Any budget above the maximum the campaign
+          could have emitted goes straight back to {shortenAddress(campaign.funder)}. LPs keep what they earned through
+          closure. Any remaining surplus is returned after the distributor accepts the final total.
         </p>
       )}
       <SubmitRow
@@ -418,48 +412,6 @@ export function RewardRatesForm({
         isPending={write.isPending}
         text={mode === "end" ? "End campaign" : "Change rate"}
         onSubmit={handleSubmit}
-      />
-    </div>
-  );
-}
-
-/** Sends what an ended campaign did not emit back to the wallet that funded it. */
-export function RewardRefundForm({ campaign, onClose }: { campaign: RewardCampaign; onClose: () => void }) {
-  const { address } = useAccount();
-  const write = useWriteRewardCampaigns(onClose);
-  const state = refundState(campaign);
-  const token = campaign.token;
-  if (state.kind !== "ready") {
-    return <Alert type="info">Nothing to refund yet.</Alert>;
-  }
-  return (
-    <div className="space-y-4">
-      <p className="text-sm">
-        Sends <strong>{token ? formatAmount(state.amount, token) : state.amount.toString()}</strong>, what the campaign
-        cannot have emitted, back to {shortenAddress(campaign.funder)}
-        {address && isAddressEqual(campaign.funder, address) && " (you)"}, the wallet that funded it.
-      </p>
-      {state.held > 0n && (
-        <p className="text-sm">
-          Up to <strong>{token ? formatAmount(state.held, token) : state.held.toString()}</strong> stays in escrow: the
-          campaign may have emitted it since the last weekly release. After the bot releases the week the campaign ended
-          in (after the next Monday 00:00 UTC), what it did not emit can be refunded too.
-        </p>
-      )}
-      <p className="text-[12px] text-base-content/70">
-        Any wallet can send it, since the tokens only go to the funder.
-      </p>
-      <SubmitRow
-        chainId={campaign.payoutChainId}
-        onClose={onClose}
-        isPending={write.isPending}
-        text="Refund"
-        onSubmit={() =>
-          write.mutate({
-            payoutChainId: campaign.payoutChainId,
-            writes: [{ functionName: "settleRefund", args: [campaign.id] }],
-          })
-        }
       />
     </div>
   );

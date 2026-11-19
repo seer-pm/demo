@@ -12,7 +12,7 @@ import {
   weekStart,
 } from "./engine.ts";
 import { fetchChainEvents, findLastBlockBefore } from "./events.ts";
-import type { RawCampaign } from "./registry.ts";
+import { type RawCampaign, emittedByCampaign } from "./registry.ts";
 
 /**
  * What gets published for one payout chain each week, and what its distributor's `ipfsHash`
@@ -72,6 +72,7 @@ export async function computeWeek({
     const publishedCampaigns = parseCampaigns({ campaigns: previous.campaigns });
     const [rebuilt] = buildDistributions({
       campaigns: publishedCampaigns,
+      emitted: emittedByCampaign(previous.states),
       accruals: Object.values(previous.states).flatMap((s) => [...parseState(s).accrued.values()]),
       cutoff: previousCutoff,
       sourceBlocks: Object.fromEntries(Object.entries(previous.sourceBlocks).map(([id, b]) => [id, BigInt(b)])),
@@ -117,7 +118,13 @@ export async function computeWeek({
     states[chainId] = serializeState(next);
   }
 
-  const [distribution] = buildDistributions({ campaigns, accruals, cutoff, sourceBlocks });
+  const [distribution] = buildDistributions({
+    campaigns,
+    accruals,
+    cutoff,
+    sourceBlocks,
+    emitted: emittedByCampaign(states),
+  });
   if (previous) assertNoDecrease(previous, distribution);
   return { ...distribution, campaigns: raw, states };
 }
