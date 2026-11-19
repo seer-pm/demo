@@ -4,7 +4,7 @@ import { base58 } from "@scure/base";
 import { type Address, type Hex, concat, getAddress, hexToBytes, parseAbi, toHex } from "viem";
 import type { Distribution } from "./distribution.ts";
 
-export { PAYOUT_CHAINS, SOURCE_CHAINS, type PayoutChain } from "./chains.ts";
+export { PAYOUT_CHAINS, SER_LPP, SOURCE_CHAINS, type PayoutChain } from "./chains.ts";
 export type { Distribution } from "./distribution.ts";
 export type { RewardsFile } from "./week.ts";
 

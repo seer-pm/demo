@@ -13,7 +13,7 @@ import { WEEK_SECONDS, campaignStatus, chainName, formatWeekly, perSecondFromWee
 import { shortenAddress } from "@/lib/utils";
 import { V4_TICK_SPACING, getOrderBookPoolParams, getV4PoolId, marketSupportsOrderBook } from "@seer-pm/order-book";
 import { useMarket } from "@seer-pm/react";
-import { PAYOUT_CHAINS } from "@seer-pm/rewards/claims";
+import { PAYOUT_CHAINS, SER_LPP } from "@seer-pm/rewards/claims";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -102,7 +102,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
   const [form, setForm] = useState({
     chainId: String(managerChains[0]),
     market: "",
-    rewardToken: "",
+    rewardToken: SER_LPP[managerChains[0]] ?? "",
     weekly: "",
     budget: "",
     minWidthTicks: "0",
@@ -198,7 +198,10 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           className="w-full"
           options={managerChains.map((id) => ({ value: String(id), text: chainName(id) }))}
           value={form.chainId}
-          onChange={(e) => selectMarket({ chainId: e.target.value })}
+          // A token address names a different contract on every chain, so the chain's SER-lpp replaces it.
+          onChange={(e) =>
+            selectMarket({ chainId: e.target.value, rewardToken: SER_LPP[Number(e.target.value)] ?? "" })
+          }
         />
       </Field>
 

@@ -84,6 +84,8 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
     data.pohUserAllocation,
     data.serLppMainnet,
     data.serLppGnosis,
+    data.serLppOptimism,
+    data.serLppBase,
   ].every((value) => !hasAmount(value));
 
   const pohShare =
@@ -128,6 +130,8 @@ export default function AirdropTable({ data, account }: { data: AirdropDataByUse
       <MetricGroup title="Liquidity" description="SER LP token balances, not SEER. Separate from the estimate above.">
         <Figure label="Ethereum" value={formatSeer(data.serLppMainnet)} />
         <Figure label="Gnosis" value={formatSeer(data.serLppGnosis)} />
+        <Figure label="Optimism" value={formatSeer(data.serLppOptimism)} />
+        <Figure label="Base" value={formatSeer(data.serLppBase)} />
       </MetricGroup>
     </div>
   );

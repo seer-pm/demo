@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { startOfWeek } from "date-fns";
-import { gnosis, mainnet } from "viem/chains";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
 import { holdingsSeerFromShare, pohSeerFromShare, projectedSeerFromShare } from "./utils/airdropAllocation";
 import { computePctOfAirdrop, countSnapshotDays } from "./utils/airdropCalculation/constants";
 import { Database } from "./utils/supabase";
@@ -205,6 +205,8 @@ export default async (req: Request) => {
         pctOfAirdrop,
         serLppMainnet: serLppBalances.find((x) => x.chain_id === mainnet.id)?.balance ?? 0,
         serLppGnosis: serLppBalances.find((x) => x.chain_id === gnosis.id)?.balance ?? 0,
+        serLppOptimism: serLppBalances.find((x) => x.chain_id === optimism.id)?.balance ?? 0,
+        serLppBase: serLppBalances.find((x) => x.chain_id === base.id)?.balance ?? 0,
       },
       200,
     );

@@ -1,5 +1,5 @@
 import { type Address, type Chain, zeroAddress } from "viem";
-import { base, mainnet, optimism } from "viem/chains";
+import { base, gnosis, mainnet, optimism } from "viem/chains";
 
 export type SourceChain = {
   chain: Chain;
@@ -60,6 +60,18 @@ export type PayoutChain = {
 
 // A zero address marks a pending deployment. Consumers skip chains without a registry.
 const registry = (address: Address, fromBlock: bigint) => (address === zeroAddress ? undefined : { address, fromBlock });
+
+/**
+ * SER-lpp ("Seer LP Point") on each chain: the Ethereum token, its OmniBridge copy on Gnosis and its OP Standard
+ * Bridge copies on Optimism and Base (`remoteToken` is the Ethereum one). The airdrop reads its holders, and a new
+ * reward campaign takes it as its default reward token.
+ */
+export const SER_LPP: Record<number, Address> = {
+  [mainnet.id]: "0xd14ef697281404646d8e2437a0050794a6a22fd6",
+  [gnosis.id]: "0xa7a7f8d1770c08e2e1f55d8c6427c1f8213a34da",
+  [optimism.id]: "0x5ee89A5E2b4c9204f0f42c6dF4aE1B226e862afD",
+  [base.id]: "0x813e4F03eAd3A106409b67bec6F91C34e2A489B9",
+};
 
 /** Chains rewards pay out on: the source chains, since a campaign pays out on its pool's chain in that chain's token. */
 export const PAYOUT_CHAINS: Record<number, PayoutChain> = {
