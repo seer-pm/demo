@@ -14,10 +14,15 @@ export type Distribution = {
   cutoff: string;
   /** Last block included per source chain. */
   sourceBlocks: Record<string, string>;
-  /** Zero only when there are neither claims nor campaign settlement leaves. */
+  /** Zero only when there are neither claims nor campaign release or settlement leaves. */
   root: Hex;
   totals: Record<Address, string>;
   claims: Record<Address, Record<Address, { claimable: string; proof: Hex[] }>>;
+  /**
+   * What each campaign that emitted anything emitted up to `cutoff`, with its proof: the registry's `release` pays
+   * the distributor these totals only once the distributor accepted this root.
+   */
+  releases: Record<string, { emitted: string; proof: Hex[] }>;
   settlements: Record<string, { emitted: string; proof: Hex[] }>;
   /** Per-position breakdown for the UI, floored per entry. */
   positions: { campaignId: string; chainId: number; tokenId: string; owner: Address; amount: string }[];
@@ -26,6 +31,8 @@ export type Distribution = {
 /** Leaf encoding of the Morpho Universal Rewards Distributor. */
 const claimTypes = parseAbiParameters("address, address, uint256");
 const settlementTypes = parseAbiParameters("uint256, address, uint256, uint64, uint256");
+/** `RewardCampaigns.release` leaf: tagged, so it never reads as a settlement leaf of the same words. */
+const releaseTypes = parseAbiParameters("string, uint256, address, uint256, uint64, uint256");
 
 const cmp = <T extends string | bigint>(a: T, b: T) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -69,13 +76,36 @@ export function buildDistributions({
     const hashes = leaves.map(([account, token, amount]) =>
       keccak256(keccak256(encodeAbiParameters(claimTypes, [account as Address, token as Address, BigInt(amount)]))),
     );
+    const registry = PAYOUT_CHAINS[payoutChainId]?.registry;
+    // Every campaign that emitted gets a leaf, not only those the registry has yet to pay, so the file alone
+    // rebuilds its root.
+    const releases: Distribution["releases"] = {};
+    const paying = campaigns.filter((c) => c.payoutChainId === payoutChainId && (emitted.get(c.id) ?? 0n) > 0n);
+    for (const c of paying) {
+      if (!registry) throw new Error(`Missing registry for campaign ${c.id}`);
+      const total = emitted.get(c.id)!;
+      hashes.push(
+        keccak256(
+          keccak256(
+            encodeAbiParameters(releaseTypes, [
+              "release",
+              BigInt(payoutChainId),
+              registry.address,
+              BigInt(c.id),
+              BigInt(cutoff),
+              total,
+            ]),
+          ),
+        ),
+      );
+      releases[c.id] = { emitted: total.toString(), proof: [] };
+    }
     const settlements: Distribution["settlements"] = {};
     const closed = campaigns.filter((c) => {
       const end = c.rates[c.rates.length - 1];
       return c.payoutChainId === payoutChainId && end.perSecond === 0n && end.from <= cutoff;
     });
     for (const c of closed) {
-      const registry = PAYOUT_CHAINS[payoutChainId]?.registry;
       const total = emitted.get(c.id);
       if (!registry || total === undefined) throw new Error(`Missing registry or final emission for campaign ${c.id}`);
       hashes.push(
@@ -94,8 +124,11 @@ export function buildDistributions({
       settlements[c.id] = { emitted: total.toString(), proof: [] };
     }
     const tree = hashes.length ? SimpleMerkleTree.of(hashes) : undefined;
+    paying.forEach((c, i) => {
+      releases[c.id].proof = tree!.getProof(leaves.length + i) as Hex[];
+    });
     closed.forEach((c, i) => {
-      settlements[c.id].proof = tree!.getProof(leaves.length + i) as Hex[];
+      settlements[c.id].proof = tree!.getProof(leaves.length + paying.length + i) as Hex[];
     });
     const claims: Distribution["claims"] = {};
     const totals: Distribution["totals"] = {};
@@ -115,6 +148,7 @@ export function buildDistributions({
       root: (tree?.root ?? zeroHash) as Hex,
       totals,
       claims,
+      releases,
       settlements,
       positions: sorted.map((a) => ({
         campaignId: a.campaignId,

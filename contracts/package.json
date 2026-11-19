@@ -55,6 +55,7 @@
     "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.3",
     "@nomicfoundation/hardhat-viem": "^1.0.0",
+    "@openzeppelin/merkle-tree": "^1.0.5",
     "@seer-pm/rewards": "workspace:*",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",

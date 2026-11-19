@@ -13,8 +13,8 @@ interface IRewardsRoot {
 /// @notice Liquidity reward campaigns of Seer's Uniswap V4 pools on this chain, and the escrow of their budgets.
 /// Rewards pay out on the pool's chain, so there is one registry per chain with pools, next to that chain's Morpho
 /// Universal Rewards Distributor. The weekly rewards bot (`packages/seer-pm-rewards`) rebuilds the campaigns from `CampaignSet`
-/// events up to each Monday cutoff, releases what each one emitted to the distributor and then submits the root
-/// that lets users claim it.
+/// events up to each Monday cutoff and submits a root with what users can claim and what each campaign emitted.
+/// Once the distributor accepts that root, `release` pays the distributor the emitted totals it proves.
 /// @dev Each campaign has one funder, the manager who created it and deposited its whole budget. The engine never
 /// emits more than the budget, so the distributor can always be paid in full, and what was not emitted goes back to
 /// the funder once the campaign ended. More rewards for a pool are a new campaign on the same pool, so a budget never
@@ -56,8 +56,7 @@ contract RewardCampaigns {
     }
 
     address public immutable distributor; // This chain's Universal Rewards Distributor.
-    address public owner; // Appoints managers and the releaser.
-    address public releaser; // The rewards bot.
+    address public owner; // Appoints managers.
     mapping(address => bool) public isManager; // Accounts that create campaigns.
     Campaign[] internal campaigns; // Campaign id = index.
 
@@ -67,7 +66,6 @@ contract RewardCampaigns {
     event Released(uint256 indexed id, uint256 amount, uint256 released, uint64 upTo);
     event Refunded(uint256 indexed id, address indexed funder, uint256 amount);
     event ManagerSet(address indexed account, bool active);
-    event ReleaserSet(address indexed releaser);
     event OwnerSet(address indexed owner);
 
     modifier onlyOwner() {
@@ -82,14 +80,11 @@ contract RewardCampaigns {
 
     /// @param _distributor This chain's Universal Rewards Distributor.
     /// @param _owner The owner of the registry, usually a Safe.
-    /// @param _releaser The rewards bot, or the zero address to set it later.
     /// @param _managers The initial managers.
-    constructor(address _distributor, address _owner, address _releaser, address[] memory _managers) {
+    constructor(address _distributor, address _owner, address[] memory _managers) {
         distributor = _distributor;
         owner = _owner;
-        releaser = _releaser;
         emit OwnerSet(_owner);
-        emit ReleaserSet(_releaser);
         for (uint256 i = 0; i < _managers.length; i++) {
             isManager[_managers[i]] = true;
             emit ManagerSet(_managers[i], true);
@@ -105,11 +100,6 @@ contract RewardCampaigns {
     function setManager(address account, bool active) external onlyOwner {
         isManager[account] = active;
         emit ManagerSet(account, active);
-    }
-
-    function setReleaser(address _releaser) external onlyOwner {
-        releaser = _releaser;
-        emit ReleaserSet(_releaser);
     }
 
     /// @notice Creates a campaign that emits `perSecond` from this block on, and deposits its whole `budget` from
@@ -161,17 +151,25 @@ contract RewardCampaigns {
     }
 
     /// @notice Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the
-    /// cumulative `emitted` of each, so a repeated call sends nothing more.
-    /// @dev Cumulative emission is bounded by the integral of the rates, including for corrections to the same week.
-    /// The releaser cannot transfer to any other destination or authorize a refund.
-    function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo) external {
-        require(msg.sender == releaser, "Only the releaser");
-        require(ids.length == emitted.length, "Length mismatch");
+    /// cumulative `emitted` of each, so a repeated call sends nothing more. Anyone may call it.
+    /// @dev Each total must be a release leaf of the root the distributor accepted, so it went through the
+    /// distributor's timelock and its owner's veto like the claims it pays. The key that proposes roots therefore
+    /// cannot pay out escrow at once, and every total is also bounded by the integral of the rates up to `upTo`.
+    function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo, bytes32[][] calldata proofs)
+        external
+    {
+        require(ids.length == emitted.length && ids.length == proofs.length, "Length mismatch");
         require(upTo <= block.timestamp, "Cutoff in the future");
+        bytes32 root = IRewardsRoot(distributor).root();
         for (uint256 i = 0; i < ids.length; i++) {
             Campaign storage campaign = _campaign(ids[i]);
             require(emitted[i] <= campaign.budget, "Over budget");
             require(emitted[i] <= _maxEmission(campaign.rates, upTo), "Over rate");
+            // The tag keeps this leaf apart from a settlement leaf, whose words have the same types after it.
+            bytes32 leaf = keccak256(
+                bytes.concat(keccak256(abi.encode("release", block.chainid, address(this), ids[i], upTo, emitted[i])))
+            );
+            require(MerkleProof.verifyCalldata(proofs[i], root, leaf), "Invalid release proof");
             uint256 amount = emitted[i] > campaign.released ? emitted[i] - campaign.released : 0;
             if (amount > 0) {
                 campaign.released = emitted[i];
@@ -188,7 +186,8 @@ contract RewardCampaigns {
         require(end.perSecond == 0, "Campaign not ended");
         uint256 paid = campaign.released;
         require(emitted <= paid, "Not released");
-        // The five-word preimage cannot be interpreted as a three-word URD claim. Bind to this deployment and end.
+        // The five-word preimage cannot be read as a three-word URD claim or an eight-word release leaf. Bind to this
+        // deployment and end.
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(block.chainid, address(this), id, end.from, emitted))));
         require(MerkleProof.verifyCalldata(proof, IRewardsRoot(distributor).root(), leaf), "Invalid settlement proof");
         if (_refund(id, campaign, paid)) emit CampaignSet(id, campaign);

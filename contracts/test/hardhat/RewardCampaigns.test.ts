@@ -1,10 +1,11 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { SimpleMerkleTree } from "@openzeppelin/merkle-tree";
 import { rewardCampaignsAbi } from "@seer-pm/rewards/claims";
 import { expect } from "chai";
 import type { ContractTransactionResponse } from "ethers";
 import { ethers, network } from "hardhat";
-import { CollateralToken, RewardCampaigns } from "../../typechain-types";
+import { CollateralToken, RewardCampaigns, RewardsRootMock } from "../../typechain-types";
 
 const POOL_ID = `0x${"ab".repeat(32)}`;
 const DAY = 86400;
@@ -12,16 +13,16 @@ const DAY = 86400;
 describe("RewardCampaigns", function () {
   let registry: RewardCampaigns;
   let token: CollateralToken;
+  let urd: RewardsRootMock;
   let owner: HardhatEthersSigner;
   let manager: HardhatEthersSigner;
-  let bot: HardhatEthersSigner;
-  let distributor: HardhatEthersSigner;
   let other: HardhatEthersSigner;
 
   beforeEach(async function () {
     await network.provider.send("evm_setAutomine", [true]);
-    [owner, manager, bot, distributor, other] = await ethers.getSigners();
-    registry = await (await ethers.getContractFactory("RewardCampaigns")).deploy(distributor, owner, bot, [manager]);
+    [owner, manager, other] = await ethers.getSigners();
+    urd = await (await ethers.getContractFactory("RewardsRootMock")).deploy();
+    registry = await (await ethers.getContractFactory("RewardCampaigns")).deploy(urd, owner, [manager]);
     token = await (await ethers.getContractFactory("CollateralToken")).deploy();
     await token.mint(manager, 10_000n);
     await token.connect(manager).approve(registry, 10_000n);
@@ -32,6 +33,41 @@ describe("RewardCampaigns", function () {
 
   const rates = async (id = 0) =>
     (await registry.getCampaign(id)).rates.map((rate) => [Number(rate.from), rate.perSecond]);
+
+  const coder = ethers.AbiCoder.defaultAbiCoder();
+  const leaf = (types: string[], values: unknown[]) => ethers.keccak256(ethers.keccak256(coder.encode(types, values)));
+  const chainId = async () => (await ethers.provider.getNetwork()).chainId;
+  const releaseLeaf = async (id: number, upTo: number, emitted: bigint) =>
+    leaf(
+      ["string", "uint256", "address", "uint256", "uint64", "uint256"],
+      ["release", await chainId(), await registry.getAddress(), id, upTo, emitted],
+    );
+  const settlementLeaf = async (id: number, end: number, emitted: bigint) =>
+    leaf(
+      ["uint256", "address", "uint256", "uint64", "uint256"],
+      [await chainId(), await registry.getAddress(), id, end, emitted],
+    );
+  // A root with what the bot publishes for `upTo`: one release leaf per campaign, plus any other leaves.
+  const publish = async (upTo: number, totals: [number, bigint][], extra: string[] = []) => {
+    const leaves = [...(await Promise.all(totals.map(([id, e]) => releaseLeaf(id, upTo, e)))), ...extra];
+    const tree = SimpleMerkleTree.of(leaves);
+    return {
+      root: tree.root,
+      proofs: totals.map((_, i) => tree.getProof(i)),
+      proof: (i: number) => tree.getProof(totals.length + i),
+    };
+  };
+  // Accepts a root proving `totals` at `upTo` and releases them from an account with no role.
+  const release = async (upTo: number, totals: [number, bigint][]) => {
+    const { root, proofs } = await publish(upTo, totals);
+    await urd.accept(root);
+    return registry.connect(other).release(
+      totals.map(([id]) => id),
+      totals.map(([, e]) => e),
+      upTo,
+      proofs,
+    );
+  };
 
   // The network also mines empty blocks on an interval, so the latest block can be later than `tx`'s.
   const minedAt = async (tx: ContractTransactionResponse) =>
@@ -127,23 +163,21 @@ describe("RewardCampaigns", function () {
     const cutoff = (await time.latest()) + DAY;
     await time.increaseTo(cutoff + 3600);
 
-    await expect(registry.connect(other).release([0], [300n], cutoff)).to.be.revertedWith(
-      "Only the releaser",
-    );
-    await expect(registry.connect(bot).release([0], [1001n], cutoff)).to.be.revertedWith("Over budget");
-    await expect(registry.connect(bot).release([0], [1n], cutoff + 7200)).to.be.revertedWith("Cutoff in the future");
+    await expect(release(cutoff, [[0, 1001n]])).to.be.revertedWith("Over budget");
+    await expect(release(cutoff + 7200, [[0, 1n]])).to.be.revertedWith("Cutoff in the future");
+    await expect(registry.release([0], [300n], cutoff, [])).to.be.revertedWith("Length mismatch");
 
-    await registry.connect(bot).release([0], [300n], cutoff);
+    await release(cutoff, [[0, 300n]]);
     // Repeating the same week, or a lower total, sends nothing more.
-    await registry.connect(bot).release([0], [300n], cutoff);
-    await registry.connect(bot).release([0], [200n], cutoff);
-    expect(await token.balanceOf(distributor)).to.equal(300n);
+    await release(cutoff, [[0, 300n]]);
+    await release(cutoff, [[0, 200n]]);
+    expect(await token.balanceOf(urd)).to.equal(300n);
 
-    await registry.connect(bot).release([0], [450n], cutoff + 1800);
-    expect(await token.balanceOf(distributor)).to.equal(450n);
+    await release(cutoff + 1800, [[0, 450n]]);
+    expect(await token.balanceOf(urd)).to.equal(450n);
     expect(await token.balanceOf(registry)).to.equal(550n);
     // A correction pays only the difference and records its own cutoff, not the latest cutoff.
-    const correction = await registry.connect(bot).release([0], [451n], cutoff);
+    const correction = await release(cutoff, [[0, 451n]]);
     await expect(correction).to.emit(registry, "Released").withArgs(0, 1n, 451n, cutoff);
     expect((await registry.getCampaigns())[0].released).to.equal(451n);
     const snapshots = await registry.queryFilter(registry.filters.CampaignSet());
@@ -165,45 +199,107 @@ describe("RewardCampaigns", function () {
     // 2 per second until the rate change, then 3 per second up to the cutoff.
     const max = BigInt(2 * (changed - start) + 3 * 5);
 
-    await expect(registry.connect(bot).release([0], [1000n], await time.latest())).to.be.revertedWith("Over rate");
-    await expect(registry.connect(bot).release([0], [max + 1n], first)).to.be.revertedWith("Over rate");
-    await registry.connect(bot).release([0], [max], first);
+    // Even a total the accepted root proves is capped by the rates.
+    await expect(release(await time.latest(), [[0, 1000n]])).to.be.revertedWith("Over rate");
+    await expect(release(first, [[0, max + 1n]])).to.be.revertedWith("Over rate");
+    await release(first, [[0, max]]);
 
     // Ten more seconds at rate 3 add exactly 30 to the cumulative cap.
     const second = first + 10;
-    await expect(registry.connect(bot).release([0], [max + 31n], second)).to.be.revertedWith("Over rate");
-    await registry.connect(bot).release([0], [max + 30n], second);
-    expect(await token.balanceOf(distributor)).to.equal(max + 30n);
+    await expect(release(second, [[0, max + 31n]])).to.be.revertedWith("Over rate");
+    await release(second, [[0, max + 30n]]);
+    expect(await token.balanceOf(urd)).to.equal(max + 30n);
     expect((await registry.getCampaign(0)).released).to.equal(max + 30n);
+  });
+
+  it("releases only a total the distributor's accepted root proves for that campaign and cutoff", async function () {
+    await create(5n, 1000n);
+    await create(5n, 1000n);
+    const cutoff = (await time.latest()) + 10;
+    await time.increaseTo(cutoff + 10);
+    const { root, proofs } = await publish(cutoff, [
+      [0, 30n],
+      [1, 20n],
+    ]);
+    const send = (id: number, emitted: bigint, upTo = cutoff, proof = proofs[id]) =>
+      registry.connect(other).release([id], [emitted], upTo, [proof]);
+
+    // A root that is only pending, or was never submitted, pays nothing.
+    await expect(send(0, 30n)).to.be.revertedWith("Invalid release proof");
+    await urd.accept(root);
+    await expect(send(0, 31n)).to.be.revertedWith("Invalid release proof");
+    await expect(send(0, 30n, cutoff - 1)).to.be.revertedWith("Invalid release proof");
+    await expect(send(1, 30n, cutoff, proofs[0])).to.be.revertedWith("Invalid release proof");
+    // A settlement leaf of the same words is not a release leaf.
+    const settlement = await settlementLeaf(0, cutoff, 30n);
+    const mixed = SimpleMerkleTree.of([settlement, ethers.id("other leaf")]);
+    await urd.accept(mixed.root);
+    await expect(send(0, 30n, cutoff, mixed.getProof(0))).to.be.revertedWith("Invalid release proof");
+
+    await urd.accept(root);
+    await send(0, 30n);
+    await send(1, 20n);
+    expect(await token.balanceOf(urd)).to.equal(50n);
+  });
+
+  it("keeps each campaign's escrow apart", async function () {
+    const start = await minedAt(await create(1n, 1000n));
+    await create(1n, 500n);
+    await time.increase(100);
+    const end = await minedAt(await registry.connect(manager).setRate(1, 0n));
+    const { root, proofs, proof } = await publish(
+      end,
+      [
+        [0, 50n],
+        [1, 60n],
+      ],
+      [await settlementLeaf(1, end, 60n)],
+    );
+    expect(end - start).to.be.greaterThan(50);
+    await urd.accept(root);
+    await registry.connect(other).release([0, 1], [50n, 60n], end, proofs);
+    await registry.connect(other).settleRefund(1, 60n, proof(0));
+    expect((await registry.getCampaign(1)).budget).to.equal(60n);
+    expect(await token.balanceOf(manager)).to.equal(10_000n - 1500n + 440n);
+    // Campaign 0 still holds what it has not emitted.
+    expect((await registry.getCampaign(0)).budget).to.equal(1000n);
+    expect(await token.balanceOf(registry)).to.equal(950n);
+    expect(await token.balanceOf(urd)).to.equal(110n);
+  });
+
+  it("settles no refund for a campaign that has not ended", async function () {
+    const start = await minedAt(await create(1n, 1000n));
+    await time.increase(10);
+    const { root, proof } = await publish(start + 5, [[0, 5n]], [await settlementLeaf(0, start, 5n)]);
+    await urd.accept(root);
+    await expect(registry.settleRefund(0, 5n, proof(0))).to.be.revertedWith("Campaign not ended");
   });
 
   for (const closeFirst of [true, false]) {
     it(`pays earned rewards and refunds only the surplus (close first: ${closeFirst})`, async function () {
-      const urd = await (await ethers.getContractFactory("RewardsRootMock")).deploy();
-      registry = await (await ethers.getContractFactory("RewardCampaigns")).deploy(urd, owner, bot, [manager]);
-      await token.connect(manager).approve(registry, 10000n);
       const start = await minedAt(await create(1n));
       await create(1n);
       await time.increase(100);
-      const pay = () => registry.connect(bot).release([0, 1], [60n, 30n], start + 100);
+      const pay = () =>
+        release(start + 100, [
+          [0, 60n],
+          [1, 30n],
+        ]);
       if (!closeFirst) await pay();
       await registry.setManager(manager, false);
       const end = await minedAt(await registry.connect(manager).setRate(0, 0));
       expect((await registry.getCampaign(0)).budget).to.equal(BigInt(end - start));
       expect(await token.balanceOf(manager)).to.equal(9000n - BigInt(end - start));
       if (closeFirst) await pay();
-      const chain = (await ethers.provider.getNetwork()).chainId;
-      const leaf = ethers.keccak256(ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
-        ["uint256", "address", "uint256", "uint64", "uint256"], [chain, await registry.getAddress(), 0, end, 70],
-      )));
-      const sibling = ethers.id("other leaf");
-      const root = ethers.keccak256(ethers.concat([leaf, sibling].sort()));
-      const settle = () => registry.connect(other).settleRefund(0, 70n, [sibling]);
-      await expect(registry.settleRefund(0, 60n, [sibling])).to.be.revertedWith("Invalid settlement proof");
-      await urd.accept(root);
+      // The final week's root proves both the release of the final total and the settlement on it.
+      const final = await publish(end, [[0, 70n]], [await settlementLeaf(0, end, 70n)]);
+      const settle = () => registry.connect(other).settleRefund(0, 70n, final.proof(0));
+      // Until the final root is accepted, the root proves only the earlier release.
+      await expect(registry.settleRefund(0, 60n, final.proof(0))).to.be.revertedWith("Invalid settlement proof");
+      await urd.accept(final.root);
       await expect(settle()).to.be.revertedWith("Not released");
-      await registry.connect(bot).release([0], [70n], end);
-      await expect(registry.settleRefund(0, 69n, [sibling])).to.be.revertedWith("Invalid settlement proof");
+      await registry.connect(other).release([0], [70n], end, final.proofs);
+      await expect(registry.settleRefund(0, 69n, final.proof(0))).to.be.revertedWith("Invalid settlement proof");
       await settle();
       await settle();
       expect(await token.balanceOf(manager)).to.equal(8930n);
@@ -212,11 +308,8 @@ describe("RewardCampaigns", function () {
     });
   }
 
-  it("lets only the owner manage managers, the releaser and ownership", async function () {
+  it("lets only the owner manage managers and ownership", async function () {
     await expect(registry.connect(manager).setManager(other, true)).to.be.revertedWith("Only the owner");
-    await expect(registry.connect(manager).setReleaser(other)).to.be.revertedWith("Only the owner");
-    await registry.setReleaser(other);
-    expect(await registry.releaser()).to.equal(other.address);
     await registry.setManager(manager, false);
     expect(await registry.isManager(manager)).to.equal(false);
     await registry.setOwner(other);

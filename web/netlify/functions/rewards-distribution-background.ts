@@ -7,10 +7,10 @@ import { getPublicClientByChainId, getWalletClientForNetwork } from "./utils/con
 /**
  * Weekly liquidity rewards for the V4 pools (`packages/seer-pm-rewards`): on every payout chain
  * with a distributor and a campaign registry, accepts the pending root once its timelock is over,
- * releases what the campaigns emitted and submits the root of the week that just settled.
- * `REWARDS_UPDATER_PRIVATE_KEY` is a hot wallet set as root updater on the distributors and as
- * releaser on the registries; it can propose and revoke roots but not skip the timelock, and can only
- * move escrowed budgets to the distributor, never beyond each campaign's deposit.
+ * releases what that root proves the campaigns emitted and submits the root of the week that just
+ * settled. `REWARDS_UPDATER_PRIVATE_KEY` is a hot wallet set as root updater on the distributors; it
+ * can propose and revoke roots but not skip the timelock. It has no role on the registries: their
+ * `release` pays only totals the accepted root proves, so escrow moves only after the timelock.
  */
 export default async (req: Request) => {
   const unauthorized = requireBackgroundSecret(req);

@@ -9,6 +9,7 @@ import {
   decodeEventLog,
   encodeEventTopics,
   erc20Abi,
+  getAddress,
   zeroHash,
 } from "viem";
 import { toIsoSeconds } from "./campaigns.ts";
@@ -75,12 +76,13 @@ type UpdaterWallet = WalletClient<Transport, Chain, Account>;
  *
  * 1. Accepts the pending root once its timelock is over (anyone may; the bot does it so claims open
  *    on time).
- * 2. Once a new week has settled and no root is pending, resumes from the file behind the current
+ * 2. Has the registry release to the distributor what each campaign emitted according to the
+ *    accepted root, whose release leaves prove it, then settles the refunds that root proves.
+ * 3. Once a new week has settled and no root is pending, resumes from the file behind the current
  *    root and computes the week from the chain's registry campaigns as of the cutoff.
- * 3. Has the registry release to the distributor what each campaign emitted, then checks the
- *    distributor holds enough to pay every unclaimed amount.
- * 4. Uploads the file to IPFS, checks it reads back, and submits its root, which becomes claimable
- *    after the timelock.
+ * 4. Checks the distributor will hold enough to pay every unclaimed amount once that file's
+ *    releases are paid, uploads the file to IPFS, checks it reads back, and submits its root, which
+ *    becomes claimable, and its releases payable, after the timelock.
  *
  * It never resubmits a root that was revoked, so revoking a bad root stops it until the campaigns
  * or the engine are fixed. Returns what it did, for the logs.
@@ -120,7 +122,7 @@ export async function syncDistributor({
       | { functionName: "acceptRoot" }
       | { functionName: "submitRoot"; args: readonly [Hex, Hex] }
       | { functionName: "settleRefund"; args: readonly [bigint, bigint, Hex[]] }
-      | { functionName: "release"; args: readonly [bigint[], bigint[], bigint] },
+      | { functionName: "release"; args: readonly [bigint[], bigint[], bigint, Hex[][]] },
   ) => {
     const { functionName } = call;
     const { request } = await payoutClient.simulateContract({
@@ -160,11 +162,28 @@ export async function syncDistributor({
   }
 
   const previous = state.ipfsHash === zeroHash ? undefined : await readFile(state.ipfsHash, state.root);
-  const onchain = await payoutClient.readContract({
-    address: registry.address,
-    abi: rewardCampaignsAbi,
-    functionName: "getCampaigns",
-  });
+  const readCampaigns = () =>
+    payoutClient.readContract({ address: registry.address, abi: rewardCampaignsAbi, functionName: "getCampaigns" });
+  let onchain = await readCampaigns();
+  // Paid right after the root is accepted, as its claims need these tokens, and before the settlements, which only
+  // refund once the final total is released.
+  const unpaid = Object.entries(previous?.releases ?? {}).filter(
+    ([id, { emitted }]) => BigInt(emitted) > onchain[Number(id)].released,
+  );
+  if (previous && unpaid.length > 0) {
+    const ids = unpaid.map(([id]) => BigInt(id));
+    const tx = await send({
+      functionName: "release",
+      args: [
+        ids,
+        unpaid.map(([, { emitted }]) => BigInt(emitted)),
+        BigInt(parseCutoff(previous.cutoff)),
+        unpaid.map(([, { proof }]) => proof),
+      ],
+    });
+    done.push(`released campaigns ${ids.join(", ")} up to ${previous.cutoff} in ${tx}`);
+    onchain = await readCampaigns();
+  }
   for (const [id, settlement] of Object.entries(previous?.settlements ?? {})) {
     const { budget, released } = onchain[Number(id)];
     if (budget > released) {
@@ -199,23 +218,23 @@ export async function syncDistributor({
     throw new Error(`root ${file.root} for ${file.cutoff} was revoked before; fix the campaigns or the engine first`);
   }
 
-  // Released before the root so the distributor can pay it.
+  // Checked before the root is proposed, since `release` reverts the whole batch once it is accepted.
   const { due, stuck } = dueReleases(rawCampaigns, onchain, emittedByCampaign(file.states), target);
   if (stuck.length > 0) {
     done.push(`campaigns ${stuck.join(", ")} emitted less than was already released to the distributor`);
-  }
-  if (due.length > 0) {
-    const ids = due.map(([id]) => BigInt(id));
-    const tx = await send({ functionName: "release", args: [ids, due.map(([, e]) => e), BigInt(target)] });
-    done.push(`released campaigns ${ids.join(", ")} up to ${file.cutoff} in ${tx}`);
   }
 
   if (!previous && file.root === zeroHash) {
     return [...done, `nothing earned or awaiting settlement by ${file.cutoff} yet`].join("; ");
   }
 
-  // The distributor pays `claimable - claimed`, so this is what it must hold for everyone to claim.
+  // The distributor pays `claimable - claimed`, so this is what it must hold for everyone to claim, less what
+  // this file's releases will send it once its root is accepted.
   const owed = new Map<Address, bigint>();
+  for (const [id, total] of due) {
+    const token = getAddress(rawCampaigns.find((c) => c.id === id)!.rewardToken);
+    owed.set(token, (owed.get(token) ?? 0n) - (total - onchain[Number(id)].released));
+  }
   const leaves = Object.entries(file.claims).flatMap(([account, tokens]) =>
     Object.entries(tokens).map(([token, { claimable }]) => ({
       account: account as Address,
@@ -233,6 +252,7 @@ export async function syncDistributor({
     batch.forEach(({ token, claimable }, j) => owed.set(token, (owed.get(token) ?? 0n) + claimable - claimed[j]));
   }
   for (const [token, amount] of owed) {
+    if (amount <= 0n) continue;
     const balance = await payoutClient.readContract({
       address: token,
       abi: erc20Abi,
@@ -240,7 +260,9 @@ export async function syncDistributor({
       args: [address],
     });
     if (balance < amount) {
-      throw new Error(`distributor holds ${balance} of ${token} but owes ${amount}: send ${amount - balance} more`);
+      throw new Error(
+        `distributor holds ${balance} of ${token} but owes ${amount} beyond this week's releases: send ${amount - balance} more`,
+      );
     }
   }
 

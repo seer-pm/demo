@@ -216,8 +216,8 @@ function AdminRewardsPage() {
           <h1 className="text-2xl font-semibold">Liquidity Rewards Admin</h1>
           <p className="text-sm text-base-content/70">
             Each chain's RewardCampaigns registry holds the campaigns of its pools and their budgets, and rewards pay
-            out on that chain. Every Monday 00:00 UTC the rewards bot releases what each campaign emitted to the chain's
-            distributor. What they emitted since is estimated every 2 hours.{" "}
+            out on that chain. Every Monday 00:00 UTC the rewards bot proposes what each campaign emitted, and the registry
+            releases it to the chain's distributor once that root clears the timelock. What they emitted since is estimated every 2 hours.{" "}
             <button
               type="button"
               className="text-purple-primary dark:text-purple-secondary hover:underline"

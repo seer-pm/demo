@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { getAddress, isAddress, zeroAddress } from "viem";
+import { getAddress, isAddress } from "viem";
 
 const DEPLOYMENT_NAME = "RewardCampaigns";
 
@@ -8,13 +8,12 @@ const DEPLOYMENT_NAME = "RewardCampaigns";
  * Deploys the `RewardCampaigns` registry of a chain with Seer V4 pools, next to its Universal Rewards Distributor
  * (`40-deploy-rewards-distributor.ts`). It holds the campaigns of the chain's pools, which pay out on the same
  * chain, and escrows their budgets;
- * `/admin/rewards` writes it and the weekly V4 rewards bot (`packages/seer-pm-rewards`) reads it and releases
- * what each campaign emitted to the distributor.
+ * `/admin/rewards` writes it and the weekly V4 rewards bot (`packages/seer-pm-rewards`) reads it and, once the
+ * distributor accepts a root, releases what each campaign emitted to the distributor with that root's proofs.
  *
- * - `REWARD_CAMPAIGNS_OWNER` (required): appoints managers and the releaser, usually a Safe.
+ * - `REWARD_CAMPAIGNS_OWNER` (required): appoints managers, usually a Safe.
  *   It has no default, so a full deploy never leaves the registry owned by whichever key ran it; that run skips it.
  * - `REWARD_CAMPAIGNS_MANAGERS`: comma-separated accounts that create and fund campaigns, each then updating its own.
- * - `REWARD_CAMPAIGNS_RELEASER`: the bot's wallet (`REWARDS_UPDATER_PRIVATE_KEY`), the same as `URD_ROOT_UPDATER`.
  *
  * An existing deployment on the network is kept; delete `deployments/<network>/RewardCampaigns.json` to deploy
  * a new one. A new registry restarts campaign ids at 0, which collide with the ids of the published weeks, so
@@ -48,19 +47,15 @@ const deployRewardCampaigns: DeployFunction = async (hre: HardhatRuntimeEnvironm
 			if (!isAddress(value)) throw new Error(`REWARD_CAMPAIGNS_MANAGERS has a bad address: ${value}`);
 			return getAddress(value);
 		});
-	const releaser = readAddress("REWARD_CAMPAIGNS_RELEASER") ?? zeroAddress;
 
 	const deployer =
 		(await getNamedAccounts()).deployer ?? (await hre.viem.getWalletClients())[0].account.address;
 	const deployment = await deployments.deploy(DEPLOYMENT_NAME, {
 		from: deployer,
-		args: [distributor.address, owner, releaser, managers],
+		args: [distributor.address, owner, managers],
 		log: true,
 	});
 
-	if (releaser === zeroAddress) {
-		console.log("no REWARD_CAMPAIGNS_RELEASER: the owner must call setReleaser(<bot wallet>) before the first week");
-	}
 	console.log(
 		'set PAYOUT_CHAINS[%s].registry in packages/seer-pm-rewards/src/chains.ts to { address: "%s", fromBlock: %sn }',
 		chainId,

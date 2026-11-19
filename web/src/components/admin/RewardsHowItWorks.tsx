@@ -44,9 +44,10 @@ const STEPS: { title: string; body: ReactNode }[] = [
           the pools' events up to the cutoff and works out how much each wallet has earned in total.
         </p>
         <p>
-          It then has the registry release what every campaign emitted to the chain's rewards distributor, uploads the
-          results to IPFS and submits their Merkle root. The root becomes claimable after the distributor's timelock (48
-          hours), which leaves time to revoke a wrong one.
+          It then uploads the results to IPFS and submits their Merkle root, which holds what each wallet can claim and
+          what each campaign emitted. The root becomes valid after the distributor's timelock (48 hours), which leaves
+          time to revoke a wrong one. Once it is accepted, the registry releases the proven totals to the chain's rewards
+          distributor and the claims open.
         </p>
       </>
     ),

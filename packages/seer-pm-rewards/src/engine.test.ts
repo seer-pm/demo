@@ -18,7 +18,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
 import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
 import { accountRewards, rewardCampaignsAbi, urdAbi } from "./claims.ts";
-import { revocationKey, revokedRoots } from "./distributor.ts";
+import { revocationKey, revokedRoots, syncDistributor } from "./distributor.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
@@ -249,7 +249,7 @@ describe("assertForwardOnly", () => {
 
 describe("buildDistributions", () => {
   it("sums an account across positions before flooring and emits URD-compatible proofs", () => {
-    const c = campaign();
+    const c = campaign({ id: "3" });
     const events = [
       tick(0, 0),
       mint(0, 1n, ALICE),
@@ -268,7 +268,10 @@ describe("buildDistributions", () => {
     const ended = { ...c, id: "7", rates: [...c.rates, { from: T0 + 1, perSecond: 0n }] };
     const [d] = buildDistributions({
       campaigns: [c, ended],
-      emitted: new Map([["7", 0n]]),
+      emitted: new Map([
+        ["3", 10n],
+        ["7", 0n],
+      ]),
       accruals,
       cutoff: T0 + 1,
       sourceBlocks: { 8453: 1n },
@@ -286,6 +289,27 @@ describe("buildDistributions", () => {
       settlement = keccak256(concat([settlement, sibling].sort()));
     }
     expect(settlement).toBe(d.root);
+    // Same check as RewardCampaigns.release, for each campaign that emitted anything.
+    expect(Object.keys(d.releases)).toEqual(["3"]);
+    let release = keccak256(
+      keccak256(
+        encodeAbiParameters(
+          [
+            { type: "string" },
+            { type: "uint256" },
+            { type: "address" },
+            { type: "uint256" },
+            { type: "uint64" },
+            { type: "uint256" },
+          ],
+          ["release", 8453n, PAYOUT_CHAINS[8453].registry!.address, 3n, BigInt(T0 + 1), 10n],
+        ),
+      ),
+    );
+    for (const sibling of d.releases[3].proof) {
+      release = keccak256(concat([release, sibling].sort()));
+    }
+    expect(release).toBe(d.root);
 
     expect(d.claims[ALICE][TOKEN].claimable).toBe("7");
     expect(d.claims[BOB][TOKEN].claimable).toBe("2");
@@ -579,6 +603,75 @@ describe("revokedRoots", () => {
     expect(revoked.has(revocationKey(zeroHash, hash(4)))).toBe(false);
     // A real root stays revoked under any file.
     expect(revoked.has(revocationKey(root, hash(5)))).toBe(true);
+  });
+});
+
+describe("syncDistributor", () => {
+  it("pays the accepted root's releases, then settles the refunds that need them, and skips what is done", async () => {
+    const root = pad("0xabc", { size: 32 });
+    const cutoff = "2026-11-09T00:00:00Z";
+    const proof = (n: number) => [pad(numberToHex(n), { size: 32 })];
+    const file = {
+      payoutChainId: 8453,
+      cutoff,
+      root,
+      releases: {
+        0: { emitted: "40", proof: proof(1) }, // Already paid.
+        1: { emitted: "70", proof: proof(2) }, // Ended: its refund needs this release first.
+        2: { emitted: "15", proof: proof(3) },
+      },
+      settlements: {
+        1: { emitted: "70", proof: proof(4) },
+        3: { emitted: "0", proof: proof(5) }, // Ended without emitting and already refunded.
+      },
+    };
+    const onchain = [
+      { budget: 1000n, released: 40n },
+      { budget: 100n, released: 60n },
+      { budget: 1000n, released: 0n },
+      { budget: 0n, released: 0n },
+    ];
+    const calls: { functionName: string; args?: readonly unknown[] }[] = [];
+    const payoutClient = {
+      getBlock: async () => ({ timestamp: BigInt(Date.parse(cutoff) / 1000 + 7200) }),
+      readContract: async ({ functionName }: { functionName: string }) =>
+        ({
+          root,
+          ipfsHash: pad("0x1234", { size: 32 }),
+          pendingRoot: [zeroHash, zeroHash, 0n],
+          getCampaigns: onchain.map((c) => ({ ...c })),
+        })[functionName],
+      simulateContract: async (request: unknown) => ({ request }),
+      waitForTransactionReceipt: async () => ({ status: "success" }),
+    } as unknown as PublicClient;
+    const wallet = {
+      account: { address: ALICE },
+      writeContract: async (call: { functionName: string; args: readonly bigint[][] }) => {
+        calls.push(call);
+        // The registry's own accounting, as far as this cycle reads it.
+        if (call.functionName === "release") {
+          call.args[0].forEach((id, i) => {
+            onchain[Number(id)].released = call.args[1][i];
+          });
+        }
+        return "0xfeed";
+      },
+    } as unknown as Parameters<typeof syncDistributor>[0]["wallet"];
+
+    const status = await syncDistributor({
+      payoutChainId: 8453,
+      payoutClient,
+      wallet,
+      clientFor: () => payoutClient,
+      ipfs: { upload: async () => "", fetch: async () => JSON.stringify(file) },
+      now: Date.parse(cutoff) / 1000 + 7200,
+    });
+
+    expect(calls.map(({ functionName, args }) => [functionName, args])).toEqual([
+      ["release", [[1n, 2n], [70n, 15n], BigInt(Date.parse(cutoff) / 1000), [proof(2), proof(3)]]],
+      ["settleRefund", [1n, 70n, proof(4)]],
+    ]);
+    expect(status).toMatch(/up to date at/);
   });
 });
 
