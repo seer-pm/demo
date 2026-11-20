@@ -15,13 +15,17 @@ interface IRewardsRoot {
 /// Universal Rewards Distributor. The weekly rewards bot (`packages/seer-pm-rewards`) rebuilds the campaigns from `CampaignSet`
 /// events up to each Monday cutoff and submits a root with what users can claim and what each campaign emitted.
 /// Once the distributor accepts that root, `release` pays the distributor the emitted totals it proves.
-/// @dev Each campaign has one funder, the manager who created it and deposited its whole budget. The engine never
-/// emits more than the budget, so the distributor can always be paid in full, and what was not emitted goes back to
-/// the funder once the campaign ended. More rewards for a pool are a new campaign on the same pool, so a budget never
-/// mixes the tokens of two wallets. The bot refuses campaign changes that would alter what an already published week
-/// emitted, and every change here takes effect from the block that makes it, so none can:
-/// - A campaign is never removed, and its pool, reward token, `minWidthTicks` and funder never change. Its budget
-///   only drops, when a refund sends what the campaign cannot emit back to the funder.
+/// @dev A manager creates a campaign without depositing anything, and it earns from that block on. Its budget is
+/// deposited later, at any time and also after the campaign ended, by whichever manager calls `fund`, who becomes its
+/// funder: until then its creator is. Until it is funded the bot keeps it out of every root, so no claim, release or
+/// settlement counts on tokens the registry does not hold, and the first root after `fund` pays everything it earned.
+/// The engine never emits more than the budget, so the distributor can always be paid in full, and what was not
+/// emitted goes back to the funder once the campaign ended. More rewards for a pool are a new campaign on the same
+/// pool, so a budget never mixes the tokens of two wallets. The bot refuses campaign changes that would alter what an
+/// already published week emitted, and every change here takes effect from the block that makes it, so none can:
+/// - A campaign is never removed, and its pool, reward token and `minWidthTicks` never change. Its funder changes
+///   once, when it is funded. Its budget only drops, when a refund sends what the campaign cannot emit back to the
+///   funder, or before the deposit, when ending the campaign lowers what `fund` takes.
 /// - A campaign starts when it is created, and a rate change applies from the block it is mined in. Rate history
 ///   is append-only; a rate of 0 ends the campaign for good, so its rates bound everything it can still emit.
 /// Reward tokens must transfer exactly the amount requested: fee-on-transfer and rebasing tokens are not supported.
@@ -48,9 +52,10 @@ contract RewardCampaigns {
     struct Campaign {
         bytes32 poolId; // V4 pool id on this chain.
         address rewardToken; // Token on this chain.
-        uint256 budget; // Total the campaign may ever emit, held here until it is released or refunded.
+        uint256 budget; // Total the campaign may ever emit, held here once funded until it is released or refunded.
         uint32 minWidthTicks; // Positions narrower than this (`tickUpper - tickLower`) neither earn nor dilute.
-        address funder; // Deposits the budget, controls the rate and receives refunds.
+        address funder; // Controls the rate and receives refunds: the creator until `fund`, then whoever funded it.
+        bool funded; // Whether the budget was deposited. Until then nothing is released or refunded.
         uint256 released; // Cumulative amount transferred to the distributor.
         Rate[] rates; // Strictly increasing `from`; the first one is the start of the campaign.
     }
@@ -102,8 +107,8 @@ contract RewardCampaigns {
         emit ManagerSet(account, active);
     }
 
-    /// @notice Creates a campaign that emits `perSecond` from this block on, and deposits its whole `budget` from
-    /// the caller, who must have approved this contract for it and becomes its funder.
+    /// @notice Creates a campaign that emits `perSecond` from this block on, up to `budget` in total. Nothing is
+    /// deposited: the caller controls it until a manager funds it with `fund`.
     /// @return id The id of the new campaign.
     function createCampaign(
         bytes32 poolId,
@@ -129,7 +134,18 @@ contract RewardCampaigns {
         campaign.minWidthTicks = minWidthTicks;
         campaign.rates.push(Rate(uint64(block.timestamp), perSecond));
         emit CampaignSet(id, campaign);
-        IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), budget);
+    }
+
+    /// @notice Deposits campaign `id`'s budget from the caller, who must have approved this contract for it and
+    /// becomes the campaign's funder: it controls the rate from now on and receives the refunds. A campaign is funded
+    /// once, at any time, also after it ended, and the first root after this pays everything it earned.
+    function fund(uint256 id) external onlyManager {
+        Campaign storage campaign = _campaign(id);
+        require(!campaign.funded, "Already funded");
+        campaign.funded = true;
+        campaign.funder = msg.sender;
+        emit CampaignSet(id, campaign);
+        IERC20(campaign.rewardToken).safeTransferFrom(msg.sender, address(this), campaign.budget);
     }
 
     /// @notice Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool
@@ -163,6 +179,8 @@ contract RewardCampaigns {
         bytes32 root = IRewardsRoot(distributor).root();
         for (uint256 i = 0; i < ids.length; i++) {
             Campaign storage campaign = _campaign(ids[i]);
+            // Every campaign of a token shares one balance, so an unfunded one would be paid from the others' escrow.
+            require(campaign.funded, "Not funded");
             require(emitted[i] <= campaign.budget, "Over budget");
             require(emitted[i] <= _maxEmission(campaign.rates, upTo), "Over rate");
             // The tag keeps this leaf apart from a settlement leaf, whose words have the same types after it.
@@ -184,6 +202,7 @@ contract RewardCampaigns {
         Campaign storage campaign = _campaign(id);
         Rate storage end = campaign.rates[campaign.rates.length - 1];
         require(end.perSecond == 0, "Campaign not ended");
+        require(campaign.funded, "Not funded");
         uint256 paid = campaign.released;
         require(emitted <= paid, "Not released");
         // The five-word preimage cannot be read as a three-word URD claim or an eight-word release leaf. Bind to this
@@ -197,6 +216,8 @@ contract RewardCampaigns {
         if (keep >= campaign.budget) return false;
         uint256 amount = campaign.budget - keep;
         campaign.budget = keep;
+        // Before the deposit there is nothing to send back: the lower budget is what `fund` will take.
+        if (!campaign.funded) return true;
         emit Refunded(id, campaign.funder, amount);
         IERC20(campaign.rewardToken).safeTransfer(campaign.funder, amount);
         return true;

@@ -24,12 +24,13 @@ export const urdAbi = parseAbi([
 /** A payout chain's `RewardCampaigns` registry, read and released by the bot and written by the admin page. */
 export const rewardCampaignsAbi = parseAbi([
   "struct Rate { uint64 from; uint256 perSecond; }",
-  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; address funder; uint256 released; Rate[] rates; }",
+  "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; address funder; bool funded; uint256 released; Rate[] rates; }",
   "function owner() view returns (address)",
   "function isManager(address account) view returns (bool)",
   "function campaignCount() view returns (uint256)",
   "function getCampaigns(uint256 from, uint256 to) view returns (Campaign[])",
   "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks) returns (uint256 id)",
+  "function fund(uint256 id)",
   "function setRate(uint256 id, uint256 perSecond)",
   "function release(uint256[] ids, uint256[] emitted, uint64 upTo, bytes32[][] proofs)",
   "function settleRefund(uint256 id, uint256 emitted, bytes32[] proof)",
@@ -83,6 +84,11 @@ export type RewardsEstimate = {
   claims: Record<Address, Record<Address, string>>;
   /** What each campaign has emitted in total up to `asOf`, by campaign id (registry index). */
   emitted: Record<string, string>;
+  /**
+   * What each account earned in campaigns still waiting for their deposit, per reward token. No root includes it
+   * until a manager funds them, so it is not in `claims`.
+   */
+  unfunded?: Record<Address, Record<Address, string>>;
 };
 
 /** One reward token of one account on one distributor. */
@@ -101,17 +107,32 @@ export type AccountReward = {
   upcoming: bigint;
   /** Earned after the newest root (pending, else active), by the estimate; no root includes it yet. */
   accruing: bigint;
+  /** Earned in campaigns still waiting for their deposit, by the estimate; paid once a manager funds them. */
+  unfunded: bigint;
 };
 
 const leafOf = (file: Distribution | undefined, account: Address, token: Address) => file?.claims[account]?.[token];
 
-/** Tokens `account` has an amount for in any of `sources` (distributions or an estimate). */
+/**
+ * Tokens `account` has an amount for in any of `sources` (distributions or an estimate), including what an estimate
+ * holds for campaigns not funded yet: `accountRewards` gives a row for each of these tokens.
+ */
 export function accountTokens(
   account: Address,
-  ...sources: ({ claims: Record<Address, Record<Address, unknown>> } | undefined)[]
+  ...sources: (
+    | { claims: Record<Address, Record<Address, unknown>>; unfunded?: RewardsEstimate["unfunded"] }
+    | undefined
+  )[]
 ): Address[] {
   const key = getAddress(account);
-  return [...new Set(sources.flatMap((source) => Object.keys(source?.claims[key] ?? {})))] as Address[];
+  return [
+    ...new Set(
+      sources.flatMap((source) => [
+        ...Object.keys(source?.claims[key] ?? {}),
+        ...Object.keys(source?.unfunded?.[key] ?? {}),
+      ]),
+    ),
+  ] as Address[];
 }
 
 /**
@@ -148,6 +169,7 @@ export function accountRewards({
       claimable: earned > paid ? earned - paid : 0n,
       upcoming: next > earned ? next - earned : 0n,
       accruing: estimated > published ? estimated - published : 0n,
+      unfunded: BigInt(estimate?.unfunded?.[key]?.[token] ?? 0),
     };
   });
 }

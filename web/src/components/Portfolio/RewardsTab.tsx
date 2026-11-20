@@ -46,6 +46,7 @@ export function RewardsTable({
           const estimateTime = estimatedAt.get(row.chainId);
           const showUpcoming = row.upcoming > 0n && validAt !== undefined;
           const showAccruing = row.accruing > 0n && estimateTime !== undefined;
+          const showUnfunded = row.unfunded > 0n && estimateTime !== undefined;
           const chainName = SUPPORTED_CHAINS[row.chainId as SupportedChain]?.name ?? `chain ${row.chainId}`;
           return (
             <li
@@ -79,7 +80,16 @@ export function RewardsTable({
                     </span>
                   </p>
                 ) : null}
-                {!showUpcoming && !showAccruing ? (
+                {showUnfunded ? (
+                  <p className="text-[14px]">
+                    <span className="tabular-nums font-semibold">+{amount(row.unfunded)}</span>{" "}
+                    <span className="text-base-content/70">
+                      pending funding (estimate): earned in campaigns not funded yet, settled the first Monday after
+                      they are funded
+                    </span>
+                  </p>
+                ) : null}
+                {!showUpcoming && !showAccruing && !showUnfunded ? (
                   <p className="text-[14px] text-base-content/70">Nothing pending</p>
                 ) : null}
               </div>

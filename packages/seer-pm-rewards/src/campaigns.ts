@@ -19,6 +19,11 @@ export type Campaign = {
   budget?: bigint;
   /** Positions narrower than this (`tickUpper - tickLower`) neither earn nor dilute. */
   minWidthTicks: number;
+  /**
+   * False while the registry campaign waits for its deposit: it accrues, but no claim, release or settlement leaf
+   * includes it. A hand-written campaigns file may leave it out, which counts as funded.
+   */
+  funded: boolean;
 };
 
 const UINT = /^\d+$/;
@@ -73,6 +78,8 @@ export function parseCampaigns(json: unknown): Campaign[] {
       if (i > 0 && tier.from <= rates[i - 1].from) fail(id, "rate tiers must be in strictly increasing order");
     });
 
+    if (raw.funded !== undefined && typeof raw.funded !== "boolean") fail(id, "funded must be true or false");
+
     const minWidthTicks = raw.minWidthTicks ?? 0;
     if (typeof minWidthTicks !== "number" || !Number.isInteger(minWidthTicks) || minWidthTicks < 0) {
       fail(id, "minWidthTicks must be a non-negative integer");
@@ -87,6 +94,7 @@ export function parseCampaigns(json: unknown): Campaign[] {
       rates,
       budget: raw.budget === undefined ? undefined : parseUint(id, "budget", raw.budget),
       minWidthTicks,
+      funded: raw.funded !== false,
     };
   });
 }

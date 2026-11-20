@@ -14,6 +14,8 @@ export type RawCampaign = {
   rates: { from: string; perSecond: string }[];
   budget: string;
   minWidthTicks: number;
+  /** Whether its budget was deposited. A hand-written campaigns file may leave it out, which counts as funded. */
+  funded?: boolean;
 };
 
 /**
@@ -39,6 +41,7 @@ export function campaignsFromLogs(logs: RpcLog[], payoutChainId: number): RawCam
       rates: c.rates.map((rate) => ({ from: toIsoSeconds(Number(rate.from)), perSecond: rate.perSecond.toString() })),
       budget: c.budget.toString(),
       minWidthTicks: c.minWidthTicks,
+      funded: c.funded,
     });
   }
   return [...byId.values()];
@@ -107,6 +110,8 @@ export function dueReleases(
   const stuck: string[] = [];
   const blocked: string[] = [];
   for (const c of campaigns) {
+    // Its file has no release leaf until it is funded, so no release pays it.
+    if (c.funded === false) continue;
     const { budget, released } = onchain[Number(c.id)];
     const total = emitted.get(c.id) ?? 0n;
     if (total < released) stuck.push(c.id);

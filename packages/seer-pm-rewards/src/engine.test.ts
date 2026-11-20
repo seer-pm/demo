@@ -17,8 +17,16 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { type Campaign, assertForwardOnly, parseCampaigns, toIsoSeconds } from "./campaigns.ts";
 import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
-import { CAMPAIGN_PAGE, accountRewards, bytes32ToCid, readAllCampaigns, rewardCampaignsAbi, urdAbi } from "./claims.ts";
-import { assertNoDecrease, buildDistributions } from "./distribution.ts";
+import {
+  CAMPAIGN_PAGE,
+  accountRewards,
+  accountTokens,
+  bytes32ToCid,
+  readAllCampaigns,
+  rewardCampaignsAbi,
+  urdAbi,
+} from "./claims.ts";
+import { assertNoDecrease, buildDistributions, unfundedEarnings } from "./distribution.ts";
 import { WATCH_GRACE_SECONDS, revocationKey, revokedRoots, syncDistributor, watchDistributor } from "./distributor.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
@@ -372,12 +380,15 @@ describe("accountRewards", () => {
     const active = file({ [CAROL]: { [TOKEN]: "100" } });
     const pending = file({ [CAROL]: { [TOKEN]: "150", [OTHER]: "7" } });
     const NEW = getAddress("0x00000000000000000000000000000000000000ee");
+    const UNFUNDED = getAddress("0x00000000000000000000000000000000000000ff");
     // The estimate builds on the pending root, so TOKEN accrues 170 - 150, not 170 - 100.
     const estimate = {
       payoutChainId: 8453,
       asOf: "",
       claims: { [CAROL]: { [TOKEN]: "170", [NEW]: "9" } },
       emitted: {},
+      // Earned in a campaign still waiting for its deposit: no root includes it, so it is apart from what accrues.
+      unfunded: { [CAROL]: { [TOKEN]: "5", [UNFUNDED]: "3" } },
     };
     // Lowercase input: the file is keyed by checksummed addresses.
     const rewards = accountRewards({
@@ -396,10 +407,15 @@ describe("accountRewards", () => {
         claimable: 60n,
         upcoming: 50n,
         accruing: 20n,
+        unfunded: 5n,
       },
-      { token: OTHER, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 7n, accruing: 0n },
-      { token: NEW, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 0n, accruing: 9n },
+      { token: OTHER, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 7n, accruing: 0n, unfunded: 0n },
+      { token: NEW, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 0n, accruing: 9n, unfunded: 0n },
+      // A token only an unfunded campaign pays still gets a row, and the UI reads its metadata from the same list.
+      { token: UNFUNDED, earned: 0n, proof: [], claimed: 0n, claimable: 0n, upcoming: 0n, accruing: 0n, unfunded: 3n },
     ]);
+    // The portfolio reads each row's metadata by this list, so it must name every row's token.
+    expect(accountTokens(CAROL, active, pending, estimate)).toEqual(rewards.map((r) => r.token));
   });
 });
 
@@ -416,6 +432,7 @@ describe("campaignsFromLogs", () => {
           budget: 1000n,
           minWidthTicks: 0,
           funder: ALICE,
+          funded: true,
           released: 0n,
           rates: [{ from: BigInt(T0), perSecond: 10n }],
           ...campaign,
@@ -805,6 +822,44 @@ describe("computeWeeks", () => {
     expect(await computeWeeks({ ...base, cutoff: T0, campaignsAt })).toBeUndefined();
   });
 
+  it("keeps a campaign out of the root until it is funded, then pays everything it earned", async () => {
+    const funded: RawCampaign = {
+      id: "0",
+      chainId: 8453,
+      payoutChainId: 8453,
+      poolId: POOL,
+      rewardToken: TOKEN,
+      budget: "5000000",
+      rates: [{ from: "2026-11-02T00:00:00Z", perSecond: "1" }],
+      minWidthTicks: 0,
+      funded: true,
+    };
+    // Same pool and token, twice the rate, and nothing deposited during week one.
+    const unfunded = { ...funded, id: "1", rates: [{ from: "2026-11-02T00:00:00Z", perSecond: "2" }], funded: false };
+    const base = { payoutChainId: 8453, clientFor: () => client };
+
+    const weekOne = await computeWeek({ ...base, cutoff: T0 + WEEK, rawCampaigns: [funded, unfunded] });
+    // The other campaign of the token pays as usual. The unfunded one has no claim, release or settlement leaf,
+    // but the engine keeps counting what it emits.
+    expect(weekOne.claims[ALICE][TOKEN].claimable).toBe(String(WEEK));
+    expect(Object.keys(weekOne.releases)).toEqual(["0"]);
+    expect(emittedByCampaign(weekOne.states).get("1")).toBe(BigInt(2 * WEEK));
+    const accruals = Object.values(weekOne.states).flatMap((s) => [...parseState(s).accrued.values()]);
+    expect(unfundedEarnings(parseCampaigns({ campaigns: weekOne.campaigns }), accruals)).toEqual({
+      [ALICE]: { [TOKEN]: String(2 * WEEK) },
+    });
+
+    // Funded during week two: the week's root rebuilds week one from its file and adds both weeks of campaign 1.
+    const weekTwo = await computeWeek({
+      ...base,
+      cutoff: T0 + 2 * WEEK,
+      rawCampaigns: [funded, { ...unfunded, funded: true }],
+      previous: weekOne,
+    });
+    expect(weekTwo.claims[ALICE][TOKEN].claimable).toBe(String(2 * WEEK + 4 * WEEK));
+    expect(weekTwo.releases[1].emitted).toBe(String(4 * WEEK));
+  });
+
   it("watchDistributor flags a pending root it does not recompute, unpaid releases and a missed week", async () => {
     // The registry, on the same fake chain, created one campaign at 1 per second in the block that holds every event.
     const campaignSet = rewardCampaignsAbi.find((item) => item.type === "event" && item.name === "CampaignSet")!;
@@ -818,6 +873,7 @@ describe("computeWeeks", () => {
           budget: 2_000_000n,
           minWidthTicks: 0,
           funder: ALICE,
+          funded: true,
           released: 0n,
           rates: [{ from: BigInt(T0), perSecond: 1n }],
         },
@@ -836,10 +892,18 @@ describe("computeWeeks", () => {
     // A root that pays Bob what Alice earned, with a file that matches it.
     const stolen = { ...honest!, root: pad("0xbad", { size: 32 }), claims: { [BOB]: honest!.claims[ALICE] } };
     const hash = (n: number) => pad(numberToHex(n), { size: 32 });
+    // The honest root, behind a file whose engine states credit Alice's position to Bob from now on.
+    const forged = {
+      ...honest!,
+      states: JSON.parse(JSON.stringify(honest!.states).replace(new RegExp(ALICE.slice(2), "gi"), BOB.slice(2))),
+    };
+    expect(JSON.stringify(forged.states)).not.toBe(JSON.stringify(honest!.states));
     const files = new Map([
       [bytes32ToCid(hash(1)), honest!],
       [bytes32ToCid(hash(2)), stolen],
+      [bytes32ToCid(hash(3)), forged],
     ]);
+    const texts = new Map<string, string>();
 
     const watch = ({
       active,
@@ -865,7 +929,7 @@ describe("computeWeeks", () => {
         payoutChainId: 8453,
         payoutClient,
         clientFor: () => client,
-        ipfs: { upload: async () => "", fetch: async (cid) => JSON.stringify(files.get(cid)) },
+        ipfs: { upload: async () => "", fetch: async (cid) => texts.get(cid) ?? JSON.stringify(files.get(cid)) },
         now,
       });
     };
@@ -875,6 +939,15 @@ describe("computeWeeks", () => {
     expect((await watch({ pending: hash(1), now: justAfter })).alerts).toEqual([]);
     const [mismatch] = (await watch({ pending: hash(2), now: justAfter })).alerts;
     expect(mismatch).toMatch(/^pending root 0x0+bad for .* is not the recomputed .*: revoke it from the Safe/);
+    expect((await watch({ pending: hash(3), now: justAfter })).alerts).toEqual([
+      expect.stringMatching(/is the recomputed one, but its IPFS file is not the recomputed file: revoke it/),
+    ]);
+    // Text that parses to the honest file is still not the file the bot publishes.
+    texts.set(bytes32ToCid(hash(4)), JSON.stringify(honest, null, 1));
+    files.set(bytes32ToCid(hash(4)), honest!);
+    expect((await watch({ pending: hash(4), now: justAfter })).alerts).toEqual([
+      expect.stringMatching(/its IPFS file is not the recomputed file/),
+    ]);
     // The honest root, once a refund left the campaign less budget than it emitted, would revert its release.
     const [revert] = (await watch({ pending: hash(1), budget: 1000n, now: justAfter })).alerts;
     expect(revert).toMatch(/would revert its release .*over the budget/);

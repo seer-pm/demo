@@ -94,8 +94,8 @@ function SubmitRow({
 
 /**
  * Creates one campaign per selected outcome pool of a market on one of `managerChains`, each with the same rate and
- * budget, depositing every budget from the connected wallet. Rewards pay out on the pool's chain, so its registry
- * is the one on that chain.
+ * budget. Nothing is deposited: any manager funds each campaign later (`FundRewardCampaignForm`). Rewards pay out on
+ * the pool's chain, so its registry is the one on that chain.
  */
 export function CreateRewardCampaignForm({ managerChains, onClose }: { managerChains: number[]; onClose: () => void }) {
   const [outcomes, setOutcomes] = useState<number[]>([0]);
@@ -146,29 +146,18 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
   else if (perSecond === 0n) errors.weekly = "Too small: it rounds to 0 per second.";
 
   const budget = decimals === undefined ? undefined : parseAmount(form.budget, decimals);
-  if (decimals !== undefined && !budget) errors.budget = "Enter the amount to deposit.";
-  // The registry caps a budget at 128 bits, so a larger one would revert after the approval.
+  if (decimals !== undefined && !budget) errors.budget = "Enter the budget.";
+  // The registry caps a budget at 128 bits.
   else if (budget !== undefined && budget > maxUint128) errors.budget = "Too large for the campaign registry.";
-  // Every selected pool gets its own campaign with this budget, so the deposit is the budget times the pools.
-  const deposit = budget === undefined ? undefined : budget * BigInt(Math.max(pools, 1));
-  const balanceError = useBalanceError(
-    token.data ? { address: rewardToken as Address, ...token.data } : undefined,
-    deposit,
-    chainId,
-  );
-  if (balanceError && !errors.budget) errors.budget = balanceError;
+  // Every selected pool gets its own campaign with this budget, so funding them all takes the budget times the pools.
+  const total = budget === undefined ? undefined : budget * BigInt(Math.max(pools, 1));
 
   const minWidthTicks = Number(form.minWidthTicks);
   if (!Number.isInteger(minWidthTicks) || minWidthTicks < 0 || minWidthTicks > MAX_WIDTH_TICKS) {
     errors.minWidthTicks = "A whole number of ticks, 0 for any width.";
   }
 
-  const isValid =
-    Object.keys(errors).length === 0 &&
-    pools > 0 &&
-    perSecond !== undefined &&
-    budget !== undefined &&
-    deposit !== undefined;
+  const isValid = Object.keys(errors).length === 0 && pools > 0 && perSecond !== undefined && budget !== undefined;
   const visible = (field: keyof typeof form) => (submitted || form[field] ? errors[field] : undefined);
 
   const handleSubmit = () => {
@@ -180,7 +169,6 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
         functionName: "createCampaign" as const,
         args: [poolId, rewardToken as Address, perSecond!, budget!, minWidthTicks] as const,
       })),
-      deposit: { token: rewardToken as Address, symbol: token.data.symbol, amount: deposit! },
     });
   };
 
@@ -191,7 +179,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
       <Field
         id="reward-chain"
         label="Chain"
-        hint="The pool's chain. Rewards pay out here, and its registry holds the deposit."
+        hint="The pool's chain. Rewards pay out here, and its registry holds the budget once funded."
       >
         <Select
           id="reward-chain"
@@ -286,7 +274,7 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           id="reward-budget"
           label={`Budget, each pool${token.data ? ` (${token.data.symbol})` : ""}`}
           error={visible("budget")}
-          hint="Deposited from your wallet now. It caps the total payout and lasts (budget ÷ per week) weeks, longer while no eligible liquidity is in range. It cannot be topped up later."
+          hint="Deposited later by the manager that funds the campaign. It caps the total payout and lasts (budget ÷ per week) weeks, longer while no eligible liquidity is in range. It cannot be topped up later."
         >
           <Input
             id="reward-budget"
@@ -328,23 +316,67 @@ export function CreateRewardCampaignForm({ managerChains, onClose }: { managerCh
           {pools > 1 && token.data && (
             <>
               {" "}
-              You deposit <strong>{formatAmount(deposit!, token.data)}</strong> in total for {pools} campaigns.
+              Funding all {pools} campaigns takes <strong>{formatAmount(total!, token.data)}</strong>.
             </>
           )}
         </p>
       )}
       <p className="text-[12px] text-base-content/70">
-        Creating it approves and deposits the budget, and the campaign starts paying when the transaction is mined. The
-        pool, token, budget and minimum width cannot change once created: to add rewards later, create another campaign
-        on the same pool.
+        Creating it deposits nothing. The campaign starts earning when the transaction is mined, and what it earns
+        becomes claimable once any manager funds it with its budget (Fund, in the campaign list), at any time, also
+        after it ended. The pool, token, budget and minimum width cannot change once created: to add rewards later,
+        create another campaign on the same pool.
       </p>
 
       <SubmitRow
         chainId={chainId}
         onClose={onClose}
         isPending={write.isPending}
-        text={pools > 1 ? `Create ${pools} campaigns and deposit` : "Create and deposit"}
+        text={pools > 1 ? `Create ${pools} campaigns` : "Create campaign"}
         onSubmit={handleSubmit}
+      />
+    </div>
+  );
+}
+
+/**
+ * Deposits `campaign`'s budget from the connected manager wallet, which becomes the campaign's funder. The first
+ * Monday root after it pays everything the campaign earned so far.
+ */
+export function FundRewardCampaignForm({ campaign, onClose }: { campaign: RewardCampaign; onClose: () => void }) {
+  const write = useWriteRewardCampaigns(onClose);
+  const { token } = campaign;
+  const balanceError = useBalanceError(
+    token ? { address: campaign.rewardToken, ...token } : undefined,
+    campaign.budget,
+    campaign.payoutChainId,
+  );
+
+  if (!token) {
+    return <Alert type="error">The reward token cannot be read on {chainName(campaign.payoutChainId)}.</Alert>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm">
+        Deposits <strong>{formatAmount(campaign.budget, token)}</strong> from your wallet. You become the campaign's
+        funder: you control its rate and receive what it does not emit. What it earned so far becomes claimable 48 hours
+        after the next Monday update.
+      </p>
+      {balanceError && <p className="text-[12px] text-error-primary">{balanceError}</p>}
+      <SubmitRow
+        chainId={campaign.payoutChainId}
+        onClose={onClose}
+        isPending={write.isPending}
+        text="Fund campaign"
+        onSubmit={() =>
+          !balanceError &&
+          write.mutate({
+            payoutChainId: campaign.payoutChainId,
+            writes: [{ functionName: "fund", args: [campaign.id] }],
+            deposit: { token: campaign.rewardToken, symbol: token.symbol, amount: campaign.budget },
+          })
+        }
       />
     </div>
   );
@@ -385,7 +417,9 @@ export function RewardRatesForm({
     <div className="space-y-4">
       <p className="text-sm">
         Now: <strong>{formatWeekly(status.current, token)}</strong> ·{" "}
-        {formatAmount(campaign.budget - campaign.released, token)} left in escrow
+        {campaign.funded
+          ? `${formatAmount(campaign.budget - campaign.released, token)} left in escrow`
+          : `not funded, budget ${formatAmount(campaign.budget, token)}`}
       </p>
       {mode === "rate" ? (
         <Field
@@ -404,9 +438,10 @@ export function RewardRatesForm({
         </Field>
       ) : (
         <p className="text-sm">
-          Closing stops rewards at the block where this transaction is mined. Any budget above the maximum the campaign
-          could have emitted goes straight back to {shortenAddress(campaign.funder)}. LPs keep what they earned through
-          closure. Any remaining surplus is returned after the distributor accepts the final total.
+          Closing stops rewards at the block where this transaction is mined. LPs keep what they earned through closure.
+          {campaign.funded
+            ? ` Any budget above the maximum the campaign could have emitted goes straight back to ${shortenAddress(campaign.funder)}. Any remaining surplus is returned after the distributor accepts the final total.`
+            : " The budget drops to the maximum the campaign could have emitted, which is what funding it will take."}
         </p>
       )}
       <SubmitRow

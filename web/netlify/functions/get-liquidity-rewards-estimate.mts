@@ -28,7 +28,15 @@ export default async (req: Request) => {
     Object.keys(PAYOUT_CHAINS).map((chainId) => readJsonBlob<RewardsEstimate>(REWARDS_ESTIMATE_STORE, chainId)),
   );
   const body: RewardsEstimate[] = estimates.flatMap((estimate) =>
-    estimate ? [{ ...estimate, claims: key && estimate.claims[key] ? { [key]: estimate.claims[key] } : {} }] : [],
+    estimate
+      ? [
+          {
+            ...estimate,
+            claims: key && estimate.claims[key] ? { [key]: estimate.claims[key] } : {},
+            unfunded: key && estimate.unfunded?.[key] ? { [key]: estimate.unfunded[key] } : {},
+          },
+        ]
+      : [],
   );
   return json(body, 200, "public, max-age=60");
 };

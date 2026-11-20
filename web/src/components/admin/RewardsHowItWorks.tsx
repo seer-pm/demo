@@ -12,9 +12,14 @@ const STEPS: { title: string; body: ReactNode }[] = [
           token (each chain has its own bridged SER-LP).
         </p>
         <p>
-          The manager deposits the whole budget into the registry when it creates the campaign, and the campaign starts
-          paying from that block. The registry holds it in escrow: nothing reaches liquidity providers until the bot
-          releases what was earned.
+          The campaign starts earning from the block it is created in, without a deposit. Any manager funds it later by
+          depositing its budget into the registry, at any time, also after it ended, and becomes its funder. Until then
+          the bot leaves it out of every weekly root, and the first root after it is funded includes everything it
+          earned.
+        </p>
+        <p>
+          The registry holds the budget in escrow: nothing reaches liquidity providers until the bot releases what was
+          earned.
         </p>
       </>
     ),
@@ -66,8 +71,9 @@ const STEPS: { title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>
-          Only the wallet that funded a campaign can change its rate. A new rate applies from the block it is set in,
-          and setting it to 0 ends the campaign for good.
+          Only the campaign's funder can change its rate: the manager that created it until it is funded, then the
+          manager that funded it. A new rate applies from the block it is set in, and setting it to 0 ends the campaign
+          for good.
         </p>
         <p>
           To add rewards to a pool, or to pay a different width, create another campaign on it. Campaigns on the same
@@ -80,9 +86,10 @@ const STEPS: { title: string; body: ReactNode }[] = [
     title: "6. Unspent budget goes back to the funder",
     body: (
       <p>
-        Closing a campaign immediately returns what it could not have earned. The registry keeps enough to pay LPs
-        through the closing block. Once the distributor accepts the final total and the registry has released it, anyone
-        can use the published proof to return the remaining escrow to the funder. The bot does this automatically.
+        Closing a campaign immediately returns what it could not have earned, or, before it is funded, lowers the budget
+        that funding it takes. The registry keeps enough to pay LPs through the closing block. Once the distributor
+        accepts the final total and the registry has released it, anyone can use the published proof to return the
+        remaining escrow to the funder. The bot does this automatically.
       </p>
     ),
   },

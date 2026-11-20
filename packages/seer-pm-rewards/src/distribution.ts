@@ -54,8 +54,12 @@ export function buildDistributions({
   const payoutChainIds = [...new Set(campaigns.map((c) => c.payoutChainId))];
 
   return payoutChainIds.map((payoutChainId) => {
+    // A campaign waiting for its deposit keeps accruing, and the first root after it is funded pays all of it.
     const sorted = accruals
-      .filter((a) => campaignById.get(a.campaignId)!.payoutChainId === payoutChainId)
+      .filter((a) => {
+        const c = campaignById.get(a.campaignId)!;
+        return c.payoutChainId === payoutChainId && c.funded;
+      })
       .sort((a, b) => cmp(a.campaignId, b.campaignId) || cmp(a.tokenId, b.tokenId) || cmp(a.owner, b.owner));
 
     // Accounts are summed across pools before flooring, so splitting a position never loses a unit.
@@ -80,7 +84,9 @@ export function buildDistributions({
     // Every campaign that emitted gets a leaf, not only those the registry has yet to pay, so the file alone
     // rebuilds its root.
     const releases: Distribution["releases"] = {};
-    const paying = campaigns.filter((c) => c.payoutChainId === payoutChainId && (emitted.get(c.id) ?? 0n) > 0n);
+    const paying = campaigns.filter(
+      (c) => c.payoutChainId === payoutChainId && c.funded && (emitted.get(c.id) ?? 0n) > 0n,
+    );
     for (const c of paying) {
       if (!registry) throw new Error(`Missing registry for campaign ${c.id}`);
       const total = emitted.get(c.id)!;
@@ -103,7 +109,7 @@ export function buildDistributions({
     const settlements: Distribution["settlements"] = {};
     const closed = campaigns.filter((c) => {
       const end = c.rates[c.rates.length - 1];
-      return c.payoutChainId === payoutChainId && end.perSecond === 0n && end.from <= cutoff;
+      return c.payoutChainId === payoutChainId && c.funded && end.perSecond === 0n && end.from <= cutoff;
     });
     for (const c of closed) {
       const total = emitted.get(c.id);
@@ -159,6 +165,34 @@ export function buildDistributions({
       })),
     };
   });
+}
+
+/**
+ * What each account earned in the campaigns still waiting for their deposit, per reward token, summed across
+ * positions before flooring like a claim. `buildDistributions` leaves these accruals out of the root until the
+ * campaign is funded.
+ */
+export function unfundedEarnings(
+  campaigns: Campaign[],
+  accruals: PositionAccrual[],
+): Record<Address, Record<Address, string>> {
+  const tokenOf = new Map(campaigns.filter((c) => !c.funded).map((c) => [c.id, c.rewardToken]));
+  const sums = new Map<string, { account: Address; token: Address; amountX128: bigint }>();
+  for (const { campaignId, owner, amountX128 } of accruals) {
+    const token = tokenOf.get(campaignId);
+    if (!token) continue;
+    const account = getAddress(owner);
+    const sum = sums.get(`${account}:${token}`) ?? { account, token, amountX128: 0n };
+    sum.amountX128 += amountX128;
+    sums.set(`${account}:${token}`, sum);
+  }
+  const earned: Record<Address, Record<Address, string>> = {};
+  for (const { account, token, amountX128 } of sums.values()) {
+    if (amountX128 < Q128) continue;
+    earned[account] ??= {};
+    earned[account][token] = (amountX128 / Q128).toString();
+  }
+  return earned;
 }
 
 /**

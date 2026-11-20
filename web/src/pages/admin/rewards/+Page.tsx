@@ -1,6 +1,10 @@
 import { Alert } from "@/components/Alert";
 import Button from "@/components/Form/Button";
-import { CreateRewardCampaignForm, RewardRatesForm } from "@/components/admin/RewardCampaignForms";
+import {
+  CreateRewardCampaignForm,
+  FundRewardCampaignForm,
+  RewardRatesForm,
+} from "@/components/admin/RewardCampaignForms";
 import { RewardsHowItWorks } from "@/components/admin/RewardsHowItWorks";
 import {
   type CampaignEmitted,
@@ -19,10 +23,11 @@ import { useState } from "react";
 import { type Address, formatUnits, isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
 
-type ActionKind = "rate" | "end";
+type ActionKind = "fund" | "rate" | "end";
 type Action = { kind: ActionKind; campaign: RewardCampaign };
 
 const ACTION_TITLES: Record<ActionKind, string> = {
+  fund: "Fund",
   rate: "Change rate",
   end: "End",
 };
@@ -33,12 +38,15 @@ function CampaignRow({
   campaign,
   emitted,
   account,
+  canFund,
   onAction,
 }: {
   campaign: RewardCampaign;
   /** Undefined while the estimate has not covered this campaign yet. */
   emitted: CampaignEmitted | undefined;
   account: Address | undefined;
+  /** The campaign is not funded yet and `account` manages its chain's registry. */
+  canFund: boolean;
   onAction: (action: Action) => void;
 }) {
   const status = campaignStatus(campaign.rates);
@@ -95,7 +103,8 @@ function CampaignRow({
         {/* An ended campaign shows the rate it paid last rather than its closing zero rate. */}
         {token ? formatWeekly(status.lastPaid, token) : shortenAddress(campaign.rewardToken)}
         <div className="text-[12px] text-base-content/70">
-          Funded by {shortenAddress(campaign.funder)}
+          {campaign.funded ? "Funded by " : "Created by "}
+          {shortenAddress(campaign.funder)}
           {account && isAddressEqual(campaign.funder, account) && " (you)"}
         </div>
       </td>
@@ -103,6 +112,7 @@ function CampaignRow({
         <span className={status.ended ? "text-base-content/50" : "text-success-primary"}>
           {status.ended ? "ended" : "active"}
         </span>
+        {!campaign.funded && <span className="text-warning-primary"> · not funded</span>}
         <div className="text-[12px] text-base-content/60">
           {toDate(status.start)} → {status.end !== undefined ? toDate(status.end) : "open"}
         </div>
@@ -121,9 +131,13 @@ function CampaignRow({
         )}
       </td>
       <td className="whitespace-nowrap space-x-3">
+        {canFund && action("fund", "Fund")}
         {canEdit && !status.ended && action("rate", "Change rate")}
         {canEdit && !status.ended && action("end", "End")}
-        {status.ended && campaign.budget > campaign.released && (
+        {!campaign.funded && (
+          <div className="text-[12px] text-base-content/60">What it earns is claimable once a manager funds it</div>
+        )}
+        {campaign.funded && status.ended && campaign.budget > campaign.released && (
           <div className="text-[12px] text-base-content/60">
             {amount(campaign.budget - campaign.released)} in escrow pending final settlement
           </div>
@@ -135,6 +149,7 @@ function CampaignRow({
 
 function ActionForm({ action, onClose }: { action: Action; onClose: () => void }) {
   const { kind, campaign } = action;
+  if (kind === "fund") return <FundRewardCampaignForm campaign={campaign} onClose={onClose} />;
   return <RewardRatesForm campaign={campaign} mode={kind} onClose={onClose} />;
 }
 
@@ -216,8 +231,9 @@ function AdminRewardsPage() {
           <h1 className="text-2xl font-semibold">Liquidity Rewards Admin</h1>
           <p className="text-sm text-base-content/70">
             Each chain's RewardCampaigns registry holds the campaigns of its pools and their budgets, and rewards pay
-            out on that chain. Every Monday 00:00 UTC the rewards bot proposes what each campaign emitted, and the registry
-            releases it to the chain's distributor once that root clears the timelock. What they emitted since is estimated every 2 hours.{" "}
+            out on that chain. Every Monday 00:00 UTC the rewards bot proposes what each campaign emitted, and the
+            registry releases it to the chain's distributor once that root clears the timelock. What they emitted since
+            is estimated every 2 hours.{" "}
             <button
               type="button"
               className="text-purple-primary dark:text-purple-secondary hover:underline"
@@ -277,6 +293,7 @@ function AdminRewardsPage() {
                 campaign={campaign}
                 emitted={emitted?.get(`${campaign.payoutChainId}-${campaign.id}`)}
                 account={address}
+                canFund={!campaign.funded && managerChains.includes(campaign.payoutChainId)}
                 onAction={openAction}
               />
             ))}

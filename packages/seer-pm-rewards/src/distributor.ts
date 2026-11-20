@@ -12,7 +12,7 @@ import {
   getAddress,
   zeroHash,
 } from "viem";
-import { toIsoSeconds } from "./campaigns.ts";
+import { parseCampaigns, toIsoSeconds } from "./campaigns.ts";
 import { PAYOUT_CHAINS } from "./chains.ts";
 import {
   IPFS_GATEWAY,
@@ -23,7 +23,8 @@ import {
   rewardCampaignsAbi,
   urdAbi,
 } from "./claims.ts";
-import { weekStart } from "./engine.ts";
+import { unfundedEarnings } from "./distribution.ts";
+import { parseState, weekStart } from "./engine.ts";
 import { getLogs } from "./events.ts";
 import { type RawCampaign, campaignHistory, dueReleases, emittedByCampaign } from "./registry.ts";
 import { type RewardsFile, computeWeek, computeWeeks, parseCutoff } from "./week.ts";
@@ -59,7 +60,12 @@ export const klerosIpfs: Ipfs = {
 
 /** The file behind `root` on `payoutChainId`'s distributor, whose `ipfsHash` is `hash`. */
 async function readRewardsFile(ipfs: Ipfs, hash: Hex, root: Hex, payoutChainId: number): Promise<RewardsFile> {
-  const file: RewardsFile = JSON.parse(await ipfs.fetch(bytes32ToCid(hash)));
+  return parseRewardsFile(await ipfs.fetch(bytes32ToCid(hash)), hash, root, payoutChainId);
+}
+
+/** Parses `text`, the IPFS content behind `hash`, as the file behind `root` on `payoutChainId`'s distributor. */
+function parseRewardsFile(text: string, hash: Hex, root: Hex, payoutChainId: number): RewardsFile {
+  const file: RewardsFile = JSON.parse(text);
   if (file.root !== root || file.payoutChainId !== payoutChainId) {
     throw new Error(`IPFS file ${bytes32ToCid(hash)} is not the one behind root ${root} on chain ${payoutChainId}`);
   }
@@ -316,8 +322,9 @@ export const WATCH_GRACE_SECONDS = 6 * 3600;
  * this is what tells the Safe to use them. Returns one alert per problem, each saying what to do, and none when all
  * is well:
  *
- * - A pending root that is not the root this code computes for its cutoff from the accepted file, or whose
- *   releases the registry would refuse once it is accepted. The Safe revokes it before it becomes valid.
+ * - A pending root that is not the root this code computes for its cutoff from the accepted file, a file behind it
+ *   that is not the file this code computes, or releases the registry would refuse once it is accepted. The Safe
+ *   revokes it before it becomes valid.
  * - A pending root left unaccepted, or no root at all, well after it was due: the bot is failing.
  * - Releases of the accepted root still unpaid, which leaves its claims without funds.
  *
@@ -372,7 +379,8 @@ export async function watchDistributor({
   }
 
   if (validAt !== 0n) {
-    const pending = await readRewardsFile(ipfs, pendingIpfsHash, pendingRoot, payoutChainId);
+    const pendingText = await ipfs.fetch(bytes32ToCid(pendingIpfsHash));
+    const pending = parseRewardsFile(pendingText, pendingIpfsHash, pendingRoot, payoutChainId);
     const cutoff = parseCutoff(pending.cutoff);
     const revoke = `revoke it from the Safe with revokePendingRoot before ${at(validAt)}`;
     if (active && cutoff <= parseCutoff(active.cutoff)) {
@@ -384,6 +392,14 @@ export async function watchDistributor({
       if (file?.root !== pendingRoot) {
         const recomputed = file?.root ?? "nothing (no campaigns)";
         alerts.push(`pending root ${pendingRoot} for ${pending.cutoff} is not the recomputed ${recomputed}: ${revoke}`);
+      } else if (pendingText !== JSON.stringify(file)) {
+        // The root covers neither the engine states the next weeks resume from nor what campaigns waiting for their
+        // deposit earned, so a file that differs only there would pay the wrong accounts once they are funded. The
+        // bot publishes exactly `JSON.stringify(file)`, so the text is compared as read: parsing first would hide
+        // differences such as 1e999 for a null, which reads back as Infinity and serializes as null again.
+        alerts.push(
+          `pending root ${pendingRoot} for ${pending.cutoff} is the recomputed one, but its IPFS file is not the recomputed file: ${revoke}`,
+        );
       } else {
         try {
           dueReleases(file.campaigns as RawCampaign[], onchain, emittedByCampaign(file.states), cutoff);
@@ -480,6 +496,10 @@ export async function estimateRewards({
       ]),
     ) as RewardsEstimate["claims"],
     emitted: Object.fromEntries([...emittedByCampaign(file.states)].map(([id, total]) => [id, total.toString()])),
+    unfunded: unfundedEarnings(
+      parseCampaigns({ campaigns: file.campaigns }),
+      Object.values(file.states).flatMap((state) => [...parseState(state).accrued.values()]),
+    ),
   };
 }
 

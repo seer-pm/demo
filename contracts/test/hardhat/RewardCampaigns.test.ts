@@ -28,8 +28,12 @@ describe("RewardCampaigns", function () {
     await token.connect(manager).approve(registry, 10_000n);
   });
 
-  const create = async (perSecond: bigint, budget = 1000n, signer = manager) =>
-    registry.connect(signer).createCampaign(POOL_ID, token, perSecond, budget, 60);
+  // Creates a campaign and has its creator fund it; returns the creation, whose block starts the campaign.
+  const create = async (perSecond: bigint, budget = 1000n, signer = manager) => {
+    const created = await registry.connect(signer).createCampaign(POOL_ID, token, perSecond, budget, 60);
+    await registry.connect(signer).fund(await registry.campaignCount() - 1n);
+    return created;
+  };
 
   const rates = async (id = 0) =>
     (await registry.getCampaign(id)).rates.map((rate) => [Number(rate.from), rate.perSecond]);
@@ -73,24 +77,84 @@ describe("RewardCampaigns", function () {
   const minedAt = async (tx: ContractTransactionResponse) =>
     (await ethers.provider.getBlock((await tx.wait())!.blockNumber))!.timestamp;
 
-  it("creates a campaign starting in its block and takes its budget from the caller", async function () {
-    await expect(create(1n, 1000n, other)).to.be.revertedWith("Only a manager");
-    await expect(create(0n)).to.be.revertedWith("Missing rate");
-    await expect(create(1n, 0n)).to.be.revertedWith("Missing budget");
-    await expect(create(1001n, 1000n)).to.be.revertedWith("Rate over budget");
+  it("creates a campaign starting in its block without taking a deposit", async function () {
+    const createOnly = (perSecond: bigint, budget: bigint, signer = manager) =>
+      registry.connect(signer).createCampaign(POOL_ID, token, perSecond, budget, 60);
+    await expect(createOnly(1n, 1000n, other)).to.be.revertedWith("Only a manager");
+    await expect(createOnly(0n, 1000n)).to.be.revertedWith("Missing rate");
+    await expect(createOnly(1n, 0n)).to.be.revertedWith("Missing budget");
+    await expect(createOnly(1001n, 1000n)).to.be.revertedWith("Rate over budget");
     // A rate is at most the budget, so a 128-bit budget keeps rate × time within 256 bits.
-    await expect(create(1n, 2n ** 128n)).to.be.revertedWith("Budget too large");
-    const createdAt = await minedAt(await create(5n, 1000n));
+    await expect(createOnly(1n, 2n ** 128n)).to.be.revertedWith("Budget too large");
+    const createdAt = await minedAt(await createOnly(5n, 1000n));
 
     const campaign = await registry.getCampaign(0);
     expect(campaign.poolId).to.equal(POOL_ID);
     expect(campaign.budget).to.equal(1000n);
     expect(campaign.minWidthTicks).to.equal(60);
     expect(await rates()).to.deep.equal([[createdAt, 5n]]);
-    expect(await token.balanceOf(registry)).to.equal(1000n);
-    expect(await token.balanceOf(manager)).to.equal(9000n);
+    expect(await token.balanceOf(registry)).to.equal(0n);
     expect(campaign.funder).to.equal(manager.address);
+    expect(campaign.funded).to.equal(false);
     expect(campaign.released).to.equal(0n);
+  });
+
+  it("lets any manager fund a campaign once, which makes it the funder", async function () {
+    await registry.connect(manager).createCampaign(POOL_ID, token, 5n, 1000n, 60);
+    // Until it is funded, its creator controls it.
+    await registry.connect(manager).setRate(0, 4n);
+    await token.mint(other, 1000n);
+    await token.connect(other).approve(registry, 1000n);
+    await expect(registry.connect(other).fund(0)).to.be.revertedWith("Only a manager");
+    await registry.setManager(other, true);
+    await expect(registry.connect(other).fund(1)).to.be.revertedWith("Unknown campaign");
+
+    const funding = registry.connect(other).fund(0);
+    await expect(funding)
+      .to.emit(registry, "CampaignSet")
+      .withArgs(0, (c: { funder: string; funded: boolean }) => c.funder === other.address && c.funded);
+    expect(await token.balanceOf(registry)).to.equal(1000n);
+    expect(await token.balanceOf(other)).to.equal(0n);
+    await expect(registry.connect(manager).fund(0)).to.be.revertedWith("Already funded");
+    expect(await token.balanceOf(manager)).to.equal(10_000n);
+
+    // The rate and the refunds now belong to whoever paid.
+    await expect(registry.connect(manager).setRate(0, 3n)).to.be.revertedWith("Only the funder");
+    await registry.connect(other).setRate(0, 0n);
+    expect((await registry.getCampaign(0)).funder).to.equal(other.address);
+    expect(await token.balanceOf(other)).to.be.greaterThan(0n);
+    expect(await token.balanceOf(manager)).to.equal(10_000n);
+  });
+
+  it("pays nothing for an unfunded campaign, then everything it earned once a manager funds it", async function () {
+    const [, , , later] = await ethers.getSigners();
+    await create(1n, 1000n); // Campaign 0, funded, holds the token's only balance.
+    const start = await minedAt(await registry.connect(manager).createCampaign(POOL_ID, token, 2n, 1000n, 60));
+    await time.increase(100);
+    // Ending it before the deposit lowers what `fund` takes to what it could have emitted, and sends nothing.
+    const end = await minedAt(await registry.connect(manager).setRate(1, 0n));
+    const integral = BigInt(2 * (end - start));
+    expect((await registry.getCampaign(1)).budget).to.equal(integral);
+    expect(await token.balanceOf(manager)).to.equal(9000n);
+
+    // Even a root that proves a release and a settlement for it moves no escrow: campaign 0 keeps all of its own.
+    const week = await publish(end, [[1, 150n]], [await settlementLeaf(1, end, 150n)]);
+    await urd.accept(week.root);
+    await expect(registry.connect(other).release([1], [150n], end, week.proofs)).to.be.revertedWith("Not funded");
+    await expect(registry.connect(other).settleRefund(1, 0n, week.proof(0))).to.be.revertedWith("Not funded");
+    expect(await token.balanceOf(registry)).to.equal(1000n);
+
+    // Another manager funds it after it ended: it deposits only the lowered budget and gets the surplus back.
+    await registry.setManager(later, true);
+    await token.mint(later, integral);
+    await token.connect(later).approve(registry, integral);
+    await registry.connect(later).fund(1);
+    expect(await token.balanceOf(registry)).to.equal(1000n + integral);
+    await registry.connect(other).release([1], [150n], end, week.proofs);
+    await registry.connect(other).settleRefund(1, 150n, week.proof(0));
+    expect(await token.balanceOf(urd)).to.equal(150n);
+    expect(await token.balanceOf(later)).to.equal(integral - 150n);
+    expect(await token.balanceOf(registry)).to.equal(1000n);
   });
 
   it("accepts a minimum width up to the full V4 tick range and no wider", async function () {
@@ -181,12 +245,13 @@ describe("RewardCampaigns", function () {
     await expect(correction).to.emit(registry, "Released").withArgs(0, 1n, 451n, cutoff);
     expect((await registry.getCampaigns(0, 1))[0].released).to.equal(451n);
     const snapshots = await registry.queryFilter(registry.filters.CampaignSet());
-    expect(snapshots).to.have.length(1); // Weekly payments do not change the bot's earning history.
+    // Creating and funding; weekly payments do not change the bot's earning history.
+    expect(snapshots).to.have.length(2);
     const botInterface = new ethers.Interface(rewardCampaignsAbi);
-    const snapshot = botInterface.parseLog(snapshots[0])!.args.campaign;
-    expect([snapshot.poolId, snapshot.rewardToken, snapshot.funder, snapshot.budget, snapshot.released,
-      snapshot.minWidthTicks, snapshot.rates[0].perSecond]).to.deep.equal([
-      POOL_ID, await token.getAddress(), manager.address, 1000n, 0n, 60n, 5n,
+    const snapshot = botInterface.parseLog(snapshots[1])!.args.campaign;
+    expect([snapshot.poolId, snapshot.rewardToken, snapshot.funder, snapshot.funded, snapshot.budget,
+      snapshot.released, snapshot.minWidthTicks, snapshot.rates[0].perSecond]).to.deep.equal([
+      POOL_ID, await token.getAddress(), manager.address, true, 1000n, 0n, 60n, 5n,
     ]);
   });
 

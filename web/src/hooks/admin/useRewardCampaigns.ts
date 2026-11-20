@@ -32,9 +32,14 @@ export type RewardCampaign = {
   payoutChainId: number;
   poolId: Hex;
   rewardToken: Address;
-  /** The wallet that deposited the budget: it changes the campaign and gets its refund. */
+  /**
+   * The wallet that changes the campaign and gets its refund: the manager that created it until a manager funds it,
+   * then the one that funded it.
+   */
   funder: Address;
-  /** The deposit, minus what was refunded. */
+  /** Whether its budget was deposited. Until then it accrues, but nothing it earned can be claimed. */
+  funded: boolean;
+  /** What it may emit in total, minus what was refunded: the deposit, or what `fund` will take. */
   budget: bigint;
   /** Cumulative amount sent to the distributor. */
   released: bigint;
@@ -216,16 +221,18 @@ export type RewardCampaignWrite =
       functionName: "createCampaign";
       args: readonly [Hex, Address, bigint, bigint, number];
     }
+  | { functionName: "fund"; args: readonly [bigint] }
   | { functionName: "setRate"; args: readonly [bigint, bigint] };
 
 const TOAST_TITLES: Record<RewardCampaignWrite["functionName"], [string, string]> = {
   createCampaign: ["Creating campaign...", "Campaign created!"],
+  fund: ["Funding campaign...", "Campaign funded!"],
   setRate: ["Updating rate...", "Rate updated!"],
 };
 
 /**
  * Sends registry transactions from the connected wallet on `payoutChainId`, one per entry of `writes`. A deposit
- * (`createCampaign`) first approves the registry for `deposit.amount`, the sum of every budget, when the allowance
+ * (`fund`) first approves the registry for `deposit.amount`, the sum of every budget, when the allowance
  * is short. With EIP-7702 the approval and every write go in one batch, so several campaigns take one signature.
  */
 export function useWriteRewardCampaigns(onSuccess?: () => void) {
