@@ -177,6 +177,7 @@ export async function syncDistributor({
     done.push(`released campaigns ${ids.join(", ")} up to ${previous.cutoff} in ${tx}`);
     onchain = await readCampaigns();
   }
+  let refunded = false;
   for (const [id, settlement] of Object.entries(previous?.settlements ?? {})) {
     const { budget, released } = onchain[Number(id)];
     if (budget > released) {
@@ -186,12 +187,16 @@ export async function syncDistributor({
           args: [BigInt(id), BigInt(settlement.emitted), settlement.proof],
         });
         done.push(`refunded campaign ${id} in ${tx}`);
+        refunded = true;
       } catch (error) {
         // A token refusing the funder's transfer must not block publication for the other campaigns.
         done.push(`refund for campaign ${id} deferred: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
+  // A refund lowers the budget to what was released, and `dueReleases` must check the next root against that budget:
+  // a release leaf above it would revert the whole batch once that root is accepted.
+  if (refunded) onchain = await readCampaigns();
   if (state.pending.validAt !== 0n) {
     const pending = await readFile(state.pending.ipfsHash, state.pending.root);
     if (parseCutoff(pending.cutoff) < target) {
