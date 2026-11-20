@@ -7,7 +7,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/seer-pm/seer-pm.git",
-    "directory": "packages/seer-sdk"
+    "directory": "packages/seer-pm-sdk"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -68,6 +68,11 @@
       "import": "./dist/liquidity-utils.mjs",
       "require": "./dist/liquidity-utils.js"
     },
+    "./tick-math": {
+      "types": "./dist/tick-math.d.ts",
+      "import": "./dist/tick-math.mjs",
+      "require": "./dist/tick-math.js"
+    },
     "./chart-data": {
       "types": "./dist/chart-data.d.ts",
       "import": "./dist/chart-data.mjs",
@@ -82,46 +87,6 @@
       "types": "./dist/sign-in.d.ts",
       "import": "./dist/sign-in.mjs",
       "require": "./dist/sign-in.js"
-    },
-    "./contracts/curate": {
-      "types": "./generated/contracts/curate.ts",
-      "import": "./dist/generated/contracts/curate.mjs",
-      "require": "./dist/generated/contracts/curate.js"
-    },
-    "./contracts/reality": {
-      "types": "./generated/contracts/reality.ts",
-      "import": "./dist/generated/contracts/reality.mjs",
-      "require": "./dist/generated/contracts/reality.js"
-    },
-    "./contracts/arbitrators": {
-      "types": "./generated/contracts/arbitrators.ts",
-      "import": "./dist/generated/contracts/arbitrators.mjs",
-      "require": "./dist/generated/contracts/arbitrators.js"
-    },
-    "./contracts/market-factory": {
-      "types": "./generated/contracts/market-factory.ts",
-      "import": "./dist/generated/contracts/market-factory.mjs",
-      "require": "./dist/generated/contracts/market-factory.js"
-    },
-    "./contracts/market-view": {
-      "types": "./generated/contracts/market-view.ts",
-      "import": "./dist/generated/contracts/market-view.mjs",
-      "require": "./dist/generated/contracts/market-view.js"
-    },
-    "./contracts/router": {
-      "types": "./generated/contracts/router.ts",
-      "import": "./dist/generated/contracts/router.mjs",
-      "require": "./dist/generated/contracts/router.js"
-    },
-    "./contracts/multi-drop": {
-      "types": "./generated/contracts/multi-drop.ts",
-      "import": "./dist/generated/contracts/multi-drop.mjs",
-      "require": "./dist/generated/contracts/multi-drop.js"
-    },
-    "./contracts/trading-credits": {
-      "types": "./generated/contracts/trading-credits.ts",
-      "import": "./dist/generated/contracts/trading-credits.mjs",
-      "require": "./dist/generated/contracts/trading-credits.js"
     },
     "./subgraph/seer": {
       "types": "./generated/subgraph/seer.ts",
@@ -153,6 +118,16 @@
       "import": "./dist/generated/subgraph/reality.mjs",
       "require": "./dist/generated/subgraph/reality.js"
     },
+    "./subgraph/limit-order-hook": {
+      "types": "./generated/subgraph/limit-order-hook.ts",
+      "import": "./dist/generated/subgraph/limit-order-hook.mjs",
+      "require": "./dist/generated/subgraph/limit-order-hook.js"
+    },
+    "./subgraph/uniswap-v4": {
+      "types": "./generated/subgraph/uniswap-v4.ts",
+      "import": "./dist/generated/subgraph/uniswap-v4.mjs",
+      "require": "./dist/generated/subgraph/uniswap-v4.js"
+    },
     "./abis/eternal-farming": {
       "types": "./abis/EternalFarmingAbi.ts",
       "import": "./dist/abis/EternalFarmingAbi.mjs",
@@ -161,7 +136,6 @@
   },
   "files": [
     "dist",
-    "generated/contracts",
     "generated/subgraph",
     "abis",
     "queries",
@@ -171,11 +145,11 @@
     "access": "public"
   },
   "scripts": {
-    "build": "yarn generate && tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/sign-in.ts --format cjs,esm --dts --clean && tsup generated/contracts/*.ts generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
-    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/chart-data.ts src/chains.ts src/sign-in.ts --format cjs,esm --dts --watch",
+    "build": "yarn workspace @seer-pm/contracts-ts build && yarn generate:gql && tsup --config tsup.config.ts && tsup generated/subgraph/*.ts abis/*.ts --format cjs,esm --out-dir dist --clean false",
+    "dev": "tsup src/index.ts src/market.ts src/market-types.ts src/subgraph/index.ts src/create-market.ts src/market-pools.ts src/collateral.ts src/markets-fetch.ts src/market-odds.ts src/reality.ts src/liquidity-utils.ts src/tick-math.ts src/chart-data.ts src/chains.ts src/sign-in.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "yarn build",
     "generate": "yarn generate:gql && yarn generate:hooks",
-    "generate:hooks": "wagmi generate",
+    "generate:hooks": "yarn workspace @seer-pm/contracts-ts generate",
     "generate:gql": "graphql-codegen"
   },
   "peerDependencies": {
@@ -190,7 +164,6 @@
     "@graphql-codegen/typescript-graphql-request": "6.2.0",
     "@graphql-codegen/typescript-operations": "^4.2.0",
     "@graphql-codegen/typescript-react-query": "^6.1.0",
-    "@wagmi/cli": "^2.1.22",
     "graphql-request": ">=5.0.0",
     "graphql-tag": ">=2.0.0",
     "tsup": "^8.0.2",
@@ -201,8 +174,8 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@seer-pm/contracts-ts": "*",
     "@seer-pm/lens": "^1.5.1",
-    "@uniswap/v3-sdk": "^3.19.0",
     "graphql": "16.11.0"
   }
 }

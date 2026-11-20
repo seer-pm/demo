@@ -84,11 +84,10 @@ export {
 } from "./pool-address";
 export {
   getBlockExplorerUrl,
-  getLiquidityUrl,
-  getLiquidityUrlByMarket,
   getPoolExplorerUrl,
   getTokenExplorerUrl,
 } from "./explorer-urls";
+export { tickSpacingForFeeTier } from "./fee-tier";
 export {
   ANSWERED_TOO_SOON,
   INVALID_RESULT,
@@ -163,7 +162,7 @@ export {
 } from "./quote";
 export type { QuoteTradeResult, AmmQuoteTradeFn, Psm3Leg, Psm3TradeType } from "./quote";
 export { AmmTrade, quoteAmmTrade } from "./amm-trade";
-export type { QuoteAmmTradeParams } from "./amm-trade";
+export type { QuoteAmmTradeParams, V4HookParams } from "./amm-trade";
 export {
   executeAmmTrade,
   tradeTokens,
@@ -254,7 +253,7 @@ export {
   getCompleteSetApprovalTokens,
 } from "./complete-set-trade";
 export { getNewMarketFromLogs, getNewProposalFromLogs } from "./events";
-export { marketAbi } from "../generated/contracts/market-factory";
+export { marketAbi } from "@seer-pm/contracts-ts/market-factory";
 export type { SupportedChain, SupportedChains } from "./chains";
 export { isOpStack } from "./chains";
 export {
@@ -276,7 +275,8 @@ export { getMarketPositions } from "./get-market-positions";
 export type { MarketPosition } from "./get-market-positions";
 export { getWinningPositions } from "./get-winning-positions";
 export type { WinningPositionInput, WinningPositionsResult } from "./get-winning-positions";
-export { decimalToFraction, sqrtPriceX96ToPrice, tickToPrice } from "./liquidity-utils";
+export { decimalToFraction, encodeSqrtRatioX96, sqrtPriceX96ToPrice } from "./liquidity-utils";
+export { tickToPrice } from "./tick-math";
 export {
   getVolumeUntilPrice,
   getPriceFromVolume,
@@ -388,6 +388,8 @@ export {
   curateGraphQLClient,
   uniswapGraphQLClient,
   swaprGraphQLClient,
+  orderBookGraphQLClient,
+  uniswapV4GraphQLClient,
   realityGraphQLClient,
   getSubgraphUrl,
   getTokenPriceFromSubgraph,

@@ -1,12 +1,12 @@
-import type { Address } from "viem";
-import { base, gnosis, mainnet, optimism, sepolia } from "viem/chains";
 import {
   conditionalRouterAddress,
   futarchyRouterAddress,
   gnosisRouterAddress,
   mainnetRouterAddress,
   routerAddress,
-} from "../generated/contracts/router";
+} from "@seer-pm/contracts-ts/router";
+import type { Address } from "viem";
+import { base, gnosis, mainnet, optimism, sepolia } from "viem/chains";
 
 /** Minimal market shape needed for router resolution. */
 export interface MarketLike {

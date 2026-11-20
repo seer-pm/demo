@@ -18,6 +18,11 @@ export default defineConfig({
       { find: "@seer-pm/sdk/subgraph", replacement: sdk("src/subgraph/index.ts") },
       { find: /^@seer-pm\/sdk\/contracts\/(.*)$/, replacement: sdk("generated/contracts") + "/$1" },
       { find: "@seer-pm/sdk/abis/eternal-farming", replacement: sdk("abis/EternalFarmingAbi.ts") },
+      // `@seer-pm/react/hooks/*` subpaths resolve to `dist/` via package exports; point them at source.
+      {
+        find: /^@seer-pm\/react\/hooks\/(.*)$/,
+        replacement: path.resolve(__dirname, "../packages/seer-pm-react/src/hooks") + "/$1.ts",
+      },
     ].concat(Object.entries({
       "@seer-pm/sdk/market-types": sdk("src/market-types.ts"),
       "@seer-pm/sdk/market-pools": sdk("src/market-pools.ts"),
@@ -25,6 +30,7 @@ export default defineConfig({
       "@seer-pm/sdk/markets-fetch": sdk("src/markets-fetch.ts"),
       "@seer-pm/sdk/create-market": sdk("src/create-market.ts"),
       "@seer-pm/sdk/liquidity-utils": sdk("src/liquidity-utils.ts"),
+      "@seer-pm/sdk/tick-math": sdk("src/tick-math.ts"),
       "@seer-pm/sdk/collateral": sdk("src/collateral.ts"),
       "@seer-pm/sdk/chains": sdk("src/chains.ts"),
       "@seer-pm/sdk/reality": sdk("src/reality.ts"),

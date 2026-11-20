@@ -1,0 +1,825 @@
+{
+  "address": "0x7563C95e6837D3256162eCAa7B5984681515eAa3",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_distributor",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address[]",
+          "name": "_managers",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "SafeERC20FailedOperation",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "poolId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "rewardToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "budget",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint32",
+              "name": "minWidthTicks",
+              "type": "uint32"
+            },
+            {
+              "internalType": "address",
+              "name": "funder",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "released",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint64",
+                  "name": "from",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "perSecond",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct RewardCampaigns.Rate[]",
+              "name": "rates",
+              "type": "tuple[]"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct RewardCampaigns.Campaign",
+          "name": "campaign",
+          "type": "tuple"
+        }
+      ],
+      "name": "CampaignSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "active",
+          "type": "bool"
+        }
+      ],
+      "name": "ManagerSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnerSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "funder",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Refunded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "released",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "upTo",
+          "type": "uint64"
+        }
+      ],
+      "name": "Released",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_WIDTH_TICKS",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "campaignCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "poolId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "rewardToken",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "perSecond",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "budget",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint32",
+          "name": "minWidthTicks",
+          "type": "uint32"
+        }
+      ],
+      "name": "createCampaign",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "distributor",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        }
+      ],
+      "name": "getCampaign",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "poolId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "rewardToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "budget",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint32",
+              "name": "minWidthTicks",
+              "type": "uint32"
+            },
+            {
+              "internalType": "address",
+              "name": "funder",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "released",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint64",
+                  "name": "from",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "perSecond",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct RewardCampaigns.Rate[]",
+              "name": "rates",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct RewardCampaigns.Campaign",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "from",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "to",
+          "type": "uint256"
+        }
+      ],
+      "name": "getCampaigns",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "poolId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "rewardToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "budget",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint32",
+              "name": "minWidthTicks",
+              "type": "uint32"
+            },
+            {
+              "internalType": "address",
+              "name": "funder",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "released",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint64",
+                  "name": "from",
+                  "type": "uint64"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "perSecond",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct RewardCampaigns.Rate[]",
+              "name": "rates",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct RewardCampaigns.Campaign[]",
+          "name": "page",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "isManager",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "ids",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "emitted",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint64",
+          "name": "upTo",
+          "type": "uint64"
+        },
+        {
+          "internalType": "bytes32[][]",
+          "name": "proofs",
+          "type": "bytes32[][]"
+        }
+      ],
+      "name": "release",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "active",
+          "type": "bool"
+        }
+      ],
+      "name": "setManager",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_owner",
+          "type": "address"
+        }
+      ],
+      "name": "setOwner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "perSecond",
+          "type": "uint256"
+        }
+      ],
+      "name": "setRate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "emitted",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "proof",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "settleRefund",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x596d9c3dc495a98306ccf6807ac7aef1e71ddda5731fd361bd549a9cfff44406",
+  "receipt": {
+    "to": null,
+    "from": "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
+    "contractAddress": "0x7563C95e6837D3256162eCAa7B5984681515eAa3",
+    "transactionIndex": 13,
+    "gasUsed": "1370798",
+    "logsBloom": "0x00000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000040000000000000000000000000000000000000000100000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400001000000000000000000000000000000000000000000002000000000000000000000000000000000000000000",
+    "blockHash": "0xd5501ba17a910513f6aebf2b59d1488e9499baa3110987446d566e23171998e2",
+    "transactionHash": "0x596d9c3dc495a98306ccf6807ac7aef1e71ddda5731fd361bd549a9cfff44406",
+    "logs": [
+      {
+        "transactionIndex": 13,
+        "blockNumber": 59787169,
+        "transactionHash": "0x596d9c3dc495a98306ccf6807ac7aef1e71ddda5731fd361bd549a9cfff44406",
+        "address": "0x7563C95e6837D3256162eCAa7B5984681515eAa3",
+        "topics": [
+          "0x50146d0e3c60aa1d17a70635b05494f864e86144a2201275021014fbf08bafe2",
+          "0x0000000000000000000000004edca105188a0783ab3a6f09c50567d1e3f8591d"
+        ],
+        "data": "0x",
+        "logIndex": 96,
+        "blockHash": "0xd5501ba17a910513f6aebf2b59d1488e9499baa3110987446d566e23171998e2"
+      }
+    ],
+    "blockNumber": 59787169,
+    "cumulativeGasUsed": "4843202",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37",
+    "0x4EDCA105188a0783Ab3A6f09c50567D1E3F8591D",
+    []
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "0f9136fcbb000aa3b332428435941f15",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_distributor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"address[]\",\"name\":\"_managers\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"SafeERC20FailedOperation\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"poolId\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"rewardToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"minWidthTicks\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"funder\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"released\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"from\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"perSecond\",\"type\":\"uint256\"}],\"internalType\":\"struct RewardCampaigns.Rate[]\",\"name\":\"rates\",\"type\":\"tuple[]\"}],\"indexed\":false,\"internalType\":\"struct RewardCampaigns.Campaign\",\"name\":\"campaign\",\"type\":\"tuple\"}],\"name\":\"CampaignSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"active\",\"type\":\"bool\"}],\"name\":\"ManagerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"funder\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Refunded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"released\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"upTo\",\"type\":\"uint64\"}],\"name\":\"Released\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"MAX_WIDTH_TICKS\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"campaignCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"poolId\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"rewardToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perSecond\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"minWidthTicks\",\"type\":\"uint32\"}],\"name\":\"createCampaign\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"distributor\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"name\":\"getCampaign\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"poolId\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"rewardToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"minWidthTicks\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"funder\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"released\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"from\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"perSecond\",\"type\":\"uint256\"}],\"internalType\":\"struct RewardCampaigns.Rate[]\",\"name\":\"rates\",\"type\":\"tuple[]\"}],\"internalType\":\"struct RewardCampaigns.Campaign\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"from\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"to\",\"type\":\"uint256\"}],\"name\":\"getCampaigns\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"poolId\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"rewardToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"uint32\",\"name\":\"minWidthTicks\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"funder\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"released\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"from\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"perSecond\",\"type\":\"uint256\"}],\"internalType\":\"struct RewardCampaigns.Rate[]\",\"name\":\"rates\",\"type\":\"tuple[]\"}],\"internalType\":\"struct RewardCampaigns.Campaign[]\",\"name\":\"page\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"isManager\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"emitted\",\"type\":\"uint256[]\"},{\"internalType\":\"uint64\",\"name\":\"upTo\",\"type\":\"uint64\"},{\"internalType\":\"bytes32[][]\",\"name\":\"proofs\",\"type\":\"bytes32[][]\"}],\"name\":\"release\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"active\",\"type\":\"bool\"}],\"name\":\"setManager\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"name\":\"setOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"perSecond\",\"type\":\"uint256\"}],\"name\":\"setRate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"emitted\",\"type\":\"uint256\"},{\"internalType\":\"bytes32[]\",\"name\":\"proof\",\"type\":\"bytes32[]\"}],\"name\":\"settleRefund\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Each campaign has one funder, the manager who created it and deposited its whole budget. The engine never emits more than the budget, so the distributor can always be paid in full, and what was not emitted goes back to the funder once the campaign ended. More rewards for a pool are a new campaign on the same pool, so a budget never mixes the tokens of two wallets. The bot refuses campaign changes that would alter what an already published week emitted, and every change here takes effect from the block that makes it, so none can: - A campaign is never removed, and its pool, reward token, `minWidthTicks` and funder never change. Its budget   only drops, when a refund sends what the campaign cannot emit back to the funder. - A campaign starts when it is created, and a rate change applies from the block it is mined in. Rate history   is append-only; a rate of 0 ends the campaign for good, so its rates bound everything it can still emit. Reward tokens must transfer exactly the amount requested: fee-on-transfer and rebasing tokens are not supported. The registry records the nominal budget and every campaign of a token shares one balance, so such a token would pay one campaign's releases and refund out of the escrow of the others. Reward tokens must also never revert a transfer, so tokens with a pause, a blocklist or transfer hooks are not supported either. `release` pays every due campaign in one call, so one failing transfer would stop the release and the weekly root of every campaign on the chain, and a blocked funder would never get its refund. Managers are trusted team wallets. `createCampaign` checks neither the token nor that the pool uses the Seer hook, and the bot replays each pool from the hook deployment, so an older pool would stop it for every campaign.\",\"errors\":{\"SafeERC20FailedOperation(address)\":[{\"details\":\"An operation with an ERC-20 token failed.\"}]},\"events\":{\"CampaignSet(uint256,(bytes32,address,uint256,uint32,address,uint256,(uint64,uint256)[]))\":{\"details\":\"Snapshots the earning rules and budget. Subsequent payouts update `released` through `Released` only.\"},\"Released(uint256,uint256,uint256,uint64)\":{\"params\":{\"upTo\":\"The cutoff supplied for this call, including corrections to earlier cutoffs.\"}}},\"kind\":\"dev\",\"methods\":{\"constructor\":{\"params\":{\"_distributor\":\"This chain's Universal Rewards Distributor.\",\"_managers\":\"The initial managers.\",\"_owner\":\"The owner of the registry, usually a Safe.\"}},\"createCampaign(bytes32,address,uint256,uint256,uint32)\":{\"returns\":{\"id\":\"The id of the new campaign.\"}},\"getCampaigns(uint256,uint256)\":{\"details\":\"Each campaign carries its whole rate history, so one call returning every campaign would outgrow an `eth_call` gas cap as campaigns accumulate. A `to` past the last campaign stops at it and an empty range returns nothing, so a reader pages with a fixed size from `campaignCount`.\"},\"release(uint256[],uint256[],uint64,bytes32[][])\":{\"details\":\"Each total must be a release leaf of the root the distributor accepted, so it went through the distributor's timelock and its owner's veto like the claims it pays. The key that proposes roots therefore cannot pay out escrow at once, and every total is also bounded by the integral of the rates up to `upTo`.\"},\"setRate(uint256,uint256)\":{\"details\":\"A rate is at most the budget, which fits in 128 bits, so `release` and `settleRefund` multiply it by a `uint64` span of seconds without overflowing; one overflowing campaign would revert the weekly release of every campaign on the chain.\"}},\"stateVariables\":{\"MAX_WIDTH_TICKS\":{\"details\":\"`TickMath.MAX_TICK - TickMath.MIN_TICK` of Uniswap V4: no position is wider, so a larger minimum width would leave every position out and the campaign would never emit.\"}},\"title\":\"RewardCampaigns\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"createCampaign(bytes32,address,uint256,uint256,uint32)\":{\"notice\":\"Creates a campaign that emits `perSecond` from this block on, and deposits its whole `budget` from the caller, who must have approved this contract for it and becomes its funder.\"},\"getCampaigns(uint256,uint256)\":{\"notice\":\"The campaigns with ids from `from` up to, but not including, `to`, in id order.\"},\"release(uint256[],uint256[],uint64,bytes32[][])\":{\"notice\":\"Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the cumulative `emitted` of each, so a repeated call sends nothing more. Anyone may call it.\"},\"setOwner(address)\":{\"notice\":\"Transfers ownership. It takes effect at once.\"},\"setRate(uint256,uint256)\":{\"notice\":\"Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool are a new campaign.\"},\"settleRefund(uint256,uint256,bytes32[])\":{\"notice\":\"Returns the remaining escrow to the funder once the accepted distribution covers the end.\"}},\"notice\":\"Liquidity reward campaigns of Seer's Uniswap V4 pools on this chain, and the escrow of their budgets. Rewards pay out on the pool's chain, so there is one registry per chain with pools, next to that chain's Morpho Universal Rewards Distributor. The weekly rewards bot (`packages/seer-pm-rewards`) rebuilds the campaigns from `CampaignSet` events up to each Monday cutoff and submits a root with what users can claim and what each campaign emitted. Once the distributor accepts that root, `release` pays the distributor the emitted totals it proves.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/rewards/RewardCampaigns.sol\":\"RewardCampaigns\"},\"evmVersion\":\"cancun\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[],\"viaIR\":true},\"sources\":{\"@openzeppelin/contracts/interfaces/IERC1363.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (interfaces/IERC1363.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC20} from \\\"./IERC20.sol\\\";\\nimport {IERC165} from \\\"./IERC165.sol\\\";\\n\\n/**\\n * @title IERC1363\\n * @dev Interface of the ERC-1363 standard as defined in the https://eips.ethereum.org/EIPS/eip-1363[ERC-1363].\\n *\\n * Defines an extension interface for ERC-20 tokens that supports executing code on a recipient contract\\n * after `transfer` or `transferFrom`, or code on a spender contract after `approve`, in a single transaction.\\n */\\ninterface IERC1363 is IERC20, IERC165 {\\n    /*\\n     * Note: the ERC-165 identifier for this interface is 0xb0202a11.\\n     * 0xb0202a11 ===\\n     *   bytes4(keccak256('transferAndCall(address,uint256)')) ^\\n     *   bytes4(keccak256('transferAndCall(address,uint256,bytes)')) ^\\n     *   bytes4(keccak256('transferFromAndCall(address,address,uint256)')) ^\\n     *   bytes4(keccak256('transferFromAndCall(address,address,uint256,bytes)')) ^\\n     *   bytes4(keccak256('approveAndCall(address,uint256)')) ^\\n     *   bytes4(keccak256('approveAndCall(address,uint256,bytes)'))\\n     */\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferAndCall(address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @param data Additional data with no specified format, sent in call to `to`.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferAndCall(address to, uint256 value, bytes calldata data) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param from The address which you want to send tokens from.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferFromAndCall(address from, address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the allowance mechanism\\n     * and then calls {IERC1363Receiver-onTransferReceived} on `to`.\\n     * @param from The address which you want to send tokens from.\\n     * @param to The address which you want to transfer to.\\n     * @param value The amount of tokens to be transferred.\\n     * @param data Additional data with no specified format, sent in call to `to`.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function transferFromAndCall(address from, address to, uint256 value, bytes calldata data) external returns (bool);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.\\n     * @param spender The address which will spend the funds.\\n     * @param value The amount of tokens to be spent.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function approveAndCall(address spender, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens and then calls {IERC1363Spender-onApprovalReceived} on `spender`.\\n     * @param spender The address which will spend the funds.\\n     * @param value The amount of tokens to be spent.\\n     * @param data Additional data with no specified format, sent in call to `spender`.\\n     * @return A boolean value indicating whether the operation succeeded unless throwing.\\n     */\\n    function approveAndCall(address spender, uint256 value, bytes calldata data) external returns (bool);\\n}\\n\",\"keccak256\":\"0x9b6b3e7803bc5f2f8cd7ad57db8ac1def61a9930a5a3107df4882e028a9605d7\",\"license\":\"MIT\"},\"@openzeppelin/contracts/interfaces/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (interfaces/IERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC165} from \\\"../utils/introspection/IERC165.sol\\\";\\n\",\"keccak256\":\"0xde7e9fd9aee8d4f40772f96bb3b58836cbc6dfc0227014a061947f8821ea9724\",\"license\":\"MIT\"},\"@openzeppelin/contracts/interfaces/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.0.0) (interfaces/IERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC20} from \\\"../token/ERC20/IERC20.sol\\\";\\n\",\"keccak256\":\"0xce41876e78d1badc0512229b4d14e4daf83bc1003d7f83978d18e0e56f965b9c\",\"license\":\"MIT\"},\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/IERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC-20 standard as defined in the ERC.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n\\n    /**\\n     * @dev Returns the value of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the value of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from the caller's account to `to`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address to, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets a `value` amount of tokens as the allowance of `spender` over the\\n     * caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 value) external returns (bool);\\n\\n    /**\\n     * @dev Moves a `value` amount of tokens from `from` to `to` using the\\n     * allowance mechanism. `value` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address from, address to, uint256 value) external returns (bool);\\n}\\n\",\"keccak256\":\"0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7\",\"license\":\"MIT\"},\"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.3.0) (token/ERC20/utils/SafeERC20.sol)\\n\\npragma solidity ^0.8.20;\\n\\nimport {IERC20} from \\\"../IERC20.sol\\\";\\nimport {IERC1363} from \\\"../../../interfaces/IERC1363.sol\\\";\\n\\n/**\\n * @title SafeERC20\\n * @dev Wrappers around ERC-20 operations that throw on failure (when the token\\n * contract returns false). Tokens that return no value (and instead revert or\\n * throw on failure) are also supported, non-reverting calls are assumed to be\\n * successful.\\n * To use this library you can add a `using SafeERC20 for IERC20;` statement to your contract,\\n * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.\\n */\\nlibrary SafeERC20 {\\n    /**\\n     * @dev An operation with an ERC-20 token failed.\\n     */\\n    error SafeERC20FailedOperation(address token);\\n\\n    /**\\n     * @dev Indicates a failed `decreaseAllowance` request.\\n     */\\n    error SafeERC20FailedDecreaseAllowance(address spender, uint256 currentAllowance, uint256 requestedDecrease);\\n\\n    /**\\n     * @dev Transfer `value` amount of `token` from the calling contract to `to`. If `token` returns no value,\\n     * non-reverting calls are assumed to be successful.\\n     */\\n    function safeTransfer(IERC20 token, address to, uint256 value) internal {\\n        _callOptionalReturn(token, abi.encodeCall(token.transfer, (to, value)));\\n    }\\n\\n    /**\\n     * @dev Transfer `value` amount of `token` from `from` to `to`, spending the approval given by `from` to the\\n     * calling contract. If `token` returns no value, non-reverting calls are assumed to be successful.\\n     */\\n    function safeTransferFrom(IERC20 token, address from, address to, uint256 value) internal {\\n        _callOptionalReturn(token, abi.encodeCall(token.transferFrom, (from, to, value)));\\n    }\\n\\n    /**\\n     * @dev Variant of {safeTransfer} that returns a bool instead of reverting if the operation is not successful.\\n     */\\n    function trySafeTransfer(IERC20 token, address to, uint256 value) internal returns (bool) {\\n        return _callOptionalReturnBool(token, abi.encodeCall(token.transfer, (to, value)));\\n    }\\n\\n    /**\\n     * @dev Variant of {safeTransferFrom} that returns a bool instead of reverting if the operation is not successful.\\n     */\\n    function trySafeTransferFrom(IERC20 token, address from, address to, uint256 value) internal returns (bool) {\\n        return _callOptionalReturnBool(token, abi.encodeCall(token.transferFrom, (from, to, value)));\\n    }\\n\\n    /**\\n     * @dev Increase the calling contract's allowance toward `spender` by `value`. If `token` returns no value,\\n     * non-reverting calls are assumed to be successful.\\n     *\\n     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the \\\"client\\\"\\n     * smart contract uses ERC-7674 to set temporary allowances, then the \\\"client\\\" smart contract should avoid using\\n     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract\\n     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.\\n     */\\n    function safeIncreaseAllowance(IERC20 token, address spender, uint256 value) internal {\\n        uint256 oldAllowance = token.allowance(address(this), spender);\\n        forceApprove(token, spender, oldAllowance + value);\\n    }\\n\\n    /**\\n     * @dev Decrease the calling contract's allowance toward `spender` by `requestedDecrease`. If `token` returns no\\n     * value, non-reverting calls are assumed to be successful.\\n     *\\n     * IMPORTANT: If the token implements ERC-7674 (ERC-20 with temporary allowance), and if the \\\"client\\\"\\n     * smart contract uses ERC-7674 to set temporary allowances, then the \\\"client\\\" smart contract should avoid using\\n     * this function. Performing a {safeIncreaseAllowance} or {safeDecreaseAllowance} operation on a token contract\\n     * that has a non-zero temporary allowance (for that particular owner-spender) will result in unexpected behavior.\\n     */\\n    function safeDecreaseAllowance(IERC20 token, address spender, uint256 requestedDecrease) internal {\\n        unchecked {\\n            uint256 currentAllowance = token.allowance(address(this), spender);\\n            if (currentAllowance < requestedDecrease) {\\n                revert SafeERC20FailedDecreaseAllowance(spender, currentAllowance, requestedDecrease);\\n            }\\n            forceApprove(token, spender, currentAllowance - requestedDecrease);\\n        }\\n    }\\n\\n    /**\\n     * @dev Set the calling contract's allowance toward `spender` to `value`. If `token` returns no value,\\n     * non-reverting calls are assumed to be successful. Meant to be used with tokens that require the approval\\n     * to be set to zero before setting it to a non-zero value, such as USDT.\\n     *\\n     * NOTE: If the token implements ERC-7674, this function will not modify any temporary allowance. This function\\n     * only sets the \\\"standard\\\" allowance. Any temporary allowance will remain active, in addition to the value being\\n     * set here.\\n     */\\n    function forceApprove(IERC20 token, address spender, uint256 value) internal {\\n        bytes memory approvalCall = abi.encodeCall(token.approve, (spender, value));\\n\\n        if (!_callOptionalReturnBool(token, approvalCall)) {\\n            _callOptionalReturn(token, abi.encodeCall(token.approve, (spender, 0)));\\n            _callOptionalReturn(token, approvalCall);\\n        }\\n    }\\n\\n    /**\\n     * @dev Performs an {ERC1363} transferAndCall, with a fallback to the simple {ERC20} transfer if the target has no\\n     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when\\n     * targeting contracts.\\n     *\\n     * Reverts if the returned value is other than `true`.\\n     */\\n    function transferAndCallRelaxed(IERC1363 token, address to, uint256 value, bytes memory data) internal {\\n        if (to.code.length == 0) {\\n            safeTransfer(token, to, value);\\n        } else if (!token.transferAndCall(to, value, data)) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Performs an {ERC1363} transferFromAndCall, with a fallback to the simple {ERC20} transferFrom if the target\\n     * has no code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when\\n     * targeting contracts.\\n     *\\n     * Reverts if the returned value is other than `true`.\\n     */\\n    function transferFromAndCallRelaxed(\\n        IERC1363 token,\\n        address from,\\n        address to,\\n        uint256 value,\\n        bytes memory data\\n    ) internal {\\n        if (to.code.length == 0) {\\n            safeTransferFrom(token, from, to, value);\\n        } else if (!token.transferFromAndCall(from, to, value, data)) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Performs an {ERC1363} approveAndCall, with a fallback to the simple {ERC20} approve if the target has no\\n     * code. This can be used to implement an {ERC721}-like safe transfer that rely on {ERC1363} checks when\\n     * targeting contracts.\\n     *\\n     * NOTE: When the recipient address (`to`) has no code (i.e. is an EOA), this function behaves as {forceApprove}.\\n     * Opposedly, when the recipient address (`to`) has code, this function only attempts to call {ERC1363-approveAndCall}\\n     * once without retrying, and relies on the returned value to be true.\\n     *\\n     * Reverts if the returned value is other than `true`.\\n     */\\n    function approveAndCallRelaxed(IERC1363 token, address to, uint256 value, bytes memory data) internal {\\n        if (to.code.length == 0) {\\n            forceApprove(token, to, value);\\n        } else if (!token.approveAndCall(to, value, data)) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement\\n     * on the return value: the return value is optional (but if data is returned, it must not be false).\\n     * @param token The token targeted by the call.\\n     * @param data The call data (encoded using abi.encode or one of its variants).\\n     *\\n     * This is a variant of {_callOptionalReturnBool} that reverts if call fails to meet the requirements.\\n     */\\n    function _callOptionalReturn(IERC20 token, bytes memory data) private {\\n        uint256 returnSize;\\n        uint256 returnValue;\\n        assembly (\\\"memory-safe\\\") {\\n            let success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)\\n            // bubble errors\\n            if iszero(success) {\\n                let ptr := mload(0x40)\\n                returndatacopy(ptr, 0, returndatasize())\\n                revert(ptr, returndatasize())\\n            }\\n            returnSize := returndatasize()\\n            returnValue := mload(0)\\n        }\\n\\n        if (returnSize == 0 ? address(token).code.length == 0 : returnValue != 1) {\\n            revert SafeERC20FailedOperation(address(token));\\n        }\\n    }\\n\\n    /**\\n     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement\\n     * on the return value: the return value is optional (but if data is returned, it must not be false).\\n     * @param token The token targeted by the call.\\n     * @param data The call data (encoded using abi.encode or one of its variants).\\n     *\\n     * This is a variant of {_callOptionalReturn} that silently catches all reverts and returns a bool instead.\\n     */\\n    function _callOptionalReturnBool(IERC20 token, bytes memory data) private returns (bool) {\\n        bool success;\\n        uint256 returnSize;\\n        uint256 returnValue;\\n        assembly (\\\"memory-safe\\\") {\\n            success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)\\n            returnSize := returndatasize()\\n            returnValue := mload(0)\\n        }\\n        return success && (returnSize == 0 ? address(token).code.length > 0 : returnValue == 1);\\n    }\\n}\\n\",\"keccak256\":\"0x982c5cb790ab941d1e04f807120a71709d4c313ba0bfc16006447ffbd27fbbd5\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/cryptography/Hashes.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.3.0) (utils/cryptography/Hashes.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Library of standard hash functions.\\n *\\n * _Available since v5.1._\\n */\\nlibrary Hashes {\\n    /**\\n     * @dev Commutative Keccak256 hash of a sorted pair of bytes32. Frequently used when working with merkle proofs.\\n     *\\n     * NOTE: Equivalent to the `standardNodeHash` in our https://github.com/OpenZeppelin/merkle-tree[JavaScript library].\\n     */\\n    function commutativeKeccak256(bytes32 a, bytes32 b) internal pure returns (bytes32) {\\n        return a < b ? efficientKeccak256(a, b) : efficientKeccak256(b, a);\\n    }\\n\\n    /**\\n     * @dev Implementation of keccak256(abi.encode(a, b)) that doesn't allocate or expand memory.\\n     */\\n    function efficientKeccak256(bytes32 a, bytes32 b) internal pure returns (bytes32 value) {\\n        assembly (\\\"memory-safe\\\") {\\n            mstore(0x00, a)\\n            mstore(0x20, b)\\n            value := keccak256(0x00, 0x40)\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x8cbd338f083224b4b6f0ff42cbda641a0a6c31ffcdca197452b97fe4d0918269\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/cryptography/MerkleProof.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/cryptography/MerkleProof.sol)\\n// This file was procedurally generated from scripts/generate/templates/MerkleProof.js.\\n\\npragma solidity ^0.8.20;\\n\\nimport {Hashes} from \\\"./Hashes.sol\\\";\\n\\n/**\\n * @dev These functions deal with verification of Merkle Tree proofs.\\n *\\n * The tree and the proofs can be generated using our\\n * https://github.com/OpenZeppelin/merkle-tree[JavaScript library].\\n * You will find a quickstart guide in the readme.\\n *\\n * WARNING: You should avoid using leaf values that are 64 bytes long prior to\\n * hashing, or use a hash function other than keccak256 for hashing leaves.\\n * This is because the concatenation of a sorted pair of internal nodes in\\n * the Merkle tree could be reinterpreted as a leaf value.\\n * OpenZeppelin's JavaScript library generates Merkle trees that are safe\\n * against this attack out of the box.\\n *\\n * IMPORTANT: Consider memory side-effects when using custom hashing functions\\n * that access memory in an unsafe way.\\n *\\n * NOTE: This library supports proof verification for merkle trees built using\\n * custom _commutative_ hashing functions (i.e. `H(a, b) == H(b, a)`). Proving\\n * leaf inclusion in trees built using non-commutative hashing functions requires\\n * additional logic that is not supported by this library.\\n */\\nlibrary MerkleProof {\\n    /**\\n     *@dev The multiproof provided is not valid.\\n     */\\n    error MerkleProofInvalidMultiproof();\\n\\n    /**\\n     * @dev Returns true if a `leaf` can be proved to be a part of a Merkle tree\\n     * defined by `root`. For this, a `proof` must be provided, containing\\n     * sibling hashes on the branch from the leaf to the root of the tree. Each\\n     * pair of leaves and each pair of pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in memory with the default hashing function.\\n     */\\n    function verify(bytes32[] memory proof, bytes32 root, bytes32 leaf) internal pure returns (bool) {\\n        return processProof(proof, leaf) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up\\n     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt\\n     * hash matches the root of the tree. When processing the proof, the pairs\\n     * of leaves & pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in memory with the default hashing function.\\n     */\\n    function processProof(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {\\n        bytes32 computedHash = leaf;\\n        for (uint256 i = 0; i < proof.length; i++) {\\n            computedHash = Hashes.commutativeKeccak256(computedHash, proof[i]);\\n        }\\n        return computedHash;\\n    }\\n\\n    /**\\n     * @dev Returns true if a `leaf` can be proved to be a part of a Merkle tree\\n     * defined by `root`. For this, a `proof` must be provided, containing\\n     * sibling hashes on the branch from the leaf to the root of the tree. Each\\n     * pair of leaves and each pair of pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in memory with a custom hashing function.\\n     */\\n    function verify(\\n        bytes32[] memory proof,\\n        bytes32 root,\\n        bytes32 leaf,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bool) {\\n        return processProof(proof, leaf, hasher) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up\\n     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt\\n     * hash matches the root of the tree. When processing the proof, the pairs\\n     * of leaves & pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in memory with a custom hashing function.\\n     */\\n    function processProof(\\n        bytes32[] memory proof,\\n        bytes32 leaf,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bytes32) {\\n        bytes32 computedHash = leaf;\\n        for (uint256 i = 0; i < proof.length; i++) {\\n            computedHash = hasher(computedHash, proof[i]);\\n        }\\n        return computedHash;\\n    }\\n\\n    /**\\n     * @dev Returns true if a `leaf` can be proved to be a part of a Merkle tree\\n     * defined by `root`. For this, a `proof` must be provided, containing\\n     * sibling hashes on the branch from the leaf to the root of the tree. Each\\n     * pair of leaves and each pair of pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in calldata with the default hashing function.\\n     */\\n    function verifyCalldata(bytes32[] calldata proof, bytes32 root, bytes32 leaf) internal pure returns (bool) {\\n        return processProofCalldata(proof, leaf) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up\\n     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt\\n     * hash matches the root of the tree. When processing the proof, the pairs\\n     * of leaves & pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in calldata with the default hashing function.\\n     */\\n    function processProofCalldata(bytes32[] calldata proof, bytes32 leaf) internal pure returns (bytes32) {\\n        bytes32 computedHash = leaf;\\n        for (uint256 i = 0; i < proof.length; i++) {\\n            computedHash = Hashes.commutativeKeccak256(computedHash, proof[i]);\\n        }\\n        return computedHash;\\n    }\\n\\n    /**\\n     * @dev Returns true if a `leaf` can be proved to be a part of a Merkle tree\\n     * defined by `root`. For this, a `proof` must be provided, containing\\n     * sibling hashes on the branch from the leaf to the root of the tree. Each\\n     * pair of leaves and each pair of pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in calldata with a custom hashing function.\\n     */\\n    function verifyCalldata(\\n        bytes32[] calldata proof,\\n        bytes32 root,\\n        bytes32 leaf,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bool) {\\n        return processProofCalldata(proof, leaf, hasher) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the rebuilt hash obtained by traversing a Merkle tree up\\n     * from `leaf` using `proof`. A `proof` is valid if and only if the rebuilt\\n     * hash matches the root of the tree. When processing the proof, the pairs\\n     * of leaves & pre-images are assumed to be sorted.\\n     *\\n     * This version handles proofs in calldata with a custom hashing function.\\n     */\\n    function processProofCalldata(\\n        bytes32[] calldata proof,\\n        bytes32 leaf,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bytes32) {\\n        bytes32 computedHash = leaf;\\n        for (uint256 i = 0; i < proof.length; i++) {\\n            computedHash = hasher(computedHash, proof[i]);\\n        }\\n        return computedHash;\\n    }\\n\\n    /**\\n     * @dev Returns true if the `leaves` can be simultaneously proven to be a part of a Merkle tree defined by\\n     * `root`, according to `proof` and `proofFlags` as described in {processMultiProof}.\\n     *\\n     * This version handles multiproofs in memory with the default hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. See {processMultiProof} for details.\\n     *\\n     * NOTE: Consider the case where `root == proof[0] && leaves.length == 0` as it will return `true`.\\n     * The `leaves` must be validated independently. See {processMultiProof}.\\n     */\\n    function multiProofVerify(\\n        bytes32[] memory proof,\\n        bool[] memory proofFlags,\\n        bytes32 root,\\n        bytes32[] memory leaves\\n    ) internal pure returns (bool) {\\n        return processMultiProof(proof, proofFlags, leaves) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the root of a tree reconstructed from `leaves` and sibling nodes in `proof`. The reconstruction\\n     * proceeds by incrementally reconstructing all inner nodes by combining a leaf/inner node with either another\\n     * leaf/inner node or a proof sibling node, depending on whether each `proofFlags` item is true or false\\n     * respectively.\\n     *\\n     * This version handles multiproofs in memory with the default hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. To use multiproofs, it is sufficient to ensure that: 1) the tree\\n     * is complete (but not necessarily perfect), 2) the leaves to be proven are in the opposite order they are in the\\n     * tree (i.e., as seen from right to left starting at the deepest layer and continuing at the next layer).\\n     *\\n     * NOTE: The _empty set_ (i.e. the case where `proof.length == 1 && leaves.length == 0`) is considered a no-op,\\n     * and therefore a valid multiproof (i.e. it returns `proof[0]`). Consider disallowing this case if you're not\\n     * validating the leaves elsewhere.\\n     */\\n    function processMultiProof(\\n        bytes32[] memory proof,\\n        bool[] memory proofFlags,\\n        bytes32[] memory leaves\\n    ) internal pure returns (bytes32 merkleRoot) {\\n        // This function rebuilds the root hash by traversing the tree up from the leaves. The root is rebuilt by\\n        // consuming and producing values on a queue. The queue starts with the `leaves` array, then goes onto the\\n        // `hashes` array. At the end of the process, the last hash in the `hashes` array should contain the root of\\n        // the Merkle tree.\\n        uint256 leavesLen = leaves.length;\\n        uint256 proofFlagsLen = proofFlags.length;\\n\\n        // Check proof validity.\\n        if (leavesLen + proof.length != proofFlagsLen + 1) {\\n            revert MerkleProofInvalidMultiproof();\\n        }\\n\\n        // The xxxPos values are \\\"pointers\\\" to the next value to consume in each array. All accesses are done using\\n        // `xxx[xxxPos++]`, which return the current value and increment the pointer, thus mimicking a queue's \\\"pop\\\".\\n        bytes32[] memory hashes = new bytes32[](proofFlagsLen);\\n        uint256 leafPos = 0;\\n        uint256 hashPos = 0;\\n        uint256 proofPos = 0;\\n        // At each step, we compute the next hash using two values:\\n        // - a value from the \\\"main queue\\\". If not all leaves have been consumed, we get the next leaf, otherwise we\\n        //   get the next hash.\\n        // - depending on the flag, either another value from the \\\"main queue\\\" (merging branches) or an element from the\\n        //   `proof` array.\\n        for (uint256 i = 0; i < proofFlagsLen; i++) {\\n            bytes32 a = leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++];\\n            bytes32 b = proofFlags[i]\\n                ? (leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++])\\n                : proof[proofPos++];\\n            hashes[i] = Hashes.commutativeKeccak256(a, b);\\n        }\\n\\n        if (proofFlagsLen > 0) {\\n            if (proofPos != proof.length) {\\n                revert MerkleProofInvalidMultiproof();\\n            }\\n            unchecked {\\n                return hashes[proofFlagsLen - 1];\\n            }\\n        } else if (leavesLen > 0) {\\n            return leaves[0];\\n        } else {\\n            return proof[0];\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns true if the `leaves` can be simultaneously proven to be a part of a Merkle tree defined by\\n     * `root`, according to `proof` and `proofFlags` as described in {processMultiProof}.\\n     *\\n     * This version handles multiproofs in memory with a custom hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. See {processMultiProof} for details.\\n     *\\n     * NOTE: Consider the case where `root == proof[0] && leaves.length == 0` as it will return `true`.\\n     * The `leaves` must be validated independently. See {processMultiProof}.\\n     */\\n    function multiProofVerify(\\n        bytes32[] memory proof,\\n        bool[] memory proofFlags,\\n        bytes32 root,\\n        bytes32[] memory leaves,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bool) {\\n        return processMultiProof(proof, proofFlags, leaves, hasher) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the root of a tree reconstructed from `leaves` and sibling nodes in `proof`. The reconstruction\\n     * proceeds by incrementally reconstructing all inner nodes by combining a leaf/inner node with either another\\n     * leaf/inner node or a proof sibling node, depending on whether each `proofFlags` item is true or false\\n     * respectively.\\n     *\\n     * This version handles multiproofs in memory with a custom hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. To use multiproofs, it is sufficient to ensure that: 1) the tree\\n     * is complete (but not necessarily perfect), 2) the leaves to be proven are in the opposite order they are in the\\n     * tree (i.e., as seen from right to left starting at the deepest layer and continuing at the next layer).\\n     *\\n     * NOTE: The _empty set_ (i.e. the case where `proof.length == 1 && leaves.length == 0`) is considered a no-op,\\n     * and therefore a valid multiproof (i.e. it returns `proof[0]`). Consider disallowing this case if you're not\\n     * validating the leaves elsewhere.\\n     */\\n    function processMultiProof(\\n        bytes32[] memory proof,\\n        bool[] memory proofFlags,\\n        bytes32[] memory leaves,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bytes32 merkleRoot) {\\n        // This function rebuilds the root hash by traversing the tree up from the leaves. The root is rebuilt by\\n        // consuming and producing values on a queue. The queue starts with the `leaves` array, then goes onto the\\n        // `hashes` array. At the end of the process, the last hash in the `hashes` array should contain the root of\\n        // the Merkle tree.\\n        uint256 leavesLen = leaves.length;\\n        uint256 proofFlagsLen = proofFlags.length;\\n\\n        // Check proof validity.\\n        if (leavesLen + proof.length != proofFlagsLen + 1) {\\n            revert MerkleProofInvalidMultiproof();\\n        }\\n\\n        // The xxxPos values are \\\"pointers\\\" to the next value to consume in each array. All accesses are done using\\n        // `xxx[xxxPos++]`, which return the current value and increment the pointer, thus mimicking a queue's \\\"pop\\\".\\n        bytes32[] memory hashes = new bytes32[](proofFlagsLen);\\n        uint256 leafPos = 0;\\n        uint256 hashPos = 0;\\n        uint256 proofPos = 0;\\n        // At each step, we compute the next hash using two values:\\n        // - a value from the \\\"main queue\\\". If not all leaves have been consumed, we get the next leaf, otherwise we\\n        //   get the next hash.\\n        // - depending on the flag, either another value from the \\\"main queue\\\" (merging branches) or an element from the\\n        //   `proof` array.\\n        for (uint256 i = 0; i < proofFlagsLen; i++) {\\n            bytes32 a = leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++];\\n            bytes32 b = proofFlags[i]\\n                ? (leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++])\\n                : proof[proofPos++];\\n            hashes[i] = hasher(a, b);\\n        }\\n\\n        if (proofFlagsLen > 0) {\\n            if (proofPos != proof.length) {\\n                revert MerkleProofInvalidMultiproof();\\n            }\\n            unchecked {\\n                return hashes[proofFlagsLen - 1];\\n            }\\n        } else if (leavesLen > 0) {\\n            return leaves[0];\\n        } else {\\n            return proof[0];\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns true if the `leaves` can be simultaneously proven to be a part of a Merkle tree defined by\\n     * `root`, according to `proof` and `proofFlags` as described in {processMultiProof}.\\n     *\\n     * This version handles multiproofs in calldata with the default hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. See {processMultiProof} for details.\\n     *\\n     * NOTE: Consider the case where `root == proof[0] && leaves.length == 0` as it will return `true`.\\n     * The `leaves` must be validated independently. See {processMultiProofCalldata}.\\n     */\\n    function multiProofVerifyCalldata(\\n        bytes32[] calldata proof,\\n        bool[] calldata proofFlags,\\n        bytes32 root,\\n        bytes32[] memory leaves\\n    ) internal pure returns (bool) {\\n        return processMultiProofCalldata(proof, proofFlags, leaves) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the root of a tree reconstructed from `leaves` and sibling nodes in `proof`. The reconstruction\\n     * proceeds by incrementally reconstructing all inner nodes by combining a leaf/inner node with either another\\n     * leaf/inner node or a proof sibling node, depending on whether each `proofFlags` item is true or false\\n     * respectively.\\n     *\\n     * This version handles multiproofs in calldata with the default hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. To use multiproofs, it is sufficient to ensure that: 1) the tree\\n     * is complete (but not necessarily perfect), 2) the leaves to be proven are in the opposite order they are in the\\n     * tree (i.e., as seen from right to left starting at the deepest layer and continuing at the next layer).\\n     *\\n     * NOTE: The _empty set_ (i.e. the case where `proof.length == 1 && leaves.length == 0`) is considered a no-op,\\n     * and therefore a valid multiproof (i.e. it returns `proof[0]`). Consider disallowing this case if you're not\\n     * validating the leaves elsewhere.\\n     */\\n    function processMultiProofCalldata(\\n        bytes32[] calldata proof,\\n        bool[] calldata proofFlags,\\n        bytes32[] memory leaves\\n    ) internal pure returns (bytes32 merkleRoot) {\\n        // This function rebuilds the root hash by traversing the tree up from the leaves. The root is rebuilt by\\n        // consuming and producing values on a queue. The queue starts with the `leaves` array, then goes onto the\\n        // `hashes` array. At the end of the process, the last hash in the `hashes` array should contain the root of\\n        // the Merkle tree.\\n        uint256 leavesLen = leaves.length;\\n        uint256 proofFlagsLen = proofFlags.length;\\n\\n        // Check proof validity.\\n        if (leavesLen + proof.length != proofFlagsLen + 1) {\\n            revert MerkleProofInvalidMultiproof();\\n        }\\n\\n        // The xxxPos values are \\\"pointers\\\" to the next value to consume in each array. All accesses are done using\\n        // `xxx[xxxPos++]`, which return the current value and increment the pointer, thus mimicking a queue's \\\"pop\\\".\\n        bytes32[] memory hashes = new bytes32[](proofFlagsLen);\\n        uint256 leafPos = 0;\\n        uint256 hashPos = 0;\\n        uint256 proofPos = 0;\\n        // At each step, we compute the next hash using two values:\\n        // - a value from the \\\"main queue\\\". If not all leaves have been consumed, we get the next leaf, otherwise we\\n        //   get the next hash.\\n        // - depending on the flag, either another value from the \\\"main queue\\\" (merging branches) or an element from the\\n        //   `proof` array.\\n        for (uint256 i = 0; i < proofFlagsLen; i++) {\\n            bytes32 a = leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++];\\n            bytes32 b = proofFlags[i]\\n                ? (leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++])\\n                : proof[proofPos++];\\n            hashes[i] = Hashes.commutativeKeccak256(a, b);\\n        }\\n\\n        if (proofFlagsLen > 0) {\\n            if (proofPos != proof.length) {\\n                revert MerkleProofInvalidMultiproof();\\n            }\\n            unchecked {\\n                return hashes[proofFlagsLen - 1];\\n            }\\n        } else if (leavesLen > 0) {\\n            return leaves[0];\\n        } else {\\n            return proof[0];\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns true if the `leaves` can be simultaneously proven to be a part of a Merkle tree defined by\\n     * `root`, according to `proof` and `proofFlags` as described in {processMultiProof}.\\n     *\\n     * This version handles multiproofs in calldata with a custom hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. See {processMultiProof} for details.\\n     *\\n     * NOTE: Consider the case where `root == proof[0] && leaves.length == 0` as it will return `true`.\\n     * The `leaves` must be validated independently. See {processMultiProofCalldata}.\\n     */\\n    function multiProofVerifyCalldata(\\n        bytes32[] calldata proof,\\n        bool[] calldata proofFlags,\\n        bytes32 root,\\n        bytes32[] memory leaves,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bool) {\\n        return processMultiProofCalldata(proof, proofFlags, leaves, hasher) == root;\\n    }\\n\\n    /**\\n     * @dev Returns the root of a tree reconstructed from `leaves` and sibling nodes in `proof`. The reconstruction\\n     * proceeds by incrementally reconstructing all inner nodes by combining a leaf/inner node with either another\\n     * leaf/inner node or a proof sibling node, depending on whether each `proofFlags` item is true or false\\n     * respectively.\\n     *\\n     * This version handles multiproofs in calldata with a custom hashing function.\\n     *\\n     * CAUTION: Not all Merkle trees admit multiproofs. To use multiproofs, it is sufficient to ensure that: 1) the tree\\n     * is complete (but not necessarily perfect), 2) the leaves to be proven are in the opposite order they are in the\\n     * tree (i.e., as seen from right to left starting at the deepest layer and continuing at the next layer).\\n     *\\n     * NOTE: The _empty set_ (i.e. the case where `proof.length == 1 && leaves.length == 0`) is considered a no-op,\\n     * and therefore a valid multiproof (i.e. it returns `proof[0]`). Consider disallowing this case if you're not\\n     * validating the leaves elsewhere.\\n     */\\n    function processMultiProofCalldata(\\n        bytes32[] calldata proof,\\n        bool[] calldata proofFlags,\\n        bytes32[] memory leaves,\\n        function(bytes32, bytes32) view returns (bytes32) hasher\\n    ) internal view returns (bytes32 merkleRoot) {\\n        // This function rebuilds the root hash by traversing the tree up from the leaves. The root is rebuilt by\\n        // consuming and producing values on a queue. The queue starts with the `leaves` array, then goes onto the\\n        // `hashes` array. At the end of the process, the last hash in the `hashes` array should contain the root of\\n        // the Merkle tree.\\n        uint256 leavesLen = leaves.length;\\n        uint256 proofFlagsLen = proofFlags.length;\\n\\n        // Check proof validity.\\n        if (leavesLen + proof.length != proofFlagsLen + 1) {\\n            revert MerkleProofInvalidMultiproof();\\n        }\\n\\n        // The xxxPos values are \\\"pointers\\\" to the next value to consume in each array. All accesses are done using\\n        // `xxx[xxxPos++]`, which return the current value and increment the pointer, thus mimicking a queue's \\\"pop\\\".\\n        bytes32[] memory hashes = new bytes32[](proofFlagsLen);\\n        uint256 leafPos = 0;\\n        uint256 hashPos = 0;\\n        uint256 proofPos = 0;\\n        // At each step, we compute the next hash using two values:\\n        // - a value from the \\\"main queue\\\". If not all leaves have been consumed, we get the next leaf, otherwise we\\n        //   get the next hash.\\n        // - depending on the flag, either another value from the \\\"main queue\\\" (merging branches) or an element from the\\n        //   `proof` array.\\n        for (uint256 i = 0; i < proofFlagsLen; i++) {\\n            bytes32 a = leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++];\\n            bytes32 b = proofFlags[i]\\n                ? (leafPos < leavesLen ? leaves[leafPos++] : hashes[hashPos++])\\n                : proof[proofPos++];\\n            hashes[i] = hasher(a, b);\\n        }\\n\\n        if (proofFlagsLen > 0) {\\n            if (proofPos != proof.length) {\\n                revert MerkleProofInvalidMultiproof();\\n            }\\n            unchecked {\\n                return hashes[proofFlagsLen - 1];\\n            }\\n        } else if (leavesLen > 0) {\\n            return leaves[0];\\n        } else {\\n            return proof[0];\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x36a0c409c437a753cac9b92b75f93b0fbe92803bf2c8ff1517e54b247f166134\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v5.1.0) (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.20;\\n\\n/**\\n * @dev Interface of the ERC-165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[ERC].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x79796192ec90263f21b464d5bc90b777a525971d3de8232be80d9c4f9fb353b8\",\"license\":\"MIT\"},\"src/rewards/RewardCampaigns.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.28;\\n\\nimport {IERC20} from \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\nimport {SafeERC20} from \\\"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\\\";\\nimport {MerkleProof} from \\\"@openzeppelin/contracts/utils/cryptography/MerkleProof.sol\\\";\\n\\ninterface IRewardsRoot {\\n    function root() external view returns (bytes32);\\n}\\n\\n/// @title RewardCampaigns\\n/// @notice Liquidity reward campaigns of Seer's Uniswap V4 pools on this chain, and the escrow of their budgets.\\n/// Rewards pay out on the pool's chain, so there is one registry per chain with pools, next to that chain's Morpho\\n/// Universal Rewards Distributor. The weekly rewards bot (`packages/seer-pm-rewards`) rebuilds the campaigns from `CampaignSet`\\n/// events up to each Monday cutoff and submits a root with what users can claim and what each campaign emitted.\\n/// Once the distributor accepts that root, `release` pays the distributor the emitted totals it proves.\\n/// @dev Each campaign has one funder, the manager who created it and deposited its whole budget. The engine never\\n/// emits more than the budget, so the distributor can always be paid in full, and what was not emitted goes back to\\n/// the funder once the campaign ended. More rewards for a pool are a new campaign on the same pool, so a budget never\\n/// mixes the tokens of two wallets. The bot refuses campaign changes that would alter what an already published week\\n/// emitted, and every change here takes effect from the block that makes it, so none can:\\n/// - A campaign is never removed, and its pool, reward token, `minWidthTicks` and funder never change. Its budget\\n///   only drops, when a refund sends what the campaign cannot emit back to the funder.\\n/// - A campaign starts when it is created, and a rate change applies from the block it is mined in. Rate history\\n///   is append-only; a rate of 0 ends the campaign for good, so its rates bound everything it can still emit.\\n/// Reward tokens must transfer exactly the amount requested: fee-on-transfer and rebasing tokens are not supported.\\n/// The registry records the nominal budget and every campaign of a token shares one balance, so such a token would\\n/// pay one campaign's releases and refund out of the escrow of the others.\\n/// Reward tokens must also never revert a transfer, so tokens with a pause, a blocklist or transfer hooks are not\\n/// supported either. `release` pays every due campaign in one call, so one failing transfer would stop the release\\n/// and the weekly root of every campaign on the chain, and a blocked funder would never get its refund.\\n/// Managers are trusted team wallets. `createCampaign` checks neither the token nor that the pool uses the Seer hook,\\n/// and the bot replays each pool from the hook deployment, so an older pool would stop it for every campaign.\\ncontract RewardCampaigns {\\n    using SafeERC20 for IERC20;\\n\\n    /// @dev `TickMath.MAX_TICK - TickMath.MIN_TICK` of Uniswap V4: no position is wider, so a larger minimum width\\n    /// would leave every position out and the campaign would never emit.\\n    uint32 public constant MAX_WIDTH_TICKS = 1_774_544;\\n\\n    /// @dev `perSecond` reward token base units are emitted from `from` (unix seconds) until the next rate.\\n    struct Rate {\\n        uint64 from;\\n        uint256 perSecond;\\n    }\\n\\n    struct Campaign {\\n        bytes32 poolId; // V4 pool id on this chain.\\n        address rewardToken; // Token on this chain.\\n        uint256 budget; // Total the campaign may ever emit, held here until it is released or refunded.\\n        uint32 minWidthTicks; // Positions narrower than this (`tickUpper - tickLower`) neither earn nor dilute.\\n        address funder; // Deposits the budget, controls the rate and receives refunds.\\n        uint256 released; // Cumulative amount transferred to the distributor.\\n        Rate[] rates; // Strictly increasing `from`; the first one is the start of the campaign.\\n    }\\n\\n    address public immutable distributor; // This chain's Universal Rewards Distributor.\\n    address public owner; // Appoints managers.\\n    mapping(address => bool) public isManager; // Accounts that create campaigns.\\n    Campaign[] internal campaigns; // Campaign id = index.\\n\\n    /// @dev Snapshots the earning rules and budget. Subsequent payouts update `released` through `Released` only.\\n    event CampaignSet(uint256 indexed id, Campaign campaign);\\n    /// @param upTo The cutoff supplied for this call, including corrections to earlier cutoffs.\\n    event Released(uint256 indexed id, uint256 amount, uint256 released, uint64 upTo);\\n    event Refunded(uint256 indexed id, address indexed funder, uint256 amount);\\n    event ManagerSet(address indexed account, bool active);\\n    event OwnerSet(address indexed owner);\\n\\n    modifier onlyOwner() {\\n        require(msg.sender == owner, \\\"Only the owner\\\");\\n        _;\\n    }\\n\\n    modifier onlyManager() {\\n        require(isManager[msg.sender], \\\"Only a manager\\\");\\n        _;\\n    }\\n\\n    /// @param _distributor This chain's Universal Rewards Distributor.\\n    /// @param _owner The owner of the registry, usually a Safe.\\n    /// @param _managers The initial managers.\\n    constructor(address _distributor, address _owner, address[] memory _managers) {\\n        distributor = _distributor;\\n        owner = _owner;\\n        emit OwnerSet(_owner);\\n        for (uint256 i = 0; i < _managers.length; i++) {\\n            isManager[_managers[i]] = true;\\n            emit ManagerSet(_managers[i], true);\\n        }\\n    }\\n\\n    /// @notice Transfers ownership. It takes effect at once.\\n    function setOwner(address _owner) external onlyOwner {\\n        owner = _owner;\\n        emit OwnerSet(_owner);\\n    }\\n\\n    function setManager(address account, bool active) external onlyOwner {\\n        isManager[account] = active;\\n        emit ManagerSet(account, active);\\n    }\\n\\n    /// @notice Creates a campaign that emits `perSecond` from this block on, and deposits its whole `budget` from\\n    /// the caller, who must have approved this contract for it and becomes its funder.\\n    /// @return id The id of the new campaign.\\n    function createCampaign(\\n        bytes32 poolId,\\n        address rewardToken,\\n        uint256 perSecond,\\n        uint256 budget,\\n        uint32 minWidthTicks\\n    ) external onlyManager returns (uint256 id) {\\n        require(poolId != bytes32(0), \\\"Missing pool id\\\");\\n        require(rewardToken != address(0), \\\"Missing reward token\\\");\\n        require(perSecond != 0, \\\"Missing rate\\\");\\n        require(budget != 0, \\\"Missing budget\\\");\\n        require(budget <= type(uint128).max, \\\"Budget too large\\\");\\n        require(perSecond <= budget, \\\"Rate over budget\\\");\\n        require(minWidthTicks <= MAX_WIDTH_TICKS, \\\"Width too wide\\\");\\n\\n        id = campaigns.length;\\n        Campaign storage campaign = campaigns.push();\\n        campaign.funder = msg.sender;\\n        campaign.poolId = poolId;\\n        campaign.rewardToken = rewardToken;\\n        campaign.budget = budget;\\n        campaign.minWidthTicks = minWidthTicks;\\n        campaign.rates.push(Rate(uint64(block.timestamp), perSecond));\\n        emit CampaignSet(id, campaign);\\n        IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), budget);\\n    }\\n\\n    /// @notice Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool\\n    /// are a new campaign.\\n    /// @dev A rate is at most the budget, which fits in 128 bits, so `release` and `settleRefund` multiply it by a\\n    /// `uint64` span of seconds without overflowing; one overflowing campaign would revert the weekly release of every\\n    /// campaign on the chain.\\n    function setRate(uint256 id, uint256 perSecond) external {\\n        Campaign storage campaign = _campaign(id);\\n        require(msg.sender == campaign.funder, \\\"Only the funder\\\");\\n        require(perSecond <= campaign.budget, \\\"Rate over budget\\\");\\n        Rate storage last = campaign.rates[campaign.rates.length - 1];\\n        require(last.perSecond != 0, \\\"Campaign ended\\\");\\n        // Rates are keyed by timestamp, so a second change in the same block replaces the first.\\n        if (last.from == block.timestamp) last.perSecond = perSecond;\\n        else campaign.rates.push(Rate(uint64(block.timestamp), perSecond));\\n        if (perSecond == 0) _refund(id, campaign, _maxEmission(campaign.rates, uint64(block.timestamp)));\\n        emit CampaignSet(id, campaign);\\n    }\\n\\n    /// @notice Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the\\n    /// cumulative `emitted` of each, so a repeated call sends nothing more. Anyone may call it.\\n    /// @dev Each total must be a release leaf of the root the distributor accepted, so it went through the\\n    /// distributor's timelock and its owner's veto like the claims it pays. The key that proposes roots therefore\\n    /// cannot pay out escrow at once, and every total is also bounded by the integral of the rates up to `upTo`.\\n    function release(uint256[] calldata ids, uint256[] calldata emitted, uint64 upTo, bytes32[][] calldata proofs)\\n        external\\n    {\\n        require(ids.length == emitted.length && ids.length == proofs.length, \\\"Length mismatch\\\");\\n        require(upTo <= block.timestamp, \\\"Cutoff in the future\\\");\\n        bytes32 root = IRewardsRoot(distributor).root();\\n        for (uint256 i = 0; i < ids.length; i++) {\\n            Campaign storage campaign = _campaign(ids[i]);\\n            require(emitted[i] <= campaign.budget, \\\"Over budget\\\");\\n            require(emitted[i] <= _maxEmission(campaign.rates, upTo), \\\"Over rate\\\");\\n            // The tag keeps this leaf apart from a settlement leaf, whose words have the same types after it.\\n            bytes32 leaf = keccak256(\\n                bytes.concat(keccak256(abi.encode(\\\"release\\\", block.chainid, address(this), ids[i], upTo, emitted[i])))\\n            );\\n            require(MerkleProof.verifyCalldata(proofs[i], root, leaf), \\\"Invalid release proof\\\");\\n            uint256 amount = emitted[i] > campaign.released ? emitted[i] - campaign.released : 0;\\n            if (amount > 0) {\\n                campaign.released = emitted[i];\\n                IERC20(campaign.rewardToken).safeTransfer(distributor, amount);\\n            }\\n            emit Released(ids[i], amount, campaign.released, upTo);\\n        }\\n    }\\n\\n    /// @notice Returns the remaining escrow to the funder once the accepted distribution covers the end.\\n    function settleRefund(uint256 id, uint256 emitted, bytes32[] calldata proof) external {\\n        Campaign storage campaign = _campaign(id);\\n        Rate storage end = campaign.rates[campaign.rates.length - 1];\\n        require(end.perSecond == 0, \\\"Campaign not ended\\\");\\n        uint256 paid = campaign.released;\\n        require(emitted <= paid, \\\"Not released\\\");\\n        // The five-word preimage cannot be read as a three-word URD claim or an eight-word release leaf. Bind to this\\n        // deployment and end.\\n        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(block.chainid, address(this), id, end.from, emitted))));\\n        require(MerkleProof.verifyCalldata(proof, IRewardsRoot(distributor).root(), leaf), \\\"Invalid settlement proof\\\");\\n        if (_refund(id, campaign, paid)) emit CampaignSet(id, campaign);\\n    }\\n\\n    function _refund(uint256 id, Campaign storage campaign, uint256 keep) private returns (bool) {\\n        if (keep >= campaign.budget) return false;\\n        uint256 amount = campaign.budget - keep;\\n        campaign.budget = keep;\\n        emit Refunded(id, campaign.funder, amount);\\n        IERC20(campaign.rewardToken).safeTransfer(campaign.funder, amount);\\n        return true;\\n    }\\n\\n    function campaignCount() external view returns (uint256) {\\n        return campaigns.length;\\n    }\\n\\n    function getCampaign(uint256 id) external view returns (Campaign memory) {\\n        return _campaign(id);\\n    }\\n\\n    /// @notice The campaigns with ids from `from` up to, but not including, `to`, in id order.\\n    /// @dev Each campaign carries its whole rate history, so one call returning every campaign would outgrow an\\n    /// `eth_call` gas cap as campaigns accumulate. A `to` past the last campaign stops at it and an empty range\\n    /// returns nothing, so a reader pages with a fixed size from `campaignCount`.\\n    function getCampaigns(uint256 from, uint256 to) external view returns (Campaign[] memory page) {\\n        if (to > campaigns.length) to = campaigns.length;\\n        if (from >= to) return page;\\n        page = new Campaign[](to - from);\\n        for (uint256 i = from; i < to; i++) {\\n            page[i - from] = campaigns[i];\\n        }\\n    }\\n\\n    function _maxEmission(Rate[] storage rates, uint64 to) private view returns (uint256 total) {\\n        for (uint256 i; i < rates.length && rates[i].from < to; i++) {\\n            uint64 until = i + 1 < rates.length && rates[i + 1].from < to ? rates[i + 1].from : to;\\n            total += rates[i].perSecond * (until - rates[i].from);\\n        }\\n    }\\n\\n    function _campaign(uint256 id) internal view returns (Campaign storage) {\\n        require(id < campaigns.length, \\\"Unknown campaign\\\");\\n        return campaigns[id];\\n    }\\n}\\n\",\"keccak256\":\"0x6e9aec44f7c5aa6bd4f9e91e71993196f37e18877244542403c0bfdf65e4d84e\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a0604052346101a55761195b80380380610019816101bd565b9283398101906060818303126101a557610032816101e2565b61003e602083016101e2565b604083015190926001600160401b0382116101a557019280601f850112156101a5578351936001600160401b0385116101a9578460051b906020806100848185016101bd565b8098815201928201019283116101a557602001905b82821061018d575050506080525f80546001600160a01b0319166001600160a01b039290921691821781557f50146d0e3c60aa1d17a70635b05494f864e86144a2201275021014fbf08bafe29080a25f5b8151811015610160576001906001600160a01b0361010882856101f6565b51165f528160205260405f208260ff19825416179055818060a01b0361012e82856101f6565b51167fff83ce179bad4fbdb0e98074011487cde624295a52d8189d92d5d8b06c914eda6020604051858152a2016100ea565b60405161173c908161021f82396080518181816101c40152818161036f01528181610a230152610c2f0152f35b6020809161019a846101e2565b815201910190610099565b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b6040519190601f01601f191682016001600160401b038111838210176101a957604052565b51906001600160a01b03821682036101a557565b805182101561020a5760209160051b010190565b634e487b7160e01b5f52603260045260245ffdfe60806040526004361015610011575f80fd5b5f3560e01c80630905156614610e8e57806313af403514610e1a57806333bf9a4d14610dfd5780634636c33b1461096657806346df2ccb146107ed5780635598f8cc146107a557806363f16fdb1461046b5780637274e30d1461044e5780638da5cb5b14610427578063a5e90eee1461039e578063bfe109281461035a578063ea0f858e146100e95763f3ae2415146100a8575f80fd5b346100e55760203660031901126100e5576001600160a01b036100c9610fc4565b165f526001602052602060ff60405f2054166040519015158152f35b5f80fd5b346100e55760603660031901126100e5576004356024356044356001600160401b0381116100e55761011f903690600401610fda565b61012b84939293611444565b926005840180545f1981019081116103465761014691611325565b50600181015461030c576004850154938481116102d8576001600160401b036101a592541690604051906020820192468452306040840152896060840152608083015260a082015260a0815261019d60c08261104d565b5190206112cb565b805160209182012060405163ebf0c71760e01b815293909291846004817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa9182156102cd575f92610297575b61020694506115a6565b1561025257610216908284611633565b61021c57005b61024d7f8226ab5cf71e25173c8322f56f41b6ae83a7eaf9f25f7f86cf7446ab8814a4a7916040519182918261139b565b0390a2005b60405162461bcd60e51b815260206004820152601860248201527f496e76616c696420736574746c656d656e742070726f6f6600000000000000006044820152606490fd5b91506020843d6020116102c5575b816102b26020938361104d565b810103126100e5576102069351916101fc565b3d91506102a5565b6040513d5f823e3d90fd5b60405162461bcd60e51b815260206004820152600c60248201526b139bdd081c995b19585cd95960a21b6044820152606490fd5b60405162461bcd60e51b815260206004820152601260248201527110d85b5c185a59db881b9bdd08195b99195960721b6044820152606490fd5b634e487b7160e01b5f52601160045260245ffd5b346100e5575f3660031901126100e5576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b346100e55760403660031901126100e5576103b7610fc4565b602435908115158092036100e55760207fff83ce179bad4fbdb0e98074011487cde624295a52d8189d92d5d8b06c914eda916103fd60018060a01b035f5416331461127e565b60018060a01b031692835f526001825260405f2060ff1981541660ff8316179055604051908152a2005b346100e5575f3660031901126100e5575f546040516001600160a01b039091168152602090f35b346100e5575f3660031901126100e5576020600254604051908152f35b346100e55760a03660031901126100e5576004356024356001600160a01b038116908190036100e5576044356064356084359263ffffffff84168094036100e557335f52600160205260ff60405f2054161561076f5784156107385780156106fc5782156106c8578115610692576fffffffffffffffffffffffffffffffff821161065a576104fc828411156112e6565b621b13d084116106245760025493600160401b851015610610577f8226ab5cf71e25173c8322f56f41b6ae83a7eaf9f25f7f86cf7446ab8814a4a76105d086926105c46106089760209a60018701600255610556876110bb565b506003810180549282556001820180546001600160a01b0319168b179055600282018b90556001600160c01b03199092163360201b640100000000600160c01b0316179094179055604051906105ab82611017565b6001600160401b03421682528b8201526005830161133e565b6040519182918261139b565b0390a2604051916323b872dd60e01b8684015233602484015230604484015260648301526064825261060360848361104d565b6116ae565b604051908152f35b634e487b7160e01b5f52604160045260245ffd5b60405162461bcd60e51b815260206004820152600e60248201526d576964746820746f6f207769646560901b6044820152606490fd5b60405162461bcd60e51b815260206004820152601060248201526f42756467657420746f6f206c6172676560801b6044820152606490fd5b60405162461bcd60e51b815260206004820152600e60248201526d135a5cdcda5b99c8189d5919d95d60921b6044820152606490fd5b60405162461bcd60e51b815260206004820152600c60248201526b4d697373696e67207261746560a01b6044820152606490fd5b60405162461bcd60e51b815260206004820152601460248201527326b4b9b9b4b733903932bbb0b932103a37b5b2b760611b6044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e135a5cdcda5b99c81c1bdbdb081a59608a1b6044820152606490fd5b60405162461bcd60e51b815260206004820152600e60248201526d27b7363c90309036b0b730b3b2b960911b6044820152606490fd5b346100e55760203660031901126100e5576107be611085565b506107e96107d56107d0600435611444565b6110eb565b604051918291602083526020830190610f21565b0390f35b346100e5576107fb36610f0b565b61080482611444565b600381015490919060201c6001600160a01b0316330361092f5761082e60028301548211156112e6565b600582019182545f1981019081116103465761084a9084611325565b509260018401928354156108f9578061024d946001600160401b037f8226ab5cf71e25173c8322f56f41b6ae83a7eaf9f25f7f86cf7446ab8814a4a797541642145f146108cb57555b156108a6575b506040519182918261139b565b6108bd6108c4916001600160401b03421690611493565b8286611633565b5084610899565b50506108f46040516108dc81611017565b6001600160401b03421681528260208201528361133e565b610893565b60405162461bcd60e51b815260206004820152600e60248201526d10d85b5c185a59db88195b99195960921b6044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e27b7363c903a343290333ab73232b960891b6044820152606490fd5b346100e55760803660031901126100e5576004356001600160401b0381116100e557610996903690600401610fda565b906024356001600160401b0381116100e5576109b6903690600401610fda565b90916001600160401b0360443516604435036100e5576064356001600160401b0381116100e5576109eb903690600401610fda565b93909280861480610df4575b15610dbd57426001600160401b036044351611610d815760405163ebf0c71760e01b81526020816004817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa9081156102cd575f91610d4f575b505f5b878110610a6757005b610a7b610a75828a886112bb565b35611444565b90610a878185876112bb565b35600283015410610d1c57610a9d8185876112bb565b35610aad60443560058501611493565b10610ceb57610b2a610ac0828b896112bb565b35610acc8387896112bb565b3560405190602082019260c08452600760e08401526672656c6561736560c81b61010084015246604084015230606084015260808301526001600160401b036044351660a083015260c0820152610100815261019d6101208261104d565b6020815191012088821015610cd7578160051b880135601e19893603018112156100e5578801908135916001600160401b0383116100e5576020018260051b360381136100e557610b7c9286916115a6565b15610c9a5760019181868b610b928389846112bb565b358860048601548092115f14610c665784610be0600493610bda7fc9b5c7afd74bfd11015bfbc5f598194bc51d10b3d7047e93c58c40bbf18a314198610bf4956060996112bb565b3561100a565b935b8c828d87610c1b575b5050508d6112bb565b3594015460405191825260208201526001600160401b03604435166040820152a201610a5e565b610c24926112bb565b3584890155610c5e857f00000000000000000000000000000000000000000000000000000000000000008c8060a01b038d8c0154166115f8565b8c828d610beb565b5050606091506004610bf47fc9b5c7afd74bfd11015bfbc5f598194bc51d10b3d7047e93c58c40bbf18a3141945f93610be2565b60405162461bcd60e51b815260206004820152601560248201527424b73b30b634b2103932b632b0b9b290383937b7b360591b6044820152606490fd5b634e487b7160e01b5f52603260045260245ffd5b60405162461bcd60e51b81526020600482015260096024820152684f766572207261746560b81b6044820152606490fd5b60405162461bcd60e51b815260206004820152600b60248201526a13dd995c88189d5919d95d60aa1b6044820152606490fd5b90506020813d602011610d79575b81610d6a6020938361104d565b810103126100e5575187610a5b565b3d9150610d5d565b60405162461bcd60e51b81526020600482015260146024820152734375746f666620696e207468652066757475726560601b6044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e098cadccee8d040dad2e6dac2e8c6d608b1b6044820152606490fd5b508486146109f7565b346100e5575f3660031901126100e5576020604051621b13d08152f35b346100e55760203660031901126100e557610e33610fc4565b5f5490610e4a336001600160a01b0384161461127e565b60018060a01b031680916bffffffffffffffffffffffff60a01b16175f557f50146d0e3c60aa1d17a70635b05494f864e86144a2201275021014fbf08bafe25f80a2005b346100e557610ea5610e9f36610f0b565b906111ba565b6040518091602082016020835281518091526040830190602060408260051b8601019301915f905b828210610edc57505050500390f35b91936001919395506020610efb8192603f198a82030186528851610f21565b9601920192018594939192610ecd565b60409060031901126100e5576004359060243590565b602061010060c060e08501938051865260018060a01b038482015116848701526040810151604087015263ffffffff606082015116606087015260018060a01b03608082015116608087015260a081015160a087015201519360e060c08201528451809452019201905f5b818110610f995750505090565b825180516001600160401b031685526020908101518186015260409094019390920191600101610f8c565b600435906001600160a01b03821682036100e557565b9181601f840112156100e5578235916001600160401b0383116100e5576020808501948460051b0101116100e557565b9190820391821161034657565b604081019081106001600160401b0382111761061057604052565b60e081019081106001600160401b0382111761061057604052565b90601f801991011681019081106001600160401b0382111761061057604052565b6001600160401b0381116106105760051b60200190565b6040519061109282611032565b606060c0835f81525f60208201525f60408201525f838201525f60808201525f60a08201520152565b600254811015610cd75760025f52600660205f20910201905f90565b8051821015610cd75760209160051b010190565b906040516110f881611032565b8254815260018301546001600160a01b0390811660208084019190915260028501546040840152600385015463ffffffff81166060850152901c166080820152600483015460a08201526005909201805483906111548161106e565b92611162604051948561104d565b81845260208401905f5260205f205f915b838310611184575050505060c00152565b6002602060019260405161119781611017565b6001600160401b0386541681528486015483820152815201920192019190611173565b9190600254808211611276575b508083101561126f576111da838261100a565b926111e48461106e565b936111f2604051958661104d565b808552611201601f199161106e565b015f5b81811061125857505083815b83811061121d5750505050565b8061125161122c6001936110bb565b5061124061123a878561100a565b916110eb565b61124a82876110d7565b52846110d7565b5001611210565b602090611263611085565b82828901015201611204565b5060609150565b90505f6111c7565b1561128557565b60405162461bcd60e51b815260206004820152600e60248201526d27b7363c903a34329037bbb732b960911b6044820152606490fd5b9190811015610cd75760051b0190565b90604051916020830152602082526112e460408361104d565b565b156112ed57565b60405162461bcd60e51b815260206004820152601060248201526f14985d19481bdd995c88189d5919d95d60821b6044820152606490fd5b8054821015610cd7575f5260205f209060011b01905f90565b8054600160401b8110156106105761135b91600182018155611325565b919091611388576020816001600160401b0360019351166001600160401b03198554161784550151910155565b634e487b7160e01b5f525f60045260245ffd5b602080825282548183015260018301546001600160a01b03908116604084015260028401546060840152600384015463ffffffff81166080850152821c1660a0830152600483015460c083015260e0808301526005909201805461010083018190525f91825292812061012090920192905b81811061141a5750505090565b82546001600160401b0316845260018084015460208601526040909401936002909301920161140d565b60025481101561145b57611457906110bb565b5090565b60405162461bcd60e51b815260206004820152601060248201526f2ab735b737bbb71031b0b6b830b4b3b760811b6044820152606490fd5b5f91825b825480851080611580575b15611578576001850190818611908161034657821080611550575b1561154857610346576114d86001600160401b039185611325565b5054165b60016114e88686611325565b500154906001600160401b03806114ff8888611325565b5054169116036001600160401b038111610346576001600160401b03169081810291818304149015171561034657810180911161034657925f1981146103465760010192611497565b5050816114dc565b50505f6001600160401b036115658387611325565b5054166001600160401b038516116114bd565b509392505050565b506001600160401b036115938686611325565b5054166001600160401b038416116114a2565b9192915f915b8083106115ba575050501490565b9091926115c88483856112bb565b3590818110156115e7575f52602052600160405f205b930191906115ac565b905f52602052600160405f206115de565b60405163a9059cbb60e01b60208201526001600160a01b0390921660248301526044808301939093529181526112e49161060360648361104d565b6002820191825493848110156116a557611650816116a09661100a565b935560018060a01b03600382015460201c1680927f7ca5472b7ea78c2c0141c5a12ee6d170cf4ce8ed06be3d22c8252ddfc7a6a2c46020604051878152a3600101546001600160a01b03166115f8565b600190565b50505050505f90565b905f602091828151910182855af1156102cd575f513d6116fd57506001600160a01b0381163b155b6116dd5750565b635274afe760e01b5f9081526001600160a01b0391909116600452602490fd5b600114156116d656fea26469706673582212204fca4142fc8c504ed2c3d0786472d7d74f992a94eed436ed46489fb92eb4691964736f6c634300081c0033",
+  "deployedBytecode": "0x60806040526004361015610011575f80fd5b5f3560e01c80630905156614610e8e57806313af403514610e1a57806333bf9a4d14610dfd5780634636c33b1461096657806346df2ccb146107ed5780635598f8cc146107a557806363f16fdb1461046b5780637274e30d1461044e5780638da5cb5b14610427578063a5e90eee1461039e578063bfe109281461035a578063ea0f858e146100e95763f3ae2415146100a8575f80fd5b346100e55760203660031901126100e5576001600160a01b036100c9610fc4565b165f526001602052602060ff60405f2054166040519015158152f35b5f80fd5b346100e55760603660031901126100e5576004356024356044356001600160401b0381116100e55761011f903690600401610fda565b61012b84939293611444565b926005840180545f1981019081116103465761014691611325565b50600181015461030c576004850154938481116102d8576001600160401b036101a592541690604051906020820192468452306040840152896060840152608083015260a082015260a0815261019d60c08261104d565b5190206112cb565b805160209182012060405163ebf0c71760e01b815293909291846004817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa9182156102cd575f92610297575b61020694506115a6565b1561025257610216908284611633565b61021c57005b61024d7f8226ab5cf71e25173c8322f56f41b6ae83a7eaf9f25f7f86cf7446ab8814a4a7916040519182918261139b565b0390a2005b60405162461bcd60e51b815260206004820152601860248201527f496e76616c696420736574746c656d656e742070726f6f6600000000000000006044820152606490fd5b91506020843d6020116102c5575b816102b26020938361104d565b810103126100e5576102069351916101fc565b3d91506102a5565b6040513d5f823e3d90fd5b60405162461bcd60e51b815260206004820152600c60248201526b139bdd081c995b19585cd95960a21b6044820152606490fd5b60405162461bcd60e51b815260206004820152601260248201527110d85b5c185a59db881b9bdd08195b99195960721b6044820152606490fd5b634e487b7160e01b5f52601160045260245ffd5b346100e5575f3660031901126100e5576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b346100e55760403660031901126100e5576103b7610fc4565b602435908115158092036100e55760207fff83ce179bad4fbdb0e98074011487cde624295a52d8189d92d5d8b06c914eda916103fd60018060a01b035f5416331461127e565b60018060a01b031692835f526001825260405f2060ff1981541660ff8316179055604051908152a2005b346100e5575f3660031901126100e5575f546040516001600160a01b039091168152602090f35b346100e5575f3660031901126100e5576020600254604051908152f35b346100e55760a03660031901126100e5576004356024356001600160a01b038116908190036100e5576044356064356084359263ffffffff84168094036100e557335f52600160205260ff60405f2054161561076f5784156107385780156106fc5782156106c8578115610692576fffffffffffffffffffffffffffffffff821161065a576104fc828411156112e6565b621b13d084116106245760025493600160401b851015610610577f8226ab5cf71e25173c8322f56f41b6ae83a7eaf9f25f7f86cf7446ab8814a4a76105d086926105c46106089760209a60018701600255610556876110bb565b506003810180549282556001820180546001600160a01b0319168b179055600282018b90556001600160c01b03199092163360201b640100000000600160c01b0316179094179055604051906105ab82611017565b6001600160401b03421682528b8201526005830161133e565b6040519182918261139b565b0390a2604051916323b872dd60e01b8684015233602484015230604484015260648301526064825261060360848361104d565b6116ae565b604051908152f35b634e487b7160e01b5f52604160045260245ffd5b60405162461bcd60e51b815260206004820152600e60248201526d576964746820746f6f207769646560901b6044820152606490fd5b60405162461bcd60e51b815260206004820152601060248201526f42756467657420746f6f206c6172676560801b6044820152606490fd5b60405162461bcd60e51b815260206004820152600e60248201526d135a5cdcda5b99c8189d5919d95d60921b6044820152606490fd5b60405162461bcd60e51b815260206004820152600c60248201526b4d697373696e67207261746560a01b6044820152606490fd5b60405162461bcd60e51b815260206004820152601460248201527326b4b9b9b4b733903932bbb0b932103a37b5b2b760611b6044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e135a5cdcda5b99c81c1bdbdb081a59608a1b6044820152606490fd5b60405162461bcd60e51b815260206004820152600e60248201526d27b7363c90309036b0b730b3b2b960911b6044820152606490fd5b346100e55760203660031901126100e5576107be611085565b506107e96107d56107d0600435611444565b6110eb565b604051918291602083526020830190610f21565b0390f35b346100e5576107fb36610f0b565b61080482611444565b600381015490919060201c6001600160a01b0316330361092f5761082e60028301548211156112e6565b600582019182545f1981019081116103465761084a9084611325565b509260018401928354156108f9578061024d946001600160401b037f8226ab5cf71e25173c8322f56f41b6ae83a7eaf9f25f7f86cf7446ab8814a4a797541642145f146108cb57555b156108a6575b506040519182918261139b565b6108bd6108c4916001600160401b03421690611493565b8286611633565b5084610899565b50506108f46040516108dc81611017565b6001600160401b03421681528260208201528361133e565b610893565b60405162461bcd60e51b815260206004820152600e60248201526d10d85b5c185a59db88195b99195960921b6044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e27b7363c903a343290333ab73232b960891b6044820152606490fd5b346100e55760803660031901126100e5576004356001600160401b0381116100e557610996903690600401610fda565b906024356001600160401b0381116100e5576109b6903690600401610fda565b90916001600160401b0360443516604435036100e5576064356001600160401b0381116100e5576109eb903690600401610fda565b93909280861480610df4575b15610dbd57426001600160401b036044351611610d815760405163ebf0c71760e01b81526020816004817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa9081156102cd575f91610d4f575b505f5b878110610a6757005b610a7b610a75828a886112bb565b35611444565b90610a878185876112bb565b35600283015410610d1c57610a9d8185876112bb565b35610aad60443560058501611493565b10610ceb57610b2a610ac0828b896112bb565b35610acc8387896112bb565b3560405190602082019260c08452600760e08401526672656c6561736560c81b61010084015246604084015230606084015260808301526001600160401b036044351660a083015260c0820152610100815261019d6101208261104d565b6020815191012088821015610cd7578160051b880135601e19893603018112156100e5578801908135916001600160401b0383116100e5576020018260051b360381136100e557610b7c9286916115a6565b15610c9a5760019181868b610b928389846112bb565b358860048601548092115f14610c665784610be0600493610bda7fc9b5c7afd74bfd11015bfbc5f598194bc51d10b3d7047e93c58c40bbf18a314198610bf4956060996112bb565b3561100a565b935b8c828d87610c1b575b5050508d6112bb565b3594015460405191825260208201526001600160401b03604435166040820152a201610a5e565b610c24926112bb565b3584890155610c5e857f00000000000000000000000000000000000000000000000000000000000000008c8060a01b038d8c0154166115f8565b8c828d610beb565b5050606091506004610bf47fc9b5c7afd74bfd11015bfbc5f598194bc51d10b3d7047e93c58c40bbf18a3141945f93610be2565b60405162461bcd60e51b815260206004820152601560248201527424b73b30b634b2103932b632b0b9b290383937b7b360591b6044820152606490fd5b634e487b7160e01b5f52603260045260245ffd5b60405162461bcd60e51b81526020600482015260096024820152684f766572207261746560b81b6044820152606490fd5b60405162461bcd60e51b815260206004820152600b60248201526a13dd995c88189d5919d95d60aa1b6044820152606490fd5b90506020813d602011610d79575b81610d6a6020938361104d565b810103126100e5575187610a5b565b3d9150610d5d565b60405162461bcd60e51b81526020600482015260146024820152734375746f666620696e207468652066757475726560601b6044820152606490fd5b60405162461bcd60e51b815260206004820152600f60248201526e098cadccee8d040dad2e6dac2e8c6d608b1b6044820152606490fd5b508486146109f7565b346100e5575f3660031901126100e5576020604051621b13d08152f35b346100e55760203660031901126100e557610e33610fc4565b5f5490610e4a336001600160a01b0384161461127e565b60018060a01b031680916bffffffffffffffffffffffff60a01b16175f557f50146d0e3c60aa1d17a70635b05494f864e86144a2201275021014fbf08bafe25f80a2005b346100e557610ea5610e9f36610f0b565b906111ba565b6040518091602082016020835281518091526040830190602060408260051b8601019301915f905b828210610edc57505050500390f35b91936001919395506020610efb8192603f198a82030186528851610f21565b9601920192018594939192610ecd565b60409060031901126100e5576004359060243590565b602061010060c060e08501938051865260018060a01b038482015116848701526040810151604087015263ffffffff606082015116606087015260018060a01b03608082015116608087015260a081015160a087015201519360e060c08201528451809452019201905f5b818110610f995750505090565b825180516001600160401b031685526020908101518186015260409094019390920191600101610f8c565b600435906001600160a01b03821682036100e557565b9181601f840112156100e5578235916001600160401b0383116100e5576020808501948460051b0101116100e557565b9190820391821161034657565b604081019081106001600160401b0382111761061057604052565b60e081019081106001600160401b0382111761061057604052565b90601f801991011681019081106001600160401b0382111761061057604052565b6001600160401b0381116106105760051b60200190565b6040519061109282611032565b606060c0835f81525f60208201525f60408201525f838201525f60808201525f60a08201520152565b600254811015610cd75760025f52600660205f20910201905f90565b8051821015610cd75760209160051b010190565b906040516110f881611032565b8254815260018301546001600160a01b0390811660208084019190915260028501546040840152600385015463ffffffff81166060850152901c166080820152600483015460a08201526005909201805483906111548161106e565b92611162604051948561104d565b81845260208401905f5260205f205f915b838310611184575050505060c00152565b6002602060019260405161119781611017565b6001600160401b0386541681528486015483820152815201920192019190611173565b9190600254808211611276575b508083101561126f576111da838261100a565b926111e48461106e565b936111f2604051958661104d565b808552611201601f199161106e565b015f5b81811061125857505083815b83811061121d5750505050565b8061125161122c6001936110bb565b5061124061123a878561100a565b916110eb565b61124a82876110d7565b52846110d7565b5001611210565b602090611263611085565b82828901015201611204565b5060609150565b90505f6111c7565b1561128557565b60405162461bcd60e51b815260206004820152600e60248201526d27b7363c903a34329037bbb732b960911b6044820152606490fd5b9190811015610cd75760051b0190565b90604051916020830152602082526112e460408361104d565b565b156112ed57565b60405162461bcd60e51b815260206004820152601060248201526f14985d19481bdd995c88189d5919d95d60821b6044820152606490fd5b8054821015610cd7575f5260205f209060011b01905f90565b8054600160401b8110156106105761135b91600182018155611325565b919091611388576020816001600160401b0360019351166001600160401b03198554161784550151910155565b634e487b7160e01b5f525f60045260245ffd5b602080825282548183015260018301546001600160a01b03908116604084015260028401546060840152600384015463ffffffff81166080850152821c1660a0830152600483015460c083015260e0808301526005909201805461010083018190525f91825292812061012090920192905b81811061141a5750505090565b82546001600160401b0316845260018084015460208601526040909401936002909301920161140d565b60025481101561145b57611457906110bb565b5090565b60405162461bcd60e51b815260206004820152601060248201526f2ab735b737bbb71031b0b6b830b4b3b760811b6044820152606490fd5b5f91825b825480851080611580575b15611578576001850190818611908161034657821080611550575b1561154857610346576114d86001600160401b039185611325565b5054165b60016114e88686611325565b500154906001600160401b03806114ff8888611325565b5054169116036001600160401b038111610346576001600160401b03169081810291818304149015171561034657810180911161034657925f1981146103465760010192611497565b5050816114dc565b50505f6001600160401b036115658387611325565b5054166001600160401b038516116114bd565b509392505050565b506001600160401b036115938686611325565b5054166001600160401b038416116114a2565b9192915f915b8083106115ba575050501490565b9091926115c88483856112bb565b3590818110156115e7575f52602052600160405f205b930191906115ac565b905f52602052600160405f206115de565b60405163a9059cbb60e01b60208201526001600160a01b0390921660248301526044808301939093529181526112e49161060360648361104d565b6002820191825493848110156116a557611650816116a09661100a565b935560018060a01b03600382015460201c1680927f7ca5472b7ea78c2c0141c5a12ee6d170cf4ce8ed06be3d22c8252ddfc7a6a2c46020604051878152a3600101546001600160a01b03166115f8565b600190565b50505050505f90565b905f602091828151910182855af1156102cd575f513d6116fd57506001600160a01b0381163b155b6116dd5750565b635274afe760e01b5f9081526001600160a01b0391909116600452602490fd5b600114156116d656fea26469706673582212204fca4142fc8c504ed2c3d0786472d7d74f992a94eed436ed46489fb92eb4691964736f6c634300081c0033",
+  "devdoc": {
+    "details": "Each campaign has one funder, the manager who created it and deposited its whole budget. The engine never emits more than the budget, so the distributor can always be paid in full, and what was not emitted goes back to the funder once the campaign ended. More rewards for a pool are a new campaign on the same pool, so a budget never mixes the tokens of two wallets. The bot refuses campaign changes that would alter what an already published week emitted, and every change here takes effect from the block that makes it, so none can: - A campaign is never removed, and its pool, reward token, `minWidthTicks` and funder never change. Its budget   only drops, when a refund sends what the campaign cannot emit back to the funder. - A campaign starts when it is created, and a rate change applies from the block it is mined in. Rate history   is append-only; a rate of 0 ends the campaign for good, so its rates bound everything it can still emit. Reward tokens must transfer exactly the amount requested: fee-on-transfer and rebasing tokens are not supported. The registry records the nominal budget and every campaign of a token shares one balance, so such a token would pay one campaign's releases and refund out of the escrow of the others. Reward tokens must also never revert a transfer, so tokens with a pause, a blocklist or transfer hooks are not supported either. `release` pays every due campaign in one call, so one failing transfer would stop the release and the weekly root of every campaign on the chain, and a blocked funder would never get its refund. Managers are trusted team wallets. `createCampaign` checks neither the token nor that the pool uses the Seer hook, and the bot replays each pool from the hook deployment, so an older pool would stop it for every campaign.",
+    "errors": {
+      "SafeERC20FailedOperation(address)": [
+        {
+          "details": "An operation with an ERC-20 token failed."
+        }
+      ]
+    },
+    "events": {
+      "CampaignSet(uint256,(bytes32,address,uint256,uint32,address,uint256,(uint64,uint256)[]))": {
+        "details": "Snapshots the earning rules and budget. Subsequent payouts update `released` through `Released` only."
+      },
+      "Released(uint256,uint256,uint256,uint64)": {
+        "params": {
+          "upTo": "The cutoff supplied for this call, including corrections to earlier cutoffs."
+        }
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "params": {
+          "_distributor": "This chain's Universal Rewards Distributor.",
+          "_managers": "The initial managers.",
+          "_owner": "The owner of the registry, usually a Safe."
+        }
+      },
+      "createCampaign(bytes32,address,uint256,uint256,uint32)": {
+        "returns": {
+          "id": "The id of the new campaign."
+        }
+      },
+      "getCampaigns(uint256,uint256)": {
+        "details": "Each campaign carries its whole rate history, so one call returning every campaign would outgrow an `eth_call` gas cap as campaigns accumulate. A `to` past the last campaign stops at it and an empty range returns nothing, so a reader pages with a fixed size from `campaignCount`."
+      },
+      "release(uint256[],uint256[],uint64,bytes32[][])": {
+        "details": "Each total must be a release leaf of the root the distributor accepted, so it went through the distributor's timelock and its owner's veto like the claims it pays. The key that proposes roots therefore cannot pay out escrow at once, and every total is also bounded by the integral of the rates up to `upTo`."
+      },
+      "setRate(uint256,uint256)": {
+        "details": "A rate is at most the budget, which fits in 128 bits, so `release` and `settleRefund` multiply it by a `uint64` span of seconds without overflowing; one overflowing campaign would revert the weekly release of every campaign on the chain."
+      }
+    },
+    "stateVariables": {
+      "MAX_WIDTH_TICKS": {
+        "details": "`TickMath.MAX_TICK - TickMath.MIN_TICK` of Uniswap V4: no position is wider, so a larger minimum width would leave every position out and the campaign would never emit."
+      }
+    },
+    "title": "RewardCampaigns",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "createCampaign(bytes32,address,uint256,uint256,uint32)": {
+        "notice": "Creates a campaign that emits `perSecond` from this block on, and deposits its whole `budget` from the caller, who must have approved this contract for it and becomes its funder."
+      },
+      "getCampaigns(uint256,uint256)": {
+        "notice": "The campaigns with ids from `from` up to, but not including, `to`, in id order."
+      },
+      "release(uint256[],uint256[],uint64,bytes32[][])": {
+        "notice": "Sends the distributor what campaigns `ids` emitted up to the weekly cutoff `upTo`, given as the cumulative `emitted` of each, so a repeated call sends nothing more. Anyone may call it."
+      },
+      "setOwner(address)": {
+        "notice": "Transfers ownership. It takes effect at once."
+      },
+      "setRate(uint256,uint256)": {
+        "notice": "Sets the rate from this block on. A rate of 0 ends the campaign for good: more rewards for the pool are a new campaign."
+      },
+      "settleRefund(uint256,uint256,bytes32[])": {
+        "notice": "Returns the remaining escrow to the funder once the accepted distribution covers the end."
+      }
+    },
+    "notice": "Liquidity reward campaigns of Seer's Uniswap V4 pools on this chain, and the escrow of their budgets. Rewards pay out on the pool's chain, so there is one registry per chain with pools, next to that chain's Morpho Universal Rewards Distributor. The weekly rewards bot (`packages/seer-pm-rewards`) rebuilds the campaigns from `CampaignSet` events up to each Monday cutoff and submits a root with what users can claim and what each campaign emitted. Once the distributor accepts that root, `release` pays the distributor the emitted totals it proves.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 1806,
+        "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+        "label": "owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 1810,
+        "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+        "label": "isManager",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 1814,
+        "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+        "label": "campaigns",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_array(t_struct(Campaign)1802_storage)dyn_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_struct(Campaign)1802_storage)dyn_storage": {
+        "base": "t_struct(Campaign)1802_storage",
+        "encoding": "dynamic_array",
+        "label": "struct RewardCampaigns.Campaign[]",
+        "numberOfBytes": "32"
+      },
+      "t_array(t_struct(Rate)1785_storage)dyn_storage": {
+        "base": "t_struct(Rate)1785_storage",
+        "encoding": "dynamic_array",
+        "label": "struct RewardCampaigns.Rate[]",
+        "numberOfBytes": "32"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_struct(Campaign)1802_storage": {
+        "encoding": "inplace",
+        "label": "struct RewardCampaigns.Campaign",
+        "members": [
+          {
+            "astId": 1787,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "poolId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 1789,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "rewardToken",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address"
+          },
+          {
+            "astId": 1791,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "budget",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 1793,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "minWidthTicks",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 1795,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "funder",
+            "offset": 4,
+            "slot": "3",
+            "type": "t_address"
+          },
+          {
+            "astId": 1797,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "released",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 1801,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "rates",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_array(t_struct(Rate)1785_storage)dyn_storage"
+          }
+        ],
+        "numberOfBytes": "192"
+      },
+      "t_struct(Rate)1785_storage": {
+        "encoding": "inplace",
+        "label": "struct RewardCampaigns.Rate",
+        "members": [
+          {
+            "astId": 1782,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "from",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint64"
+          },
+          {
+            "astId": 1784,
+            "contract": "src/rewards/RewardCampaigns.sol:RewardCampaigns",
+            "label": "perSecond",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint32": {
+        "encoding": "inplace",
+        "label": "uint32",
+        "numberOfBytes": "4"
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      }
+    }
+  }
+}

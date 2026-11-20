@@ -1,7 +1,7 @@
 import { sepolia } from "@/lib/chains.ts";
 import type { Config } from "@netlify/functions";
+import { realityAddress } from "@seer-pm/contracts-ts/reality";
 import type { Question, SupportedChain } from "@seer-pm/sdk";
-import { realityAddress } from "@seer-pm/sdk/contracts/reality";
 import {
   decodeQuestion,
   getAnswerText,
@@ -14,6 +14,7 @@ import { parseAbiItem } from "viem";
 import { getBlockNumber, getLogs } from "viem/actions";
 import { chainIds, getPublicClientByChainId } from "./utils/config.ts";
 import { getLastProcessedBlock, updateLastProcessedBlock } from "./utils/logs.ts";
+import { sendTelegramMessage } from "./utils/telegram.ts";
 
 const SEER_NOTIFICATIONS_CHANNEL = "-1002545711308";
 const SEER_HIGH_LIQUIDITY_NOTIFICATIONS_CHANNEL = "-1003951302263";
@@ -30,26 +31,6 @@ type MarketFromQuestion = {
   outcomes: string[];
   templateId: string;
 };
-
-async function sendTelegramMessage(botToken: string, chatId: string, message: string) {
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: message,
-      parse_mode: "HTML",
-    }),
-  });
-
-  if (response.ok) {
-    return await response.json();
-  }
-
-  throw new Error(`Failed to send Telegram message: ${response.status} ${response.statusText}`);
-}
 
 async function getMarketsFromQuestions(
   questionIdToAnswerMap: Record<`0x${string}`, `0x${string}`>,

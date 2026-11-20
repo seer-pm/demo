@@ -1,0 +1,277 @@
+import type { PoolMeta, UiUserOrder } from "@/components/LimitOrders/ordersShared";
+import {
+  type OrderBookPoolKey,
+  chainSupportsOrderBook,
+  getOrderBookPoolParams,
+  getV4PoolId,
+} from "@seer-pm/order-book";
+import {
+  type Market,
+  type SupportedChain,
+  fetchMarkets,
+  getActivePrimaryCollateral,
+  orderBookGraphQLClient,
+} from "@seer-pm/sdk";
+import { Order_By, getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
+import { useQuery } from "@tanstack/react-query";
+import type { Address } from "viem";
+
+const REFETCH_INTERVAL_MS = 30_000;
+export const ORDERS_LIMIT = 500;
+
+type SubgraphPool = {
+  id: Address;
+  currency0: Address;
+  currency1: Address;
+  fee: number;
+  tickSpacing: number;
+  hooks: Address;
+};
+
+function poolKeyFromSubgraph(pool: SubgraphPool): OrderBookPoolKey {
+  return {
+    currency0: pool.currency0.toLowerCase() as Address,
+    currency1: pool.currency1.toLowerCase() as Address,
+    fee: Number(pool.fee),
+    tickSpacing: Number(pool.tickSpacing),
+    hooks: pool.hooks.toLowerCase() as Address,
+  };
+}
+
+function outcomeTokenFromPool(pool: SubgraphPool, chainId: number): Address | null {
+  const collateral = getActivePrimaryCollateral(chainId).address.toLowerCase();
+  const c0 = pool.currency0.toLowerCase();
+  const c1 = pool.currency1.toLowerCase();
+  if (c0 === collateral) return c1 as Address;
+  if (c1 === collateral) return c0 as Address;
+  return null;
+}
+
+function enrichPoolMeta(
+  pool: SubgraphPool,
+  marketsByToken: Map<string, { market: Market; outcomeIndex: number }>,
+  chainId: number,
+): PoolMeta | null {
+  const outcomeToken = outcomeTokenFromPool(pool, chainId);
+  if (!outcomeToken) return null;
+
+  const resolved = marketsByToken.get(outcomeToken.toLowerCase());
+  if (!resolved) return null;
+
+  const poolKey = poolKeyFromSubgraph(pool);
+  const outcomeIsToken0 = poolKey.currency0 === outcomeToken.toLowerCase();
+
+  return {
+    outcomeIndex: resolved.outcomeIndex,
+    outcomeIsToken0,
+    poolKey,
+    market: resolved.market,
+  };
+}
+
+export type UserLimitOrdersData = {
+  open: UiUserOrder[];
+  filled: UiUserOrder[];
+  poolById: Map<string, PoolMeta>;
+  /** Orders the indexer returned whose pool could not be matched to a market, so they are not listed. */
+  hiddenCount: number;
+  /** A status query hit the page limit, so older orders may be missing. */
+  truncated: boolean;
+};
+
+/**
+ * When each order was first placed, keyed by order id. Best effort: the dates are context, so a
+ * failed lookup leaves them out rather than failing the whole list.
+ */
+async function fetchPlacedAtByOrderId(
+  sdk: ReturnType<typeof getLimitOrderSdk>,
+  chainId: SupportedChain,
+  owner: string,
+  orderIds: string[],
+): Promise<Map<string, number>> {
+  const placedAt = new Map<string, number>();
+  if (orderIds.length === 0) return placedAt;
+
+  try {
+    const { OrderEvent: events } = await sdk.GetOrderEvents({
+      limit: 1000,
+      orderBy: [{ timestamp: Order_By.Asc }],
+      where: {
+        chainId: { _eq: String(chainId) },
+        owner: { _eq: owner },
+        type: { _eq: "PLACE" },
+        orderId: { _in: orderIds },
+      },
+    });
+    for (const event of events) {
+      const orderId = String(event.orderId);
+      if (!placedAt.has(orderId)) placedAt.set(orderId, Number(event.timestamp));
+    }
+  } catch {
+    // Placement dates are optional context.
+  }
+  return placedAt;
+}
+
+export type RawOrder = {
+  pool?: {
+    poolId: string;
+    currency0: string;
+    currency1: string;
+    fee: number;
+    tickSpacing: number;
+    hooks: string;
+  } | null;
+};
+
+/** Pool metadata for every outcome pool of one market, keyed by pool id. */
+export function getMarketPoolMeta(market: Market): Map<string, PoolMeta> {
+  const poolById = new Map<string, PoolMeta>();
+  for (let outcomeIndex = 0; outcomeIndex < market.wrappedTokens.length; outcomeIndex++) {
+    const params = getOrderBookPoolParams(market, outcomeIndex);
+    poolById.set(getV4PoolId(params.poolKey).toLowerCase(), {
+      outcomeIndex,
+      outcomeIsToken0: params.outcomeIsToken0,
+      poolKey: params.poolKey,
+      market,
+    });
+  }
+  return poolById;
+}
+
+/** Resolves the pools of the given orders to their market and outcome via the markets subgraph. */
+export async function resolvePoolMeta(orders: RawOrder[], chainId: SupportedChain): Promise<Map<string, PoolMeta>> {
+  const poolsById = new Map<string, SubgraphPool>();
+  for (const o of orders) {
+    if (!o.pool) continue;
+    const id = o.pool.poolId.toLowerCase();
+    if (!poolsById.has(id)) {
+      poolsById.set(id, {
+        id: o.pool.poolId as Address,
+        currency0: o.pool.currency0 as Address,
+        currency1: o.pool.currency1 as Address,
+        fee: o.pool.fee,
+        tickSpacing: o.pool.tickSpacing,
+        hooks: o.pool.hooks as Address,
+      });
+    }
+  }
+
+  const outcomeTokens = Array.from(
+    new Set(
+      Array.from(poolsById.values())
+        .map((p) => outcomeTokenFromPool(p, chainId))
+        .filter((t): t is Address => Boolean(t))
+        .map((t) => t.toLowerCase() as Address),
+    ),
+  );
+
+  const marketsByToken = new Map<string, { market: Market; outcomeIndex: number }>();
+  if (outcomeTokens.length > 0) {
+    const { markets } = await fetchMarkets({
+      tokens: outcomeTokens,
+      chainsList: [String(chainId)],
+      limit: 500,
+    });
+    for (const market of markets) {
+      for (let i = 0; i < market.wrappedTokens.length; i++) {
+        const token = market.wrappedTokens[i].toLowerCase();
+        if (!marketsByToken.has(token)) {
+          marketsByToken.set(token, { market, outcomeIndex: i });
+        }
+      }
+    }
+  }
+
+  const poolById = new Map<string, PoolMeta>();
+  for (const [id, pool] of poolsById) {
+    const meta = enrichPoolMeta(pool, marketsByToken, chainId);
+    if (meta) {
+      poolById.set(id, meta);
+    }
+  }
+  return poolById;
+}
+
+/**
+ * The account's open and filled (withdrawable) limit orders on a chain.
+ * Pass `market` to restrict to that market's pools; its metadata is then derived locally instead
+ * of resolved through the markets subgraph.
+ */
+export function useUserLimitOrders(account: Address | undefined, chainId: SupportedChain, market?: Market) {
+  const orderBookSupported = chainSupportsOrderBook(chainId);
+
+  return useQuery({
+    queryKey: ["limitOrderHookUserOrders", chainId, market?.id ?? "all", account],
+    enabled: Boolean(account) && orderBookSupported,
+    refetchInterval: account && orderBookSupported ? REFETCH_INTERVAL_MS : false,
+    queryFn: async (): Promise<UserLimitOrdersData> => {
+      if (!account) throw new Error("Account required");
+
+      const client = orderBookGraphQLClient(chainId);
+      if (!client) throw new Error("Limit order subgraph not available");
+
+      const sdk = getLimitOrderSdk(client);
+      const owner = account.toLowerCase();
+      const marketPools = market ? getMarketPoolMeta(market) : undefined;
+      if (marketPools && marketPools.size === 0) {
+        return { open: [], filled: [], poolById: marketPools, hiddenCount: 0, truncated: false };
+      }
+      const baseWhere = {
+        chainId: { _eq: String(chainId) },
+        owner: { _eq: owner },
+        ...(marketPools && { pool: { poolId: { _in: Array.from(marketPools.keys()) } } }),
+      };
+
+      const [openRes, filledRes] = await Promise.all([
+        sdk.GetUserOrders({ limit: ORDERS_LIMIT, where: { ...baseWhere, status: { _eq: "OPEN" } } }),
+        sdk.GetUserOrders({ limit: ORDERS_LIMIT, where: { ...baseWhere, status: { _eq: "FILLED" } } }),
+      ]);
+      const rawOrders = [...openRes.UserOrder, ...filledRes.UserOrder];
+
+      const [poolById, placedAtByOrderId] = await Promise.all([
+        marketPools ?? resolvePoolMeta(rawOrders, chainId),
+        fetchPlacedAtByOrderId(
+          sdk,
+          chainId,
+          owner,
+          rawOrders.map((o) => String(o.orderId)),
+        ),
+      ]);
+
+      const mapOrder = (o: (typeof openRes)["UserOrder"][number]): UiUserOrder | null => {
+        if (!o.pool) return null;
+        const poolId = o.pool.poolId.toLowerCase() as Address;
+        const pool = poolById.get(poolId);
+        if (!pool) return null;
+
+        return {
+          id: o.id,
+          orderId: o.orderId,
+          owner: o.owner as Address,
+          poolId,
+          outcomeIndex: pool.outcomeIndex,
+          outcomeIsToken0: pool.outcomeIsToken0,
+          tickLower: o.tickLower,
+          zeroForOne: o.zeroForOne,
+          status: o.status,
+          liquidity: o.liquidity,
+          placedAtBlock: o.placedAtBlock,
+          updatedAtBlock: o.updatedAtBlock,
+          placedAt: placedAtByOrderId.get(String(o.orderId)),
+        };
+      };
+
+      const open = openRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[];
+      const filled = filledRes.UserOrder.map(mapOrder).filter(Boolean) as UiUserOrder[];
+
+      return {
+        open,
+        filled,
+        poolById,
+        hiddenCount: rawOrders.length - open.length - filled.length,
+        truncated: openRes.UserOrder.length >= ORDERS_LIMIT || filledRes.UserOrder.length >= ORDERS_LIMIT,
+      };
+    },
+  });
+}

@@ -1,7 +1,6 @@
 import { ArbitratorAbi } from "@/abi/ArbitratorAbi";
 import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
-import type { SupportedChain } from "@seer-pm/sdk";
 import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrator,
   readRealitioForeignArbitrationProxyWithAppealsArbitratorExtraData,
@@ -11,7 +10,8 @@ import {
   readRealitioForeignProxyOptimismArbitratorExtraData,
   readRealitioV2_1ArbitratorWithAppealsArbitrator,
   readRealitioV2_1ArbitratorWithAppealsArbitratorExtraData,
-} from "@seer-pm/sdk/contracts/arbitrators";
+} from "@seer-pm/contracts-ts/arbitrators";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 

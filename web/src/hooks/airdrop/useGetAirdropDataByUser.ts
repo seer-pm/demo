@@ -7,6 +7,8 @@ export interface AirdropDataByUser {
   currentWeekAllocation: number;
   serLppMainnet: number;
   serLppGnosis: number;
+  serLppOptimism: number;
+  serLppBase: number;
   monthlyEstimate: number;
   monthlyEstimatePoH: number;
 }

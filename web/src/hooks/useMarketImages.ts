@@ -1,7 +1,7 @@
 import { isTwoStringsEqual, isUndefined } from "@/lib/utils";
+import { lightGeneralizedTcrAddress } from "@seer-pm/contracts-ts/curate";
 import { CURATE_STATUS, type SupportedChain } from "@seer-pm/sdk";
 import { curateGraphQLClient } from "@seer-pm/sdk";
-import { lightGeneralizedTcrAddress } from "@seer-pm/sdk/contracts/curate";
 import { getSdk } from "@seer-pm/sdk/subgraph/curate";
 import { useQuery } from "@tanstack/react-query";
 import * as batshit from "@yornaath/batshit";

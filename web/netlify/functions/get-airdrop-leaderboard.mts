@@ -84,8 +84,8 @@ export type AirdropLeaderboardRow = {
   /** SEER earned from the daily airdrop emission in the period — holdings + PoH, no SER-LPP. */
   seer: number;
   /**
-   * SEER from the SER liquidity program, as a current cumulative balance across Gnosis and
-   * Mainnet. Same unit as `seer` (1 SER-LPP is 1 SEER of allocation).
+   * SEER from the SER liquidity program, as a current cumulative balance across every SER-lpp
+   * chain. Same unit as `seer` (1 SER-LPP is 1 SEER of allocation).
    *
    * `null` on '1d'/'1w'/'1m': it is a running balance with no per-day history, so it cannot be
    * attributed to a window. Null rather than 0 so the UI can say "not applicable" instead of

@@ -1,0 +1,632 @@
+import { ApproveButton } from "@/components/Form/ApproveButton";
+import Button from "@/components/Form/Button";
+import Input from "@/components/Form/Input";
+import { SwitchChainButtonWrapper } from "@/components/Form/SwitchChainButtonWrapper";
+import { displayBalance, displayNumber } from "@/lib/utils";
+import {
+  clampProbability,
+  probabilityRangeToTicks,
+  probabilityToTick,
+  snapToNearestTickPrice,
+  toDecimalPrice,
+} from "@seer-pm/order-book/v4";
+import type { SupportedChain } from "@seer-pm/sdk";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatUnits, parseUnits } from "viem";
+import type { Address } from "viem";
+
+function validatePriceRange(minPrice: string, maxPrice: string): string | null {
+  if (!minPrice || !maxPrice) {
+    return null;
+  }
+
+  const min = Number(minPrice);
+  const max = Number(maxPrice);
+
+  if (Number.isNaN(min) || Number.isNaN(max)) {
+    return "Enter valid prices.";
+  }
+
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+
+  if (lower <= 0 || upper >= 1) {
+    return "Price range must be strictly between 0 and 1.";
+  }
+
+  if (lower >= upper) {
+    return "Max price must be greater than min price.";
+  }
+
+  return null;
+}
+
+function validateInitialPrice(
+  initialPrice: string,
+  minPrice: string,
+  maxPrice: string,
+  required: boolean,
+): string | null {
+  if (!required) {
+    return null;
+  }
+
+  if (!initialPrice) {
+    return "Enter a starting price.";
+  }
+
+  const price = Number(initialPrice);
+
+  if (Number.isNaN(price)) {
+    return "Enter a valid starting price.";
+  }
+
+  if (price <= 0 || price >= 1) {
+    return "Starting price must be strictly between 0 and 1.";
+  }
+
+  if (!minPrice || !maxPrice) {
+    return null;
+  }
+
+  const min = Number(minPrice);
+  const max = Number(maxPrice);
+
+  if (Number.isNaN(min) || Number.isNaN(max)) {
+    return null;
+  }
+
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+
+  if (price <= lower || price >= upper) {
+    return "Starting price must be within the position range.";
+  }
+
+  return null;
+}
+
+export interface AddLiquidityTokenInfo {
+  address: Address;
+  symbol: string;
+  decimals: number;
+  balance: bigint;
+}
+
+export interface AddLiquidityFormValues {
+  minPrice: number;
+  maxPrice: number;
+  amount0: string;
+  amount1: string;
+  initialPrice?: number;
+}
+
+export interface AddLiquidityMissingApproval {
+  tokenAddress: Address;
+  tokenName: string;
+  spender: Address;
+  amount: bigint;
+}
+
+export interface AddLiquidityFormProps {
+  chainId: SupportedChain;
+  token0: AddLiquidityTokenInfo;
+  token1: AddLiquidityTokenInfo;
+  outcomeIsToken0: boolean;
+  currentPrice?: number;
+  currentTick?: number;
+  isPoolInitialized?: boolean;
+  isPoolStatusLoading?: boolean;
+  /** In-range liquidity of the pool; 0n means its price was set at creation and never traded. */
+  poolLiquidity?: bigint;
+  isSubmitting?: boolean;
+  missingApprovals?: AddLiquidityMissingApproval[];
+  onComputeDerivedAmount: (
+    values: AddLiquidityFormValues,
+    editedField: "amount0" | "amount1",
+  ) => AddLiquidityFormValues;
+  onSubmit: (values: AddLiquidityFormValues) => Promise<void>;
+  closeModal: () => void;
+  hideReturnButton?: boolean;
+  uniswapPoolUrl?: string;
+}
+
+export function AddLiquidityForm({
+  chainId,
+  token0,
+  token1,
+  outcomeIsToken0,
+  currentPrice,
+  currentTick,
+  isPoolInitialized,
+  isPoolStatusLoading,
+  poolLiquidity,
+  isSubmitting,
+  missingApprovals = [],
+  onComputeDerivedAmount,
+  onSubmit,
+  closeModal,
+  hideReturnButton,
+  uniswapPoolUrl,
+}: AddLiquidityFormProps) {
+  const [initialPrice, setInitialPrice] = useState("");
+  const [minPrice, setMinPrice] = useState("0.01");
+  const [maxPrice, setMaxPrice] = useState("0.99");
+  const [amount0, setAmount0] = useState("");
+  const [amount1, setAmount1] = useState("");
+  const [lastEditedField, setLastEditedField] = useState<"amount0" | "amount1" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const requiresInitialPrice = !isPoolInitialized;
+
+  const getValues = useCallback((): AddLiquidityFormValues => {
+    const values: AddLiquidityFormValues = {
+      minPrice: Number(minPrice),
+      maxPrice: Number(maxPrice),
+      amount0,
+      amount1,
+    };
+
+    if (requiresInitialPrice && initialPrice) {
+      values.initialPrice = Number(initialPrice);
+    }
+
+    return values;
+  }, [minPrice, maxPrice, amount0, amount1, initialPrice, requiresInitialPrice]);
+
+  const parsedAmounts = useMemo(() => {
+    try {
+      return {
+        parsed0: amount0 ? parseUnits(amount0, token0.decimals) : 0n,
+        parsed1: amount1 ? parseUnits(amount1, token1.decimals) : 0n,
+      };
+    } catch {
+      return null;
+    }
+  }, [amount0, amount1, token0.decimals, token1.decimals]);
+
+  const balanceError = useMemo(() => {
+    if (!parsedAmounts) {
+      return null;
+    }
+
+    const { parsed0, parsed1 } = parsedAmounts;
+
+    if (parsed0 > token0.balance || parsed1 > token1.balance) {
+      return "Insufficient balance.";
+    }
+
+    return null;
+  }, [parsedAmounts, token0.balance, token1.balance]);
+
+  const priceRangeError = useMemo(() => validatePriceRange(minPrice, maxPrice), [minPrice, maxPrice]);
+
+  const initialPriceValidationError = useMemo(() => {
+    if (!requiresInitialPrice || !initialPrice) {
+      return null;
+    }
+
+    return validateInitialPrice(initialPrice, minPrice, maxPrice, false);
+  }, [initialPrice, minPrice, maxPrice, requiresInitialPrice]);
+
+  const hasInitialPrice = !requiresInitialPrice || Boolean(initialPrice);
+
+  const canComputeAmounts = hasInitialPrice && !initialPriceValidationError;
+
+  const canSubmit = useMemo(() => {
+    if (!parsedAmounts || balanceError || priceRangeError || initialPriceValidationError || !hasInitialPrice) {
+      return false;
+    }
+
+    const { parsed0, parsed1 } = parsedAmounts;
+
+    if (parsed0 === 0n && parsed1 === 0n) {
+      return false;
+    }
+
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+
+    if (Number.isNaN(min) || Number.isNaN(max)) {
+      return false;
+    }
+
+    return true;
+  }, [parsedAmounts, balanceError, priceRangeError, initialPriceValidationError, hasInitialPrice, minPrice, maxPrice]);
+
+  const recomputeDerivedAmount = useCallback(
+    (field: "amount0" | "amount1", value: string) => {
+      if (!value || Number(value) <= 0) {
+        return;
+      }
+
+      if (!canComputeAmounts) {
+        return;
+      }
+
+      const derived = onComputeDerivedAmount({ ...getValues(), [field]: value }, field);
+      setAmount0(derived.amount0);
+      setAmount1(derived.amount1);
+    },
+    [canComputeAmounts, getValues, onComputeDerivedAmount],
+  );
+
+  const handlePriceChange = (field: "minPrice" | "maxPrice" | "initialPrice", value: string) => {
+    const nextValue = toDecimalPrice(value) ?? value;
+
+    if (field === "minPrice") {
+      setMinPrice(nextValue);
+      return;
+    }
+
+    if (field === "maxPrice") {
+      setMaxPrice(nextValue);
+      return;
+    }
+
+    setInitialPrice(nextValue);
+  };
+
+  const handlePriceBlur = (field: "minPrice" | "maxPrice" | "initialPrice") => {
+    const snap = (value: string) => snapToNearestTickPrice(value, outcomeIsToken0);
+
+    if (field === "minPrice") {
+      setMinPrice((current) => snap(current));
+      return;
+    }
+
+    if (field === "maxPrice") {
+      setMaxPrice((current) => snap(current));
+      return;
+    }
+
+    setInitialPrice((current) => snap(current));
+  };
+
+  const handleAmountChange = (field: "amount0" | "amount1", value: string) => {
+    setError(null);
+    setLastEditedField(field);
+
+    if (!value || Number(value) <= 0) {
+      if (field === "amount0") {
+        setAmount0(value);
+        setAmount1("");
+      } else {
+        setAmount1(value);
+        setAmount0("");
+      }
+      return;
+    }
+
+    if (field === "amount0") {
+      setAmount0(value);
+    } else {
+      setAmount1(value);
+    }
+
+    if (!canComputeAmounts) {
+      return;
+    }
+
+    try {
+      recomputeDerivedAmount(field, value);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to compute amounts");
+    }
+  };
+
+  useEffect(() => {
+    setError(null);
+  }, [minPrice, maxPrice, initialPrice]);
+
+  useEffect(() => {
+    if (!lastEditedField || !canComputeAmounts) {
+      return;
+    }
+
+    const value = lastEditedField === "amount0" ? amount0 : amount1;
+
+    if (!value || Number(value) <= 0) {
+      return;
+    }
+
+    try {
+      const derived = onComputeDerivedAmount({ ...getValues(), [lastEditedField]: value }, lastEditedField);
+      setAmount0(derived.amount0);
+      setAmount1(derived.amount1);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to compute amounts");
+    }
+  }, [initialPrice, minPrice, maxPrice, canComputeAmounts, lastEditedField, onComputeDerivedAmount]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+
+    const values = getValues();
+    const rangeError = validatePriceRange(minPrice, maxPrice);
+    if (rangeError) {
+      setError(rangeError);
+      return;
+    }
+
+    const startingPriceError = validateInitialPrice(initialPrice, minPrice, maxPrice, requiresInitialPrice);
+
+    if (startingPriceError) {
+      setError(startingPriceError);
+      return;
+    }
+
+    const min = clampProbability(Math.min(values.minPrice, values.maxPrice));
+    const max = clampProbability(Math.max(values.minPrice, values.maxPrice));
+
+    const parsed0 = parseUnits(values.amount0 || "0", token0.decimals);
+    const parsed1 = parseUnits(values.amount1 || "0", token1.decimals);
+
+    if (parsed0 === 0n && parsed1 === 0n) {
+      setError("Enter an amount for at least one token.");
+      return;
+    }
+
+    if (parsed0 > token0.balance || parsed1 > token1.balance) {
+      setError("Insufficient balance.");
+      return;
+    }
+
+    try {
+      await onSubmit({
+        ...values,
+        minPrice: min,
+        maxPrice: max,
+        ...(requiresInitialPrice && values.initialPrice !== undefined ? { initialPrice: values.initialPrice } : {}),
+      });
+      closeModal();
+    } catch (e) {
+      // Tx failures are already toasted by toastifyTx; keep modal open without duplicating.
+      if (typeof e === "object" && e !== null && ("shortMessage" in e || "details" in e)) {
+        return;
+      }
+      setError(e instanceof Error ? e.message : "Transaction failed");
+    }
+  };
+
+  const outcomeLabel = outcomeIsToken0 ? token0.symbol : token1.symbol;
+  const collateralSymbol = outcomeIsToken0 ? token1.symbol : token0.symbol;
+  const showApprovals = missingApprovals.length > 0;
+  const displayError = error || balanceError || priceRangeError || initialPriceValidationError;
+
+  const requiredTokens = useMemo((): { amount0: boolean; amount1: boolean } => {
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+
+    if (Number.isNaN(min) || Number.isNaN(max) || min <= 0 || max >= 1 || min >= max) {
+      return { amount0: true, amount1: true };
+    }
+
+    let effectiveTick = currentTick;
+
+    if (effectiveTick === undefined) {
+      if (!requiresInitialPrice || !initialPrice) {
+        return { amount0: true, amount1: true };
+      }
+
+      const price = Number(initialPrice);
+      if (Number.isNaN(price) || price <= 0 || price >= 1) {
+        return { amount0: true, amount1: true };
+      }
+
+      effectiveTick = probabilityToTick(price, outcomeIsToken0);
+    }
+
+    try {
+      const { tickLower, tickUpper } = probabilityRangeToTicks(min, max, outcomeIsToken0);
+
+      if (effectiveTick < tickLower) {
+        return { amount0: true, amount1: false };
+      }
+
+      if (effectiveTick >= tickUpper) {
+        return { amount0: false, amount1: true };
+      }
+
+      return { amount0: true, amount1: true };
+    } catch {
+      return { amount0: true, amount1: true };
+    }
+  }, [minPrice, maxPrice, currentTick, requiresInitialPrice, initialPrice, outcomeIsToken0]);
+
+  useEffect(() => {
+    if (!requiredTokens.amount0) {
+      setAmount0("");
+    }
+    if (!requiredTokens.amount1) {
+      setAmount1("");
+    }
+  }, [requiredTokens.amount0, requiredTokens.amount1]);
+
+  const uniswapPoolLink =
+    uniswapPoolUrl && uniswapPoolUrl !== "#" ? (
+      <a
+        href={uniswapPoolUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-purple-primary hover:underline"
+      >
+        Uniswap V4 pool
+      </a>
+    ) : (
+      "Uniswap V4 pool"
+    );
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {isPoolStatusLoading ? (
+        <p className="text-[14px] text-black-secondary">Checking pool status...</p>
+      ) : (
+        <p className="text-[14px] text-black-secondary">
+          {isPoolInitialized ? (
+            <>Add liquidity to the existing {uniswapPoolLink}.</>
+          ) : (
+            <>
+              Create the {uniswapPoolLink} and add initial liquidity. Set the starting price, position range, and
+              deposit.
+            </>
+          )}
+        </p>
+      )}
+
+      {!isPoolInitialized && !isPoolStatusLoading && (
+        <div className="min-w-0">
+          <div className="text-[14px] font-semibold mb-2">Starting price ({outcomeLabel})</div>
+          <Input
+            type="number"
+            min="0"
+            max="1"
+            step="any"
+            value={initialPrice}
+            onChange={(e) => handlePriceChange("initialPrice", e.target.value)}
+            onBlur={() => handlePriceBlur("initialPrice")}
+            className="w-full"
+            placeholder="e.g. 0.65"
+          />
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="text-[14px] font-semibold">Position range ({outcomeLabel})</div>
+          {currentPrice !== undefined && (
+            <p className="text-[14px] text-black-secondary text-right">
+              Market: {displayNumber(currentPrice, 3)} {collateralSymbol}
+              {poolLiquidity === 0n && (
+                <span className="block text-[12px]">Set when the pool was created, no trades yet.</span>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="min-w-0">
+            <div className="text-[14px] text-black-secondary mb-2">Min price</div>
+            <Input
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={minPrice}
+              onChange={(e) => handlePriceChange("minPrice", e.target.value)}
+              onBlur={() => handlePriceBlur("minPrice")}
+              className="w-full"
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[14px] text-black-secondary mb-2">Max price</div>
+            <Input
+              type="number"
+              min="0"
+              max="1"
+              step="any"
+              value={maxPrice}
+              onChange={(e) => handlePriceChange("maxPrice", e.target.value)}
+              onBlur={() => handlePriceBlur("maxPrice")}
+              className="w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className={requiredTokens.amount0 && requiredTokens.amount1 ? "grid grid-cols-2 gap-4" : undefined}>
+        {requiredTokens.amount0 && (
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold mb-2">{token0.symbol}</div>
+            <div className="flex justify-between items-center gap-2 mb-2 text-[12px]">
+              <span className="text-black-secondary truncate">
+                Balance: {displayBalance(token0.balance, token0.decimals)} {token0.symbol}
+              </span>
+              <button
+                type="button"
+                className="text-purple-primary shrink-0"
+                disabled={!canComputeAmounts}
+                onClick={() => handleAmountChange("amount0", formatUnits(token0.balance, token0.decimals))}
+              >
+                Max
+              </button>
+            </div>
+            <Input
+              type="number"
+              min="0"
+              step="any"
+              value={amount0}
+              disabled={!canComputeAmounts}
+              onChange={(e) => handleAmountChange("amount0", e.target.value)}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {requiredTokens.amount1 && (
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold mb-2">{token1.symbol}</div>
+            <div className="flex justify-between items-center gap-2 mb-2 text-[12px]">
+              <span className="text-black-secondary truncate">
+                Balance: {displayBalance(token1.balance, token1.decimals)} {token1.symbol}
+              </span>
+              <button
+                type="button"
+                className="text-purple-primary shrink-0"
+                disabled={!canComputeAmounts}
+                onClick={() => handleAmountChange("amount1", formatUnits(token1.balance, token1.decimals))}
+              >
+                Max
+              </button>
+            </div>
+            <Input
+              type="number"
+              min="0"
+              step="any"
+              value={amount1}
+              disabled={!canComputeAmounts}
+              onChange={(e) => handleAmountChange("amount1", e.target.value)}
+              className="w-full"
+            />
+          </div>
+        )}
+      </div>
+
+      {displayError ? <p className="text-[14px] text-error-primary">{displayError}</p> : null}
+
+      <SwitchChainButtonWrapper chainId={chainId}>
+        {!showApprovals && (
+          <Button
+            variant="primary"
+            type="submit"
+            text={isPoolInitialized ? "Add Liquidity" : "Create Pool & Add Liquidity"}
+            isLoading={isSubmitting}
+            disabled={!canSubmit}
+            className="w-full"
+          />
+        )}
+        {showApprovals && (
+          <div className="space-y-2 w-full">
+            {missingApprovals.map((approval) => (
+              <ApproveButton
+                key={`${approval.tokenAddress}-${approval.spender}`}
+                tokenAddress={approval.tokenAddress}
+                tokenName={approval.tokenName}
+                spender={approval.spender}
+                amount={approval.amount}
+                chainId={chainId}
+              />
+            ))}
+          </div>
+        )}
+      </SwitchChainButtonWrapper>
+
+      {!hideReturnButton && (
+        <div className="text-center">
+          <Button text="Return" variant="secondary" type="button" onClick={closeModal} />
+        </div>
+      )}
+    </form>
+  );
+}

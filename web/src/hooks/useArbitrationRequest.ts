@@ -1,6 +1,5 @@
 import { base, gnosis, mainnet, optimism, sepolia } from "@/lib/chains";
 import { config } from "@/wagmi";
-import type { SupportedChain } from "@seer-pm/sdk";
 import {
   readRealitioForeignArbitrationProxyWithAppealsArbitrationIdToRequester,
   readRealitioForeignArbitrationProxyWithAppealsArbitrationRequests,
@@ -9,7 +8,8 @@ import {
   readRealitioForeignProxyOptimismArbitrationIdToRequester,
   readRealitioForeignProxyOptimismArbitrationRequests,
   readRealitioV2_1ArbitratorWithAppealsArbitrationRequests,
-} from "@seer-pm/sdk/contracts/arbitrators";
+} from "@seer-pm/contracts-ts/arbitrators";
+import type { SupportedChain } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
 

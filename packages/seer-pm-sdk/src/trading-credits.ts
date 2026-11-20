@@ -4,7 +4,7 @@ import {
   opportunityCreditsAddress,
   opportunityCreditsManagerAddress,
   seerCreditsAddress,
-} from "../generated/contracts/trading-credits";
+} from "@seer-pm/contracts-ts/trading-credits";
 
 export type CreditsProfileName = "SEER_CREDITS" | "OPPORTUNITY_CREDITS";
 

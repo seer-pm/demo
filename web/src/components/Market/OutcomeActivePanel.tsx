@@ -3,15 +3,18 @@ import PoolTab from "@/components/Market/PoolDetails/PoolTab";
 import { Market, MarketTypes, getMarketType } from "@seer-pm/sdk";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
+import { getOutcomeActivePanelId } from "./outcomePanelId";
 
 type ActiveTab = "liquidity" | "chart";
 
 export function OutcomeActivePanel({
   market,
   outcomeIndex,
+  onAddLiquidity,
 }: {
   market: Market;
   outcomeIndex: number;
+  onAddLiquidity?: () => void;
 }) {
   const isScalar = getMarketType(market) === MarketTypes.SCALAR;
   const [activeTab, setActiveTab] = useState<ActiveTab>("liquidity");
@@ -39,6 +42,7 @@ export function OutcomeActivePanel({
 
   return (
     <div
+      id={getOutcomeActivePanelId(outcomeIndex)}
       className="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out border-t border-purple-primary rounded-b-[3px] bg-base-100"
       style={{
         maxHeight: isOpen ? maxHeight : 0,
@@ -54,6 +58,7 @@ export function OutcomeActivePanel({
             <button
               type="button"
               role="tab"
+              aria-selected={activeTab === "liquidity"}
               className={clsx("tab", activeTab === "liquidity" && "tab-active")}
               onClick={() => setActiveTab("liquidity")}
             >
@@ -62,6 +67,7 @@ export function OutcomeActivePanel({
             <button
               type="button"
               role="tab"
+              aria-selected={activeTab === "chart"}
               className={clsx("tab", activeTab === "chart" && "tab-active")}
               onClick={() => setActiveTab("chart")}
             >
@@ -70,10 +76,10 @@ export function OutcomeActivePanel({
           </div>
         )}
         <div className="p-4">
+          {/* No inner max-height scroll here: the order book scrolls on its own, and a second scroll
+              area around it left three nested scrollers on phones. */}
           {activeTab === "liquidity" || isScalar ? (
-            <div className="max-h-[600px] overflow-y-auto">
-              <PoolTab market={market} outcomeIndex={outcomeIndex} />
-            </div>
+            <PoolTab market={market} outcomeIndex={outcomeIndex} onAddLiquidity={onAddLiquidity} />
           ) : (
             <MarketChart market={market} outcomeIndex={outcomeIndex} embedded />
           )}

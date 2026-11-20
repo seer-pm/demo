@@ -39,7 +39,7 @@
  */
 import { parseArgs } from "node:util";
 import { getMergeExecution, getRouterAddress } from "@seer-pm/sdk";
-import { marketAbi } from "@seer-pm/sdk/contracts/market-factory";
+import { marketAbi } from "@seer-pm/contracts-ts/market-factory";
 import {
   http,
   type Address,

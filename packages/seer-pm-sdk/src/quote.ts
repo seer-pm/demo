@@ -4,10 +4,12 @@
 
 import type { Address, PublicClient } from "viem";
 import { formatUnits, parseUnits } from "viem";
-import { AmmTrade, quoteAmmTrade } from "./amm-trade";
+import { AmmTrade, type V4HookParams, quoteAmmTrade } from "./amm-trade";
 import type { Token } from "./tokens";
 import { TradeType } from "./trade-type";
 import { getTradeAmountIn, getTradeAmountOut, getTradeTokenIn, getTradeTokenOut } from "./trade-utils";
+
+export type { V4HookParams };
 
 export type Psm3TradeType = "exactIn" | "exactOut";
 
@@ -40,6 +42,7 @@ export type AmmQuoteTradeFn = (
   collateralToken: Token,
   swapType: "buy" | "sell",
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ) => Promise<QuoteTradeResult>;
 
 export function getCollateralPerShare(quoteData: QuoteTradeResult | undefined, swapType: "buy" | "sell"): number {
@@ -69,6 +72,7 @@ async function getAmmQuoteExactIn(
   collateralToken: Token,
   swapType: "buy" | "sell",
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
@@ -83,6 +87,7 @@ async function getAmmQuoteExactIn(
     swapType,
     maxSlippage,
     tradeType: TradeType.EXACT_INPUT,
+    v4Hook,
   });
 
   return {
@@ -105,6 +110,7 @@ async function getAmmQuoteExactOut(
   collateralToken: Token,
   swapType: "buy" | "sell",
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   const [buyToken, sellToken] =
     swapType === "buy" ? [outcomeToken, collateralToken] : ([collateralToken, outcomeToken] as [Token, Token]);
@@ -119,6 +125,7 @@ async function getAmmQuoteExactOut(
     swapType,
     maxSlippage,
     tradeType: TradeType.EXACT_OUTPUT,
+    v4Hook,
   });
 
   return {
@@ -143,8 +150,19 @@ export async function fetchAmmQuote(
   collateralToken: Token,
   swapType: "buy" | "sell",
   maxSlippage: string,
+  v4Hook?: V4HookParams,
 ): Promise<QuoteTradeResult> {
   return tradeType === TradeType.EXACT_INPUT
-    ? getAmmQuoteExactIn(client, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage)
-    : getAmmQuoteExactOut(client, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage);
+    ? getAmmQuoteExactIn(client, chainId, account, amount, outcomeToken, collateralToken, swapType, maxSlippage, v4Hook)
+    : getAmmQuoteExactOut(
+        client,
+        chainId,
+        account,
+        amount,
+        outcomeToken,
+        collateralToken,
+        swapType,
+        maxSlippage,
+        v4Hook,
+      );
 }

@@ -1,0 +1,57 @@
+{
+  "name": "@seer-pm/order-book",
+  "version": "0.0.1",
+  "description": "Uniswap V4 order book (limit orders + concentrated liquidity) for Seer prediction markets",
+  "license": "MIT",
+  "author": "Seer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seer-pm/seer-pm.git",
+    "directory": "packages/seer-pm-order-book"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./v4": {
+      "types": "./dist/v4.d.ts",
+      "import": "./dist/v4.mjs",
+      "require": "./dist/v4.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "dev": "tsup --config tsup.config.ts --watch",
+    "prepublishOnly": "yarn build"
+  },
+  "dependencies": {
+    "@seer-pm/contracts-ts": "*",
+    "@uniswap/sdk-core": "^7.7.2",
+    "@uniswap/v3-sdk": "^3.19.0",
+    "@uniswap/v4-sdk": "^1.20.0",
+    "jsbi": "^3.2.5"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.2.2",
+    "viem": "^2.38.0"
+  },
+  "peerDependencies": {
+    "@seer-pm/sdk": "*",
+    "@wagmi/core": ">=2.0.0",
+    "viem": ">=2.0.0",
+    "wagmi": "^2.0.0 || ^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

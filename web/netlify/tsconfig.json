@@ -17,6 +17,8 @@
       "@seer-pm/sdk/collateral": ["../../packages/seer-pm-sdk/src/collateral.ts"],
       "@seer-pm/sdk": ["../../packages/seer-pm-sdk/src/index.ts"],
       "@seer-pm/sdk/sign-in": ["../../packages/seer-pm-sdk/src/sign-in.ts"],
+      "@seer-pm/rewards": ["../../packages/seer-pm-rewards/src/distributor.ts"],
+      "@seer-pm/rewards/claims": ["../../packages/seer-pm-rewards/src/claims.ts"],
       "@seer-pm/react": ["../../packages/seer-pm-react/src/index.ts"],
       "@seer-pm/discussions": ["../../packages/seer-pm-discussions/src/index.ts"]
     }

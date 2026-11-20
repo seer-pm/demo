@@ -1,9 +1,9 @@
 import { isTwoStringsEqual } from "@/lib/utils";
 import { config } from "@/wagmi";
+import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "@seer-pm/contracts-ts/multi-drop";
 import { useMarkets } from "@seer-pm/react";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { Market } from "@seer-pm/sdk";
-import { multiDropAbi, multiDropAddress, readMultiDropAllTokens } from "@seer-pm/sdk/contracts/multi-drop";
 import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { Address, formatUnits } from "viem";

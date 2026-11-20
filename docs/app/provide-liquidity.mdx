@@ -5,6 +5,43 @@ Users can provide liquidity for any outcome of their choice. Liquidity providers
 
 First, visit any market, select an outcome and [mint outcome tokens](/app/mint-merge-redeem-outcome-tokens).
 
+Where the liquidity goes depends on the network:
+
+- **Base, Optimism and Ethereum**: markets trade on Uniswap V4 pools with Seer's limit-order hook, and you add and manage liquidity **inside the app**. See [Uniswap V4 pools](#uniswap-v4-pools-base-optimism-ethereum).
+- **Gnosis**: markets trade on Swapr, and the **Add liquidity** button takes you there. See [Swapr pools](#swapr-pools-gnosis).
+
+## Uniswap V4 pools (Base, Optimism, Ethereum)
+
+Each outcome has one pool against the market's collateral (sUSDS on Base and Optimism, sDAI on Ethereum). Pools charge a 0.01% fee on every trade, and that fee goes to the liquidity providers in range.
+
+<Info>
+To provide liquidity you need both tokens of the pair: the outcome token and the collateral. Mint outcome tokens first if you don't have any.
+</Info>
+
+Click **Add liquidity** on the outcome. The **Liquidity** window opens with the form and, below it, your existing positions in that pool.
+
+**Adding liquidity**
+
+1. Set the **Min price** and **Max price** of the range you want to cover, as prices between 0 and 1. Your tokens only trade, and only earn fees, while the outcome's price is inside that range.
+2. If the pool doesn't exist yet, you also set its **starting price** (for example `0.65`). It has to be inside your range.
+3. Enter the amount of either token. The other amount is calculated from the price range. If the current price is outside your range, only one of the two tokens is needed.
+4. Approve the tokens if asked, then submit.
+
+With a wallet that supports smart accounts, approvals, pool creation and the deposit go out as a single confirmation. Otherwise you confirm each step in turn.
+
+**Your positions**
+
+Under the form, **Your positions** lists each position you hold in the pool with its price range, the current amounts of each token, and whether it is **In range** or **Out of range**.
+
+- Pick **25%**, **50%**, **75%** or **100%** and click **Remove** to withdraw part of the position. **Remove all** withdraws everything and closes the position.
+- **Collect fees** sends you the trading fees the position has earned without touching its liquidity.
+
+Your positions across all markets of a network are also listed in the [Portfolio](/app/navigate-our-site) under the **Liquidity** tab.
+
+Since the pools are regular Uniswap V4 pools, you can also open them on [app.uniswap.org](https://app.uniswap.org) from the pool list in the same window.
+
+## Swapr pools (Gnosis)
+
 <Frame><img src="/images/app/provide-liquidity/01-image.png" alt="" /></Frame>
 
 On each outcome there will be an **Add liquidity** button. Click on it.

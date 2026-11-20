@@ -26,6 +26,7 @@ export type AppSubgraphType =
   | "algebra"
   | "algebrafarming"
   | "orderBook"
+  | "uniswapV4"
   | "reality"
   | "tokens";
 
@@ -66,8 +67,15 @@ export function realityGraphQLClient(chainId: number): GraphQLClient | undefined
 }
 
 export function orderBookGraphQLClient(chainId: number): GraphQLClient | undefined {
-  if (chainId !== CHAIN_IDS.base) {
+  if (chainId !== CHAIN_IDS.mainnet && chainId !== CHAIN_IDS.optimism && chainId !== CHAIN_IDS.base) {
     return undefined;
   }
   return new GraphQLClient(getAppSubgraphUrl("orderBook", chainId));
+}
+
+export function uniswapV4GraphQLClient(chainId: number): GraphQLClient | undefined {
+  if (chainId !== CHAIN_IDS.mainnet && chainId !== CHAIN_IDS.optimism && chainId !== CHAIN_IDS.base) {
+    return undefined;
+  }
+  return new GraphQLClient(getAppSubgraphUrl("uniswapV4", chainId));
 }

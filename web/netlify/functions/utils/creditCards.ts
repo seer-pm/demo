@@ -1,4 +1,4 @@
-import { seerCreditsAddress } from "@seer-pm/sdk/contracts/trading-credits";
+import { seerCreditsAddress } from "@seer-pm/contracts-ts/trading-credits";
 import { createClient } from "@supabase/supabase-js";
 import {
   type Address,

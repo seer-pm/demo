@@ -63,7 +63,7 @@
 --
 -- SER-LPP IS 'all' ONLY
 -- ---------------------
--- ser_lpp is the wallet's CURRENT SER LP-program balance, summed over Gnosis and Mainnet from
+-- ser_lpp is the wallet's CURRENT SER LP-program balance, summed over every SER-lpp chain from
 -- `ser_lpp_balances` (rewritten every 12h by ser-lpp-calculation-background). It is a running
 -- balance, not a per-day emission: there is no history to slice, so it cannot be windowed and is
 -- stored as 0 on '1d'/'1w'/'1m'. Only the 'all' rows carry it, and the endpoint reports it as
@@ -87,7 +87,8 @@
 -- addresses hold the LP token, and nothing prunes a wallet that has since exited (getTokenHolders
 -- filters balance > 0, but the writer only upserts, never deletes). The treasury and the two
 -- custody contracts hold the LP token without providing liquidity, and the `lpp` CTE below drops
--- them by address — the board's view only, the table itself keeps every holder.
+-- them by address, as it does the bridges that lock the Mainnet token behind the Gnosis, Optimism
+-- and Base copies. That is the board's view only: the table itself keeps every holder.
 
 CREATE TABLE IF NOT EXISTS public.airdrop_leaderboard (
   address                   text             NOT NULL,
@@ -317,14 +318,16 @@ BEGIN
   ),
   lpp AS (
     -- 'all' only: a running balance cannot be attributed to a window (see SER-LPP above). One row
-    -- per (address, chain_id) upstream, so this sums Gnosis + Mainnet. lower() because the board
+    -- per (address, chain_id) upstream, so this sums every SER-lpp chain. lower() because the board
     -- joins on `airdrops.address`, which is always lowercase.
     SELECT lower(s.address) AS address,
            coalesce(sum(s.balance::numeric), 0) AS ser_lpp
     FROM public.ser_lpp_balances s
     WHERE p_period = 'all'
-      -- The treasury and two custody contracts hold the LP token without providing liquidity, so
-      -- their balances are not an allocation and would otherwise take the top of the board.
+      -- The treasury, two custody contracts and the bridges hold the LP token without providing
+      -- liquidity, so their balances are not an allocation and would otherwise take the top of the
+      -- board. A bridge's Mainnet balance is the supply its L2 copy holds, which the L2 holders are
+      -- already counted for, so keeping it would also count that supply twice.
       --
       -- Excluded HERE and nowhere else, on purpose. `ser_lpp_balances` is a faithful record of who
       -- holds the token on-chain and stays that way — ser-lpp-calculation-background writes every
@@ -336,7 +339,9 @@ BEGIN
       -- holes in the ranks, short the page and leave total_count counting rows nobody can see.
       AND lower(s.address) NOT IN (
         '0xcad3f887275c3b8409140ea61ebb0b9751eda287',  -- seer.eth
-        '0x88ad09518695c6c3712ac10a214be5109a655671',
+        '0x88ad09518695c6c3712ac10a214be5109a655671',  -- OmniBridge foreign mediator (Gnosis copy)
+        '0x99c9fc46f92e8a1c0dec1b1747d010903e884be1',  -- OP Mainnet L1StandardBridge (Optimism copy)
+        '0x3154cf16ccdb4c6d922629664174b904d80f2c35',  -- Base L1StandardBridge (Base copy)
         '0x607bbfd4cebd869aad04331f8a2ad0c3c396674b'
       )
     GROUP BY lower(s.address)

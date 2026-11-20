@@ -20,12 +20,24 @@ import { usePortfolioPnL, usePortfolioValue } from "@seer-pm/react";
 import type { PortfolioChainId, PortfolioPnLPeriod } from "@seer-pm/sdk";
 import { type KeyboardEvent, useEffect, useRef } from "react";
 import { Address, getAddress, isAddress } from "viem";
+import { clientOnly } from "vike-react/clientOnly";
 import { usePageContext } from "vike-react/usePageContext";
 import { navigate } from "vike/client/router";
 import { useAccount } from "wagmi";
 
+const OrdersTab = clientOnly(() => import("@/components/Portfolio/OrdersTab"));
+const LiquidityTab = clientOnly(() => import("@/components/Portfolio/LiquidityTab"));
+const RewardsTab = clientOnly(() => import("@/components/Portfolio/RewardsTab"));
+
+function TabFallback({ label }: { label: string }) {
+  return <output className="shimmer-container block w-full h-[200px]" aria-busy="true" aria-label={label} />;
+}
+
 const TABS = [
   { id: "positions", label: "Positions", panelId: "portfolio-panel-positions" },
+  { id: "orders", label: "Limit Orders", panelId: "portfolio-panel-orders" },
+  { id: "liquidity", label: "Liquidity", panelId: "portfolio-panel-liquidity" },
+  { id: "rewards", label: "Rewards", panelId: "portfolio-panel-rewards" },
   { id: "history", label: "History", panelId: "portfolio-panel-history" },
   { id: "airdrop", label: "Airdrop", panelId: "portfolio-panel-airdrop" },
 ] as const;
@@ -40,7 +52,16 @@ const PNL_PERIODS: { id: PortfolioPnLPeriod; label: string; aria: string; hint: 
 ];
 
 function parsePortfolioTab(raw: string | null): PortfolioTab {
-  if (raw === "history" || raw === "airdrop" || raw === "positions") return raw;
+  if (
+    raw === "history" ||
+    raw === "airdrop" ||
+    raw === "positions" ||
+    raw === "orders" ||
+    raw === "liquidity" ||
+    raw === "rewards"
+  ) {
+    return raw;
+  }
   return "positions";
 }
 
@@ -341,7 +362,10 @@ function PortfolioPage() {
     <div className="container-fluid py-[24px] lg:py-[65px] space-y-[24px] lg:space-y-[48px]">
       <Breadcrumb links={[{ title: "Portfolio" }]} />
       <div className="mt-8 space-y-4">
-        {activeTab !== "airdrop" ? <ChainFilterChips value={chainId} onChange={setChainId} /> : null}
+        {/* Airdrop and rewards span every network, so the network filter doesn't apply to them. */}
+        {activeTab !== "airdrop" && activeTab !== "rewards" ? (
+          <ChainFilterChips value={chainId} onChange={setChainId} />
+        ) : null}
         <div className="bg-base-100 border border-separator-100 rounded-[1px] shadow-[0_2px_3px_0_rgba(0,0,0,0.06)] min-h-[162px] px-6 py-[28px] flex flex-col sm:flex-row gap-6 items-start justify-between">
           <ProfileIdentity
             address={account}
@@ -374,7 +398,7 @@ function PortfolioPage() {
         <div
           role="tablist"
           aria-label="Portfolio sections"
-          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-[600px] mb-6"
+          className="tabs tabs-bordered font-semibold overflow-x-auto custom-scrollbar pb-1 w-fit max-w-full mb-6"
           onKeyDown={onTabListKeyDown}
         >
           {TABS.map((tab, index) => {
@@ -391,7 +415,7 @@ function PortfolioPage() {
                 ref={(el) => {
                   tabRefs.current[index] = el;
                 }}
-                className={`tab min-h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary ${selected ? "tab-active" : ""}`}
+                className={`tab min-h-11 whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-primary ${selected ? "tab-active" : ""}`}
                 onClick={() => setTab(tab.id)}
               >
                 {tab.label}
@@ -402,6 +426,29 @@ function PortfolioPage() {
         <div role="tabpanel" id={activeTabMeta.panelId} aria-labelledby={`portfolio-tab-${activeTab}`}>
           <h2 className="sr-only">{activeTabMeta.label}</h2>
           {activeTab === "positions" && <PositionsTab account={account} chainId={chainId} />}
+          {activeTab === "orders" &&
+            (chainId === "all" ? (
+              <Alert type="info" title="Select a network">
+                Limit orders are shown per network. Pick one above to see yours.
+              </Alert>
+            ) : (
+              <OrdersTab account={account} chainId={chainId} fallback={<TabFallback label="Loading orders" />} />
+            ))}
+          {activeTab === "liquidity" &&
+            (chainId === "all" ? (
+              <Alert type="info" title="Select a network">
+                Liquidity positions are shown per network. Pick one above to see yours.
+              </Alert>
+            ) : (
+              <LiquidityTab
+                account={account}
+                chainId={chainId}
+                fallback={<TabFallback label="Loading liquidity positions" />}
+              />
+            ))}
+          {activeTab === "rewards" && (
+            <RewardsTab account={account} fallback={<TabFallback label="Loading liquidity rewards" />} />
+          )}
           {activeTab === "history" && <HistoryTab account={account} chainId={chainId} />}
           {activeTab === "airdrop" && <AirdropTab account={account} />}
         </div>
