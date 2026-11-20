@@ -179,7 +179,7 @@ describe("RewardCampaigns", function () {
     // A correction pays only the difference and records its own cutoff, not the latest cutoff.
     const correction = await release(cutoff, [[0, 451n]]);
     await expect(correction).to.emit(registry, "Released").withArgs(0, 1n, 451n, cutoff);
-    expect((await registry.getCampaigns())[0].released).to.equal(451n);
+    expect((await registry.getCampaigns(0, 1))[0].released).to.equal(451n);
     const snapshots = await registry.queryFilter(registry.filters.CampaignSet());
     expect(snapshots).to.have.length(1); // Weekly payments do not change the bot's earning history.
     const botInterface = new ethers.Interface(rewardCampaignsAbi);
@@ -307,6 +307,19 @@ describe("RewardCampaigns", function () {
       expect(await token.balanceOf(registry)).to.equal(970n);
     });
   }
+
+  it("pages campaigns by id, stopping at the last one", async function () {
+    for (const budget of [100n, 200n, 300n]) await create(1n, budget);
+    const budgets = async (from: number, to: bigint | number) =>
+      (await registry.getCampaigns(from, to)).map((c) => c.budget);
+    expect(await budgets(0, 3)).to.deep.equal([100n, 200n, 300n]);
+    expect(await budgets(1, 2)).to.deep.equal([200n]);
+    // A page past the last campaign is cut short, and a range with nothing in it is empty rather than a revert.
+    expect(await budgets(2, 100)).to.deep.equal([300n]);
+    expect(await budgets(1, ethers.MaxUint256)).to.deep.equal([200n, 300n]);
+    expect(await budgets(3, 100)).to.deep.equal([]);
+    expect(await budgets(2, 1)).to.deep.equal([]);
+  });
 
   it("lets only the owner manage managers and ownership", async function () {
     await expect(registry.connect(manager).setManager(other, true)).to.be.revertedWith("Only the owner");

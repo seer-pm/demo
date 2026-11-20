@@ -27,13 +27,34 @@ export const rewardCampaignsAbi = parseAbi([
   "struct Campaign { bytes32 poolId; address rewardToken; uint256 budget; uint32 minWidthTicks; address funder; uint256 released; Rate[] rates; }",
   "function owner() view returns (address)",
   "function isManager(address account) view returns (bool)",
-  "function getCampaigns() view returns (Campaign[])",
+  "function campaignCount() view returns (uint256)",
+  "function getCampaigns(uint256 from, uint256 to) view returns (Campaign[])",
   "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks) returns (uint256 id)",
   "function setRate(uint256 id, uint256 perSecond)",
   "function release(uint256[] ids, uint256[] emitted, uint64 upTo, bytes32[][] proofs)",
   "function settleRefund(uint256 id, uint256 emitted, bytes32[] proof)",
   "event CampaignSet(uint256 indexed id, Campaign campaign)",
 ]);
+
+/**
+ * Campaigns per `getCampaigns(from, to)` call. Each costs some 25k gas to return with a short rate history, so a page
+ * stays far below the gas cap RPC providers put on `eth_call`.
+ */
+export const CAMPAIGN_PAGE = 100n;
+
+/**
+ * Every campaign of a registry, read in pages of `CAMPAIGN_PAGE`. Pin `count` and `page` to one block, or a release
+ * or refund mined between two pages mixes two states in the result.
+ */
+export async function readAllCampaigns<T>(
+  count: () => Promise<bigint>,
+  page: (from: bigint, to: bigint) => Promise<readonly T[]>,
+): Promise<T[]> {
+  const total = await count();
+  const pages: Promise<readonly T[]>[] = [];
+  for (let from = 0n; from < total; from += CAMPAIGN_PAGE) pages.push(page(from, from + CAMPAIGN_PAGE));
+  return (await Promise.all(pages)).flat();
+}
 
 /** Gateway of the Kleros IPFS node the bot pins to; it answers with `Access-Control-Allow-Origin: *`. */
 export const IPFS_GATEWAY = "https://cdn.kleros.link/ipfs/";

@@ -210,9 +210,17 @@ contract RewardCampaigns {
         return _campaign(id);
     }
 
-    /// @notice Every campaign, in id order.
-    function getCampaigns() external view returns (Campaign[] memory) {
-        return campaigns;
+    /// @notice The campaigns with ids from `from` up to, but not including, `to`, in id order.
+    /// @dev Each campaign carries its whole rate history, so one call returning every campaign would outgrow an
+    /// `eth_call` gas cap as campaigns accumulate. A `to` past the last campaign stops at it and an empty range
+    /// returns nothing, so a reader pages with a fixed size from `campaignCount`.
+    function getCampaigns(uint256 from, uint256 to) external view returns (Campaign[] memory page) {
+        if (to > campaigns.length) to = campaigns.length;
+        if (from >= to) return page;
+        page = new Campaign[](to - from);
+        for (uint256 i = from; i < to; i++) {
+            page[i - from] = campaigns[i];
+        }
     }
 
     function _maxEmission(Rate[] storage rates, uint64 to) private view returns (uint256 total) {

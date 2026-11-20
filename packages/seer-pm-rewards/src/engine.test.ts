@@ -17,9 +17,9 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
 import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
-import { accountRewards, rewardCampaignsAbi, urdAbi } from "./claims.ts";
-import { revocationKey, revokedRoots, syncDistributor } from "./distributor.ts";
+import { CAMPAIGN_PAGE, accountRewards, readAllCampaigns, rewardCampaignsAbi, urdAbi } from "./claims.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
+import { revocationKey, revokedRoots, syncDistributor } from "./distributor.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
 import { type RawCampaign, campaignHistory, campaignsFromLogs, dueReleases, emittedByCampaign } from "./registry.ts";
@@ -606,76 +606,107 @@ describe("revokedRoots", () => {
   });
 });
 
+describe("readAllCampaigns", () => {
+  it("reads every campaign once across page boundaries", async () => {
+    const ids = Array.from({ length: Number(CAMPAIGN_PAGE) * 2 + 50 }, (_, i) => i);
+    const ranges: [bigint, bigint][] = [];
+    const all = await readAllCampaigns(
+      async () => BigInt(ids.length),
+      async (from, to) => {
+        ranges.push([from, to]);
+        return ids.slice(Number(from), Number(to));
+      },
+    );
+    expect(all).toEqual(ids);
+    expect(ranges).toEqual([
+      [0n, CAMPAIGN_PAGE],
+      [CAMPAIGN_PAGE, 2n * CAMPAIGN_PAGE],
+      [2n * CAMPAIGN_PAGE, 3n * CAMPAIGN_PAGE],
+    ]);
+    expect(
+      await readAllCampaigns(
+        async () => 0n,
+        async () => [1],
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("syncDistributor", () => {
   // A pending root, as when the Safe or a second run already proposed the next one, does not hold up the accepted root.
-  it.each([false, true])("pays the accepted root's releases, then settles the refunds that need them (pending: %s)", async (pendingNext) => {
-    const root = pad("0xabc", { size: 32 });
-    const cutoff = "2026-11-09T00:00:00Z";
-    const proof = (n: number) => [pad(numberToHex(n), { size: 32 })];
-    const file = {
-      payoutChainId: 8453,
-      cutoff,
-      root,
-      releases: {
-        0: { emitted: "40", proof: proof(1) }, // Already paid.
-        1: { emitted: "70", proof: proof(2) }, // Ended: its refund needs this release first.
-        2: { emitted: "15", proof: proof(3) },
-      },
-      settlements: {
-        1: { emitted: "70", proof: proof(4) },
-        3: { emitted: "0", proof: proof(5) }, // Ended without emitting and already refunded.
-      },
-    };
-    const onchain = [
-      { budget: 1000n, released: 40n },
-      { budget: 100n, released: 60n },
-      { budget: 1000n, released: 0n },
-      { budget: 0n, released: 0n },
-    ];
-    const calls: { functionName: string; args?: readonly unknown[] }[] = [];
-    const payoutClient = {
-      getBlock: async () => ({ timestamp: BigInt(Date.parse(cutoff) / 1000 + 7200) }),
-      readContract: async ({ functionName }: { functionName: string }) =>
-        ({
-          root,
-          ipfsHash: pad("0x1234", { size: 32 }),
-          pendingRoot: pendingNext
-            ? [root, pad("0x5678", { size: 32 }), BigInt(Date.parse(cutoff) / 1000 + 2 * 86400)]
-            : [zeroHash, zeroHash, 0n],
-          getCampaigns: onchain.map((c) => ({ ...c })),
-        })[functionName],
-      simulateContract: async (request: unknown) => ({ request }),
-      waitForTransactionReceipt: async () => ({ status: "success" }),
-    } as unknown as PublicClient;
-    const wallet = {
-      account: { address: ALICE },
-      writeContract: async (call: { functionName: string; args: readonly bigint[][] }) => {
-        calls.push(call);
-        // The registry's own accounting, as far as this cycle reads it.
-        if (call.functionName === "release") {
-          call.args[0].forEach((id, i) => {
-            onchain[Number(id)].released = call.args[1][i];
-          });
-        }
-        return "0xfeed";
-      },
-    } as unknown as Parameters<typeof syncDistributor>[0]["wallet"];
+  it.each([false, true])(
+    "pays the accepted root's releases, then settles the refunds that need them (pending: %s)",
+    async (pendingNext) => {
+      const root = pad("0xabc", { size: 32 });
+      const cutoff = "2026-11-09T00:00:00Z";
+      const proof = (n: number) => [pad(numberToHex(n), { size: 32 })];
+      const file = {
+        payoutChainId: 8453,
+        cutoff,
+        root,
+        releases: {
+          0: { emitted: "40", proof: proof(1) }, // Already paid.
+          1: { emitted: "70", proof: proof(2) }, // Ended: its refund needs this release first.
+          2: { emitted: "15", proof: proof(3) },
+        },
+        settlements: {
+          1: { emitted: "70", proof: proof(4) },
+          3: { emitted: "0", proof: proof(5) }, // Ended without emitting and already refunded.
+        },
+      };
+      const onchain = [
+        { budget: 1000n, released: 40n },
+        { budget: 100n, released: 60n },
+        { budget: 1000n, released: 0n },
+        { budget: 0n, released: 0n },
+      ];
+      const calls: { functionName: string; args?: readonly unknown[] }[] = [];
+      const payoutClient = {
+        getBlock: async () => ({ timestamp: BigInt(Date.parse(cutoff) / 1000 + 7200) }),
+        getBlockNumber: async () => 100n,
+        readContract: async ({ functionName, args }: { functionName: string; args?: readonly bigint[] }) =>
+          ({
+            root,
+            ipfsHash: pad("0x1234", { size: 32 }),
+            campaignCount: BigInt(onchain.length),
+            pendingRoot: pendingNext
+              ? [root, pad("0x5678", { size: 32 }), BigInt(Date.parse(cutoff) / 1000 + 2 * 86400)]
+              : [zeroHash, zeroHash, 0n],
+            getCampaigns: args && onchain.slice(Number(args[0]), Number(args[1])).map((c) => ({ ...c })),
+          })[functionName],
+        simulateContract: async (request: unknown) => ({ request }),
+        waitForTransactionReceipt: async () => ({ status: "success" }),
+      } as unknown as PublicClient;
+      const wallet = {
+        account: { address: ALICE },
+        writeContract: async (call: { functionName: string; args: readonly bigint[][] }) => {
+          calls.push(call);
+          // The registry's own accounting, as far as this cycle reads it.
+          if (call.functionName === "release") {
+            call.args[0].forEach((id, i) => {
+              onchain[Number(id)].released = call.args[1][i];
+            });
+          }
+          return "0xfeed";
+        },
+      } as unknown as Parameters<typeof syncDistributor>[0]["wallet"];
 
-    const status = await syncDistributor({
-      payoutChainId: 8453,
-      payoutClient,
-      wallet,
-      clientFor: () => payoutClient,
-      ipfs: { upload: async () => "", fetch: async () => JSON.stringify(file) },
-      now: Date.parse(cutoff) / 1000 + 7200,
-    });
+      const status = await syncDistributor({
+        payoutChainId: 8453,
+        payoutClient,
+        wallet,
+        clientFor: () => payoutClient,
+        ipfs: { upload: async () => "", fetch: async () => JSON.stringify(file) },
+        now: Date.parse(cutoff) / 1000 + 7200,
+      });
 
-    expect(calls.map(({ functionName, args }) => [functionName, args])).toEqual([
-      ["release", [[1n, 2n], [70n, 15n], BigInt(Date.parse(cutoff) / 1000), [proof(2), proof(3)]]],
-      ["settleRefund", [1n, 70n, proof(4)]],
-    ]);
-    expect(status).toMatch(pendingNext ? /waiting for the .* root to become valid/ : /up to date at/);
-  });
+      expect(calls.map(({ functionName, args }) => [functionName, args])).toEqual([
+        ["release", [[1n, 2n], [70n, 15n], BigInt(Date.parse(cutoff) / 1000), [proof(2), proof(3)]]],
+        ["settleRefund", [1n, 70n, proof(4)]],
+      ]);
+      expect(status).toMatch(pendingNext ? /waiting for the .* root to become valid/ : /up to date at/);
+    },
+  );
 });
 
 describe("computeWeeks", () => {

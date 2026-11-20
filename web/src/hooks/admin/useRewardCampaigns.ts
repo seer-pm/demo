@@ -3,12 +3,12 @@ import type { RewardRate } from "@/lib/reward-campaigns";
 import { toastifySendCallsTx, toastifyTx } from "@/lib/toastify";
 import { config } from "@/wagmi";
 import { V4_STATE_VIEW_ADDRESS, stateViewAbi } from "@seer-pm/order-book";
-import { PAYOUT_CHAINS, type RewardsEstimate, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
+import { PAYOUT_CHAINS, type RewardsEstimate, readAllCampaigns, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
 import { type SupportedChain, orderBookGraphQLClient, uniswapV4GraphQLClient } from "@seer-pm/sdk";
 import { getSdk as getLimitOrderSdk } from "@seer-pm/sdk/subgraph/limit-order-hook";
 import { getSdk as getUniswapV4Sdk } from "@seer-pm/sdk/subgraph/uniswap-v4";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAccount, readContract, writeContract } from "@wagmi/core";
+import { getAccount, getBlockNumber, readContract, writeContract } from "@wagmi/core";
 import { type Address, type Hex, type TransactionReceipt, encodeFunctionData, erc20Abi } from "viem";
 
 const REWARD_CAMPAIGNS_QUERY_KEY = "rewardCampaigns";
@@ -121,12 +121,13 @@ export async function readTokenMeta(token: Address, chainId: number) {
 }
 
 async function fetchChainCampaigns(payoutChainId: number, address: Address): Promise<RewardCampaign[]> {
-  const campaigns = await readContract(config, {
-    address,
-    abi: rewardCampaignsAbi,
-    functionName: "getCampaigns",
-    chainId: payoutChainId as ConfigChainId,
-  });
+  const chainId = payoutChainId as ConfigChainId;
+  const blockNumber = await getBlockNumber(config, { chainId });
+  const call = { address, abi: rewardCampaignsAbi, chainId, blockNumber } as const;
+  const campaigns = await readAllCampaigns(
+    () => readContract(config, { ...call, functionName: "campaignCount" }),
+    (from, to) => readContract(config, { ...call, functionName: "getCampaigns", args: [from, to] }),
+  );
   // The names are a convenience: a failed lookup leaves the pool id, never the campaigns, unreadable.
   const poolOutcomes = fetchPoolOutcomes(
     payoutChainId,

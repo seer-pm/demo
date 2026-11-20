@@ -19,6 +19,7 @@ import {
   type RewardsEstimate,
   bytes32ToCid,
   cidToBytes32,
+  readAllCampaigns,
   rewardCampaignsAbi,
   urdAbi,
 } from "./claims.ts";
@@ -63,6 +64,16 @@ async function readRewardsFile(ipfs: Ipfs, hash: Hex, root: Hex, payoutChainId: 
     throw new Error(`IPFS file ${bytes32ToCid(hash)} is not the one behind root ${root} on chain ${payoutChainId}`);
   }
   return file;
+}
+
+/** Every campaign of the registry at `address` as of the latest block, read in pages on that one block. */
+async function readRegistry(client: PublicClient, address: Address) {
+  const blockNumber = await client.getBlockNumber();
+  const call = { address, abi: rewardCampaignsAbi, blockNumber } as const;
+  return readAllCampaigns(
+    () => client.readContract({ ...call, functionName: "campaignCount" }),
+    (from, to) => client.readContract({ ...call, functionName: "getCampaigns", args: [from, to] }),
+  );
 }
 
 /** Seconds to wait after the Monday cutoff so the blocks before it are final on every source chain. */
@@ -154,8 +165,7 @@ export async function syncDistributor({
 
   const target = weekStart(now - SETTLE_SECONDS);
   const previous = state.ipfsHash === zeroHash ? undefined : await readFile(state.ipfsHash, state.root);
-  const readCampaigns = () =>
-    payoutClient.readContract({ address: registry.address, abi: rewardCampaignsAbi, functionName: "getCampaigns" });
+  const readCampaigns = () => readRegistry(payoutClient, registry.address);
   let onchain = await readCampaigns();
   // Paid right after the root is accepted, as its claims need these tokens, and before the settlements, which only
   // refund once the final total is released. Both come before the pending check: another updater (the Safe, or a
