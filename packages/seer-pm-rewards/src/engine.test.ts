@@ -607,7 +607,8 @@ describe("revokedRoots", () => {
 });
 
 describe("syncDistributor", () => {
-  it("pays the accepted root's releases, then settles the refunds that need them, and skips what is done", async () => {
+  // A pending root, as when the Safe or a second run already proposed the next one, does not hold up the accepted root.
+  it.each([false, true])("pays the accepted root's releases, then settles the refunds that need them (pending: %s)", async (pendingNext) => {
     const root = pad("0xabc", { size: 32 });
     const cutoff = "2026-11-09T00:00:00Z";
     const proof = (n: number) => [pad(numberToHex(n), { size: 32 })];
@@ -638,7 +639,9 @@ describe("syncDistributor", () => {
         ({
           root,
           ipfsHash: pad("0x1234", { size: 32 }),
-          pendingRoot: [zeroHash, zeroHash, 0n],
+          pendingRoot: pendingNext
+            ? [root, pad("0x5678", { size: 32 }), BigInt(Date.parse(cutoff) / 1000 + 2 * 86400)]
+            : [zeroHash, zeroHash, 0n],
           getCampaigns: onchain.map((c) => ({ ...c })),
         })[functionName],
       simulateContract: async (request: unknown) => ({ request }),
@@ -671,7 +674,7 @@ describe("syncDistributor", () => {
       ["release", [[1n, 2n], [70n, 15n], BigInt(Date.parse(cutoff) / 1000), [proof(2), proof(3)]]],
       ["settleRefund", [1n, 70n, proof(4)]],
     ]);
-    expect(status).toMatch(/up to date at/);
+    expect(status).toMatch(pendingNext ? /waiting for the .* root to become valid/ : /up to date at/);
   });
 });
 

@@ -77,7 +77,8 @@ type UpdaterWallet = WalletClient<Transport, Chain, Account>;
  * 1. Accepts the pending root once its timelock is over (anyone may; the bot does it so claims open
  *    on time).
  * 2. Has the registry release to the distributor what each campaign emitted according to the
- *    accepted root, whose release leaves prove it, then settles the refunds that root proves.
+ *    accepted root, whose release leaves prove it, then settles the refunds that root proves, even
+ *    while another root is pending.
  * 3. Once a new week has settled and no root is pending, resumes from the file behind the current
  *    root and computes the week from the chain's registry campaigns as of the cutoff.
  * 4. Checks the distributor will hold enough to pay every unclaimed amount once that file's
@@ -152,21 +153,13 @@ export async function syncDistributor({
   }
 
   const target = weekStart(now - SETTLE_SECONDS);
-  if (state.pending.validAt !== 0n) {
-    const pending = await readFile(state.pending.ipfsHash, state.pending.root);
-    if (parseCutoff(pending.cutoff) < target) {
-      // Submitting now would replace the pending root and restart its timelock.
-      throw new Error(`the ${pending.cutoff} root is still pending until ${state.pending.validAt}; not submitting`);
-    }
-    return [...done, `waiting for the ${pending.cutoff} root to become valid at ${state.pending.validAt}`].join("; ");
-  }
-
   const previous = state.ipfsHash === zeroHash ? undefined : await readFile(state.ipfsHash, state.root);
   const readCampaigns = () =>
     payoutClient.readContract({ address: registry.address, abi: rewardCampaignsAbi, functionName: "getCampaigns" });
   let onchain = await readCampaigns();
   // Paid right after the root is accepted, as its claims need these tokens, and before the settlements, which only
-  // refund once the final total is released.
+  // refund once the final total is released. Both come before the pending check: another updater (the Safe, or a
+  // second run of this bot) may already have proposed the next root, and the accepted one still needs paying.
   const unpaid = Object.entries(previous?.releases ?? {}).filter(
     ([id, { emitted }]) => BigInt(emitted) > onchain[Number(id)].released,
   );
@@ -199,6 +192,15 @@ export async function syncDistributor({
       }
     }
   }
+  if (state.pending.validAt !== 0n) {
+    const pending = await readFile(state.pending.ipfsHash, state.pending.root);
+    if (parseCutoff(pending.cutoff) < target) {
+      // Submitting now would replace the pending root and restart its timelock.
+      throw new Error(`the ${pending.cutoff} root is still pending until ${state.pending.validAt}; not submitting`);
+    }
+    return [...done, `waiting for the ${pending.cutoff} root to become valid at ${state.pending.validAt}`].join("; ");
+  }
+
   if (previous && parseCutoff(previous.cutoff) >= target) {
     return [...done, `up to date at ${previous.cutoff}`].join("; ");
   }
