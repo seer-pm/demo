@@ -308,6 +308,64 @@ describe("RewardCampaigns", function () {
     });
   }
 
+  it("pays through Morpho's distributor only after its timelock, and the Safe's veto stops a bad root", async function () {
+    const [, , , bot, alice, bob] = await ethers.getSigners();
+    const timelock = 2 * DAY;
+    const morpho = await (await ethers.getContractFactory("UniversalRewardsDistributor")).deploy(
+      owner,
+      timelock,
+      ethers.ZeroHash,
+      ethers.ZeroHash,
+    );
+    await morpho.setRootUpdater(bot, true);
+    registry = await (await ethers.getContractFactory("RewardCampaigns")).deploy(morpho, owner, [manager]);
+    await token.connect(manager).approve(registry, 1000n);
+    await create(1n, 1000n);
+    await time.increase(100);
+    const end = await minedAt(await registry.connect(manager).setRate(0, 0n));
+    const budget = (await registry.getCampaign(0)).budget;
+    const claimLeaf = async (account: string, claimable: bigint) =>
+      leaf(["address", "address", "uint256"], [account, await token.getAddress(), claimable]);
+    const ipfsHash = ethers.id("rewards file");
+
+    // A stolen bot key proposes a root that releases the whole budget and gives it to itself.
+    const bad = SimpleMerkleTree.of([await releaseLeaf(0, end, budget), await claimLeaf(bot.address, budget)]);
+    await morpho.connect(bot).submitRoot(bad.root, ipfsHash);
+    await expect(registry.connect(other).release([0], [budget], end, [bad.getProof(0)])).to.be.revertedWith(
+      "Invalid release proof",
+    );
+    await morpho.connect(owner).revokePendingRoot();
+    await time.increase(timelock);
+    await expect(morpho.acceptRoot()).to.be.revertedWith("no pending root");
+
+    // The honest final week: two claims, the release of what they add up to and the settlement on it, in one tree.
+    const week = SimpleMerkleTree.of([
+      await claimLeaf(alice.address, 40n),
+      await claimLeaf(bob.address, 30n),
+      await releaseLeaf(0, end, 70n),
+      await settlementLeaf(0, end, 70n),
+    ]);
+    const pay = () => registry.connect(other).release([0], [70n], end, [week.getProof(2)]);
+    await morpho.connect(bot).submitRoot(week.root, ipfsHash);
+    await expect(morpho.acceptRoot()).to.be.revertedWith("timelock is not expired");
+    await expect(pay()).to.be.revertedWith("Invalid release proof");
+    await time.increase(timelock);
+    await morpho.connect(other).acceptRoot();
+    // Until the release, the distributor holds nothing to pay the claim with.
+    await expect(morpho.claim(alice, token, 40n, week.getProof(0))).to.be.reverted;
+    await pay();
+    await morpho.claim(alice, token, 40n, week.getProof(0));
+    await morpho.connect(other).claim(bob, token, 30n, week.getProof(1));
+    await registry.connect(other).settleRefund(0, 70n, week.getProof(3));
+
+    expect(await token.balanceOf(alice)).to.equal(40n);
+    expect(await token.balanceOf(bob)).to.equal(30n);
+    expect(await token.balanceOf(bot)).to.equal(0n);
+    expect(await token.balanceOf(morpho)).to.equal(0n);
+    expect(await token.balanceOf(registry)).to.equal(0n);
+    expect(await token.balanceOf(manager)).to.equal(10_000n - 70n);
+  });
+
   it("pages campaigns by id, stopping at the last one", async function () {
     for (const budget of [100n, 200n, 300n]) await create(1n, budget);
     const budgets = async (from: number, to: bigint | number) =>
