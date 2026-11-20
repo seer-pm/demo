@@ -305,6 +305,114 @@ export async function syncDistributor({
 }
 
 /**
+ * How long after a weekly cutoff, or after a pending root became valid, `watchDistributor` waits for the hourly bot
+ * before it reports the week as stuck. A few runs fit in it, so a retried RPC or IPFS failure does not alert.
+ */
+export const WATCH_GRACE_SECONDS = 6 * 3600;
+
+/**
+ * Checks `payoutChainId`'s distributor against an independent recomputation, read-only. The 48 h timelock and the
+ * Safe's veto are what stand between a wrong root, from a stolen updater key or a bot gone wrong, and the escrow, so
+ * this is what tells the Safe to use them. Returns one alert per problem, each saying what to do, and none when all
+ * is well:
+ *
+ * - A pending root that is not the root this code computes for its cutoff from the accepted file, or whose
+ *   releases the registry would refuse once it is accepted. The Safe revokes it before it becomes valid.
+ * - A pending root left unaccepted, or no root at all, well after it was due: the bot is failing.
+ * - Releases of the accepted root still unpaid, which leaves its claims without funds.
+ *
+ * It replays the same engine as the bot, so it catches a root the bot did not compute but not a bug the engine
+ * makes in both. Throws when it cannot check, which is worth an alert too.
+ */
+export async function watchDistributor({
+  payoutChainId,
+  payoutClient,
+  clientFor,
+  ipfs = klerosIpfs,
+  now = Math.floor(Date.now() / 1000),
+}: {
+  payoutChainId: number;
+  payoutClient: PublicClient;
+  /** Public clients of the source chains. */
+  clientFor: (chainId: number) => PublicClient;
+  ipfs?: Ipfs;
+  now?: number;
+}): Promise<{ status: string; alerts: string[] }> {
+  const { distributor, registry } = PAYOUT_CHAINS[payoutChainId] ?? {};
+  if (!distributor || !registry) {
+    return { status: "no distributor or campaign registry configured, skipped", alerts: [] };
+  }
+  const { address } = distributor;
+  const [root, ipfsHash, [pendingRoot, pendingIpfsHash, validAt]] = await Promise.all([
+    payoutClient.readContract({ address, abi: urdAbi, functionName: "root" }),
+    payoutClient.readContract({ address, abi: urdAbi, functionName: "ipfsHash" }),
+    payoutClient.readContract({ address, abi: urdAbi, functionName: "pendingRoot" }),
+  ]);
+  const active = ipfsHash === zeroHash ? undefined : await readRewardsFile(ipfs, ipfsHash, root, payoutChainId);
+  const onchain = await readRegistry(payoutClient, registry.address);
+  const alerts: string[] = [];
+  const at = (t: bigint | number) => toIsoSeconds(Number(t));
+  const expected = async (cutoff: number) =>
+    computeWeeks({
+      payoutChainId,
+      campaignsAt: await campaignHistory(payoutClient, registry, payoutChainId, cutoff),
+      cutoff,
+      previous: active,
+      clientFor,
+    });
+
+  const unpaid = Object.entries(active?.releases ?? {})
+    .filter(([id, { emitted }]) => BigInt(emitted) > onchain[Number(id)].released)
+    .map(([id]) => id);
+  if (active && unpaid.length > 0) {
+    const campaigns = unpaid.join(", ");
+    alerts.push(
+      `the accepted ${active.cutoff} root has unpaid releases for campaigns ${campaigns}, so their claims lack funds: check the rewards-distribution log, or call release with the file's proofs`,
+    );
+  }
+
+  if (validAt !== 0n) {
+    const pending = await readRewardsFile(ipfs, pendingIpfsHash, pendingRoot, payoutChainId);
+    const cutoff = parseCutoff(pending.cutoff);
+    const revoke = `revoke it from the Safe with revokePendingRoot before ${at(validAt)}`;
+    if (active && cutoff <= parseCutoff(active.cutoff)) {
+      alerts.push(
+        `pending root ${pendingRoot} is for ${pending.cutoff}, not after the accepted ${active.cutoff}: ${revoke}`,
+      );
+    } else {
+      const file = await expected(cutoff);
+      if (file?.root !== pendingRoot) {
+        const recomputed = file?.root ?? "nothing (no campaigns)";
+        alerts.push(`pending root ${pendingRoot} for ${pending.cutoff} is not the recomputed ${recomputed}: ${revoke}`);
+      } else {
+        try {
+          dueReleases(file.campaigns as RawCampaign[], onchain, emittedByCampaign(file.states), cutoff);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          alerts.push(
+            `pending root ${pendingRoot} for ${pending.cutoff} would revert its release (${reason}): ${revoke}`,
+          );
+        }
+      }
+    }
+    if (BigInt(now) >= validAt + BigInt(WATCH_GRACE_SECONDS)) {
+      alerts.push(`pending root ${pendingRoot} is valid since ${at(validAt)} but not accepted: the bot is failing`);
+    }
+    return { status: `checked the pending ${pending.cutoff} root`, alerts };
+  }
+
+  const target = weekStart(now - SETTLE_SECONDS);
+  if ((!active || parseCutoff(active.cutoff) < target) && now >= target + WATCH_GRACE_SECONDS) {
+    // Before its first root, the bot proposes nothing while no campaign emitted or ended.
+    const file = active ? undefined : await expected(target);
+    if (active || (file && file.root !== zeroHash)) {
+      alerts.push(`no root proposed for the ${at(target)} cutoff: the bot is failing`);
+    }
+  }
+  return { status: active ? `accepted root is for ${active.cutoff}` : "no root yet", alerts };
+}
+
+/**
  * What every account has earned on `payoutChainId` up to the latest block. It resumes from the
  * newest published file (the pending one, else the active one), catches up any week the bot has
  * not published yet, and replays the current week up to the chain head with the registry's

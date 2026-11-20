@@ -15,11 +15,11 @@ import {
   zeroHash,
 } from "viem";
 import { describe, expect, it, vi } from "vitest";
-import { type Campaign, assertForwardOnly, parseCampaigns } from "./campaigns.ts";
+import { type Campaign, assertForwardOnly, parseCampaigns, toIsoSeconds } from "./campaigns.ts";
 import { PAYOUT_CHAINS, SOURCE_CHAINS } from "./chains.ts";
-import { CAMPAIGN_PAGE, accountRewards, readAllCampaigns, rewardCampaignsAbi, urdAbi } from "./claims.ts";
+import { CAMPAIGN_PAGE, accountRewards, bytes32ToCid, readAllCampaigns, rewardCampaignsAbi, urdAbi } from "./claims.ts";
 import { assertNoDecrease, buildDistributions } from "./distribution.ts";
-import { revocationKey, revokedRoots, syncDistributor } from "./distributor.ts";
+import { WATCH_GRACE_SECONDS, revocationKey, revokedRoots, syncDistributor, watchDistributor } from "./distributor.ts";
 import { Q128, WEEK, accrueRewards, parseState, serializeState } from "./engine.ts";
 import type { ChainEvent } from "./events.ts";
 import { type RawCampaign, campaignHistory, campaignsFromLogs, dueReleases, emittedByCampaign } from "./registry.ts";
@@ -803,5 +803,95 @@ describe("computeWeeks", () => {
     expect(weekly.claims[ALICE][TOKEN].claimable).toBe(String(WEEK + 86_400));
     expect(caughtUp?.root).toBe(weekly.root);
     expect(await computeWeeks({ ...base, cutoff: T0, campaignsAt })).toBeUndefined();
+  });
+
+  it("watchDistributor flags a pending root it does not recompute, unpaid releases and a missed week", async () => {
+    // The registry, on the same fake chain, created one campaign at 1 per second in the block that holds every event.
+    const campaignSet = rewardCampaignsAbi.find((item) => item.type === "event" && item.name === "CampaignSet")!;
+    logs.push({
+      address: PAYOUT_CHAINS[8453].registry!.address,
+      topics: encodeEventTopics({ abi: rewardCampaignsAbi, eventName: "CampaignSet", args: { id: 0n } }),
+      data: encodeAbiParameters(campaignSet.inputs.slice(1), [
+        {
+          poolId: POOL,
+          rewardToken: TOKEN,
+          budget: 2_000_000n,
+          minWidthTicks: 0,
+          funder: ALICE,
+          released: 0n,
+          rates: [{ from: BigInt(T0), perSecond: 1n }],
+        },
+      ]),
+      blockNumber: numberToHex(first),
+      logIndex: numberToHex(3),
+      blockTimestamp: numberToHex(T0),
+    });
+    const honest = await computeWeeks({
+      payoutChainId: 8453,
+      campaignsAt: await campaignHistory(client, PAYOUT_CHAINS[8453].registry!, 8453, T0 + WEEK),
+      cutoff: T0 + WEEK,
+      clientFor: () => client,
+    });
+    expect(honest!.releases[0].emitted).toBe(String(WEEK));
+    // A root that pays Bob what Alice earned, with a file that matches it.
+    const stolen = { ...honest!, root: pad("0xbad", { size: 32 }), claims: { [BOB]: honest!.claims[ALICE] } };
+    const hash = (n: number) => pad(numberToHex(n), { size: 32 });
+    const files = new Map([
+      [bytes32ToCid(hash(1)), honest!],
+      [bytes32ToCid(hash(2)), stolen],
+    ]);
+
+    const watch = ({
+      active,
+      pending,
+      released = 0n,
+      budget = 2_000_000n,
+      now,
+    }: { active?: Hex; pending?: Hex; released?: bigint; budget?: bigint; now: number }) => {
+      const root = (h?: Hex) => (h ? files.get(bytes32ToCid(h))!.root : zeroHash);
+      const reads: Record<string, unknown> = {
+        root: root(active),
+        ipfsHash: active ?? zeroHash,
+        pendingRoot: pending ? [root(pending), pending, BigInt(T0 + WEEK + 2 * 86_400)] : [zeroHash, zeroHash, 0n],
+        campaignCount: 1n,
+        getCampaigns: [{ budget, released }],
+      };
+      const payoutClient = {
+        ...client,
+        getBlockNumber: async () => first + 2n,
+        readContract: async ({ functionName }: { functionName: string }) => reads[functionName],
+      } as unknown as PublicClient;
+      return watchDistributor({
+        payoutChainId: 8453,
+        payoutClient,
+        clientFor: () => client,
+        ipfs: { upload: async () => "", fetch: async (cid) => JSON.stringify(files.get(cid)) },
+        now,
+      });
+    };
+    const justAfter = T0 + WEEK + 7200;
+    const late = T0 + WEEK + WATCH_GRACE_SECONDS + 7200;
+
+    expect((await watch({ pending: hash(1), now: justAfter })).alerts).toEqual([]);
+    const [mismatch] = (await watch({ pending: hash(2), now: justAfter })).alerts;
+    expect(mismatch).toMatch(/^pending root 0x0+bad for .* is not the recomputed .*: revoke it from the Safe/);
+    // The honest root, once a refund left the campaign less budget than it emitted, would revert its release.
+    const [revert] = (await watch({ pending: hash(1), budget: 1000n, now: justAfter })).alerts;
+    expect(revert).toMatch(/would revert its release .*over the budget/);
+
+    // The bot has the grace period to propose its first root.
+    expect((await watch({ now: justAfter })).alerts).toEqual([]);
+    expect((await watch({ now: late })).alerts).toEqual([
+      `no root proposed for the ${toIsoSeconds(T0 + WEEK)} cutoff: the bot is failing`,
+    ]);
+
+    // Once accepted, its release must be paid, and the next week proposed in time.
+    expect((await watch({ active: hash(1), released: BigInt(WEEK), now: late })).alerts).toEqual([]);
+    expect((await watch({ active: hash(1), now: late })).alerts).toEqual([
+      expect.stringMatching(/unpaid releases for campaigns 0/),
+    ]);
+    expect((await watch({ active: hash(1), released: BigInt(WEEK), now: late + WEEK })).alerts).toEqual([
+      `no root proposed for the ${toIsoSeconds(T0 + 2 * WEEK)} cutoff: the bot is failing`,
+    ]);
   });
 });
