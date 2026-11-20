@@ -1,7 +1,7 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { SimpleMerkleTree } from "@openzeppelin/merkle-tree";
-import { rewardCampaignsAbi } from "@seer-pm/rewards/claims";
+import { campaignRatesHash, rewardCampaignsAbi } from "@seer-pm/rewards/claims";
 import { expect } from "chai";
 import type { ContractTransactionResponse } from "ethers";
 import { ethers, network } from "hardhat";
@@ -31,9 +31,13 @@ describe("RewardCampaigns", function () {
   // Creates a campaign and has its creator fund it; returns the creation, whose block starts the campaign.
   const create = async (perSecond: bigint, budget = 1000n, signer = manager) => {
     const created = await registry.connect(signer).createCampaign(POOL_ID, token, perSecond, budget, 60);
-    await registry.connect(signer).fund(await registry.campaignCount() - 1n);
+    const id = (await registry.campaignCount()) - 1n;
+    await registry.connect(signer).fund(id, await ratesHash(id));
     return created;
   };
+  // What a funder passes to `fund`: the hash of the rate history it read.
+  const ratesHash = async (id: bigint | number) =>
+    campaignRatesHash((await registry.getCampaign(id)).rates.map((r) => ({ from: r.from, perSecond: r.perSecond })));
 
   const rates = async (id = 0) =>
     (await registry.getCampaign(id)).rates.map((rate) => [Number(rate.from), rate.perSecond]);
@@ -101,21 +105,23 @@ describe("RewardCampaigns", function () {
 
   it("lets any manager fund a campaign once, which makes it the funder", async function () {
     await registry.connect(manager).createCampaign(POOL_ID, token, 5n, 1000n, 60);
-    // Until it is funded, its creator controls it.
+    const read = await ratesHash(0);
+    // Until it is funded, its creator controls it, and a change after the funder read it voids that deposit.
     await registry.connect(manager).setRate(0, 4n);
     await token.mint(other, 1000n);
     await token.connect(other).approve(registry, 1000n);
-    await expect(registry.connect(other).fund(0)).to.be.revertedWith("Only a manager");
+    await expect(registry.connect(other).fund(0, read)).to.be.revertedWith("Only a manager");
     await registry.setManager(other, true);
-    await expect(registry.connect(other).fund(1)).to.be.revertedWith("Unknown campaign");
+    await expect(registry.connect(other).fund(1, read)).to.be.revertedWith("Unknown campaign");
+    await expect(registry.connect(other).fund(0, read)).to.be.revertedWith("Rates changed");
 
-    const funding = registry.connect(other).fund(0);
+    const funding = registry.connect(other).fund(0, await ratesHash(0));
     await expect(funding)
       .to.emit(registry, "CampaignSet")
       .withArgs(0, (c: { funder: string; funded: boolean }) => c.funder === other.address && c.funded);
     expect(await token.balanceOf(registry)).to.equal(1000n);
     expect(await token.balanceOf(other)).to.equal(0n);
-    await expect(registry.connect(manager).fund(0)).to.be.revertedWith("Already funded");
+    await expect(registry.connect(manager).fund(0, await ratesHash(0))).to.be.revertedWith("Already funded");
     expect(await token.balanceOf(manager)).to.equal(10_000n);
 
     // The rate and the refunds now belong to whoever paid.
@@ -148,7 +154,7 @@ describe("RewardCampaigns", function () {
     await registry.setManager(later, true);
     await token.mint(later, integral);
     await token.connect(later).approve(registry, integral);
-    await registry.connect(later).fund(1);
+    await registry.connect(later).fund(1, await ratesHash(1));
     expect(await token.balanceOf(registry)).to.equal(1000n + integral);
     await registry.connect(other).release([1], [150n], end, week.proofs);
     await registry.connect(other).settleRefund(1, 150n, week.proof(0));
@@ -193,14 +199,17 @@ describe("RewardCampaigns", function () {
   it("lets only the funder change a campaign", async function () {
     await registry.setManager(other, true);
     await create(5n);
+    await registry.connect(manager).createCampaign(POOL_ID, token, 5n, 1000n, 60);
     await expect(registry.connect(other).setRate(0, 1n)).to.be.revertedWith("Only the funder");
     await expect(registry.connect(manager).setRate(0, 1001n)).to.be.revertedWith("Rate over budget");
     await expect(registry.connect(owner).setRate(0, 2n)).to.be.revertedWith("Only the funder");
     await expect(create(1n, 1000n, owner)).to.be.revertedWith("Only a manager");
-    // A funder removed as manager keeps control of what it funded.
+    // A funder removed as manager keeps control of what it funded, but not of the rate another manager would pay.
     await registry.setManager(manager, false);
     await registry.connect(manager).setRate(0, 3n);
     expect((await rates()).map(([, perSecond]) => perSecond)).to.deep.equal([5n, 3n]);
+    await expect(registry.connect(manager).setRate(1, 1000n)).to.be.revertedWith("Only a manager");
+    await expect(registry.connect(manager).setRate(1, 0n)).to.be.revertedWith("Only a manager");
   });
 
   it("replaces a rate set earlier in the same block, so rates stay strictly increasing", async function () {

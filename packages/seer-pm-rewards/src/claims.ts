@@ -1,7 +1,18 @@
 // Browser-safe part of the package: what a claim UI needs to read a distributor and its published
 // file and to call `claim`. It must not import the engine, the event fetcher or the merkle tree.
 import { base58 } from "@scure/base";
-import { type Address, type Hex, concat, getAddress, hexToBytes, parseAbi, toHex } from "viem";
+import {
+  type Address,
+  type Hex,
+  concat,
+  encodeAbiParameters,
+  getAddress,
+  hexToBytes,
+  keccak256,
+  parseAbi,
+  parseAbiParameters,
+  toHex,
+} from "viem";
 import type { Distribution } from "./distribution.ts";
 
 export { PAYOUT_CHAINS, SER_LPP, SOURCE_CHAINS, type PayoutChain } from "./chains.ts";
@@ -30,12 +41,20 @@ export const rewardCampaignsAbi = parseAbi([
   "function campaignCount() view returns (uint256)",
   "function getCampaigns(uint256 from, uint256 to) view returns (Campaign[])",
   "function createCampaign(bytes32 poolId, address rewardToken, uint256 perSecond, uint256 budget, uint32 minWidthTicks) returns (uint256 id)",
-  "function fund(uint256 id)",
+  "function fund(uint256 id, bytes32 expectedRates)",
   "function setRate(uint256 id, uint256 perSecond)",
   "function release(uint256[] ids, uint256[] emitted, uint64 upTo, bytes32[][] proofs)",
   "function settleRefund(uint256 id, uint256 emitted, bytes32[] proof)",
   "event CampaignSet(uint256 indexed id, Campaign campaign)",
 ]);
+
+/**
+ * The `expectedRates` argument of `fund`: `keccak256(abi.encode(rates))` of the campaign's rate history, so the
+ * deposit reverts if the creator changed the rate after the funder read it.
+ */
+export function campaignRatesHash(rates: readonly { from: bigint; perSecond: bigint }[]): Hex {
+  return keccak256(encodeAbiParameters(parseAbiParameters("(uint64 from, uint256 perSecond)[]"), [rates]));
+}
 
 /**
  * Campaigns per `getCampaigns(from, to)` call. Each costs some 25k gas to return with a short rate history, so a page

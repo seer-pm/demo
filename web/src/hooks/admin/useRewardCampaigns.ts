@@ -221,7 +221,7 @@ export type RewardCampaignWrite =
       functionName: "createCampaign";
       args: readonly [Hex, Address, bigint, bigint, number];
     }
-  | { functionName: "fund"; args: readonly [bigint] }
+  | { functionName: "fund"; args: readonly [bigint, Hex] }
   | { functionName: "setRate"; args: readonly [bigint, bigint] };
 
 const TOAST_TITLES: Record<RewardCampaignWrite["functionName"], [string, string]> = {

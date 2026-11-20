@@ -13,7 +13,7 @@ import { WEEK_SECONDS, campaignStatus, chainName, formatWeekly, perSecondFromWee
 import { shortenAddress } from "@/lib/utils";
 import { V4_TICK_SPACING, getOrderBookPoolParams, getV4PoolId, marketSupportsOrderBook } from "@seer-pm/order-book";
 import { useMarket } from "@seer-pm/react";
-import { PAYOUT_CHAINS, SER_LPP } from "@seer-pm/rewards/claims";
+import { PAYOUT_CHAINS, SER_LPP, campaignRatesHash } from "@seer-pm/rewards/claims";
 import type { SupportedChain } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -373,7 +373,8 @@ export function FundRewardCampaignForm({ campaign, onClose }: { campaign: Reward
           !balanceError &&
           write.mutate({
             payoutChainId: campaign.payoutChainId,
-            writes: [{ functionName: "fund", args: [campaign.id] }],
+            // Binds the deposit to the rates shown here: a rate change before it is mined reverts it.
+            writes: [{ functionName: "fund", args: [campaign.id, campaignRatesHash(campaign.rates)] }],
             deposit: { token: campaign.rewardToken, symbol: token.symbol, amount: campaign.budget },
           })
         }

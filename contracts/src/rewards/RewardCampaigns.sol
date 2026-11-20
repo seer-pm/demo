@@ -139,9 +139,13 @@ contract RewardCampaigns {
     /// @notice Deposits campaign `id`'s budget from the caller, who must have approved this contract for it and
     /// becomes the campaign's funder: it controls the rate from now on and receives the refunds. A campaign is funded
     /// once, at any time, also after it ended, and the first root after this pays everything it earned.
-    function fund(uint256 id) external onlyManager {
+    /// @param expectedRates `keccak256(abi.encode(rates))` of the rate history the caller agrees to pay for. Until
+    /// this is mined the creator still controls the rate, and one second at a rate equal to the budget emits all of
+    /// it, so the deposit must not cover a rate set after the caller read the campaign.
+    function fund(uint256 id, bytes32 expectedRates) external onlyManager {
         Campaign storage campaign = _campaign(id);
         require(!campaign.funded, "Already funded");
+        require(keccak256(abi.encode(campaign.rates)) == expectedRates, "Rates changed");
         campaign.funded = true;
         campaign.funder = msg.sender;
         emit CampaignSet(id, campaign);
@@ -156,6 +160,9 @@ contract RewardCampaigns {
     function setRate(uint256 id, uint256 perSecond) external {
         Campaign storage campaign = _campaign(id);
         require(msg.sender == campaign.funder, "Only the funder");
+        // Before `fund` another manager pays for the rate, so a creator removed as manager loses control of it. A
+        // funder keeps control of what it funded, since it only spends its own deposit.
+        require(campaign.funded || isManager[msg.sender], "Only a manager");
         require(perSecond <= campaign.budget, "Rate over budget");
         Rate storage last = campaign.rates[campaign.rates.length - 1];
         require(last.perSecond != 0, "Campaign ended");
