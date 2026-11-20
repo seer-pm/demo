@@ -79,18 +79,18 @@ export const PAYOUT_CHAINS: Record<number, PayoutChain> = {
     chain: mainnet,
     rpcEnv: "PRIVATE_RPC_MAINNET",
     distributor: { address: "0x64d89bb0e7BdB71f81E9bdA770036a9139B284AB", fromBlock: 26416221n },
-    registry: registry(zeroAddress, 0n),
+    registry: registry("0xa6E4286C32E68679181bEacAA8384894550C6f06", 26453819n),
   },
   [optimism.id]: {
     chain: optimism,
     rpcEnv: "PRIVATE_RPC_OPTIMISM",
     distributor: { address: "0x880e41A11451a2DC6783997E94dab75D66eBbCfB", fromBlock: 159548304n },
-    registry: registry(zeroAddress, 0n),
+    registry: registry("0xf7E64845A8737466CAD5687fFD718eF242E6e9aF", 159774519n),
   },
   [base.id]: {
     chain: base,
     rpcEnv: "PRIVATE_RPC_BASE",
     distributor: { address: "0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37", fromBlock: 57525130n },
-    registry: registry(zeroAddress, 0n),
+    registry: registry("0x7563C95e6837D3256162eCAa7B5984681515eAa3", 59787169n),
   },
 };

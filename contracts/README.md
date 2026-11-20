@@ -51,7 +51,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | QuestionsFactory | [0x9D2166667f497B57d1cE356ed4C6E244b511f7c2](https://etherscan.io/address/0x9D2166667f497B57d1cE356ed4C6E244b511f7c2) |
 | Realitio_v2_1_ArbitratorWithAppeals | [0x2018038203aEE8e7a29dABd73771b0355D4F85ad](https://etherscan.io/address/0x2018038203aEE8e7a29dABd73771b0355D4F85ad) |
 | RealityProxy | [0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E](https://etherscan.io/address/0xC72f738e331b6B7A5d77661277074BB60Ca0Ca9E) |
-| RewardCampaigns | [0x73f98977ba13ad71275ba5bBA0189E9dC2dc42B5](https://etherscan.io/address/0x73f98977ba13ad71275ba5bBA0189E9dC2dc42B5) |
+| RewardCampaigns | [0xa6E4286C32E68679181bEacAA8384894550C6f06](https://etherscan.io/address/0xa6E4286C32E68679181bEacAA8384894550C6f06) |
 | UniversalRewardsDistributor | [0x64d89bb0e7BdB71f81E9bdA770036a9139B284AB](https://etherscan.io/address/0x64d89bb0e7BdB71f81E9bdA770036a9139B284AB) |
 | Wrapped1155Factory | [0xD194319D1804C1051DD21Ba1Dc931cA72410B79f](https://etherscan.io/address/0xD194319D1804C1051DD21Ba1Dc931cA72410B79f) |
 
@@ -66,7 +66,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | MarketView | [0xDd193f64dbe184891f0beb3510AD69b5DC849BD1](https://optimistic.etherscan.io/address/0xDd193f64dbe184891f0beb3510AD69b5DC849BD1) |
 | QuestionsFactory | [0xa6E4286C32E68679181bEacAA8384894550C6f06](https://optimistic.etherscan.io/address/0xa6E4286C32E68679181bEacAA8384894550C6f06) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://optimistic.etherscan.io/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
-| RewardCampaigns | [0x7563C95e6837D3256162eCAa7B5984681515eAa3](https://optimistic.etherscan.io/address/0x7563C95e6837D3256162eCAa7B5984681515eAa3) |
+| RewardCampaigns | [0xf7E64845A8737466CAD5687fFD718eF242E6e9aF](https://optimistic.etherscan.io/address/0xf7E64845A8737466CAD5687fFD718eF242E6e9aF) |
 | Router | [0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD](https://optimistic.etherscan.io/address/0x179d8F8c811B8C759c33809dbc6c5ceDc62D05DD) |
 | UniversalRewardsDistributor | [0x880e41A11451a2DC6783997E94dab75D66eBbCfB](https://optimistic.etherscan.io/address/0x880e41A11451a2DC6783997E94dab75D66eBbCfB) |
 | Wrapped1155Factory | [0xd194319d1804c1051dd21ba1dc931ca72410b79f](https://optimistic.etherscan.io/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f) |
@@ -82,7 +82,7 @@ Refresh the list of deployed contracts by running `./scripts/generate-deployment
 | MarketView | [0xDd193f64dbe184891f0beb3510AD69b5DC849BD1](https://basescan.org/address/0xDd193f64dbe184891f0beb3510AD69b5DC849BD1) |
 | QuestionsFactory | [0xa6E4286C32E68679181bEacAA8384894550C6f06](https://basescan.org/address/0xa6E4286C32E68679181bEacAA8384894550C6f06) |
 | RealityProxy | [0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2](https://basescan.org/address/0xfE8bF5140F00de6F75BAFa3Ca0f4ebf2084A46B2) |
-| RewardCampaigns | [0xe5a4dFff551aDD6efd317b11E1E3aab556aDD300](https://basescan.org/address/0xe5a4dFff551aDD6efd317b11E1E3aab556aDD300) |
+| RewardCampaigns | [0x7563C95e6837D3256162eCAa7B5984681515eAa3](https://basescan.org/address/0x7563C95e6837D3256162eCAa7B5984681515eAa3) |
 | Router | [0x3124e97ebF4c9592A17d40E54623953Ff3c77a73](https://basescan.org/address/0x3124e97ebF4c9592A17d40E54623953Ff3c77a73) |
 | UniversalRewardsDistributor | [0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37](https://basescan.org/address/0x34d7c267f4c2Faf52E0eB514A314C99aE3ACeE37) |
 | Wrapped1155Factory | [0xd194319d1804c1051dd21ba1dc931ca72410b79f](https://basescan.org/address/0xd194319d1804c1051dd21ba1dc931ca72410b79f) |
