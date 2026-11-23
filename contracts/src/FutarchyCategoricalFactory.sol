@@ -76,9 +76,12 @@ contract FutarchyCategoricalFactory {
     /// @dev To be emitted when a new proposal is created.
     /// @param proposal The new proposal address.
     /// @param marketName The name of the proposal.
+    /// @param parentMarket The proposal this one is conditional on, or address(0).
     /// @param conditionId Conditional Tokens conditionId.
     /// @param questionId Conditional Tokens & Reality.eth questionId.
-    event NewProposal(address indexed proposal, string marketName, bytes32 conditionId, bytes32 questionId);
+    event NewProposal(
+        address indexed proposal, string marketName, address parentMarket, bytes32 conditionId, bytes32 questionId
+    );
 
     /**
      *  @dev Constructor.
@@ -128,7 +131,11 @@ contract FutarchyCategoricalFactory {
         );
 
         emit NewProposal(
-            address(instance), params.marketName, futarchyProposalParams.conditionId, futarchyProposalParams.questionId
+            address(instance),
+            params.marketName,
+            address(params.parentMarket),
+            futarchyProposalParams.conditionId,
+            futarchyProposalParams.questionId
         );
 
         proposals.push(address(instance));

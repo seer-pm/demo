@@ -345,8 +345,23 @@ contract FutarchyCategoricalTest is Test {
     }
 
     function test_child_layout() public {
+        vm.recordLogs();
         FutarchyProposal parent = createProposal(3);
         FutarchyProposal child = FutarchyProposal(factory.createProposal(childParams(parent, 2)));
+
+        // NewProposal carries the parent, address(0) for a proposal with none.
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 topic = keccak256("NewProposal(address,string,address,bytes32,bytes32)");
+        address[2] memory emitted = [address(1), address(1)];
+        uint256 found;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].emitter != address(factory) || logs[i].topics[0] != topic) continue;
+            (, address parentMarket,,) = abi.decode(logs[i].data, (string, address, bytes32, bytes32));
+            emitted[found++] = parentMarket;
+        }
+        assertEq(found, 2);
+        assertEq(emitted[0], address(0));
+        assertEq(emitted[1], address(parent));
 
         assertEq(child.parentMarket(), address(parent));
         assertEq(child.parentOutcome(), 2);
