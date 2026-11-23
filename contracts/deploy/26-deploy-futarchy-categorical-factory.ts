@@ -12,8 +12,8 @@ const deployFutarchyCategoricalFactory: DeployFunction = async (hre: HardhatRunt
   console.log("deploying to chainId %s with deployer %s", chainId, deployer);
 
   const proposal = await deployments.get("FutarchyProposal");
-  // TODO: change arbitrator?
-  const realitioArbitrator = await deployments.get("RealitioHomeArbitrationProxy");
+  // Same arbitrator as MarketFactory: Kleros directly on Ethereum, through the home proxy elsewhere.
+  const realitioArbitrator = await deployments.get(chainId === 1 ? "Realitio_v2_1_ArbitratorWithAppeals" : "RealitioHomeArbitrationProxy");
   const reality = await deployments.get("Reality");
   const wrapped1155Factory = await deployments.get("Wrapped1155Factory");
   const conditionalTokens = await deployments.get("ConditionalTokens");
