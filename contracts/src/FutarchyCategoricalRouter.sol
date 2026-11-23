@@ -233,6 +233,8 @@ contract FutarchyCategoricalRouter is ERC1155Holder {
     /// FutarchyProposal.parentWrappedOutcome() returns a single token, wrappedOutcome(parentOutcome), which is only
     /// the first collateral's. FutarchyCategoricalFactory stores the parent answer as parentOutcome, so this picks the
     /// token of that answer for the given collateral.
+    /// The parent is UNTRUSTED: the factory does not check that it created it, so the token returned is whatever that
+    /// contract reports. Frontends must only route proposals whose parent is a proposal of the factory.
     /// @param proposal The child proposal.
     /// @param collateralToken The collateral of the token.
     /// @return wrapped1155 The parent's wrapped token.

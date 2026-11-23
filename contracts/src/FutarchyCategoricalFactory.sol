@@ -36,7 +36,8 @@ contract FutarchyCategoricalFactory {
     /// @param lang Reality question language.
     /// @param minBond Min bond to use on Reality.
     /// @param openingTime Reality question opening time.
-    /// @param parentMarket Proposal of this factory to be conditional on, or address(0). UNTRUSTED.
+    /// @param parentMarket Proposal to be conditional on, expected to be one of this factory's, or address(0).
+    /// UNTRUSTED: only its collaterals and parentOutcome are checked, not that this factory created it.
     /// @param parentOutcome Answer of parentMarket to be conditional on, below its numOutcomes().
     struct CreateProposalParams {
         string marketName;
