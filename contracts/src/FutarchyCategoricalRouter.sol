@@ -49,7 +49,7 @@ contract FutarchyCategoricalRouter is ERC1155Holder {
 
         if (parentCollectionId != bytes32(0)) {
             // it's splitting from a parent position, so we need to unwrap these tokens first because they will be burnt to mint the child outcome tokens.
-            (IERC20 wrapped1155, bytes memory data) = proposal.parentWrappedOutcome();
+            (IERC20 wrapped1155, bytes memory data) = parentWrappedOutcome(proposal, collateralToken);
 
             uint256 tokenId = conditionalTokens.getPositionId(address(collateralToken), parentCollectionId);
 
@@ -125,7 +125,7 @@ contract FutarchyCategoricalRouter is ERC1155Holder {
             // it's merging from a parent position, so we need to wrap these tokens and send them back to the user.
             uint256 tokenId = conditionalTokens.getPositionId(address(collateralToken), parentCollectionId);
 
-            (IERC20 wrapped1155, bytes memory data) = proposal.parentWrappedOutcome();
+            (IERC20 wrapped1155, bytes memory data) = parentWrappedOutcome(proposal, collateralToken);
 
             // wrap to erc20.
             conditionalTokens.safeTransferFrom(address(this), address(wrapped1155Factory), tokenId, amount, data);
@@ -214,7 +214,7 @@ contract FutarchyCategoricalRouter is ERC1155Holder {
 
             if (finalBalance > initialBalance) {
                 // wrap to erc20.
-                (IERC20 parentWrapped1155, bytes memory parentData) = proposal.parentWrappedOutcome();
+                (IERC20 parentWrapped1155, bytes memory parentData) = parentWrappedOutcome(proposal, collateralToken);
 
                 conditionalTokens.safeTransferFrom(
                     address(this), address(wrapped1155Factory), tokenId, finalBalance - initialBalance, parentData
@@ -227,6 +227,23 @@ contract FutarchyCategoricalRouter is ERC1155Holder {
                 );
             }
         }
+    }
+
+    /// @dev The parent proposal's token that a child proposal's tokens of one collateral are minted from and redeem to.
+    /// FutarchyProposal.parentWrappedOutcome() returns a single token, wrappedOutcome(parentOutcome), which is only
+    /// the first collateral's. FutarchyCategoricalFactory stores the parent answer as parentOutcome, so this picks the
+    /// token of that answer for the given collateral.
+    /// @param proposal The child proposal.
+    /// @param collateralToken The collateral of the token.
+    /// @return wrapped1155 The parent's wrapped token.
+    /// @return data The parent's token data.
+    function parentWrappedOutcome(
+        FutarchyProposal proposal,
+        IERC20 collateralToken
+    ) internal view returns (IERC20 wrapped1155, bytes memory data) {
+        FutarchyProposal parent = FutarchyProposal(proposal.parentMarket());
+        bool isFirstCollateral = collateralToken == proposal.collateralToken1();
+        return parent.wrappedOutcome(getWrappedIndex(parent.numOutcomes(), isFirstCollateral, proposal.parentOutcome()));
     }
 
     /// @dev Returns a partition containing the full set of outcomes.

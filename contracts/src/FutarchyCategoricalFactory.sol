@@ -21,6 +21,8 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 /// wrappedOutcome(i) and wrappedOutcome(i + N) mean the same as in FutarchyFactory proposals:
 /// [answer 0..N-1 of collateral1, answer 0..N-1 of collateral2, INVALID of collateral1, INVALID of collateral2].
 /// Proposals are FutarchyProposal clones whose `outcomes` are the N answers, so numOutcomes() returns N.
+/// A proposal can be conditional on an answer of a parent proposal of this factory, such as its "Other" answer:
+/// its tokens are then minted from the parent's tokens of that answer, one per collateral, and redeem to them.
 contract FutarchyCategoricalFactory {
     using Clones for address;
 
@@ -34,6 +36,8 @@ contract FutarchyCategoricalFactory {
     /// @param lang Reality question language.
     /// @param minBond Min bond to use on Reality.
     /// @param openingTime Reality question opening time.
+    /// @param parentMarket Proposal of this factory to be conditional on, or address(0). UNTRUSTED.
+    /// @param parentOutcome Answer of parentMarket to be conditional on, below its numOutcomes().
     struct CreateProposalParams {
         string marketName;
         string[] outcomes;
@@ -44,6 +48,8 @@ contract FutarchyCategoricalFactory {
         string lang;
         uint256 minBond;
         uint32 openingTime;
+        FutarchyProposal parentMarket;
+        uint256 parentOutcome;
     }
 
     /// @dev Template for proposals.
@@ -163,6 +169,18 @@ contract FutarchyCategoricalFactory {
         string[] memory tokenNames
     ) internal returns (FutarchyProposal.FutarchyProposalParams memory) {
         bytes32 parentCollectionId = bytes32(0);
+        if (address(params.parentMarket) != address(0)) {
+            // the child splits the parent's tokens of that answer, so both proposals need the same collaterals.
+            require(
+                params.parentMarket.collateralToken1() == params.collateralToken1
+                    && params.parentMarket.collateralToken2() == params.collateralToken2,
+                "Parent collateral mismatch"
+            );
+            require(params.parentOutcome < params.parentMarket.numOutcomes(), "Invalid parent outcome");
+            parentCollectionId = conditionalTokens.getCollectionId(
+                params.parentMarket.parentCollectionId(), params.parentMarket.conditionId(), 1 << params.parentOutcome
+            );
+        }
         string memory encodedQuestion =
             encodeRealityQuestion(params.marketName, params.outcomes, params.category, params.lang);
         bytes32 questionId =
@@ -180,8 +198,8 @@ contract FutarchyCategoricalFactory {
             collateralToken2: params.collateralToken2,
             questionId: questionId,
             parentCollectionId: parentCollectionId,
-            parentOutcome: 0,
-            parentMarket: address(0),
+            parentOutcome: params.parentOutcome,
+            parentMarket: address(params.parentMarket),
             wrapped1155: wrapped1155,
             tokenData: tokenData,
             encodedQuestion: encodedQuestion

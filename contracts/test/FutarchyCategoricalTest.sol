@@ -72,7 +72,9 @@ contract FutarchyCategoricalTest is Test {
                     category: "politics",
                     lang: "en_US",
                     minBond: MIN_BOND,
-                    openingTime: uint32(block.timestamp) + 60
+                    openingTime: uint32(block.timestamp) + 60,
+                    parentMarket: FutarchyProposal(address(0)),
+                    parentOutcome: 0
                 })
             )
         );
@@ -302,7 +304,9 @@ contract FutarchyCategoricalTest is Test {
             category: "politics",
             lang: "en_US",
             minBond: MIN_BOND,
-            openingTime: uint32(block.timestamp) + 60
+            openingTime: uint32(block.timestamp) + 60,
+            parentMarket: FutarchyProposal(address(0)),
+            parentOutcome: 0
         });
 
         vm.expectRevert("Outcomes count must be 2 or more");
@@ -310,6 +314,130 @@ contract FutarchyCategoricalTest is Test {
 
         params.outcomes = two;
         vm.expectRevert("Token names count mismatch");
+        factory.createProposal(params);
+    }
+
+    /// "Candidate D" and "Other", conditional on answer `parentOutcome` of `parent`.
+    function childParams(
+        FutarchyProposal parent,
+        uint256 parentOutcome
+    ) internal view returns (FutarchyCategoricalFactory.CreateProposalParams memory) {
+        string[] memory outcomes = new string[](2);
+        outcomes[0] = "Candidate D";
+        outcomes[1] = "Other";
+        string[] memory tokenNames = new string[](2);
+        tokenNames[0] = "CAND_D";
+        tokenNames[1] = "OTHER2";
+
+        return FutarchyCategoricalFactory.CreateProposalParams({
+            marketName: "Who will win the presidential election, if not A, B or C?",
+            outcomes: outcomes,
+            tokenNames: tokenNames,
+            collateralToken1: collateralToken1,
+            collateralToken2: collateralToken2,
+            category: "politics",
+            lang: "en_US",
+            minBond: MIN_BOND,
+            openingTime: uint32(block.timestamp) + 60,
+            parentMarket: parent,
+            parentOutcome: parentOutcome
+        });
+    }
+
+    function test_child_layout() public {
+        FutarchyProposal parent = createProposal(3);
+        FutarchyProposal child = FutarchyProposal(factory.createProposal(childParams(parent, 2)));
+
+        assertEq(child.parentMarket(), address(parent));
+        assertEq(child.parentOutcome(), 2);
+        bytes32 otherCollection =
+            IConditionalTokens(conditionalTokens).getCollectionId(bytes32(0), parent.conditionId(), 1 << 2);
+        assertEq(child.parentCollectionId(), otherCollection);
+
+        // [CAND_D_GNO, OTHER2_GNO, CAND_D_x, OTHER2_x, INVALID_GNO, INVALID_x], each wrapping the position of its
+        // slot and collateral inside the parent's answer 2.
+        uint256[6] memory slots = [uint256(0), 1, 0, 1, 2, 2];
+        bool[6] memory isFirst = [true, true, false, false, true, false];
+        for (uint256 i = 0; i < 6; i++) {
+            (IERC20 token, bytes memory data) = child.wrappedOutcome(i);
+            uint256 tokenId = router.getTokenId(
+                isFirst[i] ? collateralToken1 : collateralToken2, otherCollection, child.conditionId(), 1 << slots[i]
+            );
+            assertEq(
+                address(IWrapped1155Factory(wrapped1155Factory).requireWrapped1155(conditionalTokens, tokenId, data)),
+                address(token)
+            );
+        }
+    }
+
+    /// Collateral -> parent tokens -> child tokens and back, with different amounts per collateral so that using the
+    /// parent token of the other collateral shows up in the balances.
+    function test_child_splitMergeAndRedeemBothCollaterals() public {
+        FutarchyProposal parent = createProposal(3);
+        FutarchyProposal child = FutarchyProposal(factory.createProposal(childParams(parent, 2)));
+        IERC20 other1 = wrapped(parent, router.getWrappedIndex(3, true, 2));
+        IERC20 other2 = wrapped(parent, router.getWrappedIndex(3, false, 2));
+
+        deal(address(collateralToken1), user, 10 ether);
+        deal(address(collateralToken2), user, 7 ether);
+
+        vm.startPrank(user);
+        collateralToken1.approve(address(router), 10 ether);
+        collateralToken2.approve(address(router), 7 ether);
+        router.splitPosition(parent, collateralToken1, 10 ether);
+        router.splitPosition(parent, collateralToken2, 7 ether);
+        for (uint256 i = 0; i < 8; i++) {
+            wrapped(parent, i).approve(address(router), type(uint256).max);
+        }
+        for (uint256 i = 0; i < 6; i++) {
+            wrapped(child, i).approve(address(router), type(uint256).max);
+        }
+
+        router.splitPosition(child, collateralToken1, 4 ether);
+        router.splitPosition(child, collateralToken2, 3 ether);
+        vm.stopPrank();
+
+        assertEq(other1.balanceOf(user), 6 ether);
+        assertEq(other2.balanceOf(user), 4 ether);
+        for (uint256 j = 0; j <= 2; j++) {
+            assertEq(wrapped(child, router.getWrappedIndex(2, true, j)).balanceOf(user), 4 ether);
+            assertEq(wrapped(child, router.getWrappedIndex(2, false, j)).balanceOf(user), 3 ether);
+        }
+
+        vm.startPrank(user);
+        router.mergePositions(child, collateralToken1, 1 ether);
+        router.mergePositions(child, collateralToken2, 2 ether);
+        vm.stopPrank();
+        assertEq(other1.balanceOf(user), 7 ether);
+        assertEq(other2.balanceOf(user), 6 ether);
+
+        // "Other" wins the parent and "Candidate D" the child.
+        resolve(parent, bytes32(uint256(2)));
+        resolve(child, bytes32(uint256(0)));
+
+        vm.startPrank(user);
+        router.redeemProposal(child, 3 ether, 1 ether);
+        assertEq(other1.balanceOf(user), 10 ether);
+        assertEq(other2.balanceOf(user), 7 ether);
+        router.redeemProposal(parent, 10 ether, 7 ether);
+        vm.stopPrank();
+
+        assertEq(collateralToken1.balanceOf(user), 10 ether);
+        assertEq(collateralToken2.balanceOf(user), 7 ether);
+        assertEq(other1.balanceOf(user), 0);
+        assertEq(other2.balanceOf(user), 0);
+    }
+
+    function test_child_rejectsBadParent() public {
+        FutarchyProposal parent = createProposal(3);
+
+        FutarchyCategoricalFactory.CreateProposalParams memory params = childParams(parent, 3);
+        vm.expectRevert("Invalid parent outcome");
+        factory.createProposal(params);
+
+        params = childParams(parent, 2);
+        params.collateralToken2 = IERC20(0xaf204776c7245bF4147c2612BF6e5972Ee483701);
+        vm.expectRevert("Parent collateral mismatch");
         factory.createProposal(params);
     }
 }
