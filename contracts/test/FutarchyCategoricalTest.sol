@@ -443,6 +443,100 @@ contract FutarchyCategoricalTest is Test {
         assertEq(other2.balanceOf(user), 0);
     }
 
+    /// A parent with 3 answers and a child on its "Other" (answer 2): `user` splits 10 of each collateral in the
+    /// parent and 4 of each "Other" token in the child.
+    function splitIntoChild() internal returns (FutarchyProposal parent, FutarchyProposal child) {
+        parent = createProposal(3);
+        child = FutarchyProposal(factory.createProposal(childParams(parent, 2)));
+
+        deal(address(collateralToken1), user, 10 ether);
+        deal(address(collateralToken2), user, 10 ether);
+
+        vm.startPrank(user);
+        collateralToken1.approve(address(router), 10 ether);
+        collateralToken2.approve(address(router), 10 ether);
+        router.splitPosition(parent, collateralToken1, 10 ether);
+        router.splitPosition(parent, collateralToken2, 10 ether);
+        for (uint256 i = 0; i < 8; i++) {
+            wrapped(parent, i).approve(address(router), type(uint256).max);
+        }
+        for (uint256 i = 0; i < 6; i++) {
+            wrapped(child, i).approve(address(router), type(uint256).max);
+        }
+        router.splitPosition(child, collateralToken1, 4 ether);
+        router.splitPosition(child, collateralToken2, 4 ether);
+        vm.stopPrank();
+    }
+
+    /// "Other" wins the parent and the child resolves Invalid: the child's INVALID tokens pay the parent's "Other"
+    /// tokens, which pay the collateral; the child's answers pay nothing.
+    function test_child_invalidPaysParentOther() public {
+        (FutarchyProposal parent, FutarchyProposal child) = splitIntoChild();
+        IERC20 other1 = wrapped(parent, router.getWrappedIndex(3, true, 2));
+        IERC20 other2 = wrapped(parent, router.getWrappedIndex(3, false, 2));
+        assertEq(other1.balanceOf(user), 6 ether);
+
+        resolve(parent, bytes32(uint256(2)));
+        resolve(child, INVALID_RESULT);
+
+        bool[] memory winners = router.getWinningOutcomes(child.conditionId());
+        assertEq(winners.length, 3);
+        assertFalse(winners[0]);
+        assertFalse(winners[1]);
+        assertTrue(winners[2]);
+
+        vm.startPrank(user);
+        router.redeemProposal(child, 4 ether, 4 ether);
+        assertEq(other1.balanceOf(user), 10 ether);
+        assertEq(other2.balanceOf(user), 10 ether);
+        router.redeemProposal(parent, 10 ether, 10 ether);
+        vm.stopPrank();
+
+        assertEq(collateralToken1.balanceOf(user), 10 ether);
+        assertEq(collateralToken2.balanceOf(user), 10 ether);
+        // The child's answers, "Candidate D" and "Other", are still held and worth nothing.
+        for (uint256 j = 0; j < 2; j++) {
+            assertEq(wrapped(child, router.getWrappedIndex(2, true, j)).balanceOf(user), 4 ether);
+            assertEq(wrapped(child, router.getWrappedIndex(2, false, j)).balanceOf(user), 4 ether);
+        }
+        assertEq(wrapped(child, router.getWrappedIndex(2, true, 2)).balanceOf(user), 0);
+    }
+
+    /// A candidate of the parent wins: the child's winning answer only pays the parent's "Other" tokens, which pay
+    /// nothing. A holder of only child tokens gets no collateral back.
+    function test_child_worthlessWhenParentAnswerLoses() public {
+        (FutarchyProposal parent, FutarchyProposal child) = splitIntoChild();
+        IERC20 other1 = wrapped(parent, router.getWrappedIndex(3, true, 2));
+
+        // The user keeps only the child's tokens (and the parent's "Other" left over), as a trader who bought them.
+        vm.startPrank(user);
+        for (uint256 j = 0; j <= 3; j++) {
+            if (j == 2) continue;
+            wrapped(parent, router.getWrappedIndex(3, true, j)).transfer(address(0xdead), 10 ether);
+            wrapped(parent, router.getWrappedIndex(3, false, j)).transfer(address(0xdead), 10 ether);
+        }
+        vm.stopPrank();
+
+        resolve(parent, bytes32(uint256(0)));
+        resolve(child, bytes32(uint256(0)));
+
+        bool[] memory winners = router.getWinningOutcomes(parent.conditionId());
+        assertTrue(winners[0]);
+        assertFalse(winners[2]);
+
+        // "Candidate D" won the child and still redeems, into the parent's "Other"...
+        vm.startPrank(user);
+        router.redeemProposal(child, 4 ether, 4 ether);
+        assertEq(other1.balanceOf(user), 10 ether);
+        // ...which the parent does not pay: redeeming takes the winning answer's tokens, which the user has none of.
+        vm.expectRevert();
+        router.redeemProposal(parent, 10 ether, 0);
+        vm.stopPrank();
+
+        assertEq(collateralToken1.balanceOf(user), 0);
+        assertEq(collateralToken2.balanceOf(user), 0);
+    }
+
     function test_child_rejectsBadParent() public {
         FutarchyProposal parent = createProposal(3);
 
