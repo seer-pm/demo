@@ -82,7 +82,7 @@ const config: HardhatUserConfig = {
     },
     ethereum: {
       chainId: 1,
-      url: "https://mainnet.gateway.tenderly.co",
+      url: process.env.ETHEREUM_RPC || "https://mainnet.gateway.tenderly.co",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
       saveDeployments: true,
     },
