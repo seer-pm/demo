@@ -2,9 +2,22 @@ import { getQuestionParts } from "@seer-pm/sdk";
 import { Market, MarketTypes, Question, getMarketType } from "@seer-pm/sdk";
 import { REALITY_TEMPLATE_MULTIPLE_SELECT, REALITY_TEMPLATE_SINGLE_SELECT, REALITY_TEMPLATE_UINT } from "@seer-pm/sdk";
 import { INVALID_RESULT_OUTCOME_TEXT } from "@seer-pm/sdk";
-import { encodeQuestionText, isMarketReliable } from "@seer-pm/sdk";
-import { zeroAddress, zeroHash } from "viem";
+import { encodeQuestionText, getReportedAnswerText, isMarketReliable } from "@seer-pm/sdk";
+import { numberToHex, zeroAddress, zeroHash } from "viem";
 import { describe, expect, it } from "vitest";
+
+describe("getReportedAnswerText", () => {
+  it("decodes high-bit multi-select answers and handles out-of-range single-select answers", () => {
+    const answer = numberToHex(1n << 100n, { size: 32 });
+    const outcomes = Array.from({ length: 101 }, (_, index) => `Outcome ${index}`);
+    expect(getReportedAnswerText(answer, outcomes, REALITY_TEMPLATE_MULTIPLE_SELECT, "Unknown answer")).toBe(
+      "Outcome 100",
+    );
+    expect(getReportedAnswerText(answer, outcomes, REALITY_TEMPLATE_SINGLE_SELECT, "Unknown answer")).toBe(
+      "Unknown answer",
+    );
+  });
+});
 
 const createMinimalMarket = (overrides: Partial<Market>): Market => {
   return {

@@ -1,10 +1,16 @@
 import Button from "@/components/Form/Button";
 import Select from "@/components/Form/Select";
 import { useArbitrationRequest } from "@/hooks/useArbitrationRequest";
+import { useGlobalState } from "@/hooks/useGlobalState";
+import { useSignIn } from "@/hooks/useSignIn";
 import { useSubmitAnswer } from "@/hooks/useSubmitAnswer";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { getConfigNumber } from "@/lib/config";
 import { answerFormSchema } from "@/lib/hookform-resolvers";
+import { queryClient } from "@/lib/query-client";
+import { REALITY_EVIDENCE_LIMIT, findRealityAnswer, realityEvidencePath } from "@/lib/reality-evidence";
+import { toastError } from "@/lib/toastify";
+import { isAccessTokenExpired } from "@/lib/utils";
 import { config } from "@/wagmi";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import {
@@ -25,10 +31,20 @@ import {
   REALITY_TEMPLATE_UINT,
   isScalarBoundInWei,
 } from "@seer-pm/sdk";
-import { switchChain } from "@wagmi/core";
+import { useMutation } from "@tanstack/react-query";
+import { getPublicClient, getTransactionReceipt, switchChain } from "@wagmi/core";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { formatUnits, hexToNumber, parseEther } from "viem";
+import {
+  type Address,
+  type Hex,
+  type TransactionReceipt,
+  formatUnits,
+  hexToNumber,
+  isAddressEqual,
+  parseEther,
+} from "viem";
 import { useAccount, useBalance } from "wagmi";
 import { Alert } from "../Alert";
 import Input from "../Form/Input";
@@ -46,6 +62,14 @@ interface AnswerFormProps {
   closeModal: () => void;
   raiseDispute: () => void;
 }
+
+type PendingEvidence = {
+  transactionHash: Hex;
+  answer: Hex;
+  author: Address;
+  body: string;
+  confirmed: boolean;
+};
 
 // NOTE about scalarBoundInWei:
 // It's a temporary fix for backwards compatibility.
@@ -113,27 +137,161 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
 
   const {
     register,
-    reset,
-    formState: { isValid },
+    formState: { isValid, isSubmitting },
     handleSubmit,
     setValue,
   } = useFormReturn;
 
   const [outcomes, answerType] = useFormReturn.watch(["outcomes", "answerType"]);
 
-  const submitAnswer = useSubmitAnswer((/*receipt: TransactionReceipt*/) => {
-    reset();
-  });
+  const submitAnswer = useSubmitAnswer();
+  const signIn = useSignIn();
+  const [evidence, setEvidence] = useState("");
+  const [pendingEvidence, setPendingEvidence] = useState<PendingEvidence>();
 
-  const onSubmit = async (values: AnswerFormValues) => {
-    await submitAnswer.mutateAsync({
-      questionId: question.id,
-      outcome: formatOutcome(getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound))),
-      currentBond: currentBond,
-      chainId: market.chainId,
+  /** Saves the note, prompting for Seer sign-in if the current session cannot authorize it. */
+  async function saveConfirmedEvidence(pending: PendingEvidence) {
+    if (!address || !isAddressEqual(address, pending.author) || connectedChainId !== market.chainId) {
+      throw new Error("Connect the wallet and network that submitted the answer to save evidence.");
+    }
+
+    const url = realityEvidencePath(market.chainId, question.id);
+    const body = JSON.stringify({
+      transactionHash: pending.transactionHash,
+      answer: pending.answer,
+      body: pending.body,
+    });
+    /** Sends the evidence with the current Seer session. */
+    const send = (token: string) =>
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body,
+      });
+
+    const token = useGlobalState.getState().accessToken;
+    let response = isAccessTokenExpired(token) ? undefined : await send(token);
+    if (!response || response.status === 401 || response.status === 403) {
+      const session = await signIn.mutateAsync({
+        address: pending.author,
+        chainId: market.chainId,
+      });
+      response = await send(session.token);
+    }
+    if (!response.ok) throw new Error("Couldn’t save evidence.");
+
+    void queryClient.invalidateQueries({
+      queryKey: ["realityAnswerHistory", market.chainId, question.id],
     });
     closeModal();
-  };
+  }
+
+  /** Saves evidence only when the receipt contains the exact answer submitted by this wallet. */
+  async function finishEvidence(receipt: TransactionReceipt, pending: PendingEvidence) {
+    if (!findRealityAnswer(receipt, market.chainId, question.id, pending.answer, pending.author)) {
+      setPendingEvidence(undefined);
+      toastError({
+        title: "The transaction did not submit this Reality answer.",
+      });
+      return;
+    }
+    const confirmed = {
+      ...pending,
+      confirmed: true,
+      transactionHash: receipt.transactionHash,
+    };
+    setPendingEvidence(confirmed);
+    await saveConfirmedEvidence(confirmed);
+  }
+
+  /** Checks an unconfirmed transaction or retries only the evidence write after confirmation. */
+  async function retryEvidence(pending: PendingEvidence) {
+    if (pending.confirmed) return saveConfirmedEvidence(pending);
+    const client = getPublicClient(config, { chainId: market.chainId });
+    if (!client) throw new Error("The answer network is unavailable.");
+    const receipt = await client.waitForTransactionReceipt({
+      hash: pending.transactionHash,
+      timeout: 8_000,
+    });
+    if (receipt.status === "success") void queryClient.invalidateQueries({ queryKey: ["useMarket"] });
+    return finishEvidence(receipt, pending);
+  }
+
+  const retry = useMutation({ mutationFn: retryEvidence });
+
+  /** Reports the answer and saves optional context after the Reality transaction confirms. */
+  async function onSubmit(values: AnswerFormValues) {
+    if (!address || pendingEvidence) return;
+    const answer = formatOutcome(getOutcome(market.templateId, values, isScalarBoundInWei(market.upperBound)));
+    const body = evidence.trim();
+    let transactionHash: Hex | undefined;
+    let receipt: TransactionReceipt | undefined;
+    try {
+      receipt = await submitAnswer.mutateAsync({
+        questionId: question.id,
+        outcome: answer,
+        currentBond,
+        chainId: market.chainId,
+        onTransactionHash: body
+          ? (hash) => {
+              transactionHash = hash;
+            }
+          : undefined,
+      });
+      if (!body) return closeModal();
+    } catch {
+      if (!transactionHash) return;
+      receipt = await getTransactionReceipt(config, {
+        hash: transactionHash,
+        chainId: market.chainId,
+      }).catch(() => undefined);
+      if (receipt?.status === "success") void queryClient.invalidateQueries({ queryKey: ["useMarket"] });
+    }
+
+    const hash = receipt?.transactionHash ?? transactionHash;
+    if (!hash) return;
+    const pending = {
+      transactionHash: hash,
+      answer,
+      author: address,
+      body,
+      confirmed: false,
+    };
+    if (!receipt) setPendingEvidence(pending);
+    else await finishEvidence(receipt, pending).catch(() => undefined);
+  }
+
+  if (pendingEvidence) {
+    const busy = isSubmitting || retry.isPending;
+    const canSave = address && isAddressEqual(address, pendingEvidence.author) && connectedChainId === market.chainId;
+    return (
+      <div className="space-y-4">
+        <Alert type="info">
+          {pendingEvidence.confirmed
+            ? busy
+              ? "Answer submitted. Saving evidence…"
+              : "Answer submitted. Evidence couldn’t be saved."
+            : "Waiting for Reality to confirm your answer."}
+        </Alert>
+        {pendingEvidence.confirmed && !canSave && <p>Connect the wallet and network that submitted the answer.</p>}
+        {retry.isError && !pendingEvidence.confirmed && <p>The transaction couldn’t be confirmed yet.</p>}
+        <div className="flex flex-wrap justify-center gap-4">
+          <Button type="button" variant="secondary" text="Close without saving" onClick={closeModal} disabled={busy} />
+          <Button
+            type="button"
+            variant="primary"
+            text={pendingEvidence.confirmed ? "Retry saving evidence" : "Check transaction"}
+            disabled={busy || (pendingEvidence.confirmed && !canSave)}
+            isLoading={busy}
+            onClick={() => retry.mutate(pendingEvidence)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (!address) {
     return (
@@ -226,6 +384,8 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
       }
     };
   };
+
+  const lockEvidenceDraft = isSubmitting && evidence.trim().length > 0;
 
   //marketStatus === MarketStatus.OPEN || marketStatus === MarketStatus.ANSWER_NOT_FINAL;
   return (
@@ -333,16 +493,35 @@ export function AnswerForm({ market, marketStatus, question, closeModal, raiseDi
         </label>
       )}
 
+      <label className="mt-4 block">
+        <span className="mb-2 block">Evidence or context (optional)</span>
+        <textarea
+          className="textarea textarea-bordered w-full"
+          placeholder="Explain your answer or paste source links"
+          maxLength={REALITY_EVIDENCE_LIMIT}
+          rows={3}
+          value={evidence}
+          disabled={isSubmitting}
+          onChange={(event) => setEvidence(event.target.value)}
+        />
+        <span className="text-sm">Evidence is public and may require a wallet sign-in.</span>
+      </label>
       <div className="flex justify-center space-x-[24px] text-center mt-[32px]">
-        <Button type="button" variant="secondary" text="Return" onClick={closeModal} />
+        <Button type="button" variant="secondary" text="Return" onClick={closeModal} disabled={lockEvidenceDraft} />
         {question.finalize_ts > 0 && (
-          <Button variant="primary" type="button" onClick={raiseDispute} text="Raise a Dispute" />
+          <Button
+            variant="primary"
+            type="button"
+            onClick={raiseDispute}
+            text="Raise a Dispute"
+            disabled={lockEvidenceDraft}
+          />
         )}
         <Button
           variant="primary"
           type="submit"
-          disabled={!isValid || !hasEnoughBalance || submitAnswer.isPending || !address}
-          isLoading={submitAnswer.isPending}
+          disabled={!isValid || !hasEnoughBalance || isSubmitting || !address}
+          isLoading={isSubmitting}
           text="Answer"
         />
       </div>

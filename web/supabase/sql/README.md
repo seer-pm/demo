@@ -30,6 +30,7 @@ multi-statement scripts in one, so run those statements individually.
 | `tokens_transfers_indexes.sql` | `(chain_id, from, timestamp)` and `(chain_id, to, timestamp)` for wallet-scoped `tokens_transfers` scans (airdrop / transfers queries). |
 | `users_username.sql` | Adds the optional unique wallet-linked username column and validation constraints. |
 | `users_x_account.sql` | Adds the OAuth-verified X account columns (`x_user_id` unique, `x_account` handle) and their constraints. |
+| `reality_answer_evidence.sql` | Creates the server-only table for notes linked to Reality answer submissions. Apply once before enabling evidence writes on the next Netlify deploy. |
 | `markets_volume.sql` | Adds `markets.volume_usd` (cash) and `markets.volume_notional_usd` (notional): lifetime DEX swap volume in USD, written by `batch-odds-background` next to `liquidity`. Also the runbook for recreating the `markets_search` view so the columns show up in `markets-search`. See "Apply for market volume". |
 
 Analytics matview RPC `refresh_market_outcome_tokens` lives in
