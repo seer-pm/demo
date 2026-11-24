@@ -1,5 +1,7 @@
+import { DisplayName } from "@/components/DisplayName";
 import Button from "@/components/Form/Button";
 import { useModal } from "@/hooks/useModal";
+import { usePublicUser } from "@/hooks/usePublicUser";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { formatDate } from "@/lib/date";
 import { type RealityAnswerHistoryEntry, realityEvidencePath } from "@/lib/reality-evidence";
@@ -34,6 +36,12 @@ function renderEvidence(text: string): ReactNode[] {
   return content;
 }
 
+/** Displays the answerer's wallet identity using Seer's standard name fallback. */
+function AnswerAuthor({ address }: { address: RealityAnswerHistoryEntry["user"] }) {
+  const { data: user } = usePublicUser({ address });
+  return <DisplayName address={address} username={user?.username} />;
+}
+
 /** Shows the selected Reality question's submissions and their evidence. */
 function AnswerHistory({ market, question }: { market: Market; question: Question }) {
   const { data, isPending, isError, refetch } = useQuery({
@@ -59,7 +67,11 @@ function AnswerHistory({ market, question }: { market: Market; question: Questio
         <ol className="divide-y divide-base-300">
           {entries.map((entry) => {
             const isArbitrationDecision = entry.bond === "0";
-            const transactionLabel = isArbitrationDecision ? "Arbitration decision" : entry.user;
+            const transactionLabel = isArbitrationDecision ? (
+              "Arbitration decision"
+            ) : (
+              <AnswerAuthor address={entry.user} />
+            );
             return (
               <li key={entry.id} className="space-y-2 py-3">
                 <div className="font-semibold">
@@ -74,11 +86,7 @@ function AnswerHistory({ market, question }: { market: Market; question: Questio
                       target="_blank"
                       rel="noreferrer"
                       className="text-purple-primary underline"
-                      aria-label={
-                        isArbitrationDecision
-                          ? "View arbitration decision transaction"
-                          : `View answer transaction by ${entry.user}`
-                      }
+                      aria-label={isArbitrationDecision ? "View arbitration decision transaction" : undefined}
                     >
                       {transactionLabel}
                     </a>
