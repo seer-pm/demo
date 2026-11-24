@@ -298,12 +298,13 @@ export function getAnswerText(
   return getReportedAnswerText(question.best_answer, outcomes, template, noAnswerText);
 }
 
-/** Formats a Reality answer value for its template. */
+/** Formats a Reality answer value using the market's scalar units when supplied. */
 export function getReportedAnswerText(
   answer: `0x${string}`,
   outcomes: readonly string[],
   template: number,
   noAnswerText: string,
+  scalarBoundInWei?: boolean,
 ): string {
   if (answer === INVALID_RESULT) {
     return "Invalid result";
@@ -314,7 +315,8 @@ export function getReportedAnswerText(
   }
 
   if (template === REALITY_TEMPLATE_UINT) {
-    return isScalarBoundInWei(BigInt(answer)) ? formatEther(BigInt(answer)) : BigInt(answer).toString();
+    const value = BigInt(answer);
+    return (scalarBoundInWei ?? isScalarBoundInWei(value)) ? formatEther(value) : value.toString();
   }
 
   const outcomeIndex = hexToNumber(answer);

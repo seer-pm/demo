@@ -5,7 +5,7 @@ import { usePublicUser } from "@/hooks/usePublicUser";
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { formatDate } from "@/lib/date";
 import { type RealityAnswerHistoryEntry, realityEvidencePath } from "@/lib/reality-evidence";
-import { type Market, type Question, getRealityLink, getReportedAnswerText } from "@seer-pm/sdk";
+import { type Market, type Question, getRealityLink, getReportedAnswerText, isScalarBoundInWei } from "@seer-pm/sdk";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { formatEther } from "viem";
@@ -57,6 +57,7 @@ function AnswerHistory({ market, question }: { market: Market; question: Questio
   const entries = data?.entries ?? [];
   const chain = SUPPORTED_CHAINS[market.chainId];
   const explorer = chain?.blockExplorers?.default.url;
+  const scalarBoundInWei = isScalarBoundInWei(market.upperBound);
 
   return (
     <div className="space-y-4">
@@ -76,7 +77,13 @@ function AnswerHistory({ market, question }: { market: Market; question: Questio
               <li key={entry.id} className="space-y-2 py-3">
                 <div className="font-semibold">
                   {entry.answer
-                    ? getReportedAnswerText(entry.answer, market.outcomes, Number(market.templateId), "Unknown answer")
+                    ? getReportedAnswerText(
+                        entry.answer,
+                        market.outcomes,
+                        Number(market.templateId),
+                        "Unknown answer",
+                        scalarBoundInWei,
+                      )
                     : "Unrevealed commitment"}
                 </div>
                 <div className="break-words text-sm">
