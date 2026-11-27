@@ -295,23 +295,33 @@ export function getAnswerText(
     return noAnswerText;
   }
 
-  if (question.best_answer === INVALID_RESULT) {
+  return getReportedAnswerText(question.best_answer, outcomes, template, noAnswerText);
+}
+
+/** Formats a Reality answer value using the market's scalar units when supplied. */
+export function getReportedAnswerText(
+  answer: `0x${string}`,
+  outcomes: readonly string[],
+  template: number,
+  noAnswerText: string,
+  scalarBoundInWei?: boolean,
+): string {
+  if (answer === INVALID_RESULT) {
     return "Invalid result";
   }
 
-  if (question.best_answer === ANSWERED_TOO_SOON) {
+  if (answer === ANSWERED_TOO_SOON) {
     return "Answered too soon";
   }
 
   if (template === REALITY_TEMPLATE_UINT) {
-    return isScalarBoundInWei(BigInt(question.best_answer))
-      ? formatEther(BigInt(question.best_answer))
-      : BigInt(question.best_answer).toString();
+    const value = BigInt(answer);
+    return (scalarBoundInWei ?? isScalarBoundInWei(value)) ? formatEther(value) : value.toString();
   }
 
-  const outcomeIndex = hexToNumber(question.best_answer);
+  const outcomeIndex = hexToNumber(answer);
   if (template === REALITY_TEMPLATE_MULTIPLE_SELECT) {
-    return getMultiSelectAnswers(BigInt(question.best_answer))
+    return getMultiSelectAnswers(BigInt(answer))
       .map((answer) => outcomes[answer] || noAnswerText)
       .join(", ");
   }

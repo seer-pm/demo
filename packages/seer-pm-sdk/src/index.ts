@@ -104,6 +104,7 @@ export {
   formatOutcome,
   getAnswerText,
   getAnswerTextFromMarket,
+  getReportedAnswerText,
   getCurrentBond,
   getMultiSelectAnswers,
   getQuestionStatus,

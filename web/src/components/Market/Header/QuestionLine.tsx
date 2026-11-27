@@ -18,6 +18,7 @@ import {
   isFinalized,
 } from "@seer-pm/sdk";
 import clsx from "clsx";
+import { AnswerHistoryButton } from "../AnswerHistory";
 import { COLORS } from "./index.ts";
 
 function AnswerColumn({
@@ -56,6 +57,7 @@ function AnswerColumn({
           Answer: {getAnswerTextFromMarket(question, market)}
         </div>
       )}
+      {!isPreview && question.finalize_ts > 0 && <AnswerHistoryButton market={market} question={question} />}
     </div>
   );
 }

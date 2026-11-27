@@ -11,16 +11,21 @@ interface SubmitAnswerProps {
   outcome: `0x${string}`;
   currentBond: bigint;
   chainId: SupportedChain;
+  onTransactionHash?: (hash: `0x${string}`) => void;
 }
 
+/** Submits the bonded answer and exposes its hash while confirmation is pending. */
 async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceipt> {
   const result = await toastifyTx(
-    () =>
-      writeRealitySubmitAnswer(config, {
+    async () => {
+      const hash = await writeRealitySubmitAnswer(config, {
         args: [props.questionId, props.outcome, props.currentBond],
         value: props.currentBond,
         chainId: props.chainId,
-      }),
+      });
+      props.onTransactionHash?.(hash);
+      return hash;
+    },
     {
       txSent: { title: "Sending answer..." },
       txSuccess: { title: "Answer sent!" },
@@ -34,12 +39,15 @@ async function submitAnswer(props: SubmitAnswerProps): Promise<TransactionReceip
   return result.receipt;
 }
 
-export const useSubmitAnswer = (onSuccess: (data: TransactionReceipt) => unknown) => {
+/** Refreshes the market after a Reality submission confirms. */
+export const useSubmitAnswer = () => {
   return useMutation({
     mutationFn: submitAnswer,
-    onSuccess: (data: TransactionReceipt) => {
+    onSuccess: (data, { chainId, questionId }) => {
       queryClient.invalidateQueries({ queryKey: ["useMarket"] });
-      onSuccess(data);
+      if (data.status === "success") {
+        queryClient.invalidateQueries({ queryKey: ["realityAnswerHistory", chainId, questionId] });
+      }
     },
   });
 };
